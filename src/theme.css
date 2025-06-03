@@ -1,0 +1,11 @@
+:root {
+  --color-dark-blue: #0B3A4E;
+  --color-light-teal: #34C3A1;
+  --color-mid-teal: #1B7A85;
+  --color-bg: #FAF9F6;
+}
+body {
+  background: var(--color-bg);
+  color: var(--color-dark-blue);
+  font-family: 'Inter', Arial, sans-serif;
+} 
