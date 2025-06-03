@@ -49,6 +49,12 @@ const SignupForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    if (formData.password.length < 8) {
+      setError('Şifre en az 8 karakterden oluşmalıdır.');
+      return;
+    }
+
     setLoading(true);
 
     try {
