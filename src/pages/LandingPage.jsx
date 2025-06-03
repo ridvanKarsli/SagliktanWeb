@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -8,30 +8,11 @@ import {
   Grid,
   useTheme,
   useMediaQuery,
-  AppBar,
-  Toolbar,
-  IconButton,
-  Avatar,
 } from '@mui/material';
 import PeopleIcon from '@mui/icons-material/People';
 import MedicalServicesIcon from '@mui/icons-material/MedicalServices';
 import PsychologyIcon from '@mui/icons-material/Psychology';
-import SmartToyIcon from '@mui/icons-material/SmartToy';
 import { styled } from '@mui/material/styles';
-
-const StyledAppBar = styled(AppBar)(({ theme }) => ({
-  backgroundColor: 'white',
-  boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.05)',
-}));
-
-const HeaderButton = styled(Button)(({ theme }) => ({
-  color: theme.palette.primary.main,
-  textTransform: 'none',
-  fontWeight: 500,
-  '&:hover': {
-    backgroundColor: 'rgba(11, 58, 78, 0.04)',
-  },
-}));
 
 const FeatureCard = styled(Box)(({ theme }) => ({
   padding: theme.spacing(4),
@@ -56,46 +37,6 @@ const LandingPage = () => {
 
   return (
     <Box sx={{ bgcolor: 'background.default' }}>
-      {/* Header */}
-      <StyledAppBar position="fixed">
-        <Toolbar>
-          <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
-            <img
-              src="/sagliktanLogo.png"
-              alt="Sağlıktan Logo"
-              style={{ height: '40px', marginRight: '16px' }}
-            />
-          </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <HeaderButton
-              startIcon={<SmartToyIcon />}
-              onClick={() => navigate('/ai-chat')}
-            >
-              AI ile Konuş
-            </HeaderButton>
-            <IconButton
-              sx={{
-                width: 40,
-                height: 40,
-                border: '2px solid',
-                borderColor: 'primary.main',
-              }}
-            >
-              <Avatar
-                sx={{
-                  width: 36,
-                  height: 36,
-                  bgcolor: 'primary.main',
-                }}
-              >
-                U
-              </Avatar>
-            </IconButton>
-          </Box>
-        </Toolbar>
-      </StyledAppBar>
-      <Toolbar /> {/* Spacer for fixed header */}
-
       {/* Hero Section */}
       <Box
         sx={{
@@ -197,10 +138,7 @@ const LandingPage = () => {
             <Grid item xs={12} sm={6} md={4} key={index}>
               <FeatureCard>
                 {feature.icon}
-                <Typography
-                  variant="h6"
-                  sx={{ mt: 2, mb: 1, fontWeight: 600, color: 'primary.main' }}
-                >
+                <Typography variant="h6" sx={{ fontWeight: 600, mt: 3, mb: 1 }}>
                   {feature.title}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">

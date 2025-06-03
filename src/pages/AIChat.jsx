@@ -25,7 +25,9 @@ const AIChat = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [message, setMessage] = useState('');
-  const [chatHistory, setChatHistory] = useState([]);
+  const [chatHistory, setChatHistory] = useState([
+    { type: 'ai', content: 'Merhaba! Ben Sağlıktan AI. Size nasıl yardımcı olabilirim?' },
+  ]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const messagesEndRef = useRef(null);
@@ -69,16 +71,36 @@ const AIChat = () => {
       <Header />
 
       {/* Chat Container */}
-      <Box sx={{ flexGrow: 1, py: 4, px: { xs: 2, sm: 4 }, pb: isMobile ? 8 : 4 }}>
-        <Container maxWidth="md" sx={{ height: 'calc(100vh - 120px)', display: 'flex', flexDirection: 'column' }}>
+      <Box
+        sx={{
+          flexGrow: 1,
+          py: { xs: 0, sm: 4 },
+          px: { xs: 0, sm: 4 },
+          pb: isMobile ? 0 : 4,
+          display: 'flex',
+          flexDirection: 'column',
+          height: isMobile ? 'calc(100vh - 120px)' : 'auto',
+        }}
+      >
+        <Container
+          maxWidth="md"
+          sx={{
+            flexGrow: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            height: isMobile ? '100%' : 'auto',
+          }}
+        >
           <Paper
             elevation={3}
             sx={{
               flexGrow: 1,
               display: 'flex',
               flexDirection: 'column',
-              borderRadius: 2,
+              borderRadius: 0,
+              boxShadow: 'none',
               overflow: 'hidden',
+              height: '100%',
             }}
           >
             {/* Chat Header */}
@@ -184,7 +206,7 @@ const AIChat = () => {
       </Box>
 
       <Footer />
-      <BottomNav />
+      {isMobile && <BottomNav />}
     </Box>
   );
 };
