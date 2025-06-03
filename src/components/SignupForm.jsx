@@ -81,6 +81,13 @@ const SignupForm = () => {
         bgcolor: 'background.paper',
       }}
     >
+      <Box sx={{ textAlign: 'center', mb: 3 }}>
+        <img
+          src="/sagliktanLogo.png"
+          alt="Sağlıktan Logo"
+          style={{ height: '80px', borderRadius: '50%' }}
+        />
+      </Box>
       <Typography variant="h5" sx={{ mb: 3, textAlign: 'center', color: 'primary.main' }}>
         Kayıt Ol
       </Typography>
@@ -121,7 +128,7 @@ const SignupForm = () => {
           required
         >
           <MenuItem value="doctor">Doktor</MenuItem>
-          <MenuItem value="patient">Hasta</MenuItem>
+          <MenuItem value="user">Kullanıcı</MenuItem>
         </Select>
       </FormControl>
 

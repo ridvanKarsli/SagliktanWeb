@@ -55,6 +55,7 @@ const LandingPage = () => {
                 marginBottom: 24,
                 marginLeft: 'auto',
                 marginRight: 'auto',
+                borderRadius: '50%'
               }}
             />
             <Typography

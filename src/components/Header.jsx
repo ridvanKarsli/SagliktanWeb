@@ -13,13 +13,20 @@ import {
   useMediaQuery,
   useTheme,
   Button,
+  Drawer,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
 } from '@mui/material';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import HomeIcon from '@mui/icons-material/Home';
 import LogoutIcon from '@mui/icons-material/Logout';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import SettingsIcon from '@mui/icons-material/Settings';
+import MenuIcon from '@mui/icons-material/Menu';
 import { styled } from '@mui/material/styles';
+import { authService } from '../services/authService';
 
 const StyledAppBar = styled(AppBar)(({ theme }) => ({
   backgroundColor: 'white',
@@ -31,6 +38,7 @@ const Header = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [anchorEl, setAnchorEl] = useState(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const handleMenuOpen = (event) => {
     setAnchorEl(event.currentTarget);
@@ -41,8 +49,22 @@ const Header = () => {
   };
 
   const handleLogout = () => {
+    authService.logout();
     handleMenuClose();
-    navigate('/');
+    navigate('/login');
+  };
+
+  const handleNavigation = (path) => {
+    navigate(path);
+    setDrawerOpen(false);
+    handleMenuClose();
+  };
+
+  const toggleDrawer = (open) => (event) => {
+    if (event.type === 'keydown' && (event.key === 'Tab' || event.key === 'Shift')) {
+      return;
+    }
+    setDrawerOpen(open);
   };
 
   const menuItems = [
@@ -54,11 +76,23 @@ const Header = () => {
     <>
       <StyledAppBar position="fixed">
         <Toolbar sx={{ px: { xs: 2, sm: 4 } }}>
+          {isMobile && (
+            <IconButton
+              size="large"
+              edge="start"
+              color="inherit"
+              aria-label="open drawer"
+              onClick={toggleDrawer(true)}
+              sx={{ mr: 2 }}
+            >
+              <MenuIcon />
+            </IconButton>
+          )}
           <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
             <img
               src="/sagliktanLogo.png"
               alt="Sağlıktan Logo"
-              style={{ height: '40px', marginRight: '24px' }}
+              style={{ height: '40px', marginRight: '24px', borderRadius: '50%' }}
             />
             {!isMobile && (
               <Box sx={{ display: 'flex', gap: 2 }}>
@@ -66,7 +100,7 @@ const Header = () => {
                   <Button
                     key={item.text}
                     startIcon={item.icon}
-                    onClick={() => navigate(item.path)}
+                    onClick={() => handleNavigation(item.path)}
                     sx={{
                       color: 'primary.main',
                       textTransform: 'none',
@@ -108,7 +142,7 @@ const Header = () => {
                   bgcolor: 'primary.main',
                 }}
               >
-                U
+                <AccountCircleIcon sx={{ color: 'white', fontSize: 36 }} />
               </Avatar>
             </IconButton>
           </Box>
@@ -130,24 +164,15 @@ const Header = () => {
           },
         }}
       >
-        <Box sx={{ px: 2, py: 1 }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-            Kullanıcı Adı
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            user@example.com
-          </Typography>
-        </Box>
-        <Divider />
-        <MenuItem onClick={() => navigate('/home')}>
+        <MenuItem onClick={() => handleNavigation('/home')}>
           <HomeIcon sx={{ mr: 2, color: 'primary.main' }} />
           Ana Sayfa
         </MenuItem>
-        <MenuItem onClick={handleMenuClose}>
+        <MenuItem onClick={() => handleNavigation('/profile')}>
           <AccountCircleIcon sx={{ mr: 2, color: 'primary.main' }} />
           Profil
         </MenuItem>
-        <MenuItem onClick={handleMenuClose}>
+        <MenuItem onClick={() => handleNavigation('/settings')}>
           <SettingsIcon sx={{ mr: 2, color: 'primary.main' }} />
           Ayarlar
         </MenuItem>
@@ -157,6 +182,29 @@ const Header = () => {
           Çıkış Yap
         </MenuItem>
       </Menu>
+
+      {/* Mobile Drawer */}
+      <Drawer
+        anchor="left"
+        open={drawerOpen}
+        onClose={toggleDrawer(false)}
+      >
+        <Box
+          sx={{ width: 250 }}
+          role="presentation"
+          onClick={toggleDrawer(false)}
+          onKeyDown={toggleDrawer(false)}
+        >
+          <List>
+            {menuItems.map((item) => (
+              <ListItem button key={item.text} onClick={() => handleNavigation(item.path)}>
+                <ListItemIcon>{item.icon}</ListItemIcon>
+                <ListItemText primary={item.text} />
+              </ListItem>
+            ))}
+          </List>
+        </Box>
+      </Drawer>
     </>
   );
 };

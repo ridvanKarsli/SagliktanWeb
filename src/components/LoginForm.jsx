@@ -53,9 +53,17 @@ const LoginForm = () => {
         p: 3,
         borderRadius: 2,
         boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.1)',
+        bgcolor: 'background.paper',
       }}
     >
-      <Typography variant="h5" sx={{ mb: 3, textAlign: 'center' }}>
+      <Box sx={{ textAlign: 'center', mb: 3 }}>
+        <img
+          src="/sagliktanLogo.png"
+          alt="Sağlıktan Logo"
+          style={{ height: '80px', borderRadius: '50%' }}
+        />
+      </Box>
+      <Typography variant="h5" sx={{ mb: 3, textAlign: 'center', color: 'primary.main' }}>
         Giriş Yap
       </Typography>
 
