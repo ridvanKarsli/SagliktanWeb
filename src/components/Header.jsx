@@ -25,6 +25,7 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import SettingsIcon from '@mui/icons-material/Settings';
 import MenuIcon from '@mui/icons-material/Menu';
+import PostAddIcon from '@mui/icons-material/PostAdd';
 import { styled } from '@mui/material/styles';
 import { authService } from '../services/authService';
 
@@ -70,24 +71,14 @@ const Header = () => {
   const menuItems = [
     { text: 'Ana Sayfa', icon: <HomeIcon />, path: '/home' },
     { text: 'AI ile Konuş', icon: <SmartToyIcon />, path: '/ai-chat' },
+    { text: 'Gönderiler', icon: <PostAddIcon />, path: '/posts' },
   ];
 
   return (
     <>
       <StyledAppBar position="fixed">
         <Toolbar sx={{ px: { xs: 2, sm: 4 } }}>
-          {isMobile && (
-            <IconButton
-              size="large"
-              edge="start"
-              color="inherit"
-              aria-label="open drawer"
-              onClick={toggleDrawer(true)}
-              sx={{ mr: 2 }}
-            >
-              <MenuIcon />
-            </IconButton>
-          )}
+          {/* Mobilde hamburger menü kaldırıldı */}
           <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
             <img
               src="/sagliktanLogo.png"
@@ -164,15 +155,11 @@ const Header = () => {
           },
         }}
       >
-        <MenuItem onClick={() => handleNavigation('/home')}>
-          <HomeIcon sx={{ mr: 2, color: 'primary.main' }} />
-          Ana Sayfa
-        </MenuItem>
-        <MenuItem onClick={() => handleNavigation('/profile')}>
+        <MenuItem onClick={() => {}}>
           <AccountCircleIcon sx={{ mr: 2, color: 'primary.main' }} />
           Profil
         </MenuItem>
-        <MenuItem onClick={() => handleNavigation('/settings')}>
+        <MenuItem onClick={() => {}}>
           <SettingsIcon sx={{ mr: 2, color: 'primary.main' }} />
           Ayarlar
         </MenuItem>
@@ -183,28 +170,7 @@ const Header = () => {
         </MenuItem>
       </Menu>
 
-      {/* Mobile Drawer */}
-      <Drawer
-        anchor="left"
-        open={drawerOpen}
-        onClose={toggleDrawer(false)}
-      >
-        <Box
-          sx={{ width: 250 }}
-          role="presentation"
-          onClick={toggleDrawer(false)}
-          onKeyDown={toggleDrawer(false)}
-        >
-          <List>
-            {menuItems.map((item) => (
-              <ListItem button key={item.text} onClick={() => handleNavigation(item.path)}>
-                <ListItemIcon>{item.icon}</ListItemIcon>
-                <ListItemText primary={item.text} />
-              </ListItem>
-            ))}
-          </List>
-        </Box>
-      </Drawer>
+      {/* Mobilde Drawer kaldırıldı */}
     </>
   );
 };

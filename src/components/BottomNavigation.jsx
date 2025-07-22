@@ -8,6 +8,7 @@ import {
 import { styled } from '@mui/material/styles';
 import HomeIcon from '@mui/icons-material/Home';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
+import PostAddIcon from '@mui/icons-material/PostAdd';
 
 const StyledBottomNavigation = styled(MuiBottomNavigation)(({ theme }) => ({
   position: 'fixed',
@@ -51,6 +52,11 @@ const BottomNav = () => {
         label="AI ile Konuş"
         value="/ai-chat"
         icon={<SmartToyIcon />}
+      />
+      <BottomNavigationAction
+        label="Gönderiler"
+        value="/posts"
+        icon={<PostAddIcon />}
       />
     </StyledBottomNavigation>
   );

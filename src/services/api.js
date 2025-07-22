@@ -37,4 +37,13 @@ api.interceptors.response.use(
   }
 );
 
+/**
+ * Tüm gönderileri getirir
+ * @returns {Promise<Array>} Gönderi listesi
+ */
+export const getAllChats = async () => {
+  const response = await api.get('/chats/getAllChat');
+  return response.data;
+};
+
 export default api; 

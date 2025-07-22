@@ -10,6 +10,7 @@ import {
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import BottomNav from '../components/BottomNavigation';
+import Posts from '../components/Posts';
 
 const Home = () => {
   const navigate = useNavigate();
@@ -28,6 +29,7 @@ const Home = () => {
         <Typography variant="body1" sx={{ textAlign: 'center', color: 'text.secondary', mb: 4 }}>
           Uygulamamızın erken kayıt aşamasında olduğunu ve yakında çok daha gelişmiş özelliklerle aktif olacağını hatırlatmak isteriz. Sağlık alanında devrim yaratacak yeni özellikler için bizi takipte kalın!
         </Typography>
+        {/* <Posts /> kaldırıldı */}
       </Box>
 
       <Footer />

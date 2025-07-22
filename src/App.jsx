@@ -9,6 +9,7 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Home from './pages/Home';
 import AIChat from './pages/AIChat';
+import PostsPage from './pages/PostsPage';
 import {
   Container,
   Box,
@@ -113,6 +114,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <AIChat />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/posts"
+              element={
+                <ProtectedRoute>
+                  <PostsPage />
                 </ProtectedRoute>
               }
             />
