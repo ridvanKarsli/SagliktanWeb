@@ -6,9 +6,10 @@ import {
   useTheme,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
-import HomeIcon from '@mui/icons-material/Home';
-import SmartToyIcon from '@mui/icons-material/SmartToy';
-import PostAddIcon from '@mui/icons-material/PostAdd';
+import HomeRoundedIcon from '@mui/icons-material/HomeRounded';
+import PsychologyAltRoundedIcon from '@mui/icons-material/PsychologyAltRounded';
+import DynamicFeedRoundedIcon from '@mui/icons-material/DynamicFeedRounded';
+import ManageSearchRoundedIcon from '@mui/icons-material/ManageSearchRounded';
 
 const StyledBottomNavigation = styled(MuiBottomNavigation)(({ theme }) => ({
   position: 'fixed',
@@ -46,17 +47,22 @@ const BottomNav = () => {
       <BottomNavigationAction
         label="Ana Sayfa"
         value="/home"
-        icon={<HomeIcon />}
+        icon={<HomeRoundedIcon />}
       />
       <BottomNavigationAction
         label="AI ile Konuş"
         value="/ai-chat"
-        icon={<SmartToyIcon />}
+        icon={<PsychologyAltRoundedIcon />}
       />
       <BottomNavigationAction
         label="Gönderiler"
         value="/posts"
-        icon={<PostAddIcon />}
+        icon={<DynamicFeedRoundedIcon />}
+      />
+      <BottomNavigationAction
+        label="Kişi Ara"
+        value="/search-user"
+        icon={<ManageSearchRoundedIcon />}
       />
     </StyledBottomNavigation>
   );

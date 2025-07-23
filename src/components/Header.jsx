@@ -28,6 +28,14 @@ import MenuIcon from '@mui/icons-material/Menu';
 import PostAddIcon from '@mui/icons-material/PostAdd';
 import { styled } from '@mui/material/styles';
 import { authService } from '../services/authService';
+import HomeRoundedIcon from '@mui/icons-material/HomeRounded';
+import PsychologyAltRoundedIcon from '@mui/icons-material/PsychologyAltRounded';
+import DynamicFeedRoundedIcon from '@mui/icons-material/DynamicFeedRounded';
+import AccountCircleRoundedIcon from '@mui/icons-material/AccountCircleRounded';
+import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
+import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
+import Face6RoundedIcon from '@mui/icons-material/Face6Rounded';
+import ManageSearchRoundedIcon from '@mui/icons-material/ManageSearchRounded';
 
 const StyledAppBar = styled(AppBar)(({ theme }) => ({
   backgroundColor: 'white',
@@ -69,9 +77,10 @@ const Header = () => {
   };
 
   const menuItems = [
-    { text: 'Ana Sayfa', icon: <HomeIcon />, path: '/home' },
-    { text: 'AI ile Konuş', icon: <SmartToyIcon />, path: '/ai-chat' },
-    { text: 'Gönderiler', icon: <PostAddIcon />, path: '/posts' },
+    { text: 'Ana Sayfa', icon: <HomeRoundedIcon />, path: '/home' },
+    { text: 'AI ile Konuş', icon: <PsychologyAltRoundedIcon />, path: '/ai-chat' },
+    { text: 'Kişi Ara', icon: <ManageSearchRoundedIcon />, path: '/search-user' },
+    { text: 'Gönderiler', icon: <DynamicFeedRoundedIcon />, path: '/posts' },
   ];
 
   return (
@@ -133,7 +142,7 @@ const Header = () => {
                   bgcolor: 'primary.main',
                 }}
               >
-                <AccountCircleIcon sx={{ color: 'white', fontSize: 36 }} />
+                <Face6RoundedIcon sx={{ color: 'white', fontSize: 36 }} />
               </Avatar>
             </IconButton>
           </Box>
@@ -155,17 +164,17 @@ const Header = () => {
           },
         }}
       >
-        <MenuItem onClick={() => {}}>
-          <AccountCircleIcon sx={{ mr: 2, color: 'primary.main' }} />
+        <MenuItem onClick={() => handleNavigation('/profile')}>
+          <AccountCircleRoundedIcon sx={{ mr: 2, color: 'primary.main' }} />
           Profil
         </MenuItem>
         <MenuItem onClick={() => {}}>
-          <SettingsIcon sx={{ mr: 2, color: 'primary.main' }} />
+          <SettingsRoundedIcon sx={{ mr: 2, color: 'primary.main' }} />
           Ayarlar
         </MenuItem>
         <Divider />
         <MenuItem onClick={handleLogout} sx={{ color: 'error.main' }}>
-          <LogoutIcon sx={{ mr: 2 }} />
+          <LogoutRoundedIcon sx={{ mr: 2 }} />
           Çıkış Yap
         </MenuItem>
       </Menu>

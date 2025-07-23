@@ -25,6 +25,12 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import axios from 'axios';
 import { getAllChats } from '../services/api';
+import AddCircleRoundedIcon from '@mui/icons-material/AddCircleRounded';
+import ThumbUpAltRoundedIcon from '@mui/icons-material/ThumbUpAltRounded';
+import ThumbDownAltRoundedIcon from '@mui/icons-material/ThumbDownAltRounded';
+import ForumRoundedIcon from '@mui/icons-material/ForumRounded';
+import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
+import ExpandLessRoundedIcon from '@mui/icons-material/ExpandLessRounded';
 
 const style = {
   position: 'fixed',
@@ -203,20 +209,20 @@ const Posts = () => {
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                 <Tooltip title="Beğen">
                   <IconButton size="small" onClick={() => handleLike(post.chatID)}>
-                    <ThumbUpAltOutlinedIcon fontSize="small" />
+                    <ThumbUpAltRoundedIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
                 <Typography variant="caption">{post.likedUser?.length || 0}</Typography>
                 <Tooltip title="Beğenme">
                   <IconButton size="small" onClick={() => handleDislike(post.chatID)}>
-                    <ThumbDownAltOutlinedIcon fontSize="small" />
+                    <ThumbDownAltRoundedIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
                 <Typography variant="caption">{post.dislikedUser?.length || 0}</Typography>
                 <Tooltip title="Yorumları göster/gizle">
                   <IconButton size="small" onClick={() => toggleComments(post.chatID)}>
-                    <CommentIcon fontSize="small" />
-                    {openComments[post.chatID] ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+                    <ForumRoundedIcon fontSize="small" />
+                    {openComments[post.chatID] ? <ExpandLessRoundedIcon fontSize="small" /> : <ExpandMoreRoundedIcon fontSize="small" />}
                   </IconButton>
                 </Tooltip>
                 <Typography variant="caption">{post.comments?.length || 0}</Typography>
@@ -230,13 +236,13 @@ const Posts = () => {
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                         <Tooltip title="Beğen">
                           <IconButton size="small" onClick={() => handleCommentLike(post.chatID, c.commnetsID)}>
-                            <ThumbUpAltOutlinedIcon fontSize="small" />
+                            <ThumbUpAltRoundedIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
                         <Typography variant="caption">{c.likedUser?.length || 0}</Typography>
                         <Tooltip title="Beğenme">
                           <IconButton size="small" onClick={() => handleCommentDislike(post.chatID, c.commnetsID)}>
-                            <ThumbDownAltOutlinedIcon fontSize="small" />
+                            <ThumbDownAltRoundedIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
                         <Typography variant="caption">{c.dislikedUser?.length || 0}</Typography>
@@ -282,7 +288,7 @@ const Posts = () => {
       )}
       <Box sx={style}>
         <Fab color="primary" aria-label="add" onClick={handleOpen}>
-          <AddIcon />
+          <AddCircleRoundedIcon />
         </Fab>
       </Box>
       <Modal open={open} onClose={handleClose}>

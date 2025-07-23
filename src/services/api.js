@@ -46,4 +46,52 @@ export const getAllChats = async () => {
   return response.data;
 };
 
+/**
+ * Giriş yapmış kullanıcının profilini getirir
+ * @returns {Promise<Object>} Kullanıcı profili
+ */
+export const getLoggedUser = async () => {
+  const response = await api.get('/user/loggedUser');
+  return response.data;
+};
+
+/**
+ * Doktor detaylarını userID ile getirir
+ * @param {number} userID
+ * @returns {Promise<Object>} Doktor detayları
+ */
+export const getDoctorDetails = async (userID) => {
+  const response = await api.get(`/doctor/doctor?userID=${userID}`);
+  return response.data;
+};
+
+/**
+ * Tüm kullanıcıları getirir
+ * @returns {Promise<Array>} Kullanıcı listesi
+ */
+export const getAllUsers = async () => {
+  const response = await api.get('/user/users');
+  return response.data;
+};
+
+/**
+ * Belirli bir kullanıcıyı userID ile getirir
+ * @param {number} userID
+ * @returns {Promise<Object>} Kullanıcı
+ */
+export const getUserById = async (userID) => {
+  const response = await api.get(`/user/user?userID=${userID}`);
+  return response.data;
+};
+
+/**
+ * Belirli bir public user'ı userID ile getirir
+ * @param {number} userID
+ * @returns {Promise<Object>} Public user
+ */
+export const getPublicUserById = async (userID) => {
+  const response = await api.get(`/publicUser/publicUser?userID=${userID}`);
+  return response.data;
+};
+
 export default api; 

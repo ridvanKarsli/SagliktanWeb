@@ -10,6 +10,8 @@ import Signup from './pages/Signup';
 import Home from './pages/Home';
 import AIChat from './pages/AIChat';
 import PostsPage from './pages/PostsPage';
+import ProfilePage from './pages/ProfilePage';
+import SearchUserPage from './pages/SearchUserPage';
 import {
   Container,
   Box,
@@ -122,6 +124,30 @@ function App() {
               element={
                 <ProtectedRoute>
                   <PostsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <ProfilePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile/:userID"
+              element={
+                <ProtectedRoute>
+                  <ProfilePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/search-user"
+              element={
+                <ProtectedRoute>
+                  <SearchUserPage />
                 </ProtectedRoute>
               }
             />
