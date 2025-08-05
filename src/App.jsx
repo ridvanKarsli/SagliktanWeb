@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
+import { ThemeProvider } from '@mui/material/styles';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { tr } from 'date-fns/locale';
@@ -20,36 +20,15 @@ import {
   Card,
   CardContent,
   useMediaQuery,
+  Fade,
+  Grow,
 } from '@mui/material';
 import PeopleIcon from '@mui/icons-material/People';
 import MedicalServicesIcon from '@mui/icons-material/MedicalServices';
 import PsychologyIcon from '@mui/icons-material/Psychology';
+import theme from './theme';
 import './App.css';
 import { authService } from './services/authService';
-
-const theme = createTheme({
-  palette: {
-    primary: {
-      main: '#0B3A4E',
-    },
-    secondary: {
-      main: '#34C3A1',
-    },
-    info: {
-      main: '#1B7A85',
-    },
-    background: {
-      default: '#FAF9F6',
-    },
-    text: {
-      primary: '#111827',
-      secondary: '#6B7280',
-    },
-  },
-  typography: {
-    fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-  },
-});
 
 function FeatureCard({ title, description, icon }) {
   return (
