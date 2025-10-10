@@ -1,0 +1,20 @@
+@import 'react-datepicker/dist/react-datepicker.css';
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; }
+
+body {
+  background:
+    radial-gradient(1200px 800px at 85% -10%, rgba(52,195,161,0.16), transparent 60%),
+    radial-gradient(900px 600px at -10% 15%, rgba(27,122,133,0.16), transparent 55%),
+    #0B3A4E;
+  margin: 0;
+}
+
+:root { --safe-bottom: env(safe-area-inset-bottom, 0px); }
+
+:focus-visible {
+  outline: 2px solid rgba(52,195,161,0.9);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
