@@ -4,7 +4,7 @@ import Register from './pages/Register.jsx'
 import Posts from './pages/Posts.jsx'
 import AIChat from './pages/AIChat.jsx'
 import Search from './pages/Search.jsx'
-import Profile from './pages/Profile.jsx'
+import Profile from './pages/profile/Profile.jsx'
 import ProtectedRoute from './components/ProtectedRoute.jsx'
 import ResponsiveShell from './components/ResponsiveShell.jsx'
 

@@ -1,18 +1,20 @@
-// src/pages/Profile.jsx
 import { useEffect, useMemo, useState } from 'react'
 import {
   Alert, Avatar, Box, Stack, Typography, Divider, CircularProgress,
-  Tabs, Tab, Container
+  Tabs, Tab, Container, useMediaQuery, Select, MenuItem, FormControl, InputLabel
 } from '@mui/material'
-import { useAuth } from '../context/AuthContext.jsx'
-import Surface from '../components/Surface.jsx'
-import PostCard from '../components/PostCard.jsx'
+import { useTheme } from '@mui/material/styles'
+import { useAuth } from '../../context/AuthContext.jsx'
+import Surface from '../../components/Surface.jsx'
+import PostCard from '../../components/PostCard.jsx'
 import {
   getUserProfile,
   getDoctorProfile,
   getPublicUserProfile,
   getChatsByUserID
-} from '../services/api.js'
+} from '../../services/api.js'
+import DoctorPart from './DoctorPart.jsx'
+import UserPart from './UserPart.jsx'
 
 /* ---------------- Helpers ---------------- */
 function initialsFrom(name = '', fallback = '') {
@@ -29,42 +31,17 @@ function prettyDate(d) {
   const dt = d ? new Date(d) : null
   return dt && !isNaN(dt) ? dt.toLocaleDateString('tr-TR') : 'Belirtilmemiş'
 }
-function SectionList({ items, renderItem, getKey, emptyText }) {
-  if (!Array.isArray(items) || items.length === 0) {
-    return <Typography variant="body2" sx={{ color: 'text.secondary' }}>{emptyText}</Typography>
-  }
-  return (
-    <Stack divider={<Divider sx={{ my: 1 }} />} spacing={1}>
-      {items.map((it, i) => (
-        <Box key={getKey?.(it, i) ?? i}>{renderItem(it, i)}</Box>
-      ))}
-    </Stack>
-  )
-}
 function Row({ label, value }) {
   return (
     <Box sx={{
       display: 'grid',
       gridTemplateColumns: { xs: '1fr', sm: '200px 1fr' },
-      gap: 1,
+      gap: { xs: 0.75, sm: 1 },
       alignItems: 'start'
     }}>
       <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>{label}</Typography>
       <Typography variant="body1" sx={{ fontWeight: 600 }}>{value || 'Belirtilmemiş'}</Typography>
-      <Divider sx={{ gridColumn: '1 / -1', mt: 1 }} />
-    </Box>
-  )
-}
-function SubRow({ label, value }) {
-  return (
-    <Box sx={{
-      display: 'grid',
-      gridTemplateColumns: { xs: '1fr', sm: '180px 1fr' },
-      gap: 1,
-      alignItems: 'start'
-    }}>
-      <Typography variant="body2" sx={{ color: 'text.secondary' }}>{label}</Typography>
-      <Typography variant="body2" sx={{ fontWeight: 600 }}>{value || '—'}</Typography>
+      <Divider sx={{ gridColumn: '1 / -1', mt: { xs: 0.75, sm: 1 } }} />
     </Box>
   )
 }
@@ -105,19 +82,20 @@ function mapChatToPost(chat, meId, authorName) {
     likes: liked.length,
     dislikes: disliked.length,
     myVote,
-    comments,
-    // category: chat.category, // istersen PostCard'da chip ile kullan
+    comments
   }
 }
 
 /* ---------------- Page ---------------- */
 export default function Profile() {
   const { token } = useAuth()
+  const theme = useTheme()
+  const isSmUp = useMediaQuery(theme.breakpoints.up('sm'))
 
-  const [profileData, setProfileData] = useState(null)           // /user/loggedUser
-  const [doctorData, setDoctorData] = useState(null)             // /doctor/doctor
-  const [publicUserData, setPublicUserData] = useState(null)     // /publicUser/publicUser
-  const [posts, setPosts] = useState([])                         // /chats/getChats
+  const [profileData, setProfileData] = useState(null)
+  const [doctorData, setDoctorData] = useState(null)
+  const [publicUserData, setPublicUserData] = useState(null)
+  const [posts, setPosts] = useState([])
   const [postsLoading, setPostsLoading] = useState(false)
 
   const [loading, setLoading] = useState(true)
@@ -135,7 +113,6 @@ export default function Profile() {
         setProfileData(base)
 
         if (base.userID) {
-          // Role bazlı detay
           if (base.role === 'doctor') {
             getDoctorProfile(token, base.userID)
               .then(d => { if (mounted) setDoctorData(d) })
@@ -146,7 +123,6 @@ export default function Profile() {
               .catch(() => {})
           }
 
-          // Gönderiler
           setPostsLoading(true)
           try {
             const chats = await getChatsByUserID(token, base.userID)
@@ -154,7 +130,6 @@ export default function Profile() {
             const mapped = chats.map(c => mapChatToPost(c, base.userID, base.name || 'Kullanıcı'))
             setPosts(mapped)
           } catch (_) {
-            // gönderi hatasını sessiz geç
           } finally {
             if (mounted) setPostsLoading(false)
           }
@@ -173,7 +148,6 @@ export default function Profile() {
   const isDoctor = profileData?.role === 'doctor'
   const isUser = profileData?.role === 'user'
 
-  // Sekmeler: Bilgiler / (rol bazlı) / Gönderilerim
   const tabs = useMemo(() => ([
     { key: 'info', label: 'Bilgiler' },
     ...(isDoctor ? [
@@ -187,6 +161,50 @@ export default function Profile() {
   ]), [isDoctor, isUser])
 
   const currentKey = tabs[tab]?.key || 'info'
+
+  function MobileSectionSelector() {
+    return (
+      <FormControl fullWidth size="small" sx={{ mt: 2 }}>
+        <InputLabel id="profile-section-label" sx={{ color: 'rgba(255,255,255,0.85)' }}>
+          Bölüm
+        </InputLabel>
+        <Select
+          labelId="profile-section-label"
+          id="profile-section"
+          label="Bölüm"
+          value={currentKey}
+          onChange={(e) => {
+            const idx = tabs.findIndex(t => t.key === e.target.value)
+            if (idx >= 0) setTab(idx)
+          }}
+          sx={{
+            bgcolor: 'rgba(255,255,255,0.06)',
+            color: '#FAF9F6',
+            '& .MuiSvgIcon-root': { color: '#FAF9F6' }
+          }}
+          MenuProps={{
+            PaperProps: {
+              sx: {
+                bgcolor: 'rgba(7,20,28,0.96)',
+                color: '#FAF9F6',
+                border: '1px solid rgba(255,255,255,0.12)',
+                backdropFilter: 'blur(6px)',
+                '& .MuiMenuItem-root': {
+                  color: '#FAF9F6',
+                  '&.Mui-selected': { bgcolor: 'rgba(52,195,161,0.18)' },
+                  '&:hover': { bgcolor: 'rgba(255,255,255,0.06)' }
+                }
+              }
+            }
+          }}
+        >
+          {tabs.map(t => (
+            <MenuItem key={t.key} value={t.key}>{t.label}</MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+    )
+  }
 
   if (loading) {
     return (
@@ -205,8 +223,8 @@ export default function Profile() {
 
   return (
     <Container maxWidth="md" sx={{ py: { xs: 2, md: 4 } }}>
-      <Surface>
-        {/* Header — Login/Register kutusu estetiği */}
+      <Surface sx={{ p: { xs: 2, md: 3 } }}>
+        {/* Header */}
         <Stack spacing={1.25} sx={{ alignItems: 'center', textAlign: 'center' }}>
           <Avatar sx={{ width: 72, height: 72, bgcolor: 'secondary.main', fontWeight: 800, fontSize: 24 }}>
             {initialsFrom(profileData?.name, profileData?.email)}
@@ -219,25 +237,29 @@ export default function Profile() {
           </Typography>
         </Stack>
 
-        {/* Tabs – mobilde kaydırılabilir */}
-        <Tabs
-          value={tab}
-          onChange={(_, v) => setTab(v)}
-          variant="scrollable"
-          scrollButtons="auto"
-          sx={{
-            mt: 2,
-            borderBottom: '1px solid rgba(255,255,255,0.12)',
-            '& .MuiTab-root': { fontWeight: 700, textTransform: 'none', minHeight: 44 }
-          }}
-        >
-          {tabs.map(t => <Tab key={t.key} label={t.label} />)}
-        </Tabs>
+        {/* Navigasyon */}
+        {isSmUp ? (
+          <Tabs
+            value={tab}
+            onChange={(_, v) => setTab(v)}
+            variant="scrollable"
+            scrollButtons="auto"
+            sx={{
+              mt: 2,
+              borderBottom: '1px solid rgba(255,255,255,0.12)',
+              '& .MuiTab-root': { fontWeight: 700, textTransform: 'none', minHeight: 44 }
+            }}
+          >
+            {tabs.map(t => <Tab key={t.key} label={t.label} />)}
+          </Tabs>
+        ) : (
+          <MobileSectionSelector />
+        )}
 
-        {/* Content */}
+        {/* İçerik */}
         <Box sx={{ pt: 2 }}>
           {currentKey === 'info' && (
-            <Stack spacing={2}>
+            <Stack spacing={1.25}>
               <Row label="İsim" value={profileData?.name} />
               <Row label="Soyisim" value={profileData?.surname} />
               <Row label="Doğum Tarihi" value={prettyDate(profileData?.dateOfBirth)} />
@@ -246,77 +268,17 @@ export default function Profile() {
             </Stack>
           )}
 
-          {currentKey === 'spec' && isDoctor && (
-            <SectionList
-              emptyText="Uzmanlık alanı bulunamadı."
-              items={doctorData?.specialization}
-              renderItem={(spec) => (
-                <Stack spacing={0.5}>
-                  <SubRow label="Uzmanlık" value={spec.nameOfSpecialization} />
-                  <SubRow label="Deneyim" value={`${spec.specializationExperience} yıl`} />
-                </Stack>
-              )}
-              getKey={(spec, i) => spec.specializationID || i}
-            />
+          {/* Doktor sekmeleri */}
+          {isDoctor && ['spec', 'addr', 'contact', 'ann'].includes(currentKey) && (
+            <DoctorPart doctorData={doctorData} sectionKey={currentKey} />
           )}
 
-          {currentKey === 'addr' && isDoctor && (
-            <SectionList
-              emptyText="Çalışma adresi bulunamadı."
-              items={doctorData?.worksAddress}
-              renderItem={(a) => (
-                <Stack spacing={0.5}>
-                  <SubRow label="İş Yeri" value={a.workPlaceName} />
-                  <SubRow label="Adres" value={`${a.street}, ${a.county}, ${a.city}, ${a.country}`} />
-                </Stack>
-              )}
-              getKey={(a, i) => a.adressID || i}
-            />
+          {/* Kullanıcı sekmeleri */}
+          {isUser && currentKey === 'diseases' && (
+            <UserPart publicUserData={publicUserData} sectionKey={currentKey} />
           )}
 
-          {currentKey === 'contact' && isDoctor && (
-            <SectionList
-              emptyText="İletişim bilgisi bulunamadı."
-              items={doctorData?.contactInfor}
-              renderItem={(c) => (
-                <Stack spacing={0.5}>
-                  <SubRow label="E-posta" value={c.email} />
-                  <SubRow label="Telefon" value={c.phoneNumber} />
-                </Stack>
-              )}
-              getKey={(c, i) => c.contactID || i}
-            />
-          )}
-
-          {currentKey === 'ann' && isDoctor && (
-            <SectionList
-              emptyText="Duyuru bulunamadı."
-              items={doctorData?.announcement}
-              renderItem={(a) => (
-                <Stack spacing={0.5}>
-                  <SubRow label="Başlık" value={a.title} />
-                  <SubRow label="İçerik" value={a.content} />
-                  <SubRow label="Tarih" value={prettyDate(a.uploadDate)} />
-                </Stack>
-              )}
-              getKey={(a, i) => a.announcementID || i}
-            />
-          )}
-
-          {currentKey === 'diseases' && isUser && (
-            <SectionList
-              emptyText="Kayıtlı hastalık bulunamadı."
-              items={publicUserData?.diseases}
-              renderItem={(d) => (
-                <Stack spacing={0.5}>
-                  <SubRow label="Hastalık" value={d.name} />
-                  <SubRow label="Tanı Tarihi" value={prettyDate(d.dateOfDiagnosis)} />
-                </Stack>
-              )}
-              getKey={(d, i) => d.diseaseID || i}
-            />
-          )}
-
+          {/* Gönderiler */}
           {currentKey === 'posts' && (
             <Stack spacing={1}>
               {postsLoading ? (
