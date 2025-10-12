@@ -115,5 +115,58 @@ export async function getChatsByUserID(token, userID) {
   return Array.isArray(data) ? data : [];
 }
 
+// --- Disease APIs ---
+
+/**
+ * Hastalık isimlerini döner: ["Astım", "Diyabet", ...]
+ */
+export async function getDiseaseNames(token, { signal } = {}) {
+  const res = await fetch('https://saglikta-7d7a2dbc0cf4.herokuapp.com/disease/getDiseaseNames', {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    signal
+  });
+
+  let data = null;
+  try { data = await res.json(); } catch { /* noop */ }
+
+  if (!res.ok) {
+    const msg = (data && (data.message || data.error)) || `İstek başarısız (HTTP ${res.status})`;
+    throw new Error(msg);
+  }
+
+  // Güvenli uniq + A→Z sıralama (TR locale)
+  const list = Array.isArray(data) ? data : [];
+  const uniq = Array.from(new Set(list));
+  uniq.sort((a, b) => a.localeCompare(b, 'tr'));
+  return uniq;
+}
+
+/**
+ * Yeni hastalık ekler: { name, dateOfDiagnosis }
+ */
+export async function addDisease(token, payload) {
+  const res = await fetch('https://saglikta-7d7a2dbc0cf4.herokuapp.com/disease/addDisease', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(payload)
+  });
+
+  let data = null;
+  try { data = await res.json(); } catch { /* noop */ }
+
+  if (!res.ok) {
+    const msg = (data && (data.message || data.error)) || `İstek başarısız (HTTP ${res.status})`;
+    throw new Error(msg);
+  }
+  return data; // ör: { diseaseID: ... } veya API’nin döndürdüğü obje
+}
+
+
 
 export { API_BASE };

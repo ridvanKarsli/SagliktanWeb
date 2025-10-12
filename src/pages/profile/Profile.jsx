@@ -40,7 +40,7 @@ function Row({ label, value }) {
       alignItems: 'start'
     }}>
       <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>{label}</Typography>
-      <Typography variant="body1" sx={{ fontWeight: 600 }}>{value || 'Belirtilmemiş'}</Typography>
+      <Typography variant="body1" sx={{ fontWeight: 600, wordBreak: 'break-word' }}>{value || 'Belirtilmemiş'}</Typography>
       <Divider sx={{ gridColumn: '1 / -1', mt: { xs: 0.75, sm: 1 } }} />
     </Box>
   )
@@ -222,17 +222,28 @@ export default function Profile() {
   }
 
   return (
-    <Container maxWidth="md" sx={{ py: { xs: 2, md: 4 } }}>
+    <Container maxWidth="md" sx={{ py: { xs: 1.5, md: 4 }, px: { xs: 1.25, sm: 2 } }}>
       <Surface sx={{ p: { xs: 2, md: 3 } }}>
         {/* Header */}
-        <Stack spacing={1.25} sx={{ alignItems: 'center', textAlign: 'center' }}>
-          <Avatar sx={{ width: 72, height: 72, bgcolor: 'secondary.main', fontWeight: 800, fontSize: 24 }}>
+        <Stack spacing={1} sx={{ alignItems: 'center', textAlign: 'center' }}>
+          <Avatar
+            sx={{
+              width: { xs: 64, md: 72 },
+              height: { xs: 64, md: 72 },
+              bgcolor: 'secondary.main',
+              fontWeight: 800,
+              fontSize: { xs: 22, md: 24 }
+            }}
+          >
             {initialsFrom(profileData?.name, profileData?.email)}
           </Avatar>
-          <Typography variant="h4" sx={{ fontWeight: 800 }} noWrap>
+          <Typography
+            variant="h5"
+            sx={{ fontWeight: 800, fontSize: { xs: 20, sm: 24, md: 28 }, wordBreak: 'break-word' }}
+          >
             {profileData?.name || 'Kullanıcı'}
           </Typography>
-          <Typography variant="body2" sx={{ color: 'text.secondary' }} noWrap>
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
             {isDoctor ? 'Doktor' : 'Kullanıcı'}
           </Typography>
         </Stack>
@@ -263,7 +274,7 @@ export default function Profile() {
               <Row label="İsim" value={profileData?.name} />
               <Row label="Soyisim" value={profileData?.surname} />
               <Row label="Doğum Tarihi" value={prettyDate(profileData?.dateOfBirth)} />
-              <Row label="E-posta" value={profileData?.email} />
+              {/* E-posta satırı kaldırıldı */}
               <Row label="Rol" value={isDoctor ? 'Doktor' : 'Kullanıcı'} />
             </Stack>
           )}
@@ -275,7 +286,7 @@ export default function Profile() {
 
           {/* Kullanıcı sekmeleri */}
           {isUser && currentKey === 'diseases' && (
-            <UserPart publicUserData={publicUserData} sectionKey={currentKey} />
+            <UserPart publicUserData={publicUserData} sectionKey={currentKey} canEdit />
           )}
 
           {/* Gönderiler */}
