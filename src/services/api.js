@@ -167,6 +167,165 @@ export async function addDisease(token, payload) {
   return data; // ör: { diseaseID: ... } veya API’nin döndürdüğü obje
 }
 
+// --- Doctor: Specialization Add ---
+export async function addSpecialization(token, payload, { signal } = {}) {
+  // payload: { nameOfSpecialization: string, specializationExperience: number }
+  const res = await fetch(
+    'https://saglikta-7d7a2dbc0cf4.herokuapp.com/specialization/addSpecialization',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+      signal,
+    }
+  )
+
+  let data = null
+  try { data = await res.json() } catch { /* no-op */ }
+
+  if (!res.ok) {
+    throw new Error(data?.message || data?.error || `HTTP ${res.status}`)
+  }
+  return data // { specializationID?, nameOfSpecialization, specializationExperience, ... }
+}
+
+// --- Doctor: Specialization Delete ---
+export async function deleteSpecialization(token, specializationID, { signal } = {}) {
+  if (!specializationID) throw new Error('specializationID gerekli.')
+
+  const url = `https://saglikta-7d7a2dbc0cf4.herokuapp.com/specialization/deleteSpecialization?specializationID=${encodeURIComponent(specializationID)}`
+  const res = await fetch(url, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+    signal,
+  })
+
+  let data = null
+  try { data = await res.json() } catch { /* no-op */ }
+
+  if (!res.ok) throw new Error(data?.message || data?.error || `HTTP ${res.status}`)
+  return data || { ok: true }
+}
+
+// --- Doctor: Work Address Add ---
+export async function addWorkAddress(token, payload, { signal } = {}) {
+  // payload: { workPlaceName, street, city, county, country }
+  const res = await fetch(
+    'https://saglikta-7d7a2dbc0cf4.herokuapp.com/workAddress/addWorkAddress',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+      signal,
+    }
+  )
+
+  let data = null
+  try { data = await res.json() } catch {}
+  if (!res.ok) throw new Error(data?.message || data?.error || `HTTP ${res.status}`)
+  return data // { addressID?, ... }
+}
+
+// --- Doctor: Work Address Delete ---
+export async function deleteWorkAddress(token, addressID, { signal } = {}) {
+  if (!addressID) throw new Error('addressID gerekli.')
+
+  const url = `https://saglikta-7d7a2dbc0cf4.herokuapp.com/workAddress/deleteWorkAddress?addressID=${encodeURIComponent(addressID)}`
+  const res = await fetch(url, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+    signal,
+  })
+
+  let data = null
+  try { data = await res.json() } catch {}
+  if (!res.ok) throw new Error(data?.message || data?.error || `HTTP ${res.status}`)
+  return data || { ok: true }
+}
+
+// --- Doctor: Contact Add ---
+export async function addContactInfor(token, payload, { signal } = {}) {
+  // payload: { email: string, phoneNumber: string }
+  const res = await fetch(
+    'https://saglikta-7d7a2dbc0cf4.herokuapp.com/contactInfor/addContactInfor',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+      signal,
+    }
+  )
+
+  let data = null
+  try { data = await res.json() } catch {}
+  if (!res.ok) throw new Error(data?.message || data?.error || `HTTP ${res.status}`)
+  return data // { contactID?, email, phoneNumber, ... }
+}
+
+// --- Doctor: Contact Delete ---
+export async function deleteContact(token, contactID, { signal } = {}) {
+  if (!contactID) throw new Error('contactID gerekli.')
+
+  const url = `https://saglikta-7d7a2dbc0cf4.herokuapp.com/contactInfor/deleteContact?contactID=${encodeURIComponent(contactID)}`
+  const res = await fetch(url, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+    signal,
+  })
+
+  let data = null
+  try { data = await res.json() } catch {}
+  if (!res.ok) throw new Error(data?.message || data?.error || `HTTP ${res.status}`)
+  return data || { ok: true }
+}
+
+// --- Doctor: Announcement Add ---
+export async function addAnnouncement(token, payload, { signal } = {}) {
+  // payload: { title, content, uploadDate: "YYYY-MM-DD" }
+  const res = await fetch(
+    'https://saglikta-7d7a2dbc0cf4.herokuapp.com/announcement/addAnnouncement',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+      signal,
+    }
+  )
+
+  let data = null
+  try { data = await res.json() } catch {}
+  if (!res.ok) throw new Error(data?.message || data?.error || `HTTP ${res.status}`)
+  return data // { announcementID?, title, content, uploadDate, ... }
+}
+
+// --- Doctor: Announcement Delete ---
+export async function deleteAnnouncement(token, announcementID, { signal } = {}) {
+  if (!announcementID) throw new Error('announcementID gerekli.')
+
+  const url = `https://saglikta-7d7a2dbc0cf4.herokuapp.com/announcement/deleteAnnouncement?announcementID=${encodeURIComponent(announcementID)}`
+  const res = await fetch(url, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+    signal,
+  })
+
+  let data = null
+  try { data = await res.json() } catch {}
+  if (!res.ok) throw new Error(data?.message || data?.error || `HTTP ${res.status}`)
+  return data || { ok: true }
+}
 
 
 export { API_BASE };

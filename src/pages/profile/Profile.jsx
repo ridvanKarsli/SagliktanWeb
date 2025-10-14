@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   Alert, Avatar, Box, Stack, Typography, Divider, CircularProgress,
-  Tabs, Tab, Container, useMediaQuery, Select, MenuItem, FormControl, InputLabel
+  Tabs, Tab, Container, useMediaQuery, Select, MenuItem, FormControl, InputLabel,
+  Toolbar, Paper
 } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
 import { useAuth } from '../../context/AuthContext.jsx'
@@ -35,13 +36,14 @@ function Row({ label, value }) {
   return (
     <Box sx={{
       display: 'grid',
-      gridTemplateColumns: { xs: '1fr', sm: '200px 1fr' },
-      gap: { xs: 0.75, sm: 1 },
-      alignItems: 'start'
+      gridTemplateColumns: { xs: '1fr', sm: '180px 1fr' },
+      gap: { xs: 0.5, sm: 1.25 },
+      alignItems: 'start',
+      py: 0.5
     }}>
       <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>{label}</Typography>
       <Typography variant="body1" sx={{ fontWeight: 600, wordBreak: 'break-word' }}>{value || 'Belirtilmemiş'}</Typography>
-      <Divider sx={{ gridColumn: '1 / -1', mt: { xs: 0.75, sm: 1 } }} />
+      <Divider sx={{ gridColumn: '1 / -1', opacity: 0.16, mt: { xs: 0.5, sm: 1 } }} />
     </Box>
   )
 }
@@ -49,7 +51,6 @@ function Row({ label, value }) {
 function mapChatToPost(chat, meId, authorName) {
   const liked = Array.isArray(chat.likedUser) ? chat.likedUser : []
   const disliked = Array.isArray(chat.dislikedUser) ? chat.dislikedUser : []
-
   const myVote =
     liked.some(u => u.userID === meId) ? 1 :
     disliked.some(u => u.userID === meId) ? -1 : 0
@@ -62,7 +63,6 @@ function mapChatToPost(chat, meId, authorName) {
       cDisliked.some(u => u.userID === meId) ? -1 : 0
 
     const author = c.userName || `Kullanıcı #${c.userID}`
-
     return {
       id: c.commnetsID || c.commentID || `${chat.chatID}-${c.userID}-${c.uploadDate}`,
       author,
@@ -129,7 +129,7 @@ export default function Profile() {
             if (!mounted) return
             const mapped = chats.map(c => mapChatToPost(c, base.userID, base.name || 'Kullanıcı'))
             setPosts(mapped)
-          } catch (_) {
+          } catch {
           } finally {
             if (mounted) setPostsLoading(false)
           }
@@ -164,7 +164,7 @@ export default function Profile() {
 
   function MobileSectionSelector() {
     return (
-      <FormControl fullWidth size="small" sx={{ mt: 2 }}>
+      <FormControl fullWidth size="small" sx={{ mt: 1 }}>
         <InputLabel id="profile-section-label" sx={{ color: 'rgba(255,255,255,0.85)' }}>
           Bölüm
         </InputLabel>
@@ -191,6 +191,7 @@ export default function Profile() {
                 backdropFilter: 'blur(6px)',
                 '& .MuiMenuItem-root': {
                   color: '#FAF9F6',
+                  minHeight: 44,
                   '&.Mui-selected': { bgcolor: 'rgba(52,195,161,0.18)' },
                   '&:hover': { bgcolor: 'rgba(255,255,255,0.06)' }
                 }
@@ -222,18 +223,19 @@ export default function Profile() {
   }
 
   return (
-    <Container maxWidth="md" sx={{ py: { xs: 1.5, md: 4 }, px: { xs: 1.25, sm: 2 } }}>
+    <Container maxWidth="md" sx={{ py: { xs: 1.25, md: 4 }, px: { xs: 1.25, sm: 2 } }}>
       <Surface sx={{ p: { xs: 2, md: 3 } }}>
         {/* Header */}
         <Stack spacing={1} sx={{ alignItems: 'center', textAlign: 'center' }}>
           <Avatar
             sx={{
-              width: { xs: 64, md: 72 },
-              height: { xs: 64, md: 72 },
+              width: { xs: 68, md: 76 },
+              height: { xs: 68, md: 76 },
               bgcolor: 'secondary.main',
               fontWeight: 800,
               fontSize: { xs: 22, md: 24 }
             }}
+            aria-label="Kullanıcı avatarı"
           >
             {initialsFrom(profileData?.name, profileData?.email)}
           </Avatar>
@@ -248,29 +250,47 @@ export default function Profile() {
           </Typography>
         </Stack>
 
-        {/* Navigasyon */}
-        {isSmUp ? (
-          <Tabs
-            value={tab}
-            onChange={(_, v) => setTab(v)}
-            variant="scrollable"
-            scrollButtons="auto"
-            sx={{
-              mt: 2,
-              borderBottom: '1px solid rgba(255,255,255,0.12)',
-              '& .MuiTab-root': { fontWeight: 700, textTransform: 'none', minHeight: 44 }
-            }}
-          >
-            {tabs.map(t => <Tab key={t.key} label={t.label} />)}
-          </Tabs>
-        ) : (
-          <MobileSectionSelector />
-        )}
+        {/* Sticky Navigasyon */}
+        <Paper
+          elevation={0}
+          sx={{
+            position: 'sticky',
+            top: 8,
+            zIndex: 1,
+            mt: 1.5,
+            px: { xs: 1, sm: 0 },
+            py: { xs: 0.5, sm: 0 },
+            background: 'transparent',
+            backdropFilter: 'blur(6px)'
+          }}
+        >
+          {isSmUp ? (
+            <Tabs
+              value={tab}
+              onChange={(_, v) => setTab(v)}
+              variant="scrollable"
+              scrollButtons="auto"
+              aria-label="Profil sekmeleri"
+              sx={{
+                borderBottom: '1px solid rgba(255,255,255,0.12)',
+                '& .MuiTab-root': {
+                  fontWeight: 700,
+                  textTransform: 'none',
+                  minHeight: 44
+                }
+              }}
+            >
+              {tabs.map(t => <Tab key={t.key} label={t.label} />)}
+            </Tabs>
+          ) : (
+            <MobileSectionSelector />
+          )}
+        </Paper>
 
         {/* İçerik */}
         <Box sx={{ pt: 2 }}>
           {currentKey === 'info' && (
-            <Stack spacing={1.25}>
+            <Stack spacing={1}>
               <Row label="İsim" value={profileData?.name} />
               <Row label="Soyisim" value={profileData?.surname} />
               <Row label="Doğum Tarihi" value={prettyDate(profileData?.dateOfBirth)} />
@@ -307,6 +327,7 @@ export default function Profile() {
           )}
         </Box>
       </Surface>
+      <Toolbar sx={{ minHeight: 16 }} /> {/* alt boşluk */}
     </Container>
   )
 }
