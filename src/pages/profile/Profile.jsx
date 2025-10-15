@@ -12,7 +12,10 @@ import {
   getUserProfile,
   getDoctorProfile,
   getPublicUserProfile,
-  getChatsByUserID
+  getChatsByUserID,
+  deleteChat,
+  addComment as apiAddComment,
+  deleteComment as apiDeleteComment
 } from '../../services/api.js'
 import DoctorPart from './DoctorPart.jsx'
 import UserPart from './UserPart.jsx'
@@ -47,6 +50,10 @@ function Row({ label, value }) {
     </Box>
   )
 }
+
+const displayName = (u) =>
+  [u?.name, u?.surname].filter(Boolean).join(' ') || `Kullanıcı #${u?.userID || ''}`
+
 /** API -> UI (PostCard) dönüştürücü */
 function mapChatToPost(chat, meId, authorName) {
   const liked = Array.isArray(chat.likedUser) ? chat.likedUser : []
@@ -74,6 +81,8 @@ function mapChatToPost(chat, meId, authorName) {
     }
   }) : []
 
+  const isOwner = (chat.userID === meId) || (chat.userId === meId)
+
   return {
     id: chat.chatID,
     author: authorName,
@@ -82,7 +91,11 @@ function mapChatToPost(chat, meId, authorName) {
     likes: liked.length,
     dislikes: disliked.length,
     myVote,
-    comments
+    comments,
+    isOwner,
+    category: chat.category || chat.Category || null,
+    likedUsers: liked.map(u => ({ userID: u.userID, name: u.name, surname: u.surname })),
+    dislikedUsers: disliked.map(u => ({ userID: u.userID, name: u.name, surname: u.surname }))
   }
 }
 
@@ -97,6 +110,7 @@ export default function Profile() {
   const [publicUserData, setPublicUserData] = useState(null)
   const [posts, setPosts] = useState([])
   const [postsLoading, setPostsLoading] = useState(false)
+  const [deletingId, setDeletingId] = useState(null)
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -129,7 +143,6 @@ export default function Profile() {
             if (!mounted) return
             const mapped = chats.map(c => mapChatToPost(c, base.userID, base.name || 'Kullanıcı'))
             setPosts(mapped)
-          } catch {
           } finally {
             if (mounted) setPostsLoading(false)
           }
@@ -162,49 +175,95 @@ export default function Profile() {
 
   const currentKey = tabs[tab]?.key || 'info'
 
-  function MobileSectionSelector() {
-    return (
-      <FormControl fullWidth size="small" sx={{ mt: 1 }}>
-        <InputLabel id="profile-section-label" sx={{ color: 'rgba(255,255,255,0.85)' }}>
-          Bölüm
-        </InputLabel>
-        <Select
-          labelId="profile-section-label"
-          id="profile-section"
-          label="Bölüm"
-          value={currentKey}
-          onChange={(e) => {
-            const idx = tabs.findIndex(t => t.key === e.target.value)
-            if (idx >= 0) setTab(idx)
-          }}
-          sx={{
-            bgcolor: 'rgba(255,255,255,0.06)',
-            color: '#FAF9F6',
-            '& .MuiSvgIcon-root': { color: '#FAF9F6' }
-          }}
-          MenuProps={{
-            PaperProps: {
-              sx: {
-                bgcolor: 'rgba(7,20,28,0.96)',
-                color: '#FAF9F6',
-                border: '1px solid rgba(255,255,255,0.12)',
-                backdropFilter: 'blur(6px)',
-                '& .MuiMenuItem-root': {
-                  color: '#FAF9F6',
-                  minHeight: 44,
-                  '&.Mui-selected': { bgcolor: 'rgba(52,195,161,0.18)' },
-                  '&:hover': { bgcolor: 'rgba(255,255,255,0.06)' }
-                }
-              }
-            }
-          }}
-        >
-          {tabs.map(t => (
-            <MenuItem key={t.key} value={t.key}>{t.label}</MenuItem>
-          ))}
-        </Select>
-      </FormControl>
+  // Post silme
+  async function handleDeletePost(postId) {
+    if (!token || !postId) return
+    try {
+      setDeletingId(postId)
+      await deleteChat(token, postId)
+      setPosts(prev => prev.filter(p => p.id !== postId))
+    } catch (err) {
+      alert(err?.message || 'Silme işlemi başarısız.')
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
+  // Post like/dislike (stub)
+  const handleVote = async (postId, delta) => {
+    console.debug('vote', { postId, delta })
+  }
+
+  // Yorum ekleme (token'lı, optimistic update)
+  const handleAddComment = async (postId, text) => {
+    if (!token) return
+
+    const tempId = `tmp-${Date.now()}`
+    const tempComment = {
+      id: tempId,
+      author: profileData?.name || 'Sen',
+      text,
+      timestamp: new Date().toISOString(),
+      likes: 0,
+      dislikes: 0,
+      myVote: 0
+    }
+    setPosts(prev =>
+      prev.map(p =>
+        p.id === postId ? { ...p, comments: [tempComment, ...p.comments] } : p
+      )
     )
+
+    try {
+      const res = await apiAddComment(token, postId, text)
+      const realId = res?.commentID || res?.commnetsID || res?.id || tempId
+      setPosts(prev =>
+        prev.map(p => {
+          if (p.id !== postId) return p
+          const comments = p.comments.map(c =>
+            c.id === tempId ? { ...c, id: realId } : c
+          )
+          return { ...p, comments }
+        })
+      )
+    } catch (err) {
+      alert(err.message || 'Yorum eklenemedi.')
+      setPosts(prev =>
+        prev.map(p =>
+          p.id === postId
+            ? { ...p, comments: p.comments.filter(c => c.id !== tempId) }
+            : p
+        )
+      )
+    }
+  }
+
+  // Yorum like/dislike (stub)
+  const handleCommentVote = async (postId, commentId, delta) => {
+    console.debug('commentVote', { postId, commentId, delta })
+  }
+
+  // Yorum silme (token'lı, optimistic update)
+  async function handleDeleteComment(postId, commentId) {
+    if (!token || !postId || !commentId) return
+
+    // optimistic: UI'dan kaldır
+    const prevSnapshot = posts
+    setPosts(prev =>
+      prev.map(p =>
+        p.id === postId
+          ? { ...p, comments: p.comments.filter(c => c.id !== commentId) }
+          : p
+      )
+    )
+
+    try {
+      await apiDeleteComment(token, commentId) // endpoint paramı: commnetsID
+    } catch (err) {
+      alert(err.message || 'Yorum silinemedi.')
+      // geri al
+      setPosts(prevSnapshot)
+    }
   }
 
   if (loading) {
@@ -283,7 +342,46 @@ export default function Profile() {
               {tabs.map(t => <Tab key={t.key} label={t.label} />)}
             </Tabs>
           ) : (
-            <MobileSectionSelector />
+            <FormControl fullWidth size="small" sx={{ mt: 1 }}>
+              <InputLabel id="profile-section-label" sx={{ color: 'rgba(255,255,255,0.85)' }}>
+                Bölüm
+              </InputLabel>
+              <Select
+                labelId="profile-section-label"
+                id="profile-section"
+                label="Bölüm"
+                value={currentKey}
+                onChange={(e) => {
+                  const idx = tabs.findIndex(t => t.key === e.target.value)
+                  if (idx >= 0) setTab(idx)
+                }}
+                sx={{
+                  bgcolor: 'rgba(255,255,255,0.06)',
+                  color: '#FAF9F6',
+                  '& .MuiSvgIcon-root': { color: '#FAF9F6' }
+                }}
+                MenuProps={{
+                  PaperProps: {
+                    sx: {
+                      bgcolor: 'rgba(7,20,28,0.96)',
+                      color: '#FAF9F6',
+                      border: '1px solid rgba(255,255,255,0.12)',
+                      backdropFilter: 'blur(6px)',
+                      '& .MuiMenuItem-root': {
+                        color: '#FAF9F6',
+                        minHeight: 44,
+                        '&.Mui-selected': { bgcolor: 'rgba(52,195,161,0.18)' },
+                        '&:hover': { bgcolor: 'rgba(255,255,255,0.06)' }
+                      }
+                    }
+                  }
+                }}
+              >
+                {tabs.map(t => (
+                  <MenuItem key={t.key} value={t.key}>{t.label}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
           )}
         </Paper>
 
@@ -294,7 +392,6 @@ export default function Profile() {
               <Row label="İsim" value={profileData?.name} />
               <Row label="Soyisim" value={profileData?.surname} />
               <Row label="Doğum Tarihi" value={prettyDate(profileData?.dateOfBirth)} />
-              {/* E-posta satırı kaldırıldı */}
               <Row label="Rol" value={isDoctor ? 'Doktor' : 'Kullanıcı'} />
             </Stack>
           )}
@@ -311,7 +408,7 @@ export default function Profile() {
 
           {/* Gönderiler */}
           {currentKey === 'posts' && (
-            <Stack spacing={1}>
+            <Stack spacing={1.5}>
               {postsLoading ? (
                 <Box sx={{ display: 'grid', placeItems: 'center', py: 2 }}>
                   <CircularProgress size={22} />
@@ -321,7 +418,19 @@ export default function Profile() {
                   Henüz gönderiniz yok.
                 </Typography>
               ) : (
-                posts.map(p => <PostCard key={p.id} {...p} />)
+                posts.map(p => (
+                  <PostCard
+                    key={p.id}
+                    {...p}
+                    deleting={deletingId === p.id}
+                    onDelete={(postId) => handleDeletePost(postId)}
+                    onVote={handleVote}
+                    onAddComment={handleAddComment}
+                    onCommentVote={handleCommentVote}
+                    // PostCard içinde kullanırsan:
+                    onCommentDelete={(postId, commentId) => handleDeleteComment(postId, commentId)}
+                  />
+                ))
               )}
             </Stack>
           )}

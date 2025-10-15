@@ -327,5 +327,66 @@ export async function deleteAnnouncement(token, announcementID, { signal } = {})
   return data || { ok: true }
 }
 
+export async function deleteChat(token, chatID) {
+  if (!token) throw new Error('Token gerekli');
+  if (!chatID) throw new Error('chatID gerekli');
+
+  // Sunucu DELETE desteklemiyorsa method'u 'GET' yapabilirsiniz.
+  const url = `${API_BASE}/chats/deleteChat?chatID=${encodeURIComponent(chatID)}`;
+
+  const res = await fetch(url, {
+    method: 'DELETE', // Gerekirse 'GET' yapın
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(text || `Silme başarısız (HTTP ${res.status})`);
+  }
+  // Bazı endpoint’ler boş dönebilir; güvenli olsun
+  try { return await res.json(); } catch { return true; }
+}
+
+export async function addComment(token, chatID, message) {
+  const res = await fetch('https://saglikta-7d7a2dbc0cf4.herokuapp.com/comments/addComment', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify({ message, chatID })
+  })
+  if (!res.ok) {
+    const text = await res.text()
+    throw new Error(text || 'Yorum eklenemedi.')
+  }
+  return res.json().catch(() => ({}))
+}
+
+
+
+export async function deleteComment(token, commnetsID) {
+  // DİKKAT: endpoint param adı "commnetsID" (yazım bu şekilde)
+  const res = await fetch(
+    `https://saglikta-7d7a2dbc0cf4.herokuapp.com/comments/deleteComment?commnetsID=${encodeURIComponent(commnetsID)}`,
+    {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    }
+  );
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(text || `Yorum silinemedi (HTTP ${res.status}).`);
+  }
+  // çoğu delete boş döner; yine de JSON ise parse edelim
+  const ct = res.headers.get('content-type') || '';
+  return ct.includes('application/json') ? res.json() : null;
+}
+
 
 export { API_BASE };
