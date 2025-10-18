@@ -388,5 +388,46 @@ export async function deleteComment(token, commnetsID) {
   return ct.includes('application/json') ? res.json() : null;
 }
 
+export async function getAllUsers(token, { signal } = {}) {
+  if (!token) throw new Error('Oturum bulunamadı. Lütfen tekrar giriş yapın.');
+
+  const res = await fetch('https://saglikta-7d7a2dbc0cf4.herokuapp.com/user/users', {
+    method: 'GET',
+    headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
+    signal
+  });
+
+  let data = null; try { data = await res.json(); } catch {}
+  if (!res.ok) throw new Error(data?.message || data?.error || `HTTP ${res.status}`);
+
+  // password'u UI'ya taşımayalım
+  return Array.isArray(data) ? data.map(u => ({
+    userID: u.userID, name: u.name, surname: u.surname,
+    dateOfBirth: u.dateOfBirth, role: u.role, email: u.email
+  })) : [];
+}
+
+export async function addChat(token, { message, category }, { signal } = {}) {
+const res = await fetch('https://saglikta-7d7a2dbc0cf4.herokuapp.com/chats/addChat', {
+method: 'POST',
+headers: {
+'Content-Type': 'application/json',
+Authorization: `Bearer ${token}`
+},
+body: JSON.stringify({ message, category }),
+signal
+})
+
+let data = null
+try { data = await res.json() } catch { /* noop: bazı API'ler boş dönebilir */ }
+
+if (!res.ok) {
+const msg = (data && (data.message || data.error)) || `İstek başarısız (HTTP ${res.status})`
+throw new Error(msg)
+}
+return data // genelde oluşturulan chat objesi ya da başarı mesajı döner
+}
+
+
 
 export { API_BASE };
