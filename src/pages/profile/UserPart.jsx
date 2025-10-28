@@ -5,7 +5,7 @@ import {
 } from '@mui/material'
 import { Add as AddIcon, Close as CloseIcon, DeleteOutline as DeleteIcon } from '@mui/icons-material'
 import { useAuth } from '../../context/AuthContext.jsx'
-import { addDisease, getDiseaseNames } from '../../services/api.js'
+import { addDisease, getDiseaseNames, deleteDisease } from '../../services/api.js'
 import { Section, SectionList, GlassTile, prettyDate } from './ProfileShared.jsx'
 
 /* Yardımcı: farklı API alan adlarından isim/ID çıkar */
@@ -180,7 +180,7 @@ export default function UserPart({ publicUserData, sectionKey, canEdit = false }
 
   if (!publicUserData) return null
 
-  async function deleteDisease(disease) {
+  async function handleDeleteDisease(disease) {
     setDelErr('')
     const id = getDiseaseId(disease)
     if (!id) { setDelErr('Silinecek kaydın kimliği bulunamadı.'); return }
@@ -190,10 +190,7 @@ export default function UserPart({ publicUserData, sectionKey, canEdit = false }
 
     try {
       setDelLoadingId(id)
-      const url = `https://saglikta-7d7a2dbc0cf4.herokuapp.com/disease/deleteDisease?diseaseID=${encodeURIComponent(id)}`
-      const res = await fetch(url, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } })
-      let data = null; try { data = await res.json() } catch {}
-      if (!res.ok) throw new Error(data?.message || data?.error || `HTTP ${res.status}`)
+      await deleteDisease(token, id)
       setItems(prev => prev.filter(x => getDiseaseId(x) !== id))
     } catch (e) {
       setDelErr(e?.message || 'Silme işlemi başarısız.')
@@ -243,7 +240,7 @@ export default function UserPart({ publicUserData, sectionKey, canEdit = false }
                     <span>
                       <IconButton
                         aria-label={`"${name}" kaydını sil`}
-                        onClick={() => deleteDisease(d)}
+                        onClick={() => handleDeleteDisease(d)}
                         disabled={!id || delLoadingId === id}
                         sx={{
                           color: 'error.main',

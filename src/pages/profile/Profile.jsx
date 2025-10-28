@@ -5,6 +5,7 @@ import {
   Toolbar, Paper
 } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
+import { useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import Surface from '../../components/Surface.jsx'
 import PostCard from '../../components/PostCard.jsx'
@@ -15,7 +16,18 @@ import {
   getChatsByUserID,
   deleteChat,
   addComment as apiAddComment,
-  deleteComment as apiDeleteComment
+  deleteComment as apiDeleteComment,
+  getUserByID
+} from '../../services/api.js'
+import {
+  likeChatReaction,
+  dislikeChatReaction,
+  cancelLikeChatReaction,
+  cancelDislikeChatReaction,
+  likeCommentReaction,
+  dislikeCommentReaction,
+  cancelLikeCommentReaction,
+  cancelDislikeCommentReaction
 } from '../../services/api.js'
 import DoctorPart from './DoctorPart.jsx'
 import UserPart from './UserPart.jsx'
@@ -70,8 +82,10 @@ function mapChatToPost(chat, meId, authorName) {
       cDisliked.some(u => u.userID === meId) ? -1 : 0
 
     const author = c.userName || `Kullanıcı #${c.userID}`
+    const cidRaw = c.commnetsID || c.commentID || c.id
+    const cidNum = Number(cidRaw)
     return {
-      id: c.commnetsID || c.commentID || `${chat.chatID}-${c.userID}-${c.uploadDate}`,
+      id: Number.isFinite(cidNum) ? `c_${cidNum}` : `${chat.chatID}-${c.userID}-${c.uploadDate}`,
       author,
       text: c.message,
       timestamp: c.uploadDate,
@@ -101,9 +115,12 @@ function mapChatToPost(chat, meId, authorName) {
 
 /* ---------------- Page ---------------- */
 export default function Profile() {
-  const { token } = useAuth()
+  const { token, user: me } = useAuth()
   const theme = useTheme()
   const isSmUp = useMediaQuery(theme.breakpoints.up('sm'))
+  const location = useLocation()
+  const searchParams = new URLSearchParams(location.search)
+  const userIdParam = searchParams.get('userID')
 
   const [profileData, setProfileData] = useState(null)
   const [doctorData, setDoctorData] = useState(null)
@@ -122,7 +139,13 @@ export default function Profile() {
       if (!token) { setLoading(false); return }
       setError('')
       try {
-        const base = await getUserProfile(token)
+        let base
+        const viewingOther = !!userIdParam
+        if (viewingOther) {
+          base = await getUserByID(token, userIdParam)
+        } else {
+          base = await getUserProfile(token)
+        }
         if (!mounted) return
         setProfileData(base)
 
@@ -156,10 +179,11 @@ export default function Profile() {
     }
     load()
     return () => { mounted = false }
-  }, [token])
+  }, [token, userIdParam])
 
   const isDoctor = profileData?.role === 'doctor'
   const isUser = profileData?.role === 'user'
+  const isVisitor = !!userIdParam && (Number(userIdParam) !== (me?.userId ?? me?.userID))
 
   const tabs = useMemo(() => ([
     { key: 'info', label: 'Bilgiler' },
@@ -177,7 +201,7 @@ export default function Profile() {
 
   // Post silme
   async function handleDeletePost(postId) {
-    if (!token || !postId) return
+    if (!token || !postId || isVisitor) return
     try {
       setDeletingId(postId)
       await deleteChat(token, postId)
@@ -189,14 +213,41 @@ export default function Profile() {
     }
   }
 
-  // Post like/dislike (stub)
   const handleVote = async (postId, delta) => {
-    console.debug('vote', { postId, delta })
+    const chatID = Number(String(postId).replace(/^p_/, ''))
+    let prevVote = 0
+    setPosts(prev => prev.map(p => {
+      if (p.id !== postId) return p
+      prevVote = p.myVote
+      let { myVote, likes, dislikes } = p
+      if (myVote === delta) {
+        if (delta === 1) likes -= 1
+        if (delta === -1) dislikes -= 1
+        myVote = 0
+      } else {
+        if (delta === 1) { likes += 1; if (myVote === -1) dislikes -= 1 }
+        else { dislikes += 1; if (myVote === 1) likes -= 1 }
+        myVote = delta
+      }
+      return { ...p, myVote, likes, dislikes }
+    }))
+    try {
+      if (prevVote === delta) {
+        if (delta === 1) await cancelLikeChatReaction(token, chatID, me?.userId ?? me?.userID)
+        else await cancelDislikeChatReaction(token, chatID, me?.userId ?? me?.userID)
+      } else if (delta === 1) {
+        await likeChatReaction(token, chatID)
+      } else if (delta === -1) {
+        await dislikeChatReaction(token, chatID)
+      }
+    } catch (e) {
+      setError(e?.message || 'Oy işlemi başarısız.')
+    }
   }
 
   // Yorum ekleme (token'lı, optimistic update)
   const handleAddComment = async (postId, text) => {
-    if (!token) return
+    if (!token || isVisitor) return
 
     const tempId = `tmp-${Date.now()}`
     const tempComment = {
@@ -215,7 +266,7 @@ export default function Profile() {
     )
 
     try {
-      const res = await apiAddComment(token, postId, text)
+      const res = await apiAddComment(token, postId, text, me?.userId ?? me?.userID ?? undefined)
       const realId = res?.commentID || res?.commnetsID || res?.id || tempId
       setPosts(prev =>
         prev.map(p => {
@@ -238,14 +289,45 @@ export default function Profile() {
     }
   }
 
-  // Yorum like/dislike (stub)
   const handleCommentVote = async (postId, commentId, delta) => {
-    console.debug('commentVote', { postId, commentId, delta })
+    const realCommentId = Number(String(commentId).replace(/^c_/, ''))
+    let prevVote = 0
+    setPosts(prev => prev.map(p => {
+      if (p.id !== postId) return p
+      const comments = p.comments.map(c => {
+        if (c.id !== commentId) return c
+        prevVote = c.myVote
+        let { myVote, likes, dislikes } = c
+        if (myVote === delta) {
+          if (delta === 1) likes -= 1
+          if (delta === -1) dislikes -= 1
+          myVote = 0
+        } else {
+          if (delta === 1) { likes += 1; if (myVote === -1) dislikes -= 1 }
+          else { dislikes += 1; if (myVote === 1) likes -= 1 }
+          myVote = delta
+        }
+        return { ...c, myVote, likes, dislikes }
+      })
+      return { ...p, comments }
+    }))
+    try {
+      if (prevVote === delta) {
+        if (delta === 1) await cancelLikeCommentReaction(token, realCommentId)
+        else await cancelDislikeCommentReaction(token, realCommentId)
+      } else if (delta === 1) {
+        await likeCommentReaction(token, realCommentId)
+      } else if (delta === -1) {
+        await dislikeCommentReaction(token, realCommentId)
+      }
+    } catch (e) {
+      setError(e?.message || 'Yorum oylama başarısız.')
+    }
   }
 
   // Yorum silme (token'lı, optimistic update)
   async function handleDeleteComment(postId, commentId) {
-    if (!token || !postId || !commentId) return
+    if (!token || !postId || !commentId || isVisitor) return
 
     // optimistic: UI'dan kaldır
     const prevSnapshot = posts
@@ -398,12 +480,12 @@ export default function Profile() {
 
           {/* Doktor sekmeleri */}
           {isDoctor && ['spec', 'addr', 'contact', 'ann'].includes(currentKey) && (
-            <DoctorPart doctorData={doctorData} sectionKey={currentKey} />
+            <DoctorPart doctorData={doctorData} sectionKey={currentKey} canEdit={!isVisitor} />
           )}
 
           {/* Kullanıcı sekmeleri */}
           {isUser && currentKey === 'diseases' && (
-            <UserPart publicUserData={publicUserData} sectionKey={currentKey} canEdit />
+            <UserPart publicUserData={publicUserData} sectionKey={currentKey} canEdit={!isVisitor} />
           )}
 
           {/* Gönderiler */}
@@ -423,12 +505,9 @@ export default function Profile() {
                     key={p.id}
                     {...p}
                     deleting={deletingId === p.id}
-                    onDelete={(postId) => handleDeletePost(postId)}
+                    {...(!isVisitor ? { onDelete: (postId) => handleDeletePost(postId) } : {})}
                     onVote={handleVote}
-                    onAddComment={handleAddComment}
-                    onCommentVote={handleCommentVote}
-                    // PostCard içinde kullanırsan:
-                    onCommentDelete={(postId, commentId) => handleDeleteComment(postId, commentId)}
+                    {...(!isVisitor ? { onAddComment: handleAddComment, onCommentVote: handleCommentVote, onCommentDelete: (postId, commentId) => handleDeleteComment(postId, commentId) } : {})}
                   />
                 ))
               )}

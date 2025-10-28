@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { loginUser, registerUser } from '../services/api.js'
+import { configureApiClient, setAuthToken } from '../services/generated/configureClient'
 
 // --- JWT yardımcıları ---
 function b64urlToUtf8(b64url) {
@@ -41,6 +42,7 @@ export function AuthProvider({ children }) {
         if (t && !isTokenExpired(t)) {
           const p = parseJwt(t)
           setToken(t)
+          try { configureApiClient(t) } catch {}
           setUser({
             email: (p.sub || '').trim(),
             name: p.name || '',
@@ -70,6 +72,7 @@ export function AuthProvider({ children }) {
       userId: p.userID ?? p.userId ?? null
     }
     setToken(t)
+    try { configureApiClient(t) } catch {}
     setUser(profile)
     localStorage.setItem('auth', JSON.stringify({ token: t }))
     return profile
@@ -79,6 +82,7 @@ export function AuthProvider({ children }) {
     setToken(null)
     setUser(null)
     localStorage.removeItem('auth')
+    try { setAuthToken(null) } catch {}
   }
 
   // --- Güncel signup akışı (userID yok, role: doctor|user) ---
@@ -98,6 +102,7 @@ export function AuthProvider({ children }) {
         userId: p.userID ?? p.userId ?? null
       }
       setToken(t)
+      try { configureApiClient(t) } catch {}
       setUser(profile)
       localStorage.setItem('auth', JSON.stringify({ token: t }))
       return true

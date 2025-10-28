@@ -4,8 +4,11 @@ import { SmartToy } from '@mui/icons-material'
 import { delay } from '../utils/fakeApi.js'
 import { mockAiAnswer } from '../data/fakeData.js'
 import Surface from '../components/Surface.jsx'
+import { useAuth } from '../context/AuthContext.jsx'
+import SagliktaAiControllerApi from '../services/generated/src/api/SagliktaAiControllerApi'
 
 export default function AIChat() {
+  const { token } = useAuth()
   const [messages, setMessages] = useState([
     { role: 'ai', text: 'Merhaba! Ben sağlıklı yaşam danışmanı AI. Nasıl yardımcı olabilirim?' }
   ])
@@ -19,19 +22,38 @@ export default function AIChat() {
     setInput('')
     setMessages(m => [...m, { role: 'user', text }])
     setLoading(true)
-    await delay(500)
-    setMessages(m => [...m, { role: 'ai', text: mockAiAnswer(text) }])
-    setLoading(false)
+    try {
+      if (!token) {
+        await delay(400)
+        setMessages(m => [...m, { role: 'ai', text: mockAiAnswer(text) }])
+      } else {
+        const api = new SagliktaAiControllerApi()
+        const res = await api.askSagliktaAI(text, `Bearer ${token}`)
+        const answer = typeof res?.message === 'string' ? res.message : (res?.data ?? res ?? '')
+        setMessages(m => [...m, { role: 'ai', text: String(answer || 'Bir yanıt alınamadı.') }])
+      }
+    } catch (err) {
+      setMessages(m => [...m, { role: 'ai', text: mockAiAnswer(text) }])
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
-    <Surface sx={{ borderRadius: 16 }}>
+    <Surface sx={{ overflow: 'visible' }}>
       <Typography variant="h3" sx={{ mb: 2, fontWeight: 800 }}>
         AI ile Sohbet
       </Typography>
 
       <Stack spacing={2} sx={{ minHeight: 360 }}>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <Box sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 1,
+          maxHeight: { xs: 360, md: 480 },
+          overflowY: 'auto',
+          pr: 0.5
+        }}>
           {messages.map((m, i) => {
             const isUser = m.role === 'user'
             return (
@@ -50,10 +72,12 @@ export default function AIChat() {
                     maxWidth: { xs: '100%', md: '70%' },
                     borderRadius: 3,
                     border: '1px solid rgba(255,255,255,0.16)',
-                    backgroundColor: isUser ? 'rgba(52,195,161,0.08)' : 'transparent'
+                    backgroundColor: isUser ? 'rgba(52,195,161,0.08)' : 'transparent',
+                    wordBreak: 'break-word',
+                    overflowWrap: 'anywhere'
                   }}
                 >
-                  <Typography variant="body2" sx={{ lineHeight: 1.7 }}>{m.text}</Typography>
+                  <Typography variant="body2" sx={{ lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{m.text}</Typography>
                 </Box>
               </Stack>
             )

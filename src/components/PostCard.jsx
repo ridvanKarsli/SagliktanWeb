@@ -31,6 +31,7 @@ function initialsFrom(name = '') {
 export default function PostCard({
   id,
   author,
+  authorId,
   content,
   timestamp,
   likes = 0,
@@ -50,7 +51,8 @@ export default function PostCard({
   onAddComment,         // (postId, text) => void
   onCommentVote,        // (postId, commentId, delta) => void
   onDelete,             // (postId) => void
-  onCommentDelete       // 🔹 (postId, commentId) => void
+  onCommentDelete,      // 🔹 (postId, commentId) => void
+  onAuthorClick         // 🔹 (authorId) => void
 }) {
   const [openComments, setOpenComments] = useState(false)
   const [commentText, setCommentText] = useState('')
@@ -104,7 +106,13 @@ export default function PostCard({
         <Box sx={{ flex: 1, minWidth: 0 }}>
           {/* Üst bilgi satırı */}
           <Stack direction="row" spacing={1} alignItems="baseline" sx={{ mb: 0.5, minWidth: 0 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#FAF9F6' }} noWrap>
+            <Typography
+              variant="subtitle1"
+              sx={{ fontWeight: 700, color: 'primary.light', cursor: onAuthorClick && authorId ? 'pointer' : 'default' }}
+              noWrap
+              onClick={() => authorId && onAuthorClick?.(authorId)}
+              title={author}
+            >
               {author}
             </Typography>
             <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)' }} noWrap>
@@ -199,7 +207,18 @@ export default function PostCard({
 
           {/* Detaylar: Beğenen / Beğenmeyen listeleri */}
           {openDetails && (
-            <Paper variant="outlined" sx={{ p: 1, mt: 1, borderRadius: 2 }}>
+            <Paper
+              variant="outlined"
+              sx={{
+                p: 1,
+                mt: 1,
+                borderRadius: 2,
+                border: '1px solid rgba(255,255,255,0.14)',
+                background: 'linear-gradient(180deg, rgba(7,20,28,0.36), rgba(7,20,28,0.20))',
+                backdropFilter: 'blur(8px)',
+                color: '#FAF9F6'
+              }}
+            >
               {/* Beğenenler */}
               <Box sx={{ mb: 1 }}>
                 <Typography variant="body2" sx={{ fontWeight: 700, mb: 0.5 }}>
@@ -213,7 +232,7 @@ export default function PostCard({
                   <List dense disablePadding>
                     {likedUsers.map((u) => (
                       <ListItem key={`like-${id}-${u.userID}`} disableGutters>
-                        <ListItemText primary={userFullName(u)} />
+                        <ListItemText primary={userFullName(u)} primaryTypographyProps={{ sx: { color: '#FAF9F6' } }} />
                       </ListItem>
                     ))}
                   </List>
@@ -235,7 +254,7 @@ export default function PostCard({
                   <List dense disablePadding>
                     {dislikedUsers.map((u) => (
                       <ListItem key={`dislike-${id}-${u.userID}`} disableGutters>
-                        <ListItemText primary={userFullName(u)} />
+                        <ListItemText primary={userFullName(u)} primaryTypographyProps={{ sx: { color: '#FAF9F6' } }} />
                       </ListItem>
                     ))}
                   </List>

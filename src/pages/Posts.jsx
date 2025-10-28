@@ -12,7 +12,18 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import PostCard from '../components/PostCard.jsx'
 import Surface from '../components/Surface.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
-import { getAllChats, getDiseaseNames } from '../services/api.js'
+import { getAllChats, getDiseaseNames, getUserByID, getChatsWithFilter } from '../services/api.js'
+import { addComment as apiAddComment } from '../services/api.js'
+import {
+  likeChatReaction,
+  dislikeChatReaction,
+  cancelLikeChatReaction,
+  cancelDislikeChatReaction,
+  likeCommentReaction,
+  dislikeCommentReaction,
+  cancelLikeCommentReaction,
+  cancelDislikeCommentReaction
+} from '../services/api.js'
 import { addChat } from '../services/api.js'
 
 /* ---------------- Utils ---------------- */
@@ -43,7 +54,7 @@ function myVoteFor(currentUserId, likedUsers, dislikedUsers) {
   return 0
 }
 
-function toPostModel(chat, currentUserId) {
+function toPostModel(chat, currentUserId, authorNameOverride) {
   const liked = dedupUsers(chat.likedUser)
   const disliked = dedupUsers(chat.dislikedUser)
 
@@ -51,9 +62,11 @@ function toPostModel(chat, currentUserId) {
     ? chat.comments.map(c => {
         const cLiked = dedupUsers(c.likedUser)
         const cDisliked = dedupUsers(c.dislikedUser)
-        const cid = c.commnetsID ?? c.commentsID ?? c.id ?? `c_${Math.random().toString(36).slice(2)}`
+        const cidRaw = c.commnetsID ?? c.commentsID ?? c.id
+        const cidNum = Number(cidRaw)
+        const safeId = Number.isFinite(cidNum) ? `c_${cidNum}` : `c_tmp_${Math.random().toString(36).slice(2)}`
         return {
-          id: `c_${cid}`,
+          id: safeId,
           author: `Kullanıcı #${c.userID ?? '???'}`,
           text: c.message ?? '',
           timestamp: parseYMD(c.uploadDate),
@@ -64,9 +77,15 @@ function toPostModel(chat, currentUserId) {
       })
     : []
 
+  const authorFull = authorNameOverride
+    || [chat.name, chat.surname].filter(Boolean).join(' ')
+    || chat.userName
+    || `Kullanıcı #${chat.userID ?? '???'}`
+
   return {
     id: `p_${chat.chatID}`,
-    author: `Kullanıcı #${chat.userID ?? '???'}`,
+    author: authorFull,
+    authorId: chat.userID ?? chat.userId,
     content: chat.message ?? '',
     timestamp: parseYMD(chat.uploadDate),
     likes: liked.length,
@@ -111,8 +130,26 @@ export default function Posts() {
     setLoading(true)
     setError('')
     try {
-      const data = await getAllChats(token)
-      const mapped = data.map(ch => toPostModel(ch, user?.userId ?? user?.userID ?? null))
+      const data = category ? await getChatsWithFilter(token, category) : await getAllChats(token)
+      // Yazar isimlerini userID -> kişi bilgisi ile zenginleştir
+      const ids = Array.from(new Set(
+        data.map(ch => ch?.userID ?? ch?.userId).filter(id => id != null)
+      ))
+      const idToName = new Map()
+      await Promise.all(ids.map(async (id) => {
+        try {
+          const person = await getUserByID(token, id)
+          const full = [person?.name, person?.surname].filter(Boolean).join(' ')
+          if (full) idToName.set(id, full)
+        } catch {}
+      }))
+
+      const meId = user?.userId ?? user?.userID ?? null
+      const mapped = data.map(ch => {
+        const authorId = ch?.userID ?? ch?.userId
+        const authorName = authorId != null ? idToName.get(authorId) : undefined
+        return toPostModel(ch, meId, authorName)
+      })
       mapped.sort((a, b) => b.timestamp - a.timestamp) // yeni → eski
       setPosts(mapped)
     } catch (e) {
@@ -126,7 +163,7 @@ export default function Posts() {
     if (!token) { setLoading(false); return }
     loadChats()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token])
+  }, [token, category])
 
   // Kategori listesi: diyalog ilk açıldığında (veya daha önce yüklenmediyse) çek
   useEffect(() => {
@@ -158,10 +195,12 @@ export default function Posts() {
     navigate(`/posts?${params.toString()}`)
   }
 
-  // Local beğeni – backend endpoint verilene kadar sadece UI üzerinde
-  const votePost = (postId, delta) => {
+  const votePost = async (postId, delta) => {
+    const chatID = Number(String(postId).replace(/^p_/, ''))
+    let prevVote = 0
     setPosts(prev => prev.map(p => {
       if (p.id !== postId) return p
+      prevVote = p.myVote
       let { myVote, likes, dislikes } = p
       if (myVote === delta) {
         if (delta === 1) likes -= 1
@@ -174,30 +213,61 @@ export default function Posts() {
       }
       return { ...p, myVote, likes, dislikes }
     }))
-  }
-
-  const addCommentLocal = (postId, text) => {
-    const authorName = user?.name || user?.username || `Kullanıcı #${user?.userId ?? ''}`
-    setPosts(prev => prev.map(p => {
-      if (p.id !== postId) return p
-      const newComment = {
-        id: `c_${crypto.randomUUID()}`,
-        author: authorName,
-        text,
-        timestamp: Date.now(),
-        likes: 0,
-        dislikes: 0,
-        myVote: 0
+    try {
+      if (prevVote === delta) {
+        if (delta === 1) await cancelLikeChatReaction(token, chatID, user?.userId ?? user?.userID)
+        else await cancelDislikeChatReaction(token, chatID, user?.userId ?? user?.userID)
+      } else if (delta === 1) {
+        await likeChatReaction(token, chatID)
+      } else if (delta === -1) {
+        await dislikeChatReaction(token, chatID)
       }
-      return { ...p, comments: [newComment, ...p.comments] }
-    }))
+    } catch (e) {
+      // rollback
+      setPosts(prev => prev.map(p => (p.id === postId ? { ...p, myVote: prevVote,
+        likes: p.likes + ((prevVote === 1) - (p.myVote === 1)),
+        dislikes: p.dislikes + ((prevVote === -1) - (p.myVote === -1)) } : p)))
+      setError(e?.message || 'Oy işlemi başarısız.')
+    }
   }
 
-  const voteComment = (postId, commentId, delta) => {
+  const handleAddComment = async (postId, text) => {
+    if (!token) return
+    const authorName = user?.name || user?.username || `Kullanıcı #${user?.userId ?? ''}`
+    const tempId = `tmp-${Date.now()}`
+    const tempComment = {
+      id: tempId,
+      author: authorName,
+      text,
+      timestamp: Date.now(),
+      likes: 0,
+      dislikes: 0,
+      myVote: 0
+    }
+    setPosts(prev => prev.map(p => p.id === postId ? { ...p, comments: [tempComment, ...p.comments] } : p))
+
+    try {
+      const real = await apiAddComment(token, postId.replace(/^p_/, ''), text, user?.userId ?? user?.userID ?? undefined)
+      const realId = real?.commentID || real?.commnetsID || real?.id || tempId
+      setPosts(prev => prev.map(p => {
+        if (p.id !== postId) return p
+        const comments = p.comments.map(c => c.id === tempId ? { ...c, id: realId } : c)
+        return { ...p, comments }
+      }))
+    } catch (err) {
+      setError(err?.message || 'Yorum eklenemedi.')
+      setPosts(prev => prev.map(p => p.id === postId ? { ...p, comments: p.comments.filter(c => c.id !== tempId) } : p))
+    }
+  }
+
+  const voteComment = async (postId, commentId, delta) => {
+    const realCommentId = Number(String(commentId).replace(/^c_/, ''))
+    let prevVote = 0
     setPosts(prev => prev.map(p => {
       if (p.id !== postId) return p
       const updated = p.comments.map(c => {
         if (c.id !== commentId) return c
+        prevVote = c.myVote
         let { myVote, likes, dislikes } = c
         if (myVote === delta) {
           if (delta === 1) likes -= 1
@@ -212,6 +282,25 @@ export default function Posts() {
       })
       return { ...p, comments: updated }
     }))
+    try {
+      if (prevVote === delta) {
+        if (delta === 1) await cancelLikeCommentReaction(token, realCommentId)
+        else await cancelDislikeCommentReaction(token, realCommentId)
+      } else if (delta === 1) {
+        await likeCommentReaction(token, realCommentId)
+      } else if (delta === -1) {
+        await dislikeCommentReaction(token, realCommentId)
+      }
+    } catch (e) {
+      // rollback by reloading post reactions state conservatively
+      setError(e?.message || 'Yorum oylama başarısız.')
+      await loadChats()
+    }
+  }
+
+  const openAuthorProfile = (authorId) => {
+    if (!authorId) return
+    navigate(`/profile?userID=${encodeURIComponent(authorId)}`)
   }
 
   // Yeni gönderi gönder (gerçek API çağrısı)
@@ -252,6 +341,48 @@ export default function Posts() {
         </Stack>
         <Divider sx={{ mb: 2, opacity: 0.16 }} />
 
+        {/* Kategori filtresi */}
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mb: 1 }}>
+          <Autocomplete
+            fullWidth
+            options={categories}
+            loading={catsLoading}
+            value={category || null}
+            onChange={(_, v) => setCategory(v || '')}
+            disablePortal
+            blurOnSelect
+            clearOnBlur={false}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Kategoriye göre filtrele"
+                size="small"
+                helperText={catsError ? `Liste alınamadı: ${catsError}` : 'Boş bırakılırsa tüm gönderiler gösterilir.'}
+                sx={{
+                  '& .MuiInputBase-root': { bgcolor: 'rgba(255,255,255,0.06)', borderRadius: 1.2 },
+                  '& .MuiInputBase-input': { color: '#FAF9F6' },
+                  '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.85)' }
+                }}
+              />
+            )}
+            slotProps={{
+              paper: {
+                sx: {
+                  bgcolor: 'rgba(7,20,28,0.98)',
+                  color: '#FAF9F6',
+                  border: '1px solid rgba(255,255,255,0.12)',
+                  backdropFilter: 'blur(6px)'
+                }
+              }
+            }}
+          />
+          {category && (
+            <Button variant="outlined" color="secondary" onClick={() => setCategory('')} sx={{ whiteSpace: 'nowrap' }}>
+              Filtreyi Temizle
+            </Button>
+          )}
+        </Stack>
+
         {/* Content */}
         {loading ? (
           <Box sx={{ display: 'grid', placeItems: 'center', minHeight: 240 }}>
@@ -271,8 +402,9 @@ export default function Posts() {
                 key={p.id}
                 {...p}
                 onVote={votePost}
-                onAddComment={addCommentLocal}
+                onAddComment={handleAddComment}
                 onCommentVote={voteComment}
+                onAuthorClick={openAuthorProfile}
               />
             ))}
             {sorted.length === 0 && (
