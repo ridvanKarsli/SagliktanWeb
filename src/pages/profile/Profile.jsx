@@ -67,7 +67,7 @@ const displayName = (u) =>
   [u?.name, u?.surname].filter(Boolean).join(' ') || `Kullanıcı #${u?.userID || ''}`
 
 /** API -> UI (PostCard) dönüştürücü */
-function mapChatToPost(chat, meId, authorName) {
+function mapChatToPost(chat, meId, authorName, idToName) {
   const liked = Array.isArray(chat.likedUser) ? chat.likedUser : []
   const disliked = Array.isArray(chat.dislikedUser) ? chat.dislikedUser : []
   const myVote =
@@ -81,7 +81,8 @@ function mapChatToPost(chat, meId, authorName) {
       cLiked.some(u => u.userID === meId) ? 1 :
       cDisliked.some(u => u.userID === meId) ? -1 : 0
 
-    const author = c.userName || `Kullanıcı #${c.userID}`
+    const override = idToName?.get?.(c?.userID ?? c?.userId)
+    const author = override || c.userName || `Kullanıcı #${c.userID}`
     const cidRaw = c.commnetsID || c.commentID || c.id
     const cidNum = Number(cidRaw)
     return {
@@ -164,7 +165,25 @@ export default function Profile() {
           try {
             const chats = await getChatsByUserID(token, base.userID)
             if (!mounted) return
-            const mapped = chats.map(c => mapChatToPost(c, base.userID, base.name || 'Kullanıcı'))
+            // Yorum yazar adlarını da doldur
+            const ids = new Set()
+            for (const ch of chats) {
+              if (Array.isArray(ch?.comments)) {
+                for (const c of ch.comments) {
+                  const cuid = c?.userID ?? c?.userId
+                  if (cuid != null) ids.add(cuid)
+                }
+              }
+            }
+            const idToName = new Map()
+            await Promise.all(Array.from(ids).map(async (id) => {
+              try {
+                const person = await getUserByID(token, id)
+                const full = [person?.name, person?.surname].filter(Boolean).join(' ')
+                if (full) idToName.set(id, full)
+              } catch {}
+            }))
+            const mapped = chats.map(c => mapChatToPost(c, base.userID, base.name || 'Kullanıcı', idToName))
             setPosts(mapped)
           } finally {
             if (mounted) setPostsLoading(false)

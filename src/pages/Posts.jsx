@@ -54,7 +54,7 @@ function myVoteFor(currentUserId, likedUsers, dislikedUsers) {
   return 0
 }
 
-function toPostModel(chat, currentUserId, authorNameOverride) {
+function toPostModel(chat, currentUserId, authorNameOverride, idToName) {
   const liked = dedupUsers(chat.likedUser)
   const disliked = dedupUsers(chat.dislikedUser)
 
@@ -65,9 +65,11 @@ function toPostModel(chat, currentUserId, authorNameOverride) {
         const cidRaw = c.commnetsID ?? c.commentsID ?? c.id
         const cidNum = Number(cidRaw)
         const safeId = Number.isFinite(cidNum) ? `c_${cidNum}` : `c_tmp_${Math.random().toString(36).slice(2)}`
+        const authorId = c.userID ?? c.userId
+        const authorOverride = idToName?.get?.(authorId)
         return {
           id: safeId,
-          author: `Kullanıcı #${c.userID ?? '???'}`,
+          author: authorOverride || `Kullanıcı #${c.userID ?? '???'}`,
           text: c.message ?? '',
           timestamp: parseYMD(c.uploadDate),
           likes: cLiked.length,
@@ -131,12 +133,20 @@ export default function Posts() {
     setError('')
     try {
       const data = category ? await getChatsWithFilter(token, category) : await getAllChats(token)
-      // Yazar isimlerini userID -> kişi bilgisi ile zenginleştir
-      const ids = Array.from(new Set(
-        data.map(ch => ch?.userID ?? ch?.userId).filter(id => id != null)
-      ))
+      // Yazar ve yorum yazarlarını userID -> full name ile zenginleştir
+      const ids = new Set()
+      for (const ch of data) {
+        const uid = ch?.userID ?? ch?.userId
+        if (uid != null) ids.add(uid)
+        if (Array.isArray(ch?.comments)) {
+          for (const c of ch.comments) {
+            const cuid = c?.userID ?? c?.userId
+            if (cuid != null) ids.add(cuid)
+          }
+        }
+      }
       const idToName = new Map()
-      await Promise.all(ids.map(async (id) => {
+      await Promise.all(Array.from(ids).map(async (id) => {
         try {
           const person = await getUserByID(token, id)
           const full = [person?.name, person?.surname].filter(Boolean).join(' ')
@@ -148,7 +158,7 @@ export default function Posts() {
       const mapped = data.map(ch => {
         const authorId = ch?.userID ?? ch?.userId
         const authorName = authorId != null ? idToName.get(authorId) : undefined
-        return toPostModel(ch, meId, authorName)
+        return toPostModel(ch, meId, authorName, idToName)
       })
       mapped.sort((a, b) => b.timestamp - a.timestamp) // yeni → eski
       setPosts(mapped)
