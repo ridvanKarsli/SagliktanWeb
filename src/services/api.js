@@ -12,6 +12,8 @@ import ContactInfoControllerApi from './generated/src/api/ContactInfoControllerA
 import AnnouncementControllerApi from './generated/src/api/AnnouncementControllerApi'
 import ChatReactionsControllerApi from './generated/src/api/ChatReactionsControllerApi'
 import CommentReactionsControllerApi from './generated/src/api/CommentReactionsControllerApi'
+import ApiClient from './generated/src/ApiClient'
+import { setAuthToken } from './generated/configureClient'
 const API_BASE = import.meta.env.VITE_API_BASE?.trim() ||
   'https://saglikta-7d7a2dbc0cf4.herokuapp.com';
 
@@ -40,7 +42,11 @@ async function fetchJson(url, options = {}, { timeoutMs = 15000 } = {}) {
 
 export async function loginUser({ email, password }) {
   if (!email || !password) throw new Error('E-posta ve şifre zorunludur.');
+  // Geçici olarak Authorization header'ını kaldır
+  const client = ApiClient.instance
+  const prevAuth = (client?.defaultHeaders || {}).Authorization
   try {
+    if (prevAuth) setAuthToken(null)
     const api = new LogUserControllerApi()
     const res = await api.login({ email, password })
     if (!res?.token) throw new Error('Sunucudan geçersiz yanıt: token yok.')
@@ -55,6 +61,9 @@ export async function loginUser({ email, password }) {
     });
     if (!data?.token) throw new Error('Sunucudan geçersiz yanıt: token yok.');
     return data;
+  } finally {
+    // Eski header'ı geri yükle
+    if (prevAuth) setAuthToken(prevAuth.replace(/^Bearer\s+/i, ''))
   }
 }
 
@@ -67,7 +76,10 @@ export async function registerUser({ name, surname, dateOfBirth, role, email, pa
   if (!ALLOWED_ROLES.has(normRole)) throw new Error('Geçersiz rol. Sadece "doctor" veya "user" olabilir.');
 
   const payload = { name, surname, dateOfBirth, role: normRole, email, password };
+  const client = ApiClient.instance
+  const prevAuth = (client?.defaultHeaders || {}).Authorization
   try {
+    if (prevAuth) setAuthToken(null)
     const api = new LogUserControllerApi()
     const res = await api.signUp(payload)
     return res
@@ -79,6 +91,8 @@ export async function registerUser({ name, surname, dateOfBirth, role, email, pa
       body: JSON.stringify(payload)
     });
     return data;
+  } finally {
+    if (prevAuth) setAuthToken(prevAuth.replace(/^Bearer\s+/i, ''))
   }
 }
 

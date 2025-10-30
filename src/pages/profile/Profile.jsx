@@ -175,7 +175,20 @@ export default function Profile() {
         if (viewingOther) {
           base = await getUserByID(token, userIdParam)
         } else {
-          base = await getUserProfile(token)
+          // Önce sunucudan giriş yapmış kişinin tam profilini al (doğum tarihi vb. için)
+          try {
+            base = await getUserProfile(token)
+          } catch (_) {
+            // Sunucu başarısızsa JWT'den (AuthContext) kimliği temel al (fallback)
+            const myId = me?.userId ?? me?.userID
+            base = {
+              userID: myId,
+              name: me?.name || '',
+              surname: me?.surname || '',
+              role: me?.role || 'user',
+              email: me?.email || ''
+            }
+          }
         }
         if (!mounted) return
         setProfileData(base)

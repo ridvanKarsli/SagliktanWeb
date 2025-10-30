@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react'
-import { loginUser, registerUser } from '../services/api.js'
+import { loginUser, registerUser, getUserProfile } from '../services/api.js'
 import { configureApiClient, setAuthToken } from '../services/generated/configureClient'
 
 // --- JWT yardımcıları ---
@@ -43,13 +43,26 @@ export function AuthProvider({ children }) {
           const p = parseJwt(t)
           setToken(t)
           try { configureApiClient(t) } catch {}
-          setUser({
-            email: (p.sub || '').trim(),
-            name: p.name || '',
-            surname: p.surname || '',
-            role: p.role || '',
-            userId: p.userID ?? p.userId ?? null
-          })
+          // Sunucudan kimliği doğrula
+          getUserProfile(t)
+            .then(server => {
+              setUser({
+                email: (server?.email || p.sub || '').trim(),
+                name: server?.name || p.name || '',
+                surname: server?.surname || p.surname || '',
+                role: server?.role || p.role || '',
+                userId: server?.userID ?? server?.userId ?? p.userID ?? p.userId ?? null,
+              })
+            })
+            .catch(() => {
+              setUser({
+                email: (p.sub || '').trim(),
+                name: p.name || '',
+                surname: p.surname || '',
+                role: p.role || '',
+                userId: p.userID ?? p.userId ?? null,
+              })
+            })
         } else {
           localStorage.removeItem('auth')
         }
@@ -63,16 +76,29 @@ export function AuthProvider({ children }) {
   async function login(email, password) {
     const { token: t } = await loginUser({ email, password })
     if (isTokenExpired(t)) throw new Error('Oturum süresi geçmiş bir token döndü.')
-    const p = parseJwt(t)
-    const profile = {
-      email: (p.sub || '').trim(),
-      name: p.name || '',
-      surname: p.surname || '',
-      role: p.role || '',
-      userId: p.userID ?? p.userId ?? null
-    }
     setToken(t)
     try { configureApiClient(t) } catch {}
+    // Sunucudan kimliği al
+    let profile
+    try {
+      const server = await getUserProfile(t)
+      profile = {
+        email: (server?.email || '').trim(),
+        name: server?.name || '',
+        surname: server?.surname || '',
+        role: server?.role || '',
+        userId: server?.userID ?? server?.userId ?? null,
+      }
+    } catch {
+      const p = parseJwt(t)
+      profile = {
+        email: (p.sub || '').trim(),
+        name: p.name || '',
+        surname: p.surname || '',
+        role: p.role || '',
+        userId: p.userID ?? p.userId ?? null,
+      }
+    }
     setUser(profile)
     localStorage.setItem('auth', JSON.stringify({ token: t }))
     return profile
