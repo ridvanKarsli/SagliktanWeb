@@ -19,3 +19,10 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     </ThemeProvider>
   </React.StrictMode>
 )
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    const swUrl = '/sw.js'
+    navigator.serviceWorker.register(swUrl).catch(console.error)
+  })
+}

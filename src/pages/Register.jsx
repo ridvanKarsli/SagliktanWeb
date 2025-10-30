@@ -71,7 +71,8 @@ export default function Register() {
       <Container maxWidth="sm">
         {/* Logo */}
         <Box sx={{ display: 'grid', placeItems: 'center', mb: 2 }}>
-          <Box component="img" src="/sagliktanLogo.png" alt="Sağlıktan" sx={{ width: 72, height: 72 }} />
+          <Box component="img" src="/sagliktanLogo.png" alt="Sağlıktan" 
+            sx={{ width: 120, height: 120, borderRadius: '50%', boxShadow: 6, border: '3px solid #dbeafe', background: '#fff' }} />
         </Box>
 
         <Surface>

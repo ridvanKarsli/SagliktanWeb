@@ -71,7 +71,9 @@ export default function ResponsiveShell({ children }) {
           aria-label="Ana gezinme"
         >
           <Toolbar sx={{ justifyContent: 'center', mt: 1 }}>
-            <Box component="img" src="/sagliktanLogo.png" alt="Sağlıktan" sx={{ width: 40, height: 40 }} />
+            <Box component="img" src="/sagliktanLogo.png" alt="Sağlıktan"
+              sx={{ width: 40, height: 40, borderRadius: '50%', background: '#fff', boxShadow: 3, border: '2px solid #dbeafe' }}
+            />
           </Toolbar>
 
           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5, mt: 1 }}>
@@ -121,7 +123,9 @@ export default function ResponsiveShell({ children }) {
           <Toolbar sx={{ px: { xs: 2, md: 3 }, gap: 1 }}>
             {!isMdUp && (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Box component="img" src="/sagliktanLogo.png" alt="Sağlıktan" sx={{ width: 28, height: 28 }} />
+                <Box component="img" src="/sagliktanLogo.png" alt="Sağlıktan"
+                  sx={{ width: 32, height: 32, borderRadius: '50%', background: '#fff', boxShadow: 2, border: '2px solid #dbeafe' }}
+                />
                 <Typography variant="h6" sx={{ fontWeight: 800 }}>Sağlıktan</Typography>
               </Box>
             )}

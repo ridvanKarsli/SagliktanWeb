@@ -1,0 +1,25 @@
+{
+  "name": "Sağlıktan",
+  "short_name": "Sağlıktan",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#071E28",
+  "theme_color": "#0ea5e9",
+  "description": "Sağlık odaklı sosyal paylaşım ve uzmanlarla etkileşim uygulaması.",
+  "icons": [
+    {
+      "src": "/sagliktanLogo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/sagliktanLogo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
