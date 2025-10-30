@@ -56,11 +56,11 @@ export default function PostCard({
 }) {
   const [openComments, setOpenComments] = useState(false)
   const [commentText, setCommentText] = useState('')
-  const [openDetails, setOpenDetails] = useState(false)
+  // openDetails, toggleDetails, handleDetails kaldırıldı
 
   const dt = new Date(timestamp)
   const toggleComments = () => setOpenComments(v => !v)
-  const toggleDetails = () => setOpenDetails(v => !v)
+  // toggleDetails kaldırıldı
 
   const handleVote = (delta) => onVote?.(id, delta)
 
@@ -198,70 +198,14 @@ export default function PostCard({
               {dislikes}
             </Typography>
 
-            {/* Detaylar aç/kapa */}
-            <Box sx={{ flex: 1 }} />
+            {/* Detaylar aç/kapa ve paneli tamamen kaldırıldı */}
+            {/* <Box sx={{ flex: 1 }} />
             <Button size="small" onClick={toggleDetails} variant="text">
               {openDetails ? 'Detayları Gizle' : 'Detayları Göster'}
-            </Button>
+            </Button> */}
           </Stack>
 
-          {/* Detaylar: Beğenen / Beğenmeyen listeleri */}
-          {openDetails && (
-            <Paper
-              variant="outlined"
-              sx={{
-                p: 1,
-                mt: 1,
-                borderRadius: 2,
-                border: '1px solid rgba(255,255,255,0.14)',
-                background: 'linear-gradient(180deg, rgba(7,20,28,0.36), rgba(7,20,28,0.20))',
-                backdropFilter: 'blur(8px)',
-                color: '#FAF9F6'
-              }}
-            >
-              {/* Beğenenler */}
-              <Box sx={{ mb: 1 }}>
-                <Typography variant="body2" sx={{ fontWeight: 700, mb: 0.5 }}>
-                  Beğenenler ({likedUsers?.length || 0})
-                </Typography>
-                {(!likedUsers || likedUsers.length === 0) ? (
-                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.75)' }}>
-                    Kimse beğenmemiş.
-                  </Typography>
-                ) : (
-                  <List dense disablePadding>
-                    {likedUsers.map((u) => (
-                      <ListItem key={`like-${id}-${u.userID}`} disableGutters>
-                        <ListItemText primary={userFullName(u)} primaryTypographyProps={{ sx: { color: '#FAF9F6' } }} />
-                      </ListItem>
-                    ))}
-                  </List>
-                )}
-              </Box>
-
-              <Divider sx={{ my: 1 }} />
-
-              {/* Beğenmeyenler */}
-              <Box>
-                <Typography variant="body2" sx={{ fontWeight: 700, mb: 0.5 }}>
-                  Beğenmeyenler ({dislikedUsers?.length || 0})
-                </Typography>
-                {(!dislikedUsers || dislikedUsers.length === 0) ? (
-                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.75)' }}>
-                    Beğenmeyen yok.
-                  </Typography>
-                ) : (
-                  <List dense disablePadding>
-                    {dislikedUsers.map((u) => (
-                      <ListItem key={`dislike-${id}-${u.userID}`} disableGutters>
-                        <ListItemText primary={userFullName(u)} primaryTypographyProps={{ sx: { color: '#FAF9F6' } }} />
-                      </ListItem>
-                    ))}
-                  </List>
-                )}
-              </Box>
-            </Paper>
-          )}
+          {/* Detaylar: Beğenen / Beğenmeyen listeleri paneli kaldırıldı */}
 
           {/* Yorumlar Paneli */}
           {openComments && (

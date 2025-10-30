@@ -157,12 +157,6 @@ export default function Search() {
               <Chip label={role} size="small" variant="outlined"
                     sx={{ height: 22, borderColor: 'rgba(255,255,255,0.24)', color: 'rgba(255,255,255,0.9)' }} />
             </Stack>
-            <Typography variant="body2" sx={{ color: 'text.secondary' }} noWrap title={u.email}>
-              {u.email}
-            </Typography>
-            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-              Doğum Tarihi: {prettyDate(u.dateOfBirth)}
-            </Typography>
           </Box>
           <Button onClick={() => visitProfile(u)} size="small" variant="contained" sx={{ whiteSpace: 'nowrap', minHeight: 36 }}>
             Profili Gör

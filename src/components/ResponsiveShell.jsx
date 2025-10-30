@@ -11,6 +11,11 @@ import {
 } from '@mui/icons-material'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import LogoutIcon from '@mui/icons-material/Logout';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import { useState } from 'react';
 
 const railWidth = 84
 const MOBILE_NAV_HEIGHT = 72 // px
@@ -32,7 +37,12 @@ export default function ResponsiveShell({ children }) {
   const isMdUp = useMediaQuery(theme.breakpoints.up('md'))
   const location = useLocation()
   const navigate = useNavigate()
-  const { logout } = useAuth()
+  const { logout, user: me, token } = useAuth();
+  const [menuAnchor, setMenuAnchor] = useState(null);
+  const handleMenuOpen = (e) => setMenuAnchor(e.currentTarget);
+  const handleMenuClose = () => setMenuAnchor(null);
+  const goProfile = () => { handleMenuClose(); navigate('/profile'); };
+  const handleLogout = () => { handleMenuClose(); logout(); navigate('/'); };
 
   const current = useMemo(
     () => Math.max(0, navItems.findIndex(n => location.pathname.startsWith(n.to))),
@@ -129,11 +139,41 @@ export default function ResponsiveShell({ children }) {
                   <AddCircleOutline />
                 </IconButton>
               </Tooltip>
-              <Tooltip title="Profil">
-                <IconButton onClick={() => navigate('/profile')} sx={{ color: '#fff' }}>
-                  <PersonOutline />
-                </IconButton>
-              </Tooltip>
+              {token && (
+                <>
+                  <Tooltip title="Menü">
+                    <IconButton onClick={handleMenuOpen} sx={{ color: '#fff' }}>
+                      <AccountCircleIcon sx={{ fontSize: 32 }} />
+                    </IconButton>
+                  </Tooltip>
+                  <Menu
+                    anchorEl={menuAnchor}
+                    open={Boolean(menuAnchor)}
+                    onClose={handleMenuClose}
+                    anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                    transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                    getContentAnchorEl={null}
+                    sx={{
+                      '& .MuiPaper-root': {
+                        bgcolor: '#192837',
+                        color: '#fff',
+                        borderRadius: 2,
+                        minWidth: 160,
+                        boxShadow: 12,
+                        py: 0.5,
+                        border: 'none',
+                      },
+                    }}
+                  >
+                    <MenuItem onClick={goProfile} sx={{ color: '#fff', fontWeight: 600, borderRadius: 2, px: 2.5, py: 1.15, '&:hover': { bgcolor: 'primary.main', color: '#fff' } }}>
+                      <AccountCircleIcon sx={{ mr: 1, color: 'primary.main' }} /> Profilim
+                    </MenuItem>
+                    <MenuItem onClick={handleLogout} sx={{ color: '#fff', fontWeight: 600, borderRadius: 2, px: 2.5, py: 1.15, '&:hover': { bgcolor: 'error.main', color: '#fff' } }}>
+                      <LogoutIcon sx={{ mr: 1, color: 'error.main' }} /> Çıkış Yap
+                    </MenuItem>
+                  </Menu>
+                </>
+              )}
             </Box>
           </Toolbar>
         </AppBar>

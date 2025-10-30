@@ -2,10 +2,10 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   Alert, Avatar, Box, Stack, Typography, Divider, CircularProgress,
   Tabs, Tab, Container, useMediaQuery, Select, MenuItem, FormControl, InputLabel,
-  Toolbar, Paper
+  Toolbar, Paper, IconButton
 } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import Surface from '../../components/Surface.jsx'
 import PostCard from '../../components/PostCard.jsx'
@@ -31,6 +31,9 @@ import {
 } from '../../services/api.js'
 import DoctorPart from './DoctorPart.jsx'
 import UserPart from './UserPart.jsx'
+import { Logout as LogoutIcon, AccountCircle as AccountCircleIcon } from '@mui/icons-material';
+import Menu from '@mui/material/Menu';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
 
 /* ---------------- Helpers ---------------- */
 function initialsFrom(name = '', fallback = '') {
@@ -116,7 +119,8 @@ function mapChatToPost(chat, meId, authorName, idToName) {
 
 /* ---------------- Page ---------------- */
 export default function Profile() {
-  const { token, user: me } = useAuth()
+  const { token, user: me, logout } = useAuth()
+  const navigate = useNavigate()
   const theme = useTheme()
   const isSmUp = useMediaQuery(theme.breakpoints.up('sm'))
   const location = useLocation()
@@ -133,6 +137,32 @@ export default function Profile() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [tab, setTab] = useState(0)
+  const [mobileMenuAnchor, setMobileMenuAnchor] = useState(null);
+  const handleMobileMenuOpen = (e) => setMobileMenuAnchor(e.currentTarget);
+  const handleMenuClose = () => { setMobileMenuAnchor(null); };
+
+  // Menü içeriği fonksiyonu: (kopya önle için)
+  function ProfileMenu({ anchorEl, open, onClose }) {
+    return (
+      <Menu
+        anchorEl={anchorEl}
+        open={open}
+        onClose={onClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'center' }}
+        getContentAnchorEl={null}
+        sx={{ mt: 1 }}
+      >
+        <MenuItem onClick={() => { onClose(); navigate('/profile'); }}>
+          <AccountCircleIcon sx={{ mr: 1, color: 'primary.main' }} /> Profilim
+        </MenuItem>
+        <MenuItem onClick={() => { onClose(); logout(); navigate('/'); }}>
+          <LogoutIcon sx={{ mr: 1, color: 'error.main' }} /> Çıkış Yap
+        </MenuItem>
+      </Menu>
+    )
+  }
+
 
   useEffect(() => {
     let mounted = true
@@ -386,28 +416,37 @@ export default function Profile() {
     <Container maxWidth="md" sx={{ py: { xs: 1.25, md: 4 }, px: { xs: 1.25, sm: 2 } }}>
       <Surface sx={{ p: { xs: 2, md: 3 } }}>
         {/* Header */}
-        <Stack spacing={1} sx={{ alignItems: 'center', textAlign: 'center' }}>
+        <Stack direction="row" justifyContent="flex-end" alignItems="center" sx={{ mb: 1, position: 'relative' }}>
+          {/* Mobilde sağ üstte 3 nokta menü */}
+          <IconButton
+            onClick={handleMobileMenuOpen}
+            sx={{ display: { xs: 'flex', sm: 'none' }, position: 'absolute', right: 0, top: 0, zIndex: 15 }}
+            aria-label="Menü Aç"
+          >
+            <MoreVertIcon sx={{ fontSize: 30 }} />
+          </IconButton>
+          {/* Masaüstü için boşluk */}
+        </Stack>
+
+        {/* Avatar ve menus: avatar tıklandığında her zamanki gibi */}
+        <Stack spacing={1} sx={{ alignItems: 'center', textAlign: 'center', position: 'relative' }}>
           <Avatar
             sx={{
               width: { xs: 68, md: 76 },
               height: { xs: 68, md: 76 },
               bgcolor: 'secondary.main',
               fontWeight: 800,
-              fontSize: { xs: 22, md: 24 }
+              fontSize: { xs: 22, md: 24 },
+              cursor: 'pointer',
+              boxShadow: 2,
+              border: '3px solid rgba(255,255,255,0.06)'
             }}
             aria-label="Kullanıcı avatarı"
           >
             {initialsFrom(profileData?.name, profileData?.email)}
           </Avatar>
-          <Typography
-            variant="h5"
-            sx={{ fontWeight: 800, fontSize: { xs: 20, sm: 24, md: 28 }, wordBreak: 'break-word' }}
-          >
-            {profileData?.name || 'Kullanıcı'}
-          </Typography>
-          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-            {isDoctor ? 'Doktor' : 'Kullanıcı'}
-          </Typography>
+          {/* Menüleri render et: avatar veya mobile butondan açılır */}
+          <ProfileMenu anchorEl={null} open={Boolean(mobileMenuAnchor)} onClose={handleMenuClose} />
         </Stack>
 
         {/* Sticky Navigasyon */}
@@ -424,66 +463,35 @@ export default function Profile() {
             backdropFilter: 'blur(6px)'
           }}
         >
-          {isSmUp ? (
-            <Tabs
-              value={tab}
-              onChange={(_, v) => setTab(v)}
-              variant="scrollable"
-              scrollButtons="auto"
-              aria-label="Profil sekmeleri"
-              sx={{
-                borderBottom: '1px solid rgba(255,255,255,0.12)',
-                '& .MuiTab-root': {
-                  fontWeight: 700,
-                  textTransform: 'none',
-                  minHeight: 44
+          <Tabs
+            value={tab}
+            onChange={(_, v) => setTab(v)}
+            variant="scrollable"
+            scrollButtons="auto"
+            aria-label="Profil sekmeleri"
+            sx={{
+              borderBottom: '1px solid rgba(255,255,255,0.12)',
+              '& .MuiTab-root': {
+                fontWeight: 700,
+                textTransform: 'none',
+                minHeight: 52,
+                fontSize: { xs: 15, sm: 17, md: 18 },
+                letterSpacing: 0.2,
+                mx: { xs: 0.5, sm: 1 },
+                px: { xs: 2, sm: 3 },
+                py: 1.5,
+                borderRadius: 2,
+                bgcolor: 'rgba(7,20,28,0.16)',
+                '&.Mui-selected': {
+                  bgcolor: 'rgba(52,195,161,0.12)',
+                  color: 'primary.main',
                 }
-              }}
-            >
-              {tabs.map(t => <Tab key={t.key} label={t.label} />)}
-            </Tabs>
-          ) : (
-            <FormControl fullWidth size="small" sx={{ mt: 1 }}>
-              <InputLabel id="profile-section-label" sx={{ color: 'rgba(255,255,255,0.85)' }}>
-                Bölüm
-              </InputLabel>
-              <Select
-                labelId="profile-section-label"
-                id="profile-section"
-                label="Bölüm"
-                value={currentKey}
-                onChange={(e) => {
-                  const idx = tabs.findIndex(t => t.key === e.target.value)
-                  if (idx >= 0) setTab(idx)
-                }}
-                sx={{
-                  bgcolor: 'rgba(255,255,255,0.06)',
-                  color: '#FAF9F6',
-                  '& .MuiSvgIcon-root': { color: '#FAF9F6' }
-                }}
-                MenuProps={{
-                  PaperProps: {
-                    sx: {
-                      bgcolor: 'rgba(7,20,28,0.96)',
-                      color: '#FAF9F6',
-                      border: '1px solid rgba(255,255,255,0.12)',
-                      backdropFilter: 'blur(6px)',
-                      '& .MuiMenuItem-root': {
-                        color: '#FAF9F6',
-                        minHeight: 44,
-                        '&.Mui-selected': { bgcolor: 'rgba(52,195,161,0.18)' },
-                        '&:hover': { bgcolor: 'rgba(255,255,255,0.06)' }
-                      }
-                    }
-                  }
-                }}
-              >
-                {tabs.map(t => (
-                  <MenuItem key={t.key} value={t.key}>{t.label}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          )}
+              },
+              mb: 1.2
+            }}
+          >
+            {tabs.map(t => <Tab key={t.key} label={t.label} />)}
+          </Tabs>
         </Paper>
 
         {/* İçerik */}

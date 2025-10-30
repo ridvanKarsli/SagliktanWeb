@@ -175,24 +175,23 @@ export default function Posts() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, category])
 
-  // Kategori listesi: diyalog ilk açıldığında (veya daha önce yüklenmediyse) çek
+  // Kategori listesi: sayfa ilk açıldığında yükle
   useEffect(() => {
-    if (!dialogOpen || catsLoadedRef.current || !token) return
-    ;(async () => {
+    if (!token) { setCategories([]); return }
+    (async () => {
       setCatsLoading(true); setCatsError('')
       try {
         const list = await getDiseaseNames(token)
         const arr = Array.isArray(list) ? list : (Array.isArray(list?.data) ? list.data : [])
         const clean = arr.map(String).filter(Boolean)
         setCategories(clean)
-        catsLoadedRef.current = true
       } catch (e) {
         setCatsError(e.message || 'Kategoriler alınamadı.')
       } finally {
         setCatsLoading(false)
       }
     })()
-  }, [dialogOpen, token])
+  }, [token])
 
   const closeDialog = () => {
     setMsg('')
@@ -344,9 +343,6 @@ export default function Posts() {
             sx={{ fontWeight: 800, fontSize: { xs: 20, sm: 24, md: 28 } }}
           >
             Topluluk Akışı
-          </Typography>
-          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-            API’den çekilen sohbetler (beğeni, beğenmeme ve yorumlar dahil).
           </Typography>
         </Stack>
         <Divider sx={{ mb: 2, opacity: 0.16 }} />
