@@ -438,12 +438,79 @@ export async function dislikeCommentReaction(token, commentID) {
   return api.dislikeComment(Number(commentID), `Bearer ${token}`)
 }
 export async function cancelLikeCommentReaction(token, commentID) {
-  const api = new CommentReactionsControllerApi()
-  return api.cancelLikeComment(Number(commentID), `Bearer ${token}`)
+  // DİKKAT: Bu fonksiyon reaction ID (chatReactionsID) bekler
+  try {
+    const api = new CommentReactionsControllerApi()
+    return await api.cancelLikeComment(Number(commentID), `Bearer ${token}`)
+  } catch (e) {
+    const url = `${API_BASE}/CommentReactions/cancelLikeComment?cancelcommmentsLikeID=${encodeURIComponent(commentID)}`
+    return fetchJson(url, { method: 'DELETE', headers: { ...authHeaders(token) } })
+  }
 }
 export async function cancelDislikeCommentReaction(token, commentID) {
-  const api = new CommentReactionsControllerApi()
-  return api.cancelDislikeComment(Number(commentID), `Bearer ${token}`)
+  // DİKKAT: Bu fonksiyon reaction ID (chatReactionsID) bekler
+  try {
+    const api = new CommentReactionsControllerApi()
+    return await api.cancelDislikeComment(Number(commentID), `Bearer ${token}`)
+  } catch (e) {
+    const url = `${API_BASE}/CommentReactions/cancelDislikeComment?cancelcommmentsDislikeID=${encodeURIComponent(commentID)}`
+    return fetchJson(url, { method: 'DELETE', headers: { ...authHeaders(token) } })
+  }
+}
+
+// YARDIMCI: Comment için beğenen/beğenmeyen kullanıcı listelerini çek (reactionID bulmak için)
+export async function getLikedCommentPeople(token, commentID) {
+  try {
+    const api = new CommentReactionsControllerApi()
+    const list = await api.getLikedCommentPeope(Number(commentID), `Bearer ${token}`)
+    return Array.isArray(list) ? list : []
+  } catch (e) {
+    // Fallback denemeleri: farklı param ve path varyasyonları
+    const variants = [
+      `${API_BASE}/CommentReactions/getLikedCommentPeope?commentID=${encodeURIComponent(commentID)}`,
+      `${API_BASE}/CommentReactions/getLikedCommentPeope?commnetsID=${encodeURIComponent(commentID)}`,
+      `${API_BASE}/commentReactions/getLikedCommentPeope?commentID=${encodeURIComponent(commentID)}`,
+      `${API_BASE}/commentReactions/getLikedCommentPeope?commnetsID=${encodeURIComponent(commentID)}`,
+    ]
+    for (const url of variants) {
+      try {
+        // debug
+        // eslint-disable-next-line no-console
+        console.debug('[API] getLikedCommentPeople try', url)
+        const data = await fetchJson(url, { method: 'GET', headers: { ...authHeaders(token) } })
+        if (Array.isArray(data) && data.length >= 0) return data
+      } catch {
+        // try next
+      }
+    }
+    return []
+  }
+}
+
+export async function getDislikedCommentPeople(token, commentID) {
+  try {
+    const api = new CommentReactionsControllerApi()
+    const list = await api.getDislikedCommentPeope(Number(commentID), `Bearer ${token}`)
+    return Array.isArray(list) ? list : []
+  } catch (e) {
+    const variants = [
+      `${API_BASE}/CommentReactions/getDislikedCommentPeope?commentID=${encodeURIComponent(commentID)}`,
+      `${API_BASE}/CommentReactions/getDislikedCommentPeope?commnetsID=${encodeURIComponent(commentID)}`,
+      `${API_BASE}/commentReactions/getDislikedCommentPeope?commentID=${encodeURIComponent(commentID)}`,
+      `${API_BASE}/commentReactions/getDislikedCommentPeope?commnetsID=${encodeURIComponent(commentID)}`,
+    ]
+    for (const url of variants) {
+      try {
+        // eslint-disable-next-line no-console
+        console.debug('[API] getDislikedCommentPeople try', url)
+        const data = await fetchJson(url, { method: 'GET', headers: { ...authHeaders(token) } })
+        if (Array.isArray(data) && data.length >= 0) return data
+      } catch {
+        // try next
+      }
+    }
+    return []
+  }
 }
 
 export async function getAllUsers(token, { signal } = {}) {

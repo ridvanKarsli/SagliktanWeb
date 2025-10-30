@@ -5,7 +5,14 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: 3000,   // ← Portu burada tanımlıyoruz
-    open: true    // ← (İsteğe bağlı) tarayıcıyı otomatik açar
-  }
-})
+    port: 3000,
+    host: 'localhost',
+    open: true, // İsteğe bağlı
+    strictPort: true, // 3000 doluysa hata versin, başka bir porta geçmesin
+    hmr: {
+      clientPort: 3000,
+      host: 'localhost',
+      protocol: 'ws',
+    },
+  },
+});

@@ -24,6 +24,7 @@ import {
   cancelLikeCommentReaction,
   cancelDislikeCommentReaction
 } from '../services/api.js'
+import { getLikedCommentPeople, getDislikedCommentPeople } from '../services/api.js'
 import { addChat } from '../services/api.js'
 
 /* ---------------- Utils ---------------- */
@@ -74,7 +75,15 @@ function toPostModel(chat, currentUserId, authorNameOverride, idToName) {
           timestamp: parseYMD(c.uploadDate),
           likes: cLiked.length,
           dislikes: cDisliked.length,
-          myVote: myVoteFor(currentUserId, cLiked, cDisliked)
+          myVote: myVoteFor(currentUserId, cLiked, cDisliked),
+          likedUsers: (Array.isArray(c.likedUser) ? c.likedUser : []).map(u => ({
+            userID: u?.userID ?? u?.userId,
+            chatReactionsID: u?.chatReactionsID ?? u?.commentReactionsID ?? u?.reactionID ?? u?.id
+          })),
+          dislikedUsers: (Array.isArray(c.dislikedUser) ? c.dislikedUser : []).map(u => ({
+            userID: u?.userID ?? u?.userId,
+            chatReactionsID: u?.chatReactionsID ?? u?.commentReactionsID ?? u?.reactionID ?? u?.id
+          }))
         }
       })
     : []
@@ -133,6 +142,21 @@ export default function Posts() {
     setError('')
     try {
       const data = category ? await getChatsWithFilter(token, category) : await getAllChats(token)
+      // Debug: Ham payload ve yorumlardaki reaction ID'ler
+      try {
+        console.groupCollapsed('[Feed] getAllChats payload')
+        console.debug('count:', Array.isArray(data) ? data.length : 0)
+        ;(Array.isArray(data) ? data : []).slice(0, 10).forEach((ch, idx) => {
+          const comments = Array.isArray(ch?.comments) ? ch.comments : []
+          console.debug(`#${idx} chatID=${ch?.chatID} comments=${comments.length}`)
+          comments.slice(0, 10).forEach((c, ci) => {
+            const liked = Array.isArray(c?.likedUser) ? c.likedUser : []
+            const disliked = Array.isArray(c?.dislikedUser) ? c.dislikedUser : []
+            console.debug(`  c#${ci} commnetsID=${c?.commnetsID} likedIDs=`, liked.map(u => u?.chatReactionsID), 'dislikedIDs=', disliked.map(u => u?.chatReactionsID))
+          })
+        })
+        console.groupEnd()
+      } catch {}
       // Yazar ve yorum yazarlarını userID -> full name ile zenginleştir
       const ids = new Set()
       for (const ch of data) {
@@ -270,7 +294,17 @@ export default function Posts() {
   }
 
   const voteComment = async (postId, commentId, delta) => {
+    const meId = user?.userId ?? user?.userID
+    // Mevcut durumdan bu yorum için benim reaction kaydımı bul
+    const currentPost = posts.find(p => p.id === postId)
+    const currentComment = currentPost?.comments?.find(c => c.id === commentId)
+    console.debug('[Comments] voteComment start', { postId, commentId, delta, meId, currentComment })
+    const likedEntry = currentComment?.likedUsers?.find?.(u => Number(u.userID) === Number(meId))
+    const dislikedEntry = currentComment?.dislikedUsers?.find?.(u => Number(u.userID) === Number(meId))
+    const likeReactionId = likedEntry?.chatReactionsID
+    const dislikeReactionId = dislikedEntry?.chatReactionsID
     const realCommentId = Number(String(commentId).replace(/^c_/, ''))
+    console.debug('[Comments] current dislikedUsers', { meId, dislikedUsers: currentComment?.dislikedUsers, dislikeReactionId })
     let prevVote = 0
     setPosts(prev => prev.map(p => {
       if (p.id !== postId) return p
@@ -293,14 +327,60 @@ export default function Posts() {
     }))
     try {
       if (prevVote === delta) {
-        if (delta === 1) await cancelLikeCommentReaction(token, realCommentId)
-        else await cancelDislikeCommentReaction(token, realCommentId)
+        if (delta === 1) {
+          let rid = likeReactionId
+          if (!rid) {
+            const people = await getLikedCommentPeople(token, realCommentId)
+            console.debug('[Comments] fetched liked people', { realCommentId, people })
+            const mine = Array.isArray(people) ? people.find(p => Number(p?.userID ?? p?.userId) === Number(meId)) : null
+            rid = mine?.chatReactionsID ?? mine?.commentReactionsID ?? mine?.reactionID ?? mine?.id
+          }
+          console.info('[Comments] cancel like', { postId, commentId, realCommentId, reactionId: rid })
+          if (!rid) throw new Error('İptal için like reaction ID bulunamadı.')
+          await cancelLikeCommentReaction(token, rid)
+        } else {
+          let rid = dislikeReactionId
+          if (!rid) {
+            const people = await getDislikedCommentPeople(token, realCommentId)
+            console.debug('[Comments] fetched disliked people', { realCommentId, people })
+            const mine = Array.isArray(people) ? people.find(p => Number(p?.userID ?? p?.userId) === Number(meId)) : null
+            rid = mine?.chatReactionsID ?? mine?.commentReactionsID ?? mine?.reactionID ?? mine?.id
+            if (!rid) {
+              // Heuristic fallback: UI state'te tek bir dislike kaydı varsa onu kullan
+              const uiList = Array.isArray(currentComment?.dislikedUsers) ? currentComment.dislikedUsers : []
+              if (uiList.length === 1) {
+                rid = uiList[0]?.chatReactionsID
+                console.warn('[Comments] fallback: single dislikedUser used', { rid, uiList })
+              }
+            }
+            if (!rid) {
+              // Son çare: Tüm chatleri çek, ilgili yorumun dislikedUser listesinden benim reaction ID'imi bul
+              try {
+                const chats = await getAllChats(token)
+                const chatIdNum = Number(String(postId).replace(/^p_/, ''))
+                const chat = Array.isArray(chats) ? chats.find(c => Number(c?.chatID) === chatIdNum) : null
+                const comment = chat?.comments?.find?.(c => Number(c?.commnetsID ?? c?.commentID ?? c?.id) === realCommentId)
+                const mine2 = comment?.dislikedUser?.find?.(u => Number(u?.userID ?? u?.userId) === Number(meId))
+                rid = mine2?.chatReactionsID ?? mine2?.commentReactionsID ?? mine2?.reactionID ?? mine2?.id
+                console.warn('[Comments] final fallback: getAllChats-derived reactionId', { rid })
+              } catch (e2) {
+                console.error('[Comments] final fallback failed', e2)
+              }
+            }
+          }
+          console.info('[Comments] cancel dislike', { postId, commentId, realCommentId, reactionId: rid })
+          if (!rid) throw new Error('İptal için dislike reaction ID bulunamadı.')
+          await cancelDislikeCommentReaction(token, rid)
+        }
       } else if (delta === 1) {
+        console.info('[Comments] like comment', { postId, commentId, realCommentId })
         await likeCommentReaction(token, realCommentId)
       } else if (delta === -1) {
+        console.info('[Comments] dislike comment', { postId, commentId, realCommentId })
         await dislikeCommentReaction(token, realCommentId)
       }
     } catch (e) {
+      console.error('[Comments] voteComment error', { postId, commentId, delta, error: e?.message, stack: e?.stack })
       // rollback by reloading post reactions state conservatively
       setError(e?.message || 'Yorum oylama başarısız.')
       await loadChats()
