@@ -40,16 +40,16 @@ export default function AIChat() {
   }
 
   return (
-    <Surface sx={{ overflow: 'visible' }}>
-      <Typography variant="h3" sx={{ mb: 2, fontWeight: 800 }}>
+    <Surface sx={{ overflow: 'visible', p: { xs: 1.5, md: 3 } }}>
+      <Typography variant="h5" sx={{ mb: { xs: 1, md: 2 }, fontWeight: 800 }}>
         AI ile Sohbet
       </Typography>
 
-      <Stack spacing={2} sx={{ minHeight: 360 }}>
+      <Stack spacing={1.5} sx={{ minHeight: 360 }}>
         <Box sx={{
           display: 'flex',
           flexDirection: 'column',
-          gap: 1,
+          gap: 0.75,
           maxHeight: { xs: 360, md: 480 },
           overflowY: 'auto',
           pr: 0.5
@@ -84,7 +84,7 @@ export default function AIChat() {
           })}
         </Box>
 
-        <Box component="form" onSubmit={send} sx={{ display: 'flex', gap: 1, pt: 1 }}>
+        <Box component="form" onSubmit={send} sx={{ display: 'flex', gap: { xs: 0.75, md: 1 }, pt: 1 }}>
           <TextField
             fullWidth
             placeholder="Mesaj yaz…"

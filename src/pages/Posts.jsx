@@ -414,13 +414,13 @@ export default function Posts() {
   const sorted = useMemo(() => [...posts].sort((a, b) => b.timestamp - a.timestamp), [posts])
 
   return (
-    <Container maxWidth="md" sx={{ py: { xs: 1.25, md: 4 }, px: { xs: 1.25, sm: 2 } }}>
-      <Surface sx={{ p: { xs: 2, md: 3 } }}>
+    <Container maxWidth="sm" sx={{ py: { xs: 1, md: 4 }, px: { xs: 1, sm: 2 } }}>
+      <Surface sx={{ p: { xs: 1.5, md: 3 } }}>
         {/* Header */}
         <Stack spacing={0.5} sx={{ mb: 1 }}>
           <Typography
             variant="h5"
-            sx={{ fontWeight: 800, fontSize: { xs: 20, sm: 24, md: 28 } }}
+            sx={{ fontWeight: 800, fontSize: { xs: 18, sm: 24, md: 28 } }}
           >
             Topluluk Akışı
           </Typography>

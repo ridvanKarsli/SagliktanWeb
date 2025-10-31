@@ -93,19 +93,19 @@ export default function PostCard({
     <Box
       sx={{
         px: { xs: 1, md: 1.5 },
-        py: 1.5,
+        py: { xs: 1, md: 1.5 },
         transition: 'background-color .15s ease',
         '&:hover': { backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 2 }
       }}
     >
-      <Stack direction="row" spacing={1.5} alignItems="flex-start">
-        <Avatar aria-hidden sx={{ bgcolor: 'secondary.main', fontWeight: 800 }}>
+      <Stack direction="row" spacing={{ xs: 1, md: 1.5 }} alignItems="flex-start">
+        <Avatar aria-hidden sx={{ bgcolor: 'secondary.main', fontWeight: 800, width: { xs: 36, md: 40 }, height: { xs: 36, md: 40 }, fontSize: { xs: 14, md: 16 } }}>
           {initialsFrom(author)}
         </Avatar>
 
         <Box sx={{ flex: 1, minWidth: 0 }}>
           {/* Üst bilgi satırı */}
-          <Stack direction="row" spacing={1} alignItems="baseline" sx={{ mb: 0.5, minWidth: 0 }}>
+          <Stack direction="row" spacing={{ xs: 0.75, md: 1 }} alignItems="baseline" sx={{ mb: 0.5, minWidth: 0 }}>
             <Typography
               variant="subtitle1"
               sx={{ fontWeight: 700, color: 'primary.light', cursor: onAuthorClick && authorId ? 'pointer' : 'default' }}
@@ -127,7 +127,7 @@ export default function PostCard({
                     onClick={handleDeletePost}
                     disabled={deleting}
                     aria-label="Gönderiyi sil"
-                    sx={{ color: 'rgba(255,255,255,0.85)' }}
+                    sx={{ color: 'rgba(255,255,255,0.85)', width: { xs: 36, md: 40 }, height: { xs: 36, md: 40 } }}
                   >
                     <DeleteOutline fontSize="small" />
                   </IconButton>
@@ -159,10 +159,10 @@ export default function PostCard({
           </Typography>
 
           {/* Aksiyonlar */}
-          <Stack direction="row" spacing={0.75} sx={{ mt: 1 }} alignItems="center">
+          <Stack direction="row" spacing={{ xs: 0.5, md: 0.75 }} sx={{ mt: 1 }} alignItems="center">
             {/* Yorumlar aç/kapa */}
             <Tooltip title={openComments ? 'Yorumları gizle' : 'Yorum yap / Yorumları göster'}>
-              <IconButton size="small" sx={{ color: 'rgba(255,255,255,0.85)' }} onClick={toggleComments}>
+              <IconButton size="small" sx={{ color: 'rgba(255,255,255,0.85)', width: { xs: 36, md: 40 }, height: { xs: 36, md: 40 } }} onClick={toggleComments}>
                 <ChatBubbleOutline fontSize="small" />
               </IconButton>
             </Tooltip>
@@ -174,7 +174,7 @@ export default function PostCard({
             <Tooltip title="Beğen">
               <IconButton
                 size="small"
-                sx={{ color: myVote === 1 ? 'primary.main' : 'rgba(255,255,255,0.85)' }}
+                sx={{ color: myVote === 1 ? 'primary.main' : 'rgba(255,255,255,0.85)', width: { xs: 36, md: 40 }, height: { xs: 36, md: 40 } }}
                 onClick={() => handleVote(+1)}
               >
                 <ThumbUpOffAlt fontSize="small" />
@@ -188,7 +188,7 @@ export default function PostCard({
             <Tooltip title="Beğenme">
               <IconButton
                 size="small"
-                sx={{ color: myVote === -1 ? 'primary.main' : 'rgba(255,255,255,0.85)' }}
+                sx={{ color: myVote === -1 ? 'primary.main' : 'rgba(255,255,255,0.85)', width: { xs: 36, md: 40 }, height: { xs: 36, md: 40 } }}
                 onClick={() => handleVote(-1)}
               >
                 <ThumbDownOffAlt fontSize="small" />
@@ -197,21 +197,15 @@ export default function PostCard({
             <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.75)' }}>
               {dislikes}
             </Typography>
-
-            {/* Detaylar aç/kapa ve paneli tamamen kaldırıldı */}
-            {/* <Box sx={{ flex: 1 }} />
-            <Button size="small" onClick={toggleDetails} variant="text">
-              {openDetails ? 'Detayları Gizle' : 'Detayları Göster'}
-            </Button> */}
           </Stack>
 
           {/* Detaylar: Beğenen / Beğenmeyen listeleri paneli kaldırıldı */}
 
           {/* Yorumlar Paneli */}
           {openComments && (
-            <Box sx={{ mt: 1.5 }}>
+            <Box sx={{ mt: 1.25 }}>
               {/* Yorum yaz */}
-              <Box component="form" onSubmit={handleAdd} sx={{ display: 'flex', gap: 1 }}>
+              <Box component="form" onSubmit={handleAdd} sx={{ display: 'flex', gap: { xs: 0.75, md: 1 } }}>
                 <TextField
                   fullWidth
                   placeholder="Yorum yaz…"
@@ -219,7 +213,7 @@ export default function PostCard({
                   onChange={(e) => setCommentText(e.target.value)}
                   size="small"
                 />
-                <Button type="submit" size="small">Gönder</Button>
+                <Button type="submit" size="small" sx={{ minHeight: { xs: 36, md: 40 }, minWidth: { xs: 44, md: 48 } }}>Gönder</Button>
               </Box>
 
               {/* Yorum listesi */}
@@ -231,11 +225,11 @@ export default function PostCard({
                 ) : (
                   comments.map((c, i) => {
                     // 🔹 Kimler silebilir? Post sahibi veya yorum sahibi (c.userID eşleşirse)
-                    const canDeleteComment = !!onCommentDelete && (isOwner || (currentUserId && c.userID && c.userID === currentUserId))
+                    const canDeleteComment = !!onCommentDelete && (isOwner || (currentUserId && c.authorId && c.authorId === currentUserId))
 
                     return (
                       <Box key={c.id} sx={{ py: 1 }}>
-                        <Stack direction="row" spacing={1.25} alignItems="flex-start">
+                        <Stack direction="row" spacing={{ xs: 1, md: 1.25 }} alignItems="flex-start">
                           <Avatar sx={{ bgcolor: 'secondary.main', fontWeight: 800, width: 28, height: 28 }}>
                             {initialsFrom(c.author)}
                           </Avatar>
@@ -259,7 +253,7 @@ export default function PostCard({
                                       size="small"
                                       onClick={() => handleDeleteComment(c.id)}
                                       aria-label="Yorumu sil"
-                                      sx={{ color: 'rgba(255,255,255,0.85)' }}
+                                      sx={{ color: 'rgba(255,255,255,0.85)', width: { xs: 32, md: 36 }, height: { xs: 32, md: 36 } }}
                                     >
                                       <DeleteOutline fontSize="inherit" />
                                     </IconButton>
@@ -274,11 +268,11 @@ export default function PostCard({
                             </Typography>
 
                             {/* Yorum like/dislike */}
-                            <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mt: 0.5 }}>
+                            <Stack direction="row" spacing={{ xs: 0.5, md: 0.75 }} alignItems="center" sx={{ mt: 0.5 }}>
                               <Tooltip title="Beğen">
                                 <IconButton
                                   size="small"
-                                  sx={{ color: c.myVote === 1 ? 'primary.main' : 'rgba(255,255,255,0.85)' }}
+                                  sx={{ color: c.myVote === 1 ? 'primary.main' : 'rgba(255,255,255,0.85)', width: { xs: 32, md: 36 }, height: { xs: 32, md: 36 } }}
                                   onClick={() => onCommentVote?.(id, c.id, +1)}
                                 >
                                   <ThumbUpOffAlt fontSize="inherit" />
@@ -291,7 +285,7 @@ export default function PostCard({
                               <Tooltip title="Beğenme">
                                 <IconButton
                                   size="small"
-                                  sx={{ color: c.myVote === -1 ? 'primary.main' : 'rgba(255,255,255,0.85)' }}
+                                  sx={{ color: c.myVote === -1 ? 'primary.main' : 'rgba(255,255,255,0.85)', width: { xs: 32, md: 36 }, height: { xs: 32, md: 36 } }}
                                   onClick={() => onCommentVote?.(id, c.id, -1)}
                                 >
                                   <ThumbDownOffAlt fontSize="inherit" />

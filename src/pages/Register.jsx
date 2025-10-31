@@ -106,7 +106,6 @@ export default function Register() {
               InputLabelProps={{ shrink: true }}
               inputProps={{ min: '1900-01-01', max: new Date().toISOString().split('T')[0] }}
               autoComplete="bday"
-              helperText='Format: YYYY-MM-DD (örn. 1998-07-15)'
             />
 
             {/* Rol seçimi — menü yazıları görünür */}
@@ -116,7 +115,6 @@ export default function Register() {
               required
               value={form.role}
               onChange={e => setForm(f => ({ ...f, role: e.target.value }))}
-              helperText='Sadece "doctor" veya "user"'
               SelectProps={{
                 MenuProps: {
                   PaperProps: {

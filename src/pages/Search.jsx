@@ -168,9 +168,9 @@ export default function Search() {
   }
 
   return (
-    <Surface sx={{ p: { xs: 2, md: 3 } }}>
-      <Stack spacing={1.25} component="form" onSubmit={onSearchSubmit} sx={{ mb: 2 }}>
-        <Typography variant="h5" sx={{ fontWeight: 800, fontSize: { xs: 20, sm: 24, md: 28 } }}>
+    <Surface sx={{ p: { xs: 1.5, md: 3 } }}>
+      <Stack spacing={1.25} component="form" onSubmit={onSearchSubmit} sx={{ mb: 1.5 }}>
+        <Typography variant="h5" sx={{ fontWeight: 800, fontSize: { xs: 18, sm: 24, md: 28 } }}>
           Kişi Ara
         </Typography>
         <TextField
