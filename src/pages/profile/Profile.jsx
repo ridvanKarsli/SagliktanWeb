@@ -498,8 +498,8 @@ export default function Profile() {
   }
 
   return (
-    <Container maxWidth="md" sx={{ py: { xs: 1.25, md: 4 }, px: { xs: 1.25, sm: 2 } }}>
-      <Surface sx={{ p: { xs: 2, md: 3 } }}>
+    <Container maxWidth="sm" sx={{ py: { xs: 1, md: 4 }, px: { xs: 1, sm: 2 } }}>
+      <Surface sx={{ p: { xs: 1.5, md: 3 } }}>
         {/* Header */}
         <Stack direction="row" justifyContent="flex-end" alignItems="center" sx={{ mb: 1, position: 'relative' }}>
           {/* Mobilde sağ üstte 3 nokta menü */}
@@ -538,12 +538,12 @@ export default function Profile() {
         <Paper
           elevation={0}
           sx={{
-            position: 'sticky',
-            top: 8,
+            position: { xs: 'static', sm: 'sticky' },
+            top: { xs: 'auto', sm: 8 },
             zIndex: 1,
-            mt: 1.5,
-            px: { xs: 1, sm: 0 },
-            py: { xs: 0.5, sm: 0 },
+            mt: 1,
+            px: { xs: 0.5, sm: 0 },
+            py: { xs: 0.25, sm: 0 },
             background: 'transparent',
             backdropFilter: 'blur(6px)'
           }}
@@ -559,12 +559,12 @@ export default function Profile() {
               '& .MuiTab-root': {
                 fontWeight: 700,
                 textTransform: 'none',
-                minHeight: 52,
-                fontSize: { xs: 15, sm: 17, md: 18 },
+                minHeight: { xs: 44, sm: 52 },
+                fontSize: { xs: 14, sm: 17, md: 18 },
                 letterSpacing: 0.2,
-                mx: { xs: 0.5, sm: 1 },
-                px: { xs: 2, sm: 3 },
-                py: 1.5,
+                mx: { xs: 0.25, sm: 1 },
+                px: { xs: 1.5, sm: 3 },
+                py: { xs: 1, sm: 1.5 },
                 borderRadius: 2,
                 bgcolor: 'rgba(7,20,28,0.16)',
                 '&.Mui-selected': {
@@ -572,7 +572,7 @@ export default function Profile() {
                   color: 'primary.main',
                 }
               },
-              mb: 1.2
+              mb: { xs: 0.75, sm: 1.2 }
             }}
           >
             {tabs.map(t => <Tab key={t.key} label={t.label} />)}
@@ -580,7 +580,7 @@ export default function Profile() {
         </Paper>
 
         {/* İçerik */}
-        <Box sx={{ pt: 2 }}>
+        <Box sx={{ pt: { xs: 1, sm: 2 } }}>
           {currentKey === 'info' && (
             <Stack spacing={1}>
               <Row label="İsim" value={profileData?.name} />
