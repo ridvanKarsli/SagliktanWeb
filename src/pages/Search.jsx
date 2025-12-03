@@ -1,11 +1,10 @@
 import { useMemo, useState, useEffect } from 'react'
 import {
   Box, Button, Avatar, Grid, TextField, Stack, Typography, Divider,
-  Alert, CircularProgress, Chip, IconButton, Tooltip
+  Alert, CircularProgress, Chip, IconButton, Tooltip, Paper
 } from '@mui/material'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Close as CloseIcon } from '@mui/icons-material'
-import Surface from '../components/Surface.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { getAllUsers } from '../services/api.js'
 
@@ -141,51 +140,110 @@ export default function Search() {
 
   const clearRecents = () => { saveRecents([]); setRecents([]) }
 
-  const SectionItem = ({ u, showDivider }) => {
+  const SectionItem = ({ u }) => {
     const role = normalizeRole(u.role)
     const nameFull = [u.name, u.surname].filter(Boolean).join(' ') || `Kullanıcı #${u.userID}`
     return (
-      <Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1.25, px: { xs: 0.5, md: 1 } }}>
-          <Avatar sx={{ bgcolor: 'secondary.main', fontWeight: 800, width: 44, height: 44 }}
-                  aria-label={`${nameFull} avatarı`}>
-            {initialsFrom(u.name, u.surname)}
-          </Avatar>
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Stack direction="row" alignItems="center" spacing={1} sx={{ minWidth: 0 }}>
-              <Typography sx={{ fontWeight: 700 }} noWrap title={nameFull}>{nameFull}</Typography>
-              <Chip label={role} size="small" variant="outlined"
-                    sx={{ height: 22, borderColor: 'rgba(255,255,255,0.24)', color: 'rgba(255,255,255,0.9)' }} />
-            </Stack>
-          </Box>
-          <Button onClick={() => visitProfile(u)} size="small" variant="contained" sx={{ whiteSpace: 'nowrap', minHeight: 36 }}>
+      <Paper
+        elevation={0}
+        sx={{
+          p: { xs: 1.5, sm: 2 },
+          borderRadius: 2,
+          backgroundColor: 'rgba(255,255,255,0.03)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          mb: 1.5,
+          transition: 'all 0.2s ease',
+          '&:hover': {
+            backgroundColor: 'rgba(255,255,255,0.05)',
+            borderColor: 'rgba(255,255,255,0.12)',
+            transform: 'translateY(-1px)'
+          }
+        }}
+      >
+        <Stack 
+          direction="row" 
+          spacing={{ xs: 1.5, sm: 2 }} 
+          alignItems="center"
+        >
+          <Stack direction="row" spacing={1.5} alignItems="center" sx={{ flex: 1, minWidth: 0 }}>
+            <Avatar 
+              sx={{ 
+                bgcolor: 'secondary.main', 
+                fontWeight: 800, 
+                width: { xs: 48, sm: 52 }, 
+                height: { xs: 48, sm: 52 },
+                fontSize: { xs: 16, sm: 18 }
+              }}
+              aria-label={`${nameFull} avatarı`}
+            >
+              {initialsFrom(u.name, u.surname)}
+            </Avatar>
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography 
+                variant="subtitle1" 
+                sx={{ 
+                  fontWeight: 600, 
+                  mb: 0.5,
+                  color: 'text.primary',
+                  wordBreak: 'break-word'
+                }}
+              >
+                {nameFull}
+              </Typography>
+              <Chip 
+                label={role} 
+                size="small" 
+                variant="outlined"
+                sx={{ 
+                  height: 24, 
+                  fontSize: '0.75rem',
+                  borderColor: 'rgba(255,255,255,0.2)', 
+                  color: 'text.secondary',
+                  fontWeight: 500
+                }} 
+              />
+            </Box>
+          </Stack>
+          <Button 
+            onClick={() => visitProfile(u)} 
+            variant="contained" 
+            sx={{ 
+              whiteSpace: 'nowrap', 
+              minHeight: { xs: 44, sm: 40 },
+              minWidth: { xs: 100, sm: 120 },
+              fontWeight: 600,
+              flexShrink: 0
+            }}
+          >
             Profili Gör
           </Button>
-        </Box>
-        {showDivider && <Divider sx={{ opacity: 0.16 }} />}
-      </Box>
+        </Stack>
+      </Paper>
     )
   }
 
   return (
-    <Surface sx={{ p: { xs: 1.5, md: 3 } }}>
-      <Stack spacing={1.25} component="form" onSubmit={onSearchSubmit} sx={{ mb: 1.5 }}>
-        <Typography variant="h5" sx={{ fontWeight: 800, fontSize: { xs: 18, sm: 24, md: 28 } }}>
+    <Box sx={{ py: { xs: 2, md: 3 } }}>
+      {/* Başlık ve Arama */}
+      <Stack spacing={2.5} sx={{ mb: 4 }}>
+        <Typography variant="h5" sx={{ fontWeight: 700, fontSize: { xs: 22, sm: 26, md: 28 } }}>
           Kişi Ara
         </Typography>
-        <TextField
-          fullWidth
-          placeholder="Uzman veya kullanıcı ara…"
-          value={q}
-          onChange={e => setQ(e.target.value)}
-          size="small"
-          InputLabelProps={{ shrink: false }}
-          sx={{
-            '& .MuiInputBase-root': { bgcolor: 'rgba(255,255,255,0.06)', borderRadius: 1.2 },
-            '& .MuiInputBase-input': { color: '#FAF9F6' },
-            '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.85)' }
-          }}
-        />
+        <Box component="form" onSubmit={onSearchSubmit}>
+          <TextField
+            fullWidth
+            placeholder="Uzman veya kullanıcı ara…"
+            value={q}
+            onChange={e => setQ(e.target.value)}
+            size="medium"
+            InputLabelProps={{ shrink: false }}
+            sx={{
+              '& .MuiInputBase-root': {
+                fontSize: { xs: '1rem', sm: '1.05rem' }
+              }
+            }}
+          />
+        </Box>
       </Stack>
 
       {error && <Alert severity="error" variant="filled" sx={{ mb: 1 }}>{error}</Alert>}
@@ -198,64 +256,116 @@ export default function Search() {
       {!loading && !error && (
         <>
           {q.trim() ? (
-            <>
-              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
-                {results.length} sonuç (ilk {Math.min(results.length, SEARCH_LIMIT)})
+            <Stack spacing={2}>
+              <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500 }}>
+                {results.length} sonuç bulundu
               </Typography>
-              <Grid container>
-                {results.length === 0 && (
-                  <Grid item xs={12}>
-                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                      Sonuç bulunamadı.
-                    </Typography>
-                  </Grid>
-                )}
-                {results.map((u, i) => (
-                  <Grid item xs={12} key={`${u.userID}-${u.email}-${i}`}>
-                    <SectionItem u={u} showDivider={i < results.length - 1} />
-                  </Grid>
-                ))}
-              </Grid>
-            </>
-          ) : (
-            <>
-              <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Son Arananlar</Typography>
-                {recents.length > 0 && (
-                  <Tooltip title="Geçmişi temizle">
-                    <IconButton size="small" onClick={clearRecents} aria-label="Geçmişi temizle"
-                      sx={{ color: 'text.secondary', '&:hover': { color: 'text.primary' } }}>
-                      <CloseIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                )}
-              </Stack>
-              {recents.length === 0 ? (
-                <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
-                  Henüz arama geçmişiniz yok.
-                </Typography>
+              {results.length === 0 ? (
+                <Box 
+                  sx={{ 
+                    textAlign: 'center', 
+                    py: { xs: 8, md: 10 },
+                    px: 3,
+                    borderRadius: 3,
+                    backgroundColor: 'rgba(255,255,255,0.03)',
+                    border: '1px solid rgba(255,255,255,0.08)'
+                  }}
+                >
+                  <Box
+                    component="img"
+                    src="/Lumo.png"
+                    alt="Lumo"
+                    sx={{ 
+                      width: { xs: 140, md: 180 }, 
+                      height: 'auto', 
+                      mb: 3, 
+                      mx: 'auto',
+                      display: 'block',
+                      maxWidth: '100%',
+                      filter: 'drop-shadow(0 6px 20px rgba(52,195,161,0.2))'
+                    }}
+                  />
+                  <Typography variant="h6" sx={{ color: 'text.primary', mb: 1, fontWeight: 600 }}>
+                    Sonuç bulunamadı
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: 'text.secondary', opacity: 0.9 }}>
+                    Farklı bir arama terimi deneyin
+                  </Typography>
+                </Box>
               ) : (
-                <Grid container sx={{ mb: 2 }}>
-                  {recents.map((u, i) => (
-                    <Grid item xs={12} key={`recent-${u.userID}-${u.email}-${i}`}>
-                      <SectionItem u={u} showDivider={i < recents.length - 1} />
-                    </Grid>
+                <Stack spacing={1.5}>
+                  {results.map((u, i) => (
+                    <SectionItem key={`${u.userID}-${u.email}-${i}`} u={u} />
                   ))}
-                </Grid>
+                </Stack>
               )}
+            </Stack>
+          ) : (
+            <Stack spacing={4}>
+              {/* Son Arananlar */}
+              <Box>
+                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 700, fontSize: { xs: 18, sm: 20 } }}>
+                    Son Arananlar
+                  </Typography>
+                  {recents.length > 0 && (
+                    <Tooltip title="Geçmişi temizle">
+                      <IconButton 
+                        size="small" 
+                        onClick={clearRecents} 
+                        aria-label="Geçmişi temizle"
+                        sx={{ 
+                          color: 'text.secondary', 
+                          '&:hover': { 
+                            color: 'text.primary',
+                            backgroundColor: 'rgba(255,255,255,0.05)'
+                          } 
+                        }}
+                      >
+                        <CloseIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  )}
+                </Stack>
+                {recents.length === 0 ? (
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 3,
+                      borderRadius: 2,
+                      backgroundColor: 'rgba(255,255,255,0.02)',
+                      border: '1px solid rgba(255,255,255,0.06)',
+                      textAlign: 'center'
+                    }}
+                  >
+                    <Typography variant="body2" sx={{ color: 'text.secondary', opacity: 0.8 }}>
+                      Henüz arama geçmişiniz yok.
+                    </Typography>
+                  </Paper>
+                ) : (
+                  <Stack spacing={1.5}>
+                    {recents.map((u, i) => (
+                      <SectionItem key={`recent-${u.userID}-${u.email}-${i}`} u={u} />
+                    ))}
+                  </Stack>
+                )}
+              </Box>
 
-              <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>Keşfet (Rastgele 20)</Typography>
-              <Grid container>
-                {randomBlock.map((u, i) => (
-                  <Grid item xs={12} key={`rnd-${u.userID}-${u.email}-${i}`}>
-                    <SectionItem u={u} showDivider={i < randomBlock.length - 1} />
-                  </Grid>
-                ))}
-              </Grid>
-            </>
+              {/* Keşfet */}
+              <Box>
+                <Typography variant="h6" sx={{ fontWeight: 700, mb: 2, fontSize: { xs: 18, sm: 20 } }}>
+                  Keşfet
+                </Typography>
+                <Stack spacing={1.5}>
+                  {randomBlock.map((u, i) => (
+                    <SectionItem key={`rnd-${u.userID}-${u.email}-${i}`} u={u} />
+                  ))}
+                </Stack>
+              </Box>
+            </Stack>
           )}
         </>
       )}
-    </Surface>
+    </Box>
   )
 }

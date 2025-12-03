@@ -4,7 +4,7 @@ import {
 } from '@mui/material'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useNavigate, Link as RouterLink } from 'react-router-dom'
-import Surface from '../components/Surface.jsx'
+import AnimatedLogo from '../components/AnimatedLogo.jsx'
 
 export default function Login() {
   const { login } = useAuth()
@@ -36,54 +36,50 @@ export default function Login() {
       py: { xs: 4, md: 8 }
     }}>
       <Container maxWidth="sm">
-        {/* Logo */}
-        <Box sx={{ display: 'grid', placeItems: 'center', mb: 2 }}>
-          <Box component="img" src="/sagliktanLogo.png" alt="Sağlıktan" 
-            sx={{ width: 120, height: 120, borderRadius: '50%', boxShadow: 6, border: '3px solid #dbeafe', background: '#fff' }} />
+        {/* Animasyonlu Logo */}
+        <Box sx={{ display: 'grid', placeItems: 'center', mb: 3 }}>
+          <AnimatedLogo size={140} mobileSize={120} />
         </Box>
 
-        <Surface>
-          <Stack spacing={2} component="form" onSubmit={onSubmit} aria-label="Giriş formu" noValidate>
-            <Typography variant="h4" sx={{ fontWeight: 800 }}>
-              Giriş Yap
-            </Typography>
+        <Stack spacing={3} component="form" onSubmit={onSubmit} aria-label="Giriş formu" noValidate sx={{ maxWidth: 400, mx: 'auto' }}>
+          <Typography variant="h4" sx={{ fontWeight: 700, textAlign: 'center' }}>
+            Giriş Yap
+          </Typography>
 
-            <TextField
-              label="E-posta"
-              type="email"
-              value={form.email}
-              onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-              required
-              autoFocus
-              autoComplete="email"
-              inputProps={{ 'aria-label': 'E-posta' }}
-            />
+          <TextField
+            label="E-posta"
+            type="email"
+            value={form.email}
+            onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+            required
+            autoFocus
+            autoComplete="email"
+            inputProps={{ 'aria-label': 'E-posta' }}
+          />
 
-            <TextField
-              label="Şifre"
-              type="password"
-              value={form.pw}
-              onChange={e => setForm(f => ({ ...f, pw: e.target.value }))}
-              required
-              autoComplete="current-password"
-              inputProps={{ minLength: 4, 'aria-label': 'Şifre' }}
-              // Enter ile form zaten submit olur; ekstra onKeyDown yok
-            />
+          <TextField
+            label="Şifre"
+            type="password"
+            value={form.pw}
+            onChange={e => setForm(f => ({ ...f, pw: e.target.value }))}
+            required
+            autoComplete="current-password"
+            inputProps={{ minLength: 4, 'aria-label': 'Şifre' }}
+          />
 
-            <Button type="submit" disabled={loading}>
-              {loading ? (<><CircularProgress size={18} sx={{ mr: 1 }} /> Giriş yapılıyor…</>) : 'Giriş Yap'}
-            </Button>
+          <Button type="submit" disabled={loading}>
+            {loading ? (<><CircularProgress size={18} sx={{ mr: 1 }} /> Giriş yapılıyor…</>) : 'Giriş Yap'}
+          </Button>
 
-            <Divider sx={{ my: 1 }} />
+          <Divider sx={{ my: 1 }} />
 
-            <Typography variant="body2">
-              Hesabın yok mu?{' '}
-              <Link component={RouterLink} to="/register" sx={{ color: 'primary.main' }}>
-                Kayıt Ol
-              </Link>
-            </Typography>
-          </Stack>
-        </Surface>
+          <Typography variant="body2">
+            Hesabın yok mu?{' '}
+            <Link component={RouterLink} to="/register" sx={{ color: 'primary.main' }}>
+              Kayıt Ol
+            </Link>
+          </Typography>
+        </Stack>
       </Container>
 
       <Snackbar

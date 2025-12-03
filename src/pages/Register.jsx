@@ -4,7 +4,7 @@ import {
 } from '@mui/material'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useNavigate, Link as RouterLink } from 'react-router-dom'
-import Surface from '../components/Surface.jsx'
+import AnimatedLogo from '../components/AnimatedLogo.jsx'
 
 const ALLOWED_ROLES = ['doctor', 'user']
 
@@ -69,112 +69,109 @@ export default function Register() {
   return (
     <Box sx={{ minHeight: '100vh', display: 'grid', alignItems: 'center', backgroundColor: 'background.default', py: { xs: 4, md: 8 } }}>
       <Container maxWidth="sm">
-        {/* Logo */}
-        <Box sx={{ display: 'grid', placeItems: 'center', mb: 2 }}>
-          <Box component="img" src="/sagliktanLogo.png" alt="Sağlıktan" 
-            sx={{ width: 120, height: 120, borderRadius: '50%', boxShadow: 6, border: '3px solid #dbeafe', background: '#fff' }} />
+        {/* Animasyonlu Logo */}
+        <Box sx={{ display: 'grid', placeItems: 'center', mb: 3 }}>
+          <AnimatedLogo size={140} mobileSize={120} />
         </Box>
 
-        <Surface>
-          <Stack spacing={2} component="form" onSubmit={onSubmit} aria-label="Kayıt formu" noValidate>
-            <Typography variant="h4" sx={{ fontWeight: 800 }}>Kayıt Ol</Typography>
+        <Stack spacing={3} component="form" onSubmit={onSubmit} aria-label="Kayıt formu" noValidate sx={{ maxWidth: 500, mx: 'auto' }}>
+          <Typography variant="h4" sx={{ fontWeight: 700, textAlign: 'center' }}>Kayıt Ol</Typography>
 
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-              <TextField
-                label="İsim"
-                required
-                value={form.name}
-                onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                autoComplete="given-name"
-              />
-              <TextField
-                label="Soyisim"
-                required
-                value={form.surname}
-                onChange={e => setForm(f => ({ ...f, surname: e.target.value }))}
-                autoComplete="family-name"
-              />
-            </Stack>
-
-            {/* Doğum tarihi */}
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
             <TextField
-              label="Doğum Tarihi"
-              type="date"
+              label="İsim"
               required
-              value={form.dateOfBirth}
-              onChange={e => setForm(f => ({ ...f, dateOfBirth: e.target.value }))}
-              InputLabelProps={{ shrink: true }}
-              inputProps={{ min: '1900-01-01', max: new Date().toISOString().split('T')[0] }}
-              autoComplete="bday"
+              value={form.name}
+              onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+              autoComplete="given-name"
             />
-
-            {/* Rol seçimi — menü yazıları görünür */}
             <TextField
-              label="Rol"
-              select
+              label="Soyisim"
               required
-              value={form.role}
-              onChange={e => setForm(f => ({ ...f, role: e.target.value }))}
-              SelectProps={{
-                MenuProps: {
-                  PaperProps: {
-                    sx: {
-                      bgcolor: 'rgba(7,20,28,0.96)',
+              value={form.surname}
+              onChange={e => setForm(f => ({ ...f, surname: e.target.value }))}
+              autoComplete="family-name"
+            />
+          </Stack>
+
+          {/* Doğum tarihi */}
+          <TextField
+            label="Doğum Tarihi"
+            type="date"
+            required
+            value={form.dateOfBirth}
+            onChange={e => setForm(f => ({ ...f, dateOfBirth: e.target.value }))}
+            InputLabelProps={{ shrink: true }}
+            inputProps={{ min: '1900-01-01', max: new Date().toISOString().split('T')[0] }}
+            autoComplete="bday"
+          />
+
+          {/* Rol seçimi — menü yazıları görünür */}
+          <TextField
+            label="Rol"
+            select
+            required
+            value={form.role}
+            onChange={e => setForm(f => ({ ...f, role: e.target.value }))}
+            SelectProps={{
+              MenuProps: {
+                PaperProps: {
+                  sx: {
+                    bgcolor: 'rgba(7,20,28,0.96)',
+                    color: '#FAF9F6',
+                    border: '1px solid rgba(255,255,255,0.12)',
+                    backdropFilter: 'blur(6px)',
+                    '& .MuiMenuItem-root': {
                       color: '#FAF9F6',
-                      border: '1px solid rgba(255,255,255,0.12)',
-                      backdropFilter: 'blur(6px)',
-                      '& .MuiMenuItem-root': {
-                        color: '#FAF9F6',
-                        '&.Mui-selected': { bgcolor: 'rgba(52,195,161,0.18)' },
-                        '&:hover': { bgcolor: 'rgba(255,255,255,0.06)' }
-                      }
+                      '&.Mui-selected': { bgcolor: 'rgba(52,195,161,0.18)' },
+                      '&:hover': { bgcolor: 'rgba(255,255,255,0.06)' }
                     }
                   }
                 }
-              }}
-            >
-              <MenuItem value="doctor">Doktor</MenuItem>
-              <MenuItem value="user">Kullanıcı</MenuItem>
-            </TextField>
+              }
+            }}
+          >
+            <MenuItem value="doctor">Doktor</MenuItem>
+            <MenuItem value="user">Kullanıcı</MenuItem>
+          </TextField>
 
-            <TextField
-              label="E-posta"
-              type="email"
-              required
-              value={form.email}
-              onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-              autoComplete="email"
-            />
+          <TextField
+            label="E-posta"
+            type="email"
+            required
+            value={form.email}
+            onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+            autoComplete="email"
+          />
 
-            <TextField
-              label="Şifre"
-              type="password"
-              required
-              inputProps={{ minLength: 4 }}
-              value={form.password}
-              onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-              autoComplete="new-password"
-            />
+          <TextField
+            label="Şifre"
+            type="password"
+            required
+            inputProps={{ minLength: 4 }}
+            value={form.password}
+            onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+            autoComplete="new-password"
+          />
 
-            <TextField
-              label="Şifre (tekrar)"
-              type="password"
-              required
-              value={form.confirmPassword}
-              onChange={e => setForm(f => ({ ...f, confirmPassword: e.target.value }))}
-              autoComplete="new-password"
-            />
+          <TextField
+            label="Şifre (tekrar)"
+            type="password"
+            required
+            value={form.confirmPassword}
+            onChange={e => setForm(f => ({ ...f, confirmPassword: e.target.value }))}
+            autoComplete="new-password"
+          />
 
-            <Button type="submit" disabled={loading}>
-              {loading ? (<><CircularProgress size={18} sx={{ mr: 1 }} /> Kaydediliyor…</>) : 'Kayıt Ol'}
-            </Button>
+          <Button type="submit" disabled={loading}>
+            {loading ? (<><CircularProgress size={18} sx={{ mr: 1 }} /> Kaydediliyor…</>) : 'Kayıt Ol'}
+          </Button>
 
-            <Divider sx={{ my: 1 }} />
-            <Typography variant="body2">
-              Hesabın var mı? <Link component={RouterLink} to="/">Giriş Yap</Link>
-            </Typography>
-          </Stack>
-        </Surface>
+          <Divider sx={{ my: 1 }} />
+          <Typography variant="body2">
+            Hesabın var mı? <Link component={RouterLink} to="/">Giriş Yap</Link>
+          </Typography>
+        </Stack>
       </Container>
 
       <Snackbar open={!!error} autoHideDuration={4000} onClose={() => setError('')}>

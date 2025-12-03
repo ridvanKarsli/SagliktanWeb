@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   Box, Stack, Typography, TextField, Button,
-  Alert, CircularProgress, Autocomplete, Collapse, Tooltip, IconButton, Paper
+  Alert, CircularProgress, Autocomplete, Collapse, Paper
 } from '@mui/material'
 import { Add as AddIcon, Close as CloseIcon, DeleteOutline as DeleteIcon } from '@mui/icons-material'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { addDisease, getDiseaseNames, deleteDisease } from '../../services/api.js'
-import { Section, SectionList, GlassTile, prettyDate } from './ProfileShared.jsx'
+import { Section, SectionList, SubRow, prettyDate } from './ProfileShared.jsx'
 
 /* Yardımcı: farklı API alan adlarından isim/ID çıkar */
 function getDiseaseName(d) {
@@ -74,21 +74,28 @@ function AddDiseaseForm({ onAdded, onClose }) {
   }
 
   return (
-    <Paper component="form" onSubmit={handleSubmit} role="form" aria-label="Hastalık ekleme formu"
+    <Paper
+      component="form"
+      onSubmit={handleSubmit}
+      role="form"
+      aria-label="Hastalık ekleme formu"
+      elevation={0}
       sx={{
-        mt: 1.5, p: 2, borderRadius: 2,
-        border: '1px solid rgba(255,255,255,0.14)',
-        background: 'linear-gradient(180deg, rgba(7,20,28,0.36), rgba(7,20,28,0.20))',
-        backdropFilter: 'blur(8px)',
-      }}>
-      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
-        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Hastalık Ekle</Typography>
+        mt: 2,
+        p: { xs: 2, sm: 2.5 },
+        borderRadius: 2,
+        backgroundColor: 'rgba(255,255,255,0.04)',
+        border: '1px solid rgba(255,255,255,0.12)'
+      }}
+    >
+      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+        <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Hastalık Ekle</Typography>
         <Tooltip title="Kapat">
           <Button size="small" onClick={onClose} startIcon={<CloseIcon />} variant="text">Kapat</Button>
         </Tooltip>
       </Stack>
 
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems="stretch">
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems="stretch">
         <Autocomplete
           fullWidth
           options={diseaseNames}
@@ -109,7 +116,7 @@ function AddDiseaseForm({ onAdded, onClose }) {
                 border: '1px solid rgba(255,255,255,0.12)',
                 backdropFilter: 'blur(6px)',
                 '& .MuiAutocomplete-option': {
-                  color: '#FAF9F6',        // metin görünür
+                  color: '#FAF9F6',
                   minHeight: 44,
                   '&[aria-selected="true"]': { bgcolor: 'rgba(52,195,161,0.22)' },
                   '&.Mui-focused': { bgcolor: 'rgba(255,255,255,0.08)' }
@@ -124,13 +131,7 @@ function AddDiseaseForm({ onAdded, onClose }) {
               size="small"
               required
               helperText={fetchErr ? `Liste alınamadı: ${fetchErr}` : ''}
-              inputProps={{ ...params.inputProps, readOnly: !!selectedName }} // seçim sonrası yazılamaz
-              sx={{
-                '& .MuiInputBase-root': { bgcolor: 'rgba(255,255,255,0.06)', borderRadius: 1.2 },
-                '& .MuiInputBase-input': { color: '#FAF9F6' },
-                '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.85)' },
-                '& .MuiSvgIcon-root': { color: '#FAF9F6' }
-              }}
+              inputProps={{ ...params.inputProps, readOnly: !!selectedName }}
             />
           )}
         />
@@ -143,11 +144,6 @@ function AddDiseaseForm({ onAdded, onClose }) {
           onChange={(e) => setDate(e.target.value)}
           size="small"
           InputLabelProps={{ shrink: true }}
-          sx={{
-            '& .MuiInputBase-root': { bgcolor: 'rgba(255,255,255,0.06)', borderRadius: 1.2 },
-            '& .MuiInputBase-input': { color: '#FAF9F6' },
-            '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.85)' }
-          }}
         />
 
         <Button
@@ -162,8 +158,8 @@ function AddDiseaseForm({ onAdded, onClose }) {
         </Button>
       </Stack>
 
-      {error && <Alert sx={{ mt: 1.25 }} severity="error" variant="filled">{error}</Alert>}
-      {success && <Alert sx={{ mt: 1.25 }} severity="success" variant="filled">{success}</Alert>}
+      {error && <Alert sx={{ mt: 1.5 }} severity="error" variant="filled">{error}</Alert>}
+      {success && <Alert sx={{ mt: 1.5 }} severity="success" variant="filled">{success}</Alert>}
     </Paper>
   )
 }
@@ -229,37 +225,51 @@ export default function UserPart({ publicUserData, sectionKey, canEdit = false }
           const diagDate = prettyDate(d?.dateOfDiagnosis)
           const id = getDiseaseId(d)
           return (
-            <Stack spacing={1}>
-              {/* DoctorPart ile aynı satır tasarımı */}
-              <GlassTile label="Hastalık" value={name} inline />
-              <GlassTile label="Tanı Tarihi" value={diagDate} inline />
+            <Paper
+              elevation={0}
+              sx={{
+                p: { xs: 1.5, sm: 2 },
+                borderRadius: 2,
+                backgroundColor: 'rgba(255,255,255,0.03)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                position: 'relative',
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  backgroundColor: 'rgba(255,255,255,0.05)',
+                  borderColor: 'rgba(255,255,255,0.12)'
+                }
+              }}
+            >
+              <Stack spacing={1.5}>
+                <SubRow label="Hastalık" value={name} />
+                <SubRow label="Tanı Tarihi" value={diagDate} />
 
-              {canEdit && (
-                <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                  <Tooltip title="Sil">
-                    <span>
-                      <IconButton
-                        aria-label={`"${name}" kaydını sil`}
-                        onClick={() => handleDeleteDisease(d)}
-                        disabled={!id || delLoadingId === id}
-                        sx={{
-                          color: 'error.main',
-                          border: '1px solid',
-                          borderColor: 'rgba(244,67,54,0.5)',
-                          minWidth: 44, minHeight: 44,
-                          '&:hover': {
-                            bgcolor: 'rgba(244,67,54,0.15)',
-                            borderColor: 'rgba(244,67,54,0.7)'
-                          }
-                        }}
-                      >
-                        {delLoadingId === id ? <CircularProgress size={18} /> : <DeleteIcon />}
-                      </IconButton>
-                    </span>
-                  </Tooltip>
-                </Box>
-              )}
-            </Stack>
+                {canEdit && (
+                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', pt: 1, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                    <Button
+                      variant="outlined"
+                      color="error"
+                      size="small"
+                      startIcon={delLoadingId === id ? <CircularProgress size={16} /> : <DeleteIcon />}
+                      onClick={() => handleDeleteDisease(d)}
+                      disabled={!id || delLoadingId === id}
+                      sx={{
+                        minWidth: 100,
+                        fontWeight: 600,
+                        borderColor: 'rgba(244,67,54,0.5)',
+                        color: 'error.main',
+                        '&:hover': {
+                          borderColor: 'error.main',
+                          backgroundColor: 'rgba(244,67,54,0.1)'
+                        }
+                      }}
+                    >
+                      {delLoadingId === id ? 'Siliniyor...' : 'Sil'}
+                    </Button>
+                  </Box>
+                )}
+              </Stack>
+            </Paper>
           )
         }}
       />

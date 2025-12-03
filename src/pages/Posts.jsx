@@ -10,7 +10,6 @@ import { Add } from '@mui/icons-material'
 import { useLocation, useNavigate } from 'react-router-dom'
 
 import PostCard from '../components/PostCard.jsx'
-import Surface from '../components/Surface.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { getAllChats, getDiseaseNames, getUserByID, getChatsWithFilter } from '../services/api.js'
 import { addComment as apiAddComment } from '../services/api.js'
@@ -414,93 +413,113 @@ export default function Posts() {
   const sorted = useMemo(() => [...posts].sort((a, b) => b.timestamp - a.timestamp), [posts])
 
   return (
-    <Container maxWidth="sm" sx={{ py: { xs: 1, md: 4 }, px: { xs: 1, sm: 2 } }}>
-      <Surface sx={{ p: { xs: 1.5, md: 3 } }}>
-        {/* Header */}
-        <Stack spacing={0.5} sx={{ mb: 1 }}>
-          <Typography
-            variant="h5"
-            sx={{ fontWeight: 800, fontSize: { xs: 18, sm: 24, md: 28 } }}
-          >
-            Topluluk Akışı
-          </Typography>
-        </Stack>
-        <Divider sx={{ mb: 2, opacity: 0.16 }} />
+    <Container maxWidth="sm" sx={{ py: { xs: 2, md: 4 }, px: { xs: 1, sm: 2 } }}>
+      {/* Header */}
+      <Stack spacing={1} sx={{ mb: 3 }}>
+        <Typography
+          variant="h5"
+          sx={{ fontWeight: 700, fontSize: { xs: 20, sm: 24, md: 28 } }}
+        >
+          Topluluk Akışı
+        </Typography>
+      </Stack>
 
-        {/* Kategori filtresi */}
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mb: 1 }}>
-          <Autocomplete
-            fullWidth
-            options={categories}
-            loading={catsLoading}
-            value={category || null}
-            onChange={(_, v) => setCategory(v || '')}
-            disablePortal
-            blurOnSelect
-            clearOnBlur={false}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                label="Kategoriye göre filtrele"
-                size="small"
-                helperText={catsError ? `Liste alınamadı: ${catsError}` : 'Boş bırakılırsa tüm gönderiler gösterilir.'}
-                sx={{
-                  '& .MuiInputBase-root': { bgcolor: 'rgba(255,255,255,0.06)', borderRadius: 1.2 },
-                  '& .MuiInputBase-input': { color: '#FAF9F6' },
-                  '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.85)' }
+      {/* Kategori filtresi */}
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ mb: 3 }}>
+        <Autocomplete
+          fullWidth
+          options={categories}
+          loading={catsLoading}
+          value={category || null}
+          onChange={(_, v) => setCategory(v || '')}
+          disablePortal
+          blurOnSelect
+          clearOnBlur={false}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label="Kategoriye göre filtrele"
+              size="small"
+              helperText={catsError ? `Liste alınamadı: ${catsError}` : 'Boş bırakılırsa tüm gönderiler gösterilir.'}
+            />
+          )}
+          slotProps={{
+            paper: {
+              sx: {
+                bgcolor: 'rgba(7,20,28,0.98)',
+                color: '#FAF9F6',
+                border: '1px solid rgba(255,255,255,0.12)',
+                backdropFilter: 'blur(6px)'
+              }
+            }
+          }}
+        />
+        {category && (
+          <Button variant="outlined" color="secondary" onClick={() => setCategory('')} sx={{ whiteSpace: 'nowrap' }}>
+            Filtreyi Temizle
+          </Button>
+        )}
+      </Stack>
+
+      {/* Content */}
+      {loading ? (
+        <Box sx={{ display: 'grid', placeItems: 'center', minHeight: 240, py: 4 }}>
+          <CircularProgress size={22} />
+        </Box>
+      ) : error && !dialogOpen ? (
+        <Box sx={{ display: 'grid', placeItems: 'center', py: 4 }}>
+          <Stack spacing={1.5} alignItems="center">
+            <Alert severity="error" variant="filled">{error}</Alert>
+            <Button onClick={loadChats} size="small" variant="contained">Tekrar Dene</Button>
+          </Stack>
+        </Box>
+      ) : (
+        <Stack spacing={0}>
+          {sorted.map(p => (
+            <PostCard
+              key={p.id}
+              {...p}
+              onVote={votePost}
+              onAddComment={handleAddComment}
+              onCommentVote={voteComment}
+              onAuthorClick={openAuthorProfile}
+            />
+          ))}
+          {sorted.length === 0 && (
+            <Box 
+              sx={{ 
+                textAlign: 'center', 
+                py: { xs: 8, md: 10 },
+                px: 3,
+                borderRadius: 3,
+                backgroundColor: 'rgba(255,255,255,0.03)',
+                border: '1px solid rgba(255,255,255,0.08)'
+              }}
+            >
+              <Box
+                component="img"
+                src="/Lumo.png"
+                alt="Lumo"
+                sx={{ 
+                  width: { xs: 160, md: 220 }, 
+                  height: 'auto', 
+                  mb: 3, 
+                  mx: 'auto',
+                  display: 'block',
+                  maxWidth: '100%',
+                  filter: 'drop-shadow(0 8px 24px rgba(52,195,161,0.25))'
                 }}
               />
-            )}
-            slotProps={{
-              paper: {
-                sx: {
-                  bgcolor: 'rgba(7,20,28,0.98)',
-                  color: '#FAF9F6',
-                  border: '1px solid rgba(255,255,255,0.12)',
-                  backdropFilter: 'blur(6px)'
-                }
-              }
-            }}
-          />
-          {category && (
-            <Button variant="outlined" color="secondary" onClick={() => setCategory('')} sx={{ whiteSpace: 'nowrap' }}>
-              Filtreyi Temizle
-            </Button>
+              <Typography variant="h5" sx={{ color: 'text.primary', mb: 1, fontWeight: 700 }}>
+                Henüz mesaj yok
+              </Typography>
+              <Typography variant="body1" sx={{ color: 'text.secondary', opacity: 0.9 }}>
+                İlk gönderiyi sen yap ve topluluğa katıl!
+              </Typography>
+            </Box>
           )}
         </Stack>
-
-        {/* Content */}
-        {loading ? (
-          <Box sx={{ display: 'grid', placeItems: 'center', minHeight: 240 }}>
-            <CircularProgress size={22} />
-          </Box>
-        ) : error && !dialogOpen ? (
-          <Box sx={{ display: 'grid', placeItems: 'center' }}>
-            <Stack spacing={1} alignItems="center">
-              <Alert severity="error" variant="filled">{error}</Alert>
-              <Button onClick={loadChats} size="small" variant="contained">Tekrar Dene</Button>
-            </Stack>
-          </Box>
-        ) : (
-          <Stack spacing={1.5}>
-            {sorted.map(p => (
-              <PostCard
-                key={p.id}
-                {...p}
-                onVote={votePost}
-                onAddComment={handleAddComment}
-                onCommentVote={voteComment}
-                onAuthorClick={openAuthorProfile}
-              />
-            ))}
-            {sorted.length === 0 && (
-              <Box sx={{ textAlign: 'center', color: 'text.secondary', py: 6 }}>
-                Henüz mesaj yok.
-              </Box>
-            )}
-          </Stack>
-        )}
-      </Surface>
+      )}
 
       {/* Composer FAB */}
       <Fab
@@ -543,11 +562,6 @@ export default function Posts() {
                 size="small"
                 InputLabelProps={{ shrink: false }}
                 aria-label="Yeni gönderi mesajı"
-                sx={{
-                  '& .MuiInputBase-root': { bgcolor: 'rgba(255,255,255,0.06)', borderRadius: 1.2 },
-                  '& .MuiInputBase-input': { color: '#FAF9F6' },
-                  '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.85)' }
-                }}
               />
 
               {/* Kategori: Hastalık isimlerinden autocomplete (AddDiseaseForm ile uyumlu) */}
@@ -569,12 +583,6 @@ export default function Posts() {
                     size="small"
                     required
                     helperText={catsError ? `Liste alınamadı: ${catsError}` : ''}
-                    sx={{
-                      '& .MuiInputBase-root': { bgcolor: 'rgba(255,255,255,0.06)', borderRadius: 1.2 },
-                      '& .MuiInputBase-input': { color: '#FAF9F6' },
-                      '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.85)' },
-                      '& .MuiSvgIcon-root': { color: '#FAF9F6' }
-                    }}
                   />
                 )}
                 slotProps={{

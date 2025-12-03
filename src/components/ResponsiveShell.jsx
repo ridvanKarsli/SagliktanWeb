@@ -16,6 +16,7 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import { useState } from 'react';
+import AnimatedLogo from './AnimatedLogo.jsx';
 
 const railWidth = 84
 const MOBILE_NAV_HEIGHT = 72 // px
@@ -71,9 +72,7 @@ export default function ResponsiveShell({ children }) {
           aria-label="Ana gezinme"
         >
           <Toolbar sx={{ justifyContent: 'center', mt: 1 }}>
-            <Box component="img" src="/sagliktanLogo.png" alt="Sağlıktan"
-              sx={{ width: 40, height: 40, borderRadius: '50%', background: '#fff', boxShadow: 3, border: '2px solid #dbeafe' }}
-            />
+            <AnimatedLogo size={40} mobileSize={40} showBorder={true} />
           </Toolbar>
 
           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5, mt: 1 }}>
@@ -116,16 +115,15 @@ export default function ResponsiveShell({ children }) {
           elevation={0}
           sx={{
             borderBottom: '1px solid rgba(255,255,255,0.08)',
-            background: 'linear-gradient(180deg, rgba(7,30,40,0.55), rgba(7,30,40,0.25))',
+            backgroundColor: 'rgba(7,20,28,0.4)',
+            backdropFilter: 'blur(8px)',
             color: '#fff'
           }}
         >
           <Toolbar sx={{ px: { xs: 2, md: 3 }, gap: 1 }}>
             {!isMdUp && (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Box component="img" src="/sagliktanLogo.png" alt="Sağlıktan"
-                  sx={{ width: 32, height: 32, borderRadius: '50%', background: '#fff', boxShadow: 2, border: '2px solid #dbeafe' }}
-                />
+                <AnimatedLogo size={32} mobileSize={32} showBorder={true} />
                 <Typography variant="h6" sx={{ fontWeight: 800 }}>Sağlıktan</Typography>
               </Box>
             )}
@@ -186,11 +184,9 @@ export default function ResponsiveShell({ children }) {
         <Box
           component="main"
           sx={{
-            p: { xs: 2, md: 3 },
-            pt: { xs: 2, md: 4 },
             width: '100%',
             mx: 'auto',
-            maxWidth: { xs: 680, lg: 980 },
+            maxWidth: { xs: '100%', sm: 680, lg: 980 },
             pb: { xs: `calc(${MOBILE_NAV_HEIGHT}px + env(safe-area-inset-bottom, 0px) + 12px)`, md: 0 }
           }}
         >

@@ -1,16 +1,14 @@
 import { useState } from 'react'
-import { Box, Button, Stack, TextField, Typography, Avatar } from '@mui/material'
-import { SmartToy } from '@mui/icons-material'
+import { Box, Button, Stack, TextField, Typography, Avatar, CircularProgress } from '@mui/material'
 import { delay } from '../utils/fakeApi.js'
 import { mockAiAnswer } from '../data/fakeData.js'
-import Surface from '../components/Surface.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import SagliktaAiControllerApi from '../services/generated/src/api/SagliktaAiControllerApi'
 
 export default function AIChat() {
   const { token } = useAuth()
   const [messages, setMessages] = useState([
-    { role: 'ai', text: 'Merhaba! Ben sağlıklı yaşam danışmanı AI. Nasıl yardımcı olabilirim?' }
+    { role: 'ai', text: 'Merhaba! Ben Lumo, Sağlıktan\'ın sağlıklı yaşam asistanıyım. Nasıl yardımcı olabilirim? 🌊' }
   ])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -40,10 +38,41 @@ export default function AIChat() {
   }
 
   return (
-    <Surface sx={{ overflow: 'visible', p: { xs: 1.5, md: 3 } }}>
-      <Typography variant="h5" sx={{ mb: { xs: 1, md: 2 }, fontWeight: 800 }}>
-        AI ile Sohbet
-      </Typography>
+    <Box sx={{ py: { xs: 2, md: 3 } }}>
+      <Stack 
+        direction="row" 
+        spacing={2} 
+        alignItems="center" 
+        sx={{ 
+          mb: { xs: 3, md: 4 },
+          p: { xs: 2, md: 2.5 },
+          borderRadius: 3,
+          backgroundColor: 'rgba(255,255,255,0.04)',
+          border: '1px solid rgba(255,255,255,0.1)',
+          backdropFilter: 'blur(8px)'
+        }}
+      >
+        <Box
+          component="img"
+          src="/Lumo.png"
+          alt="Lumo"
+          sx={{ 
+            width: { xs: 72, md: 96 }, 
+            height: { xs: 72, md: 96 }, 
+            objectFit: 'contain',
+            display: 'block',
+            filter: 'drop-shadow(0 4px 12px rgba(52,195,161,0.3))'
+          }}
+        />
+        <Box>
+          <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>
+            Lumo ile Sohbet
+          </Typography>
+          <Typography variant="body2" sx={{ color: 'text.secondary', opacity: 0.8 }}>
+            Sağlıklı yaşam asistanınız
+          </Typography>
+        </Box>
+      </Stack>
 
       <Stack spacing={1.5} sx={{ minHeight: 360 }}>
         <Box sx={{
@@ -60,28 +89,60 @@ export default function AIChat() {
               <Stack
                 key={i}
                 direction={isUser ? 'row-reverse' : 'row'}
-                spacing={1}
+                spacing={1.5}
                 alignItems="flex-start"
               >
-                <Avatar sx={{ bgcolor: isUser ? 'primary.main' : 'secondary.main' }}>
-                  {isUser ? 'U' : <SmartToy fontSize="small" />}
-                </Avatar>
+                {isUser ? (
+                  <Avatar sx={{ bgcolor: 'primary.main', width: { xs: 40, md: 44 }, height: { xs: 40, md: 44 } }}>
+                    U
+                  </Avatar>
+                ) : (
+                  <Box
+                    component="img"
+                    src="/Lumo.png"
+                    alt="Lumo - Sağlıktan Asistanı"
+                    sx={{
+                      width: { xs: 48, md: 56 },
+                      height: { xs: 48, md: 56 },
+                      objectFit: 'contain',
+                      flexShrink: 0
+                    }}
+                  />
+                )}
                 <Box
                   sx={{
-                    p: 1.25,
+                    p: 1.5,
                     maxWidth: { xs: '100%', md: '70%' },
-                    borderRadius: 3,
-                    border: '1px solid rgba(255,255,255,0.16)',
-                    backgroundColor: isUser ? 'rgba(52,195,161,0.08)' : 'transparent',
+                    borderRadius: 2,
+                    backgroundColor: isUser ? 'rgba(52,195,161,0.12)' : 'transparent',
                     wordBreak: 'break-word',
                     overflowWrap: 'anywhere'
                   }}
                 >
-                  <Typography variant="body2" sx={{ lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{m.text}</Typography>
+                  <Typography variant="body2" sx={{ lineHeight: 1.7, whiteSpace: 'pre-wrap', color: 'text.primary' }}>{m.text}</Typography>
                 </Box>
               </Stack>
             )
           })}
+          {loading && (
+            <Stack direction="row" spacing={1.5} alignItems="flex-start">
+              <Box
+                component="img"
+                src="/Lumo.png"
+                alt="Lumo"
+                sx={{
+                  width: { xs: 48, md: 56 },
+                  height: { xs: 48, md: 56 },
+                  objectFit: 'contain',
+                  flexShrink: 0,
+                  opacity: 0.7
+                }}
+              />
+              <Box sx={{ p: 1.5 }}>
+                <CircularProgress size={20} sx={{ color: 'text.secondary' }} />
+              </Box>
+            </Stack>
+          )}
         </Box>
 
         <Box component="form" onSubmit={send} sx={{ display: 'flex', gap: { xs: 0.75, md: 1 }, pt: 1 }}>
@@ -97,6 +158,6 @@ export default function AIChat() {
           </Button>
         </Box>
       </Stack>
-    </Surface>
+    </Box>
   )
 }

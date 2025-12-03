@@ -2,12 +2,11 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   Alert, Avatar, Box, Stack, Typography, Divider, CircularProgress,
   Tabs, Tab, Container, useMediaQuery, Select, MenuItem, FormControl, InputLabel,
-  Toolbar, Paper, IconButton
+  Toolbar, IconButton, Paper
 } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
-import Surface from '../../components/Surface.jsx'
 import PostCard from '../../components/PostCard.jsx'
 import {
   getUserProfile,
@@ -53,17 +52,31 @@ function prettyDate(d) {
 }
 function Row({ label, value }) {
   return (
-    <Box sx={{
-      display: 'grid',
-      gridTemplateColumns: { xs: '1fr', sm: '180px 1fr' },
-      gap: { xs: 0.5, sm: 1.25 },
-      alignItems: 'start',
-      py: 0.5
-    }}>
-      <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>{label}</Typography>
-      <Typography variant="body1" sx={{ fontWeight: 600, wordBreak: 'break-word' }}>{value || 'Belirtilmemiş'}</Typography>
-      <Divider sx={{ gridColumn: '1 / -1', opacity: 0.16, mt: { xs: 0.5, sm: 1 } }} />
-    </Box>
+    <Paper
+      elevation={0}
+      sx={{
+        p: { xs: 1.5, sm: 2 },
+        borderRadius: 2,
+        backgroundColor: 'rgba(255,255,255,0.03)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        mb: 1.5,
+        transition: 'all 0.2s ease',
+        '&:hover': {
+          backgroundColor: 'rgba(255,255,255,0.05)',
+          borderColor: 'rgba(255,255,255,0.12)'
+        }
+      }}
+    >
+      <Box sx={{
+        display: 'grid',
+        gridTemplateColumns: { xs: '1fr', sm: '140px 1fr' },
+        gap: { xs: 1, sm: 2 },
+        alignItems: 'start'
+      }}>
+        <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500 }}>{label}</Typography>
+        <Typography variant="body1" sx={{ fontWeight: 600, wordBreak: 'break-word', color: 'text.primary' }}>{value || 'Belirtilmemiş'}</Typography>
+      </Box>
+    </Paper>
   )
 }
 
@@ -498,56 +511,42 @@ export default function Profile() {
   }
 
   return (
-    <Container maxWidth="sm" sx={{ py: { xs: 1, md: 4 }, px: { xs: 1, sm: 2 } }}>
-      <Surface sx={{ p: { xs: 1.5, md: 3 } }}>
-        {/* Header */}
-        <Stack direction="row" justifyContent="flex-end" alignItems="center" sx={{ mb: 1, position: 'relative' }}>
-          {/* Mobilde sağ üstte 3 nokta menü */}
-          <IconButton
-            onClick={handleMobileMenuOpen}
-            sx={{ display: { xs: 'flex', sm: 'none' }, position: 'absolute', right: 0, top: 0, zIndex: 15 }}
-            aria-label="Menü Aç"
-          >
-            <MoreVertIcon sx={{ fontSize: 30 }} />
-          </IconButton>
-          {/* Masaüstü için boşluk */}
-        </Stack>
-
-        {/* Avatar ve menus: avatar tıklandığında her zamanki gibi */}
-        <Stack spacing={1} sx={{ alignItems: 'center', textAlign: 'center', position: 'relative' }}>
-          <Avatar
-            sx={{
-              width: { xs: 68, md: 76 },
-              height: { xs: 68, md: 76 },
-              bgcolor: 'secondary.main',
-              fontWeight: 800,
-              fontSize: { xs: 22, md: 24 },
-              cursor: 'pointer',
-              boxShadow: 2,
-              border: '3px solid rgba(255,255,255,0.06)'
-            }}
-            aria-label="Kullanıcı avatarı"
-          >
-            {initialsFrom(profileData?.name, profileData?.email)}
-          </Avatar>
-          {/* Menüleri render et: avatar veya mobile butondan açılır */}
-          <ProfileMenu anchorEl={null} open={Boolean(mobileMenuAnchor)} onClose={handleMenuClose} />
-        </Stack>
-
-        {/* Sticky Navigasyon */}
-        <Paper
-          elevation={0}
-          sx={{
-            position: { xs: 'static', sm: 'sticky' },
-            top: { xs: 'auto', sm: 8 },
-            zIndex: 1,
-            mt: 1,
-            px: { xs: 0.5, sm: 0 },
-            py: { xs: 0.25, sm: 0 },
-            background: 'transparent',
-            backdropFilter: 'blur(6px)'
-          }}
+    <Container maxWidth="sm" sx={{ py: { xs: 2, md: 4 }, px: { xs: 1, sm: 2 } }}>
+      {/* Header */}
+      <Stack direction="row" justifyContent="flex-end" alignItems="center" sx={{ mb: 2, position: 'relative' }}>
+        {/* Mobilde sağ üstte 3 nokta menü */}
+        <IconButton
+          onClick={handleMobileMenuOpen}
+          sx={{ display: { xs: 'flex', sm: 'none' }, position: 'absolute', right: 0, top: 0, zIndex: 15 }}
+          aria-label="Menü Aç"
         >
+          <MoreVertIcon sx={{ fontSize: 30 }} />
+        </IconButton>
+        {/* Masaüstü için boşluk */}
+      </Stack>
+
+      {/* Avatar ve menus: avatar tıklandığında her zamanki gibi */}
+      <Stack spacing={1.5} sx={{ alignItems: 'center', textAlign: 'center', position: 'relative', mb: 3 }}>
+        <Avatar
+          sx={{
+            width: { xs: 72, md: 80 },
+            height: { xs: 72, md: 80 },
+            bgcolor: 'secondary.main',
+            fontWeight: 800,
+            fontSize: { xs: 24, md: 26 },
+            cursor: 'pointer'
+          }}
+          aria-label="Kullanıcı avatarı"
+        >
+          {initialsFrom(profileData?.name, profileData?.email)}
+        </Avatar>
+        {/* Menüleri render et: avatar veya mobile butondan açılır */}
+        <ProfileMenu anchorEl={null} open={Boolean(mobileMenuAnchor)} onClose={handleMenuClose} />
+      </Stack>
+
+      {/* Navigasyon - Mobilde Select, Desktop'ta Tabs */}
+      <Box sx={{ mb: 3 }}>
+        {isSmUp ? (
           <Tabs
             value={tab}
             onChange={(_, v) => setTab(v)}
@@ -555,40 +554,84 @@ export default function Profile() {
             scrollButtons="auto"
             aria-label="Profil sekmeleri"
             sx={{
-              borderBottom: '1px solid rgba(255,255,255,0.12)',
+              borderBottom: '1px solid rgba(255,255,255,0.08)',
               '& .MuiTab-root': {
-                fontWeight: 700,
+                fontWeight: 600,
                 textTransform: 'none',
-                minHeight: { xs: 44, sm: 52 },
-                fontSize: { xs: 14, sm: 17, md: 18 },
-                letterSpacing: 0.2,
-                mx: { xs: 0.25, sm: 1 },
-                px: { xs: 1.5, sm: 3 },
-                py: { xs: 1, sm: 1.5 },
-                borderRadius: 2,
-                bgcolor: 'rgba(7,20,28,0.16)',
+                minHeight: 56,
+                fontSize: 15,
+                px: 3,
                 '&.Mui-selected': {
-                  bgcolor: 'rgba(52,195,161,0.12)',
                   color: 'primary.main',
                 }
-              },
-              mb: { xs: 0.75, sm: 1.2 }
+              }
             }}
           >
             {tabs.map(t => <Tab key={t.key} label={t.label} />)}
           </Tabs>
-        </Paper>
+        ) : (
+          <FormControl fullWidth>
+            <Select
+              value={tab}
+              onChange={(e) => setTab(e.target.value)}
+              sx={{
+                backgroundColor: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                borderRadius: 2,
+                color: 'text.primary',
+                '& .MuiSelect-select': {
+                  py: 1.5,
+                  fontWeight: 600
+                },
+                '& .MuiOutlinedInput-notchedOutline': {
+                  borderColor: 'rgba(255,255,255,0.12)'
+                },
+                '&:hover .MuiOutlinedInput-notchedOutline': {
+                  borderColor: 'rgba(255,255,255,0.2)'
+                },
+                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                  borderColor: 'primary.main'
+                }
+              }}
+              MenuProps={{
+                PaperProps: {
+                  sx: {
+                    bgcolor: 'rgba(7,20,28,0.98)',
+                    border: '1px solid rgba(255,255,255,0.12)',
+                    '& .MuiMenuItem-root': {
+                      color: '#FAF9F6',
+                      '&.Mui-selected': {
+                        bgcolor: 'rgba(52,195,161,0.18)',
+                        color: 'primary.main'
+                      },
+                      '&:hover': {
+                        bgcolor: 'rgba(255,255,255,0.08)'
+                      }
+                    }
+                  }
+                }
+              }}
+            >
+              {tabs.map((t, index) => (
+                <MenuItem key={t.key} value={index}>
+                  {t.label}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        )}
+      </Box>
 
-        {/* İçerik */}
-        <Box sx={{ pt: { xs: 1, sm: 2 } }}>
-          {currentKey === 'info' && (
-            <Stack spacing={1}>
-              <Row label="İsim" value={profileData?.name} />
-              <Row label="Soyisim" value={profileData?.surname} />
-              <Row label="Doğum Tarihi" value={prettyDate(profileData?.dateOfBirth)} />
-              <Row label="Rol" value={isDoctor ? 'Doktor' : 'Kullanıcı'} />
-            </Stack>
-          )}
+      {/* İçerik */}
+      <Box>
+        {currentKey === 'info' && (
+          <Stack spacing={0}>
+            <Row label="İsim" value={profileData?.name} />
+            <Row label="Soyisim" value={profileData?.surname} />
+            <Row label="Doğum Tarihi" value={prettyDate(profileData?.dateOfBirth)} />
+            <Row label="Rol" value={isDoctor ? 'Doktor' : 'Kullanıcı'} />
+          </Stack>
+        )}
 
           {/* Doktor sekmeleri */}
           {isDoctor && ['spec', 'addr', 'contact', 'ann'].includes(currentKey) && (
@@ -600,33 +643,60 @@ export default function Profile() {
             <UserPart publicUserData={publicUserData} sectionKey={currentKey} canEdit={!isVisitor} />
           )}
 
-          {/* Gönderiler */}
-          {currentKey === 'posts' && (
-            <Stack spacing={1.5}>
-              {postsLoading ? (
-                <Box sx={{ display: 'grid', placeItems: 'center', py: 2 }}>
-                  <CircularProgress size={22} />
-                </Box>
-              ) : posts.length === 0 ? (
-                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                  Henüz gönderiniz yok.
+        {/* Gönderiler */}
+        {currentKey === 'posts' && (
+          <Stack spacing={0}>
+            {postsLoading ? (
+              <Box sx={{ display: 'grid', placeItems: 'center', py: 4 }}>
+                <CircularProgress size={22} />
+              </Box>
+            ) : posts.length === 0 ? (
+              <Box 
+                sx={{ 
+                  textAlign: 'center', 
+                  py: { xs: 8, md: 10 },
+                  px: 3,
+                  borderRadius: 3,
+                  backgroundColor: 'rgba(255,255,255,0.03)',
+                  border: '1px solid rgba(255,255,255,0.08)'
+                }}
+              >
+                <Box
+                  component="img"
+                  src="/Lumo.png"
+                  alt="Lumo"
+                  sx={{ 
+                    width: { xs: 160, md: 220 }, 
+                    height: 'auto', 
+                    mb: 3, 
+                    mx: 'auto',
+                    display: 'block',
+                    maxWidth: '100%',
+                    filter: 'drop-shadow(0 8px 24px rgba(52,195,161,0.25))'
+                  }}
+                />
+                <Typography variant="h5" sx={{ color: 'text.primary', mb: 1, fontWeight: 700 }}>
+                  Henüz gönderiniz yok
                 </Typography>
-              ) : (
-                posts.map(p => (
-                  <PostCard
-                    key={p.id}
-                    {...p}
-                    deleting={deletingId === p.id}
-                    {...(!isVisitor ? { onDelete: (postId) => handleDeletePost(postId) } : {})}
-                    onVote={handleVote}
-                    {...(!isVisitor ? { onAddComment: handleAddComment, onCommentVote: handleCommentVote, onCommentDelete: (postId, commentId) => handleDeleteComment(postId, commentId) } : {})}
-                  />
-                ))
-              )}
-            </Stack>
-          )}
-        </Box>
-      </Surface>
+                <Typography variant="body1" sx={{ color: 'text.secondary', opacity: 0.9 }}>
+                  İlk gönderinizi paylaşın
+                </Typography>
+              </Box>
+            ) : (
+              posts.map(p => (
+                <PostCard
+                  key={p.id}
+                  {...p}
+                  deleting={deletingId === p.id}
+                  {...(!isVisitor ? { onDelete: (postId) => handleDeletePost(postId) } : {})}
+                  onVote={handleVote}
+                  {...(!isVisitor ? { onAddComment: handleAddComment, onCommentVote: handleCommentVote, onCommentDelete: (postId, commentId) => handleDeleteComment(postId, commentId) } : {})}
+                />
+              ))
+            )}
+          </Stack>
+        )}
+      </Box>
       <Toolbar sx={{ minHeight: 16 }} /> {/* alt boşluk */}
     </Container>
   )

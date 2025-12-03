@@ -1,5 +1,4 @@
-import { Box, Stack, Typography, Divider, Chip } from '@mui/material'
-import { LocalHospital } from '@mui/icons-material'
+import { Box, Stack, Typography, Divider, Paper } from '@mui/material'
 
 export function prettyDate(d) {
   const dt = d ? new Date(d) : null
@@ -8,85 +7,80 @@ export function prettyDate(d) {
 
 export function SectionList({ items, renderItem, getKey, emptyText }) {
   if (!Array.isArray(items) || items.length === 0) {
-    return <Typography variant="body2" sx={{ color: 'text.secondary' }}>{emptyText}</Typography>
+    return (
+      <Paper
+        elevation={0}
+        sx={{
+          textAlign: 'center',
+          py: { xs: 6, md: 8 },
+          px: 3,
+          borderRadius: 3,
+          backgroundColor: 'rgba(255,255,255,0.03)',
+          border: '1px solid rgba(255,255,255,0.08)'
+        }}
+      >
+        <Box
+          component="img"
+          src="/Lumo.png"
+          alt="Lumo"
+          sx={{ 
+            width: { xs: 140, md: 180 }, 
+            height: 'auto', 
+            mb: 3, 
+            mx: 'auto',
+            display: 'block',
+            maxWidth: '100%',
+            filter: 'drop-shadow(0 6px 20px rgba(52,195,161,0.2))'
+          }}
+        />
+        <Typography variant="body1" sx={{ color: 'text.secondary', fontWeight: 500, opacity: 0.9 }}>{emptyText}</Typography>
+      </Paper>
+    )
   }
   return (
-    <Stack divider={<Divider sx={{ my: { xs: 0.75, sm: 1 }, opacity: 0.12 }}/> } spacing={{ xs: 0.75, sm: 1 }}>
+    <Stack spacing={2}>
       {items.map((it, i) => (
-        <Box key={getKey?.(it, i) ?? i}>{renderItem(it, i)}</Box>
+        <Box key={getKey?.(it, i) ?? i}>
+          {renderItem(it, i)}
+        </Box>
       ))}
     </Stack>
   )
 }
 
-export function SubRow({ label, value }) {
+export function SubRow({ label, value, icon }) {
   return (
     <Box sx={{
       display: 'grid',
-      gridTemplateColumns: { xs: '1fr', sm: '160px 1fr' },
-      gap: { xs: 0.5, sm: 1 },
+      gridTemplateColumns: { xs: '1fr', sm: '140px 1fr' },
+      gap: { xs: 1, sm: 2 },
       alignItems: 'start',
-      minHeight: 44
+      py: { xs: 0.5, sm: 0.75 }
     }}>
-      <Typography variant="body2" sx={{ color: 'text.secondary' }}>{label}</Typography>
-      <Typography variant="body2" sx={{ fontWeight: 700, wordBreak: 'break-word' }}>{value || '—'}</Typography>
-    </Box>
-  )
-}
-
-export function GlassTile({ icon, label, value, inline = false }) {
-  return (
-    <Box
-      role="group"
-      aria-label={label}
-      sx={{
-        display: inline ? 'grid' : 'flex',
-        gridTemplateColumns: inline ? { xs: '1fr', sm: '160px 1fr' } : undefined,
-        alignItems: 'flex-start',
-        gap: { xs: 0.75, sm: 1 },
-        p: { xs: 0.75, sm: 1.25 },
-        borderRadius: 2,
-        border: '1px solid rgba(255,255,255,0.14)',
-        background: 'linear-gradient(180deg, rgba(7,20,28,0.36), rgba(7,20,28,0.20))',
-        backdropFilter: 'blur(8px)',
-        wordBreak: 'break-word',
-        minHeight: { xs: 40, sm: 44 }
-      }}
-    >
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         {icon}
-        <Typography variant="overline" sx={{ letterSpacing: 0.5, opacity: 0.85 }}>
-          {label}
-        </Typography>
+        <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500 }}>{label}</Typography>
       </Box>
-      <Typography
-        variant="body2"
-        sx={{ fontWeight: 700, color: '#FAF9F6', wordBreak: 'break-word' }}
-      >
-        {value || '—'}
-      </Typography>
+      <Typography variant="body1" sx={{ fontWeight: 600, wordBreak: 'break-word', color: 'text.primary' }}>{value || '—'}</Typography>
     </Box>
   )
 }
 
 export function Section({ title, count, children, chipIcon }) {
   return (
-    <Stack spacing={{ xs: 1, sm: 1.25 }} sx={{ mb: { xs: 1.25, sm: 2 } }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-        <Chip
-          icon={chipIcon ?? <LocalHospital sx={{ fontSize: 18 }} />}
-          label={count != null ? `${title} (${count})` : title}
-          color="primary"
-          variant="outlined"
-          sx={{
-            borderColor: 'rgba(52,195,161,0.45)',
-            bgcolor: 'rgba(52,195,161,0.08)',
-            '& .MuiChip-label': { fontWeight: 700 }
-          }}
-        />
-      </Box>
-      <Stack spacing={{ xs: 0.75, sm: 1 }}>{children}</Stack>
-      <Divider sx={{ opacity: 0.16, mt: { xs: 0.5, sm: 0.5 } }} />
-    </Stack>
+    <Box sx={{ mb: { xs: 3, sm: 4 } }}>
+      <Typography 
+        variant="h6" 
+        sx={{ 
+          fontWeight: 700, 
+          mb: { xs: 2, sm: 2.5 },
+          fontSize: { xs: 18, sm: 20 },
+          color: 'text.primary'
+        }}
+      >
+        {title}{count != null ? ` (${count})` : ''}
+      </Typography>
+      <Box>{children}</Box>
+    </Box>
   )
 }
