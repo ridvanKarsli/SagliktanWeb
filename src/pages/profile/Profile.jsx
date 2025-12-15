@@ -83,15 +83,16 @@ function Row({ label, value }) {
 const displayName = (u) =>
   [u?.name, u?.surname].filter(Boolean).join(' ') || `Kullanıcı #${u?.userID || ''}`
 
-/** API -> UI (PostCard) dönüştürücü */
-function mapChatToPost(chat, meId, authorName, idToName) {
-  const liked = Array.isArray(chat.likedUser) ? chat.likedUser : []
-  const disliked = Array.isArray(chat.dislikedUser) ? chat.dislikedUser : []
+/** API -> UI (PostCard) dönüştürücü - Yeni post yapısı için güncellendi */
+function mapChatToPost(post, meId, authorName, idToName) {
+  const liked = Array.isArray(post.likedUser) ? post.likedUser : []
+  const disliked = Array.isArray(post.dislikedUser) ? post.dislikedUser : []
   const myVote =
     liked.some(u => u.userID === meId) ? 1 :
     disliked.some(u => u.userID === meId) ? -1 : 0
 
-  const comments = Array.isArray(chat.comments) ? chat.comments.map(c => {
+  // Recursive function to convert nested comments
+  const mapComment = (c) => {
     const cLiked = Array.isArray(c.likedUser) ? c.likedUser : []
     const cDisliked = Array.isArray(c.dislikedUser) ? c.dislikedUser : []
     const cVote =
@@ -100,34 +101,44 @@ function mapChatToPost(chat, meId, authorName, idToName) {
 
     const override = idToName?.get?.(c?.userID ?? c?.userId)
     const author = override || c.userName || `Kullanıcı #${c.userID}`
-    const cidRaw = c.commnetsID || c.commentID || c.id
+    const cidRaw = c.postID ?? c.commnetsID ?? c.commentID ?? c.id
     const cidNum = Number(cidRaw)
+    const nestedComments = Array.isArray(c.comments) ? c.comments.map(mapComment) : []
+    
     return {
-      id: Number.isFinite(cidNum) ? `c_${cidNum}` : `${chat.chatID}-${c.userID}-${c.uploadDate}`,
+      id: Number.isFinite(cidNum) ? `c_${cidNum}` : `c_tmp_${Math.random().toString(36).slice(2)}`,
+      postID: cidNum, // Yorumun postID'sini sakla
       author,
+      authorId: c.userID ?? c.userId,
       text: c.message,
       timestamp: c.uploadDate,
       likes: cLiked.length,
       dislikes: cDisliked.length,
       myVote: cVote,
       likedUsers: cLiked.map(u => ({ userID: u.userID, chatReactionsID: u.chatReactionsID ?? u.commentReactionsID ?? u.reactionID ?? u.id })),
-      dislikedUsers: cDisliked.map(u => ({ userID: u.userID, chatReactionsID: u.chatReactionsID ?? u.commentReactionsID ?? u.reactionID ?? u.id }))
+      dislikedUsers: cDisliked.map(u => ({ userID: u.userID, chatReactionsID: u.chatReactionsID ?? u.commentReactionsID ?? u.reactionID ?? u.id })),
+      comments: nestedComments,
+      category: c.category || post.category || null
     }
-  }) : []
+  }
+  
+  const comments = Array.isArray(post.comments) ? post.comments.map(mapComment) : []
 
-  const isOwner = (chat.userID === meId) || (chat.userId === meId)
+  const isOwner = (post.userID === meId) || (post.userId === meId)
+  const postID = post.postID ?? post.chatID
+  const postIdNum = Number(postID)
 
   return {
-    id: chat.chatID,
+    id: Number.isFinite(postIdNum) ? `p_${postIdNum}` : `p_${postID}`,
     author: authorName,
-    content: chat.message,
-    timestamp: chat.uploadDate,
+    content: post.message,
+    timestamp: post.uploadDate,
     likes: liked.length,
     dislikes: disliked.length,
     myVote,
     comments,
     isOwner,
-    category: chat.category || chat.Category || null,
+    category: post.category || null,
     likedUsers: liked.map(u => ({ userID: u.userID, name: u.name, surname: u.surname })),
     dislikedUsers: disliked.map(u => ({ userID: u.userID, name: u.name, surname: u.surname }))
   }
@@ -222,33 +233,43 @@ export default function Profile() {
 
           setPostsLoading(true)
           try {
-            const chats = await getChatsByUserID(token, base.userID)
+            const allPosts = await getChatsByUserID(token, base.userID)
             if (!mounted) return
+            
+            // Sadece ana postları filtrele (parentsID === 0)
+            const posts = Array.isArray(allPosts) ? allPosts.filter(p => p.parentsID === 0) : []
+            
             // Debug: Profil akışında yorum reaction ID'leri
             try {
-              console.groupCollapsed('[Profile] getChatsByUserID payload')
-              console.debug('count:', Array.isArray(chats) ? chats.length : 0)
-              ;(Array.isArray(chats) ? chats : []).slice(0, 10).forEach((ch, idx) => {
-                const comments = Array.isArray(ch?.comments) ? ch.comments : []
-                console.debug(`#${idx} chatID=${ch?.chatID} comments=${comments.length}`)
+              console.groupCollapsed('[Profile] getUserPosts payload')
+              console.debug('count:', posts.length)
+              posts.slice(0, 10).forEach((p, idx) => {
+                const comments = Array.isArray(p?.comments) ? p.comments : []
+                console.debug(`#${idx} postID=${p?.postID} comments=${comments.length}`)
                 comments.slice(0, 10).forEach((c, ci) => {
                   const liked = Array.isArray(c?.likedUser) ? c.likedUser : []
                   const disliked = Array.isArray(c?.dislikedUser) ? c.dislikedUser : []
-                  console.debug(`  c#${ci} commnetsID=${c?.commnetsID} likedIDs=`, liked.map(u => u?.chatReactionsID), 'dislikedIDs=', disliked.map(u => u?.chatReactionsID))
+                  console.debug(`  c#${ci} postID=${c?.postID} likedIDs=`, liked.map(u => u?.chatReactionsID), 'dislikedIDs=', disliked.map(u => u?.chatReactionsID))
                 })
               })
               console.groupEnd()
             } catch {}
-            // Yorum yazar adlarını da doldur
+            
+            // Yorum yazar adlarını da doldur (recursive)
             const ids = new Set()
-            for (const ch of chats) {
-              if (Array.isArray(ch?.comments)) {
-                for (const c of ch.comments) {
-                  const cuid = c?.userID ?? c?.userId
-                  if (cuid != null) ids.add(cuid)
+            function collectUserIDs(item) {
+              const uid = item?.userID ?? item?.userId
+              if (uid != null) ids.add(uid)
+              if (Array.isArray(item?.comments)) {
+                for (const c of item.comments) {
+                  collectUserIDs(c) // Recursive
                 }
               }
             }
+            for (const post of posts) {
+              collectUserIDs(post)
+            }
+            
             const idToName = new Map()
             await Promise.all(Array.from(ids).map(async (id) => {
               try {
@@ -257,7 +278,7 @@ export default function Profile() {
                 if (full) idToName.set(id, full)
               } catch {}
             }))
-            const mapped = chats.map(c => mapChatToPost(c, base.userID, base.name || 'Kullanıcı', idToName))
+            const mapped = posts.map(p => mapChatToPost(p, base.userID, base.name || 'Kullanıcı', idToName))
             setPosts(mapped)
           } finally {
             if (mounted) setPostsLoading(false)
@@ -297,7 +318,11 @@ export default function Profile() {
     if (!token || !postId || isVisitor) return
     try {
       setDeletingId(postId)
-      await deleteChat(token, postId)
+      // postId formatı p_123 ise, 123'ü al
+      const postID = typeof postId === 'string' && postId.startsWith('p_')
+        ? Number(postId.replace(/^p_/, ''))
+        : Number(postId)
+      await deleteChat(token, postID)
       setPosts(prev => prev.filter(p => p.id !== postId))
     } catch (err) {
       alert(err?.message || 'Silme işlemi başarısız.')
@@ -307,8 +332,27 @@ export default function Profile() {
   }
 
   const handleVote = async (postId, delta) => {
-    const chatID = Number(String(postId).replace(/^p_/, ''))
+    const postID = Number(String(postId).replace(/^p_/, ''))
+    // Post objesini bul ve reaction ID'lerini al
+    const post = posts.find(p => p.id === postId)
+    if (!post) {
+      alert('Gönderi bulunamadı.')
+      return
+    }
+    
     let prevVote = 0
+    let likeReactionID = null
+    let dislikeReactionID = null
+    
+    // Mevcut reaction ID'lerini bul
+    const currentUserId = me?.userId ?? me?.userID
+    if (currentUserId) {
+      const likedEntry = post.likedUsers?.find?.(u => Number(u?.userID) === Number(currentUserId))
+      const dislikedEntry = post.dislikedUsers?.find?.(u => Number(u?.userID) === Number(currentUserId))
+      likeReactionID = likedEntry?.chatReactionsID ?? likedEntry?.postReactionID ?? likedEntry?.reactionID ?? likedEntry?.id
+      dislikeReactionID = dislikedEntry?.chatReactionsID ?? dislikedEntry?.postReactionID ?? dislikedEntry?.reactionID ?? dislikedEntry?.id
+    }
+    
     setPosts(prev => prev.map(p => {
       if (p.id !== postId) return p
       prevVote = p.myVote
@@ -326,21 +370,98 @@ export default function Profile() {
     }))
     try {
       if (prevVote === delta) {
-        if (delta === 1) await cancelLikeChatReaction(token, chatID, me?.userId ?? me?.userID)
-        else await cancelDislikeChatReaction(token, chatID, me?.userId ?? me?.userID)
+        if (delta === 1) await cancelLikeChatReaction(token, postID, currentUserId, likeReactionID)
+        else await cancelDislikeChatReaction(token, postID, currentUserId, dislikeReactionID)
       } else if (delta === 1) {
-        await likeChatReaction(token, chatID)
+        await likeChatReaction(token, postID)
       } else if (delta === -1) {
-        await dislikeChatReaction(token, chatID)
+        await dislikeChatReaction(token, postID)
       }
     } catch (e) {
       setError(e?.message || 'Oy işlemi başarısız.')
     }
   }
 
+  // Recursive helper functions for nested comments
+  function addCommentToNested(comments, targetCommentId, newComment) {
+    return comments.map(c => {
+      if (c.id === targetCommentId) {
+        return { ...c, comments: [newComment, ...(c.comments || [])] }
+      }
+      if (c.comments && c.comments.length > 0) {
+        return { ...c, comments: addCommentToNested(c.comments, targetCommentId, newComment) }
+      }
+      return c
+    })
+  }
+
+  function updateCommentIdInNested(comments, tempId, realId) {
+    return comments.map(c => {
+      if (c.id === tempId) {
+        return { ...c, id: realId }
+      }
+      if (c.comments && c.comments.length > 0) {
+        return { ...c, comments: updateCommentIdInNested(c.comments, tempId, realId) }
+      }
+      return c
+    })
+  }
+
+  function removeCommentFromNested(comments, tempId) {
+    return comments.map(c => {
+      if (c.comments && c.comments.length > 0) {
+        return { ...c, comments: removeCommentFromNested(c.comments, tempId) }
+      }
+      return c
+    }).filter(c => c.id !== tempId)
+  }
+
+  function findCommentInNested(comments, commentId) {
+    for (const c of comments) {
+      if (c.id === commentId) return c
+      if (c.comments && c.comments.length > 0) {
+        const found = findCommentInNested(c.comments, commentId)
+        if (found) return found
+      }
+    }
+    return null
+  }
+
   // Yorum ekleme (token'lı, optimistic update)
-  const handleAddComment = async (postId, text) => {
+  const handleAddComment = async (postId, text, commentId = null) => {
     if (!token || isVisitor) return
+
+    // Post objesini bul
+    const post = posts.find(p => p.id === postId)
+    if (!post) {
+      alert('Gönderi bulunamadı.')
+      return
+    }
+
+    let parentsID, category
+    
+    if (commentId) {
+      // Yoruma yorum ekleniyor
+      const targetComment = findCommentInNested(post.comments, commentId)
+      if (!targetComment || !targetComment.postID) {
+        alert('Yorum bulunamadı.')
+        return
+      }
+      parentsID = targetComment.postID
+      category = targetComment.category || post.category || null
+    } else {
+      // Ana posta yorum ekleniyor
+      const postIdNum = typeof postId === 'string' && postId.startsWith('p_')
+        ? Number(postId.replace(/^p_/, ''))
+        : Number(postId)
+      
+      if (!Number.isFinite(postIdNum) || postIdNum <= 0) {
+        alert(`Geçersiz post ID: ${postId}`)
+        return
+      }
+      parentsID = postIdNum
+      category = post.category || null
+    }
 
     const tempId = `tmp-${Date.now()}`
     const tempComment = {
@@ -352,32 +473,49 @@ export default function Profile() {
       dislikes: 0,
       myVote: 0
     }
+    
+    // Optimistic update
     setPosts(prev =>
-      prev.map(p =>
-        p.id === postId ? { ...p, comments: [tempComment, ...p.comments] } : p
-      )
+      prev.map(p => {
+        if (p.id !== postId) return p
+        if (commentId) {
+          return { ...p, comments: addCommentToNested(p.comments, commentId, tempComment) }
+        } else {
+          return { ...p, comments: [tempComment, ...p.comments] }
+        }
+      })
     )
 
     try {
-      const res = await apiAddComment(token, postId, text, me?.userId ?? me?.userID ?? undefined)
-      const realId = res?.commentID || res?.commnetsID || res?.id || tempId
+      const res = await apiAddComment(token, parentsID, text, category, me?.userId ?? me?.userID ?? undefined)
+      const realId = res?.postID || res?.commentID || res?.commnetsID || res?.id || tempId
+      
+      // Update comment ID
       setPosts(prev =>
         prev.map(p => {
           if (p.id !== postId) return p
-          const comments = p.comments.map(c =>
-            c.id === tempId ? { ...c, id: realId } : c
-          )
-          return { ...p, comments }
+          if (commentId) {
+            return { ...p, comments: updateCommentIdInNested(p.comments, tempId, realId) }
+          } else {
+            const comments = p.comments.map(c =>
+              c.id === tempId ? { ...c, id: realId } : c
+            )
+            return { ...p, comments }
+          }
         })
       )
     } catch (err) {
       alert(err.message || 'Yorum eklenemedi.')
+      // Rollback
       setPosts(prev =>
-        prev.map(p =>
-          p.id === postId
-            ? { ...p, comments: p.comments.filter(c => c.id !== tempId) }
-            : p
-        )
+        prev.map(p => {
+          if (p.id !== postId) return p
+          if (commentId) {
+            return { ...p, comments: removeCommentFromNested(p.comments, tempId) }
+          } else {
+            return { ...p, comments: p.comments.filter(c => c.id !== tempId) }
+          }
+        })
       )
     }
   }
@@ -687,6 +825,8 @@ export default function Profile() {
                 <PostCard
                   key={p.id}
                   {...p}
+                  token={token}
+                  postID={p.postID}
                   deleting={deletingId === p.id}
                   {...(!isVisitor ? { onDelete: (postId) => handleDeletePost(postId) } : {})}
                   onVote={handleVote}

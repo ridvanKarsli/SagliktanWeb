@@ -19,7 +19,19 @@ const API_BASE = import.meta.env.VITE_API_BASE?.trim() ||
 
 const LOGIN_PATH = import.meta.env.VITE_LOGIN_PATH?.trim() || '/logUser/loginUser';
 const REGISTER_PATH = import.meta.env.VITE_REGISTER_PATH?.trim() || '/logUser/signupUser';
+const REFRESH_TOKEN_PATH = import.meta.env.VITE_REFRESH_TOKEN_PATH?.trim() || '/logUser/refreshToken';
 const CHATS_PATH = import.meta.env.VITE_CHATS_PATH?.trim() || '/chats/getAllChat';
+const POSTS_PATH = import.meta.env.VITE_POSTS_PATH?.trim() || '/post/getAllPost';
+const ADD_POST_PATH = import.meta.env.VITE_ADD_POST_PATH?.trim() || '/post/addPost';
+const GET_USER_POSTS_PATH = import.meta.env.VITE_GET_USER_POSTS_PATH?.trim() || '/post/getUserPosts';
+const DELETE_POST_PATH = import.meta.env.VITE_DELETE_POST_PATH?.trim() || '/post/deletePost';
+const GET_POSTS_WITH_FILTER_PATH = import.meta.env.VITE_GET_POSTS_WITH_FILTER_PATH?.trim() || '/post/getPostsWithFiltre';
+const LIKE_POST_PATH = import.meta.env.VITE_LIKE_POST_PATH?.trim() || '/postReaction/likePost';
+const DISLIKE_POST_PATH = import.meta.env.VITE_DISLIKE_POST_PATH?.trim() || '/postReaction/dislikePost';
+const CANCEL_LIKE_POST_PATH = import.meta.env.VITE_CANCEL_LIKE_POST_PATH?.trim() || '/postReaction/cancelLikePost';
+const CANCEL_DISLIKE_POST_PATH = import.meta.env.VITE_CANCEL_DISLIKE_POST_PATH?.trim() || '/postReaction/cancelDislikePost';
+const GET_LIKED_POST_PEOPLE_PATH = import.meta.env.VITE_GET_LIKED_POST_PEOPLE_PATH?.trim() || '/postReaction/getLikedPostPeope';
+const GET_DISLIKED_POST_PEOPLE_PATH = import.meta.env.VITE_GET_DISLIKED_POST_PEOPLE_PATH?.trim() || '/postReaction/getDislikedPostPeope';
 
 const ALLOWED_ROLES = new Set(['doctor', 'user']);
 
@@ -49,8 +61,23 @@ export async function loginUser({ email, password }) {
     if (prevAuth) setAuthToken(null)
     const api = new LogUserControllerApi()
     const res = await api.login({ email, password })
-    if (!res?.token) throw new Error('Sunucudan geçersiz yanıt: token yok.')
-    return res
+    // Yeni API yapısı: accessToken ve refreshToken döndürüyor
+    if (res?.accessToken) {
+      return {
+        accessToken: res.accessToken,
+        refreshToken: res.refreshToken,
+        message: res.message
+      }
+    }
+    // Eski API yapısı için geriye dönük uyumluluk
+    if (res?.token) {
+      return {
+        accessToken: res.token,
+        refreshToken: res.refreshToken || null,
+        message: res.message
+      }
+    }
+    throw new Error('Sunucudan geçersiz yanıt: accessToken yok.')
   } catch (e) {
     // fallback
     const url = `${API_BASE}${LOGIN_PATH}`;
@@ -59,12 +86,47 @@ export async function loginUser({ email, password }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password })
     });
-    if (!data?.token) throw new Error('Sunucudan geçersiz yanıt: token yok.');
-    return data;
+    // Yeni API yapısı: accessToken ve refreshToken döndürüyor
+    if (data?.accessToken) {
+      return {
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken,
+        message: data.message
+      }
+    }
+    // Eski API yapısı için geriye dönük uyumluluk
+    if (data?.token) {
+      return {
+        accessToken: data.token,
+        refreshToken: data.refreshToken || null,
+        message: data.message
+      }
+    }
+    throw new Error('Sunucudan geçersiz yanıt: accessToken yok.');
   } finally {
     // Eski header'ı geri yükle
     if (prevAuth) setAuthToken(prevAuth.replace(/^Bearer\s+/i, ''))
   }
+}
+
+export async function refreshToken(refreshTokenValue) {
+  if (!refreshTokenValue) throw new Error('Refresh token zorunludur.');
+  const url = `${API_BASE}${REFRESH_TOKEN_PATH}`;
+  const data = await fetchJson(url, {
+    method: 'POST',
+    headers: { 
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${refreshTokenValue}`
+    }
+  });
+  if (data?.accessToken) {
+    return {
+      accessToken: data.accessToken,
+      refreshToken: data.refreshToken,
+      message: data.message
+    }
+  }
+  throw new Error('Sunucudan geçersiz yanıt: accessToken yok.');
 }
 
 // signup: { name, surname, dateOfBirth, role: 'doctor'|'user', email, password }
@@ -116,6 +178,16 @@ export async function getAllChats(token) {
   }
 }
 
+export async function getAllPosts(token) {
+  if (!token) throw new Error('Oturum bulunamadı.');
+  const url = `${API_BASE}${POSTS_PATH}`;
+  const data = await fetchJson(url, {
+    method: 'GET',
+    headers: { ...authHeaders(token) }
+  });
+  return Array.isArray(data) ? data : [];
+}
+
 export async function getUserProfile(token) {
   if (!token) throw new Error('Oturum bulunamadı.');
   try {
@@ -164,22 +236,16 @@ export async function getPublicUserProfile(token, userID) {
   }
 }
 
-// 👇 Belirli bir userID'nin gönderileri (token'lı)
+// 👇 Belirli bir userID'nin gönderileri (token'lı) - Yeni post endpoint'i kullanıyor
 export async function getChatsByUserID(token, userID) {
   if (!token) throw new Error('Oturum bulunamadı.');
   if (!userID) throw new Error('Kullanıcı ID gerekli.');
-  try {
-    const api = new ChatControllerApi()
-    const list = await api.getChats(userID, `Bearer ${token}`)
-    return Array.isArray(list) ? list : []
-  } catch (e) {
-    const url = `${API_BASE}/chats/getChats?userID=${userID}`;
-    const data = await fetchJson(url, {
-      method: 'GET',
-      headers: { ...authHeaders(token) }
-    });
-    return Array.isArray(data) ? data : [];
-  }
+  const url = `${API_BASE}${GET_USER_POSTS_PATH}?userID=${encodeURIComponent(userID)}`;
+  const data = await fetchJson(url, {
+    method: 'GET',
+    headers: { ...authHeaders(token) }
+  });
+  return Array.isArray(data) ? data : [];
 }
 
 // --- Disease APIs ---
@@ -353,39 +419,92 @@ export async function deleteAnnouncement(token, announcementID, { signal } = {})
   }
 }
 
-export async function deleteChat(token, chatID) {
+export async function deleteChat(token, postID) {
+  // Yeni API: post silme endpoint'i kullanıyor
   if (!token) throw new Error('Token gerekli');
-  if (!chatID) throw new Error('chatID gerekli');
-  try {
-    const api = new ChatControllerApi()
-    return await api.deleteChat(chatID, `Bearer ${token}`)
-  } catch (e) {
-    const url = `${API_BASE}/chats/deleteChat?chatID=${encodeURIComponent(chatID)}`;
-    const res = await fetch(url, {
-      method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    if (!res.ok) {
-      const text = await res.text().catch(() => '');
-      throw new Error(text || `Silme başarısız (HTTP ${res.status})`);
-    }
-    try { return await res.json(); } catch { return true; }
+  if (!postID) throw new Error('postID gerekli');
+  
+  const url = `${API_BASE}${DELETE_POST_PATH}?postID=${encodeURIComponent(postID)}`;
+  const res = await fetch(url, {
+    method: 'DELETE',
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(text || `Silme başarısız (HTTP ${res.status})`);
   }
+  try { return await res.json(); } catch { return true; }
 }
 
-export async function addComment(token, chatID, message, userID) {
-  const payload = userID != null ? { message, chatID, userID } : { message, chatID }
-  try {
-    const api = new CommentsControllerApi()
-    return await api.addComment(`Bearer ${token}`, payload)
-  } catch (e) {
-    const url = `${API_BASE}/comments/addComment`;
-    return fetchJson(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...authHeaders(token) },
-      body: JSON.stringify(payload)
-    })
+// Yeni unified post/comment ekleme fonksiyonu
+export async function addPost(token, { parentsID, message, category, uploadDate }, { signal } = {}) {
+  if (!message) throw new Error('Mesaj zorunludur.');
+  if (parentsID === undefined || parentsID === null) throw new Error('parentsID zorunludur.');
+  
+  // uploadDate yoksa bugünün tarihini kullan (YYYY-MM-DD formatında)
+  const dateStr = uploadDate || new Date().toISOString().split('T')[0]
+  
+  // parentsID'yi number'a çevir
+  const parentsIDNum = Number(parentsID)
+  if (!Number.isFinite(parentsIDNum)) {
+    throw new Error(`Geçersiz parentsID: ${parentsID}`)
   }
+  
+  const payload = {
+    parentsID: parentsIDNum,
+    message: message.trim(),
+    uploadDate: dateStr
+  }
+  
+  // Category varsa ekle (hem ana post hem yorum için)
+  if (category) {
+    payload.category = category
+  }
+  
+  const url = `${API_BASE}${ADD_POST_PATH}`;
+  
+  // Debug: payload'ı console'a yazdır
+  try {
+    console.debug('[addPost] Request payload:', JSON.stringify(payload, null, 2))
+  } catch {}
+  
+  return fetchJson(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders(token) },
+    body: JSON.stringify(payload),
+    signal
+  })
+}
+
+export async function addComment(token, postID, message, category, userID) {
+  // Yeni API: addPost kullanarak yorum ekle (parentsID = yorum yapılan postun ID'si)
+  if (!message || !message.trim()) {
+    throw new Error('Yorum metni zorunludur.')
+  }
+  
+  // postID number olarak gelmeli (Posts.jsx ve Profile.jsx'ten zaten temizlenmiş olarak geliyor)
+  // Ama yine de string olarak gelebilir, güvenli bir şekilde number'a çevir
+  let parentsID
+  if (typeof postID === 'number') {
+    parentsID = postID
+  } else if (typeof postID === 'string') {
+    // String ise temizle ve number'a çevir
+    const cleanPostID = postID.replace(/^p_/, '').replace(/^c_/, '').trim()
+    parentsID = Number(cleanPostID)
+  } else {
+    parentsID = Number(postID)
+  }
+  
+  if (!Number.isFinite(parentsID) || parentsID <= 0) {
+    throw new Error(`Geçersiz post ID: ${postID} (number: ${parentsID})`)
+  }
+  
+  // Debug log
+  try {
+    console.debug('[addComment] Adding comment:', { postID, parentsID, category, messageLength: message.length })
+  } catch {}
+  
+  return addPost(token, { parentsID, message, category })
 }
 
 
@@ -401,31 +520,109 @@ export async function deleteComment(token, commnetsID) {
   }
 }
 
-/* --- Reactions (Chat) --- */
-export async function likeChatReaction(token, chatID) {
-  const api = new ChatReactionsControllerApi()
-  return api.likeChat(Number(chatID), `Bearer ${token}`)
+/* --- Reactions (Post) --- */
+export async function likeChatReaction(token, postID) {
+  // Yeni API: post like endpoint'i kullanıyor (POST metodu)
+  if (!token) throw new Error('Token gerekli')
+  if (!postID) throw new Error('postID gerekli')
+  const url = `${API_BASE}${LIKE_POST_PATH}?postID=${encodeURIComponent(postID)}`
+  return fetchJson(url, {
+    method: 'POST',
+    headers: { ...authHeaders(token) }
+  })
 }
-export async function dislikeChatReaction(token, chatID) {
-  const api = new ChatReactionsControllerApi()
-  return api.dislikeChat(Number(chatID), `Bearer ${token}`)
+export async function dislikeChatReaction(token, postID) {
+  // Yeni API: post dislike endpoint'i kullanıyor (POST metodu)
+  if (!token) throw new Error('Token gerekli')
+  if (!postID) throw new Error('postID gerekli')
+  const url = `${API_BASE}${DISLIKE_POST_PATH}?postID=${encodeURIComponent(postID)}`
+  return fetchJson(url, {
+    method: 'POST',
+    headers: { ...authHeaders(token) }
+  })
 }
-export async function cancelLikeChatReaction(token, chatID, userID) {
-  const api = new ChatReactionsControllerApi()
-  // cancel requires chatReactionsID → fetch liked people and pick my reaction
-  const people = await api.getLikedChatPeope(Number(chatID), `Bearer ${token}`)
-  const mine = Array.isArray(people) ? people.find(p => (p?.userID === Number(userID))) : null
-  const reactionId = mine?.chatReactionsID ?? mine?.reactionID ?? mine?.id
-  if (!reactionId) throw new Error('İptal edilecek like kaydı bulunamadı.')
-  return api.cancelLikeChat(Number(reactionId), `Bearer ${token}`)
+export async function cancelLikeChatReaction(token, postID, userID, postReactionID = null) {
+  // Yeni API: post like iptal endpoint'i kullanıyor
+  if (!token) throw new Error('Token gerekli')
+  if (!postID) throw new Error('postID gerekli')
+  
+  // postReactionID direkt verilmişse kullan, yoksa userID'den bulmaya çalış
+  let reactionId = postReactionID
+  
+  if (!reactionId && userID) {
+    // Yeni yöntem: liked people listesinden bul (fallback)
+    try {
+      const people = await getLikedPostPeople(token, postID)
+      const mine = Array.isArray(people) ? people.find(p => (p?.userID === Number(userID))) : null
+      reactionId = mine?.chatReactionsID ?? mine?.postReactionID ?? mine?.reactionID ?? mine?.id
+    } catch (e) {
+      // Fallback başarısız olursa hata fırlat
+    }
+  }
+  
+  if (!reactionId) {
+    throw new Error('İptal edilecek like kaydı bulunamadı. postReactionID gerekli.')
+  }
+  
+  const url = `${API_BASE}${CANCEL_LIKE_POST_PATH}?postReactionID=${encodeURIComponent(reactionId)}`
+  return fetchJson(url, {
+    method: 'DELETE',
+    headers: { ...authHeaders(token) }
+  })
 }
-export async function cancelDislikeChatReaction(token, chatID, userID) {
-  const api = new ChatReactionsControllerApi()
-  const people = await api.getDislikedChatPeope(Number(chatID), `Bearer ${token}`)
-  const mine = Array.isArray(people) ? people.find(p => (p?.userID === Number(userID))) : null
-  const reactionId = mine?.chatReactionsID ?? mine?.reactionID ?? mine?.id
-  if (!reactionId) throw new Error('İptal edilecek dislike kaydı bulunamadı.')
-  return api.cancelDislikeChat(Number(reactionId), `Bearer ${token}`)
+export async function cancelDislikeChatReaction(token, postID, userID, postReactionID = null) {
+  // Yeni API: post dislike iptal endpoint'i kullanıyor
+  if (!token) throw new Error('Token gerekli')
+  if (!postID) throw new Error('postID gerekli')
+  
+  // postReactionID direkt verilmişse kullan, yoksa userID'den bulmaya çalış
+  let reactionId = postReactionID
+  
+  if (!reactionId && userID) {
+    // Yeni yöntem: disliked people listesinden bul (fallback)
+    try {
+      const people = await getDislikedPostPeople(token, postID)
+      const mine = Array.isArray(people) ? people.find(p => (p?.userID === Number(userID))) : null
+      reactionId = mine?.chatReactionsID ?? mine?.postReactionID ?? mine?.reactionID ?? mine?.id
+    } catch (e) {
+      // Fallback başarısız olursa hata fırlat
+    }
+  }
+  
+  if (!reactionId) {
+    throw new Error('İptal edilecek dislike kaydı bulunamadı. postReactionID gerekli.')
+  }
+  
+  const url = `${API_BASE}${CANCEL_DISLIKE_POST_PATH}?postReactionID=${encodeURIComponent(reactionId)}`
+  return fetchJson(url, {
+    method: 'DELETE',
+    headers: { ...authHeaders(token) }
+  })
+}
+
+/* --- Post Reaction People --- */
+export async function getLikedPostPeople(token, postID) {
+  // Yeni API: post beğenen kişileri çekme endpoint'i
+  if (!token) throw new Error('Token gerekli')
+  if (!postID) throw new Error('postID gerekli')
+  const url = `${API_BASE}${GET_LIKED_POST_PEOPLE_PATH}?postID=${encodeURIComponent(postID)}`
+  const data = await fetchJson(url, {
+    method: 'GET',
+    headers: { ...authHeaders(token) }
+  })
+  return Array.isArray(data) ? data : []
+}
+
+export async function getDislikedPostPeople(token, postID) {
+  // Yeni API: post beğenmeyen kişileri çekme endpoint'i
+  if (!token) throw new Error('Token gerekli')
+  if (!postID) throw new Error('postID gerekli')
+  const url = `${API_BASE}${GET_DISLIKED_POST_PEOPLE_PATH}?postID=${encodeURIComponent(postID)}`
+  const data = await fetchJson(url, {
+    method: 'GET',
+    headers: { ...authHeaders(token) }
+  })
+  return Array.isArray(data) ? data : []
 }
 
 /* --- Reactions (Comment) --- */
@@ -533,32 +730,21 @@ export async function getAllUsers(token, { signal } = {}) {
 }
 
 export async function addChat(token, { message, category }, { signal } = {}) {
-  try {
-    const api = new ChatControllerApi()
-    return await api.addChat(`Bearer ${token}`, { message, category })
-  } catch (e) {
-    const url = `${API_BASE}/chats/addChat`;
-    return fetchJson(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...authHeaders(token) },
-      body: JSON.stringify({ message, category }),
-      signal
-    })
-  }
+  // Yeni API: addPost kullanarak ana post ekle (parentsID = 0)
+  return addPost(token, { parentsID: 0, message, category }, { signal })
 }
 
 export async function getChatsWithFilter(token, category) {
+  // Yeni API: filtreli post çekme endpoint'i kullanıyor
   if (!token) throw new Error('Oturum bulunamadı.')
-  if (!category) return getAllChats(token)
-  try {
-    const api = new ChatControllerApi()
-    const list = await api.getChatsWithFiltre(String(category), `Bearer ${token}`)
-    return Array.isArray(list) ? list : []
-  } catch (e) {
-    const url = `${API_BASE}/chats/getChatsWithFiltre?category=${encodeURIComponent(category)}`
-    const data = await fetchJson(url, { method: 'GET', headers: { ...authHeaders(token) } })
-    return Array.isArray(data) ? data : []
-  }
+  if (!category) return getAllPosts(token)
+  
+  const url = `${API_BASE}${GET_POSTS_WITH_FILTER_PATH}?category=${encodeURIComponent(category)}`
+  const data = await fetchJson(url, {
+    method: 'GET',
+    headers: { ...authHeaders(token) }
+  })
+  return Array.isArray(data) ? data : []
 }
 
 // Ziyaretçi profili görüntüleme için: userID'den temel kişi bilgisi

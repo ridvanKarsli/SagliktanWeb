@@ -11,7 +11,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 
 import PostCard from '../components/PostCard.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
-import { getAllChats, getDiseaseNames, getUserByID, getChatsWithFilter } from '../services/api.js'
+import { getAllPosts, getChatsWithFilter, getDiseaseNames, getUserByID } from '../services/api.js'
 import { addComment as apiAddComment } from '../services/api.js'
 import {
   likeChatReaction,
@@ -54,55 +54,85 @@ function myVoteFor(currentUserId, likedUsers, dislikedUsers) {
   return 0
 }
 
-function toPostModel(chat, currentUserId, authorNameOverride, idToName) {
-  const liked = dedupUsers(chat.likedUser)
-  const disliked = dedupUsers(chat.dislikedUser)
+// Recursive function to convert nested comments
+function toCommentModel(comment, currentUserId, idToName) {
+  const cLiked = dedupUsers(comment.likedUser || [])
+  const cDisliked = dedupUsers(comment.dislikedUser || [])
+  const cidRaw = comment.postID ?? comment.commnetsID ?? comment.commentsID ?? comment.id
+  const cidNum = Number(cidRaw)
+  const safeId = Number.isFinite(cidNum) ? `c_${cidNum}` : `c_tmp_${Math.random().toString(36).slice(2)}`
+  const authorId = comment.userID ?? comment.userId
+  const authorOverride = idToName?.get?.(authorId)
+  
+  // Recursively process nested comments
+  const nestedComments = Array.isArray(comment.comments)
+    ? comment.comments.map(c => toCommentModel(c, currentUserId, idToName))
+    : []
 
-  const comments = Array.isArray(chat.comments)
-    ? chat.comments.map(c => {
-        const cLiked = dedupUsers(c.likedUser)
-        const cDisliked = dedupUsers(c.dislikedUser)
-        const cidRaw = c.commnetsID ?? c.commentsID ?? c.id
-        const cidNum = Number(cidRaw)
-        const safeId = Number.isFinite(cidNum) ? `c_${cidNum}` : `c_tmp_${Math.random().toString(36).slice(2)}`
-        const authorId = c.userID ?? c.userId
-        const authorOverride = idToName?.get?.(authorId)
-        return {
-          id: safeId,
-          author: authorOverride || `Kullanıcı #${c.userID ?? '???'}`,
-          text: c.message ?? '',
-          timestamp: parseYMD(c.uploadDate),
-          likes: cLiked.length,
-          dislikes: cDisliked.length,
-          myVote: myVoteFor(currentUserId, cLiked, cDisliked),
-          likedUsers: (Array.isArray(c.likedUser) ? c.likedUser : []).map(u => ({
-            userID: u?.userID ?? u?.userId,
-            chatReactionsID: u?.chatReactionsID ?? u?.commentReactionsID ?? u?.reactionID ?? u?.id
-          })),
-          dislikedUsers: (Array.isArray(c.dislikedUser) ? c.dislikedUser : []).map(u => ({
-            userID: u?.userID ?? u?.userId,
-            chatReactionsID: u?.chatReactionsID ?? u?.commentReactionsID ?? u?.reactionID ?? u?.id
-          }))
-        }
-      })
+  return {
+    id: safeId,
+    postID: cidNum, // Yorumun postID'sini sakla (yoruma yorum eklemek için gerekli)
+    author: authorOverride || `Kullanıcı #${comment.userID ?? '???'}`,
+    authorId: authorId,
+    text: comment.message ?? '',
+    timestamp: parseYMD(comment.uploadDate),
+    likes: cLiked.length,
+    dislikes: cDisliked.length,
+    myVote: myVoteFor(currentUserId, cLiked, cDisliked),
+    likedUsers: (Array.isArray(comment.likedUser) ? comment.likedUser : []).map(u => ({
+      userID: u?.userID ?? u?.userId,
+      name: u?.name ?? null,
+      surname: u?.surname ?? null,
+      chatReactionsID: u?.chatReactionsID ?? u?.commentReactionsID ?? u?.reactionID ?? u?.id
+    })),
+    dislikedUsers: (Array.isArray(comment.dislikedUser) ? comment.dislikedUser : []).map(u => ({
+      userID: u?.userID ?? u?.userId,
+      name: u?.name ?? null,
+      surname: u?.surname ?? null,
+      chatReactionsID: u?.chatReactionsID ?? u?.commentReactionsID ?? u?.reactionID ?? u?.id
+    })),
+    comments: nestedComments,
+    category: comment.category || null // Category'yi de sakla
+  }
+}
+
+function toPostModel(post, currentUserId, authorNameOverride, idToName) {
+  const liked = dedupUsers(post.likedUser || [])
+  const disliked = dedupUsers(post.dislikedUser || [])
+
+  // Process comments (only top-level comments, nested ones are handled recursively)
+  const comments = Array.isArray(post.comments)
+    ? post.comments.map(c => toCommentModel(c, currentUserId, idToName))
     : []
 
   const authorFull = authorNameOverride
-    || [chat.name, chat.surname].filter(Boolean).join(' ')
-    || chat.userName
-    || `Kullanıcı #${chat.userID ?? '???'}`
+    || [post.name, post.surname].filter(Boolean).join(' ')
+    || post.userName
+    || `Kullanıcı #${post.userID ?? '???'}`
 
   return {
-    id: `p_${chat.chatID}`,
+    id: `p_${post.postID}`,
     author: authorFull,
-    authorId: chat.userID ?? chat.userId,
-    content: chat.message ?? '',
-    timestamp: parseYMD(chat.uploadDate),
+    authorId: post.userID ?? post.userId,
+    content: post.message ?? '',
+    timestamp: parseYMD(post.uploadDate),
     likes: liked.length,
     dislikes: disliked.length,
     myVote: myVoteFor(currentUserId, liked, disliked),
     comments,
-    category: chat.category || null
+    category: post.category || null,
+    likedUsers: (Array.isArray(post.likedUser) ? post.likedUser : []).map(u => ({
+      userID: u?.userID ?? u?.userId,
+      name: u?.name ?? null,
+      surname: u?.surname ?? null,
+      chatReactionsID: u?.chatReactionsID ?? u?.postReactionID ?? u?.reactionID ?? u?.id
+    })),
+    dislikedUsers: (Array.isArray(post.dislikedUser) ? post.dislikedUser : []).map(u => ({
+      userID: u?.userID ?? u?.userId,
+      name: u?.name ?? null,
+      surname: u?.surname ?? null,
+      chatReactionsID: u?.chatReactionsID ?? u?.postReactionID ?? u?.reactionID ?? u?.id
+    }))
   }
 }
 
@@ -140,34 +170,44 @@ export default function Posts() {
     setLoading(true)
     setError('')
     try {
-      const data = category ? await getChatsWithFilter(token, category) : await getAllChats(token)
+      // Filter posts by category if needed (server-side filtering)
+      const allPosts = category 
+        ? await getChatsWithFilter(token, category)
+        : await getAllPosts(token)
+      // Filter only top-level posts (parentsID === 0)
+      const data = allPosts.filter(p => p.parentsID === 0)
+      
       // Debug: Ham payload ve yorumlardaki reaction ID'ler
       try {
-        console.groupCollapsed('[Feed] getAllChats payload')
+        console.groupCollapsed('[Feed] getAllPosts payload')
         console.debug('count:', Array.isArray(data) ? data.length : 0)
-        ;(Array.isArray(data) ? data : []).slice(0, 10).forEach((ch, idx) => {
-          const comments = Array.isArray(ch?.comments) ? ch.comments : []
-          console.debug(`#${idx} chatID=${ch?.chatID} comments=${comments.length}`)
+        ;(Array.isArray(data) ? data : []).slice(0, 10).forEach((p, idx) => {
+          const comments = Array.isArray(p?.comments) ? p.comments : []
+          console.debug(`#${idx} postID=${p?.postID} comments=${comments.length}`)
           comments.slice(0, 10).forEach((c, ci) => {
             const liked = Array.isArray(c?.likedUser) ? c.likedUser : []
             const disliked = Array.isArray(c?.dislikedUser) ? c.dislikedUser : []
-            console.debug(`  c#${ci} commnetsID=${c?.commnetsID} likedIDs=`, liked.map(u => u?.chatReactionsID), 'dislikedIDs=', disliked.map(u => u?.chatReactionsID))
+            console.debug(`  c#${ci} postID=${c?.postID} likedIDs=`, liked.map(u => u?.chatReactionsID), 'dislikedIDs=', disliked.map(u => u?.chatReactionsID))
           })
         })
         console.groupEnd()
       } catch {}
-      // Yazar ve yorum yazarlarını userID -> full name ile zenginleştir
+      
+      // Yazar ve yorum yazarlarını userID -> full name ile zenginleştir (recursive)
       const ids = new Set()
-      for (const ch of data) {
-        const uid = ch?.userID ?? ch?.userId
+      function collectUserIDs(item) {
+        const uid = item?.userID ?? item?.userId
         if (uid != null) ids.add(uid)
-        if (Array.isArray(ch?.comments)) {
-          for (const c of ch.comments) {
-            const cuid = c?.userID ?? c?.userId
-            if (cuid != null) ids.add(cuid)
+        if (Array.isArray(item?.comments)) {
+          for (const c of item.comments) {
+            collectUserIDs(c) // Recursive
           }
         }
       }
+      for (const post of data) {
+        collectUserIDs(post)
+      }
+      
       const idToName = new Map()
       await Promise.all(Array.from(ids).map(async (id) => {
         try {
@@ -178,10 +218,10 @@ export default function Posts() {
       }))
 
       const meId = user?.userId ?? user?.userID ?? null
-      const mapped = data.map(ch => {
-        const authorId = ch?.userID ?? ch?.userId
+      const mapped = data.map(post => {
+        const authorId = post.userID ?? post.userId
         const authorName = authorId != null ? idToName.get(authorId) : undefined
-        return toPostModel(ch, meId, authorName, idToName)
+        return toPostModel(post, meId, authorName, idToName)
       })
       mapped.sort((a, b) => b.timestamp - a.timestamp) // yeni → eski
       setPosts(mapped)
@@ -228,8 +268,27 @@ export default function Posts() {
   }
 
   const votePost = async (postId, delta) => {
-    const chatID = Number(String(postId).replace(/^p_/, ''))
+    const postID = Number(String(postId).replace(/^p_/, ''))
+    // Post objesini bul ve reaction ID'lerini al
+    const post = posts.find(p => p.id === postId)
+    if (!post) {
+      setError('Gönderi bulunamadı.')
+      return
+    }
+    
     let prevVote = 0
+    let likeReactionID = null
+    let dislikeReactionID = null
+    
+    // Mevcut reaction ID'lerini bul
+    const currentUserId = user?.userId ?? user?.userID
+    if (currentUserId) {
+      const likedEntry = post.likedUsers?.find?.(u => Number(u?.userID) === Number(currentUserId))
+      const dislikedEntry = post.dislikedUsers?.find?.(u => Number(u?.userID) === Number(currentUserId))
+      likeReactionID = likedEntry?.chatReactionsID ?? likedEntry?.postReactionID ?? likedEntry?.reactionID ?? likedEntry?.id
+      dislikeReactionID = dislikedEntry?.chatReactionsID ?? dislikedEntry?.postReactionID ?? dislikedEntry?.reactionID ?? dislikedEntry?.id
+    }
+    
     setPosts(prev => prev.map(p => {
       if (p.id !== postId) return p
       prevVote = p.myVote
@@ -247,12 +306,12 @@ export default function Posts() {
     }))
     try {
       if (prevVote === delta) {
-        if (delta === 1) await cancelLikeChatReaction(token, chatID, user?.userId ?? user?.userID)
-        else await cancelDislikeChatReaction(token, chatID, user?.userId ?? user?.userID)
+        if (delta === 1) await cancelLikeChatReaction(token, postID, user?.userId ?? user?.userID, likeReactionID)
+        else await cancelDislikeChatReaction(token, postID, user?.userId ?? user?.userID, dislikeReactionID)
       } else if (delta === 1) {
-        await likeChatReaction(token, chatID)
+        await likeChatReaction(token, postID)
       } else if (delta === -1) {
-        await dislikeChatReaction(token, chatID)
+        await dislikeChatReaction(token, postID)
       }
     } catch (e) {
       // rollback
@@ -263,8 +322,89 @@ export default function Posts() {
     }
   }
 
-  const handleAddComment = async (postId, text) => {
+  // Recursive function to add comment to nested structure
+  function addCommentToNested(comments, targetCommentId, newComment) {
+    return comments.map(c => {
+      if (c.id === targetCommentId) {
+        return { ...c, comments: [newComment, ...(c.comments || [])] }
+      }
+      if (c.comments && c.comments.length > 0) {
+        return { ...c, comments: addCommentToNested(c.comments, targetCommentId, newComment) }
+      }
+      return c
+    })
+  }
+
+  // Recursive function to update comment ID in nested structure
+  function updateCommentIdInNested(comments, tempId, realId) {
+    return comments.map(c => {
+      if (c.id === tempId) {
+        return { ...c, id: realId }
+      }
+      if (c.comments && c.comments.length > 0) {
+        return { ...c, comments: updateCommentIdInNested(c.comments, tempId, realId) }
+      }
+      return c
+    })
+  }
+
+  // Recursive function to remove comment from nested structure
+  function removeCommentFromNested(comments, tempId) {
+    return comments.map(c => {
+      if (c.comments && c.comments.length > 0) {
+        return { ...c, comments: removeCommentFromNested(c.comments, tempId) }
+      }
+      return c
+    }).filter(c => c.id !== tempId)
+  }
+
+  // Recursive function to find comment in nested structure
+  function findCommentInNested(comments, commentId) {
+    for (const c of comments) {
+      if (c.id === commentId) return c
+      if (c.comments && c.comments.length > 0) {
+        const found = findCommentInNested(c.comments, commentId)
+        if (found) return found
+      }
+    }
+    return null
+  }
+
+  const handleAddComment = async (postId, text, commentId = null) => {
     if (!token) return
+    
+    // Post objesini bul
+    const post = posts.find(p => p.id === postId)
+    if (!post) {
+      setError('Gönderi bulunamadı.')
+      return
+    }
+    
+    let parentsID, category
+    
+    if (commentId) {
+      // Yoruma yorum ekleniyor - commentId'den yorumu bul
+      const targetComment = findCommentInNested(post.comments, commentId)
+      if (!targetComment || !targetComment.postID) {
+        setError('Yorum bulunamadı.')
+        return
+      }
+      parentsID = targetComment.postID
+      category = targetComment.category || post.category || null
+    } else {
+      // Ana posta yorum ekleniyor
+      const postIdNum = typeof postId === 'string' && postId.startsWith('p_')
+        ? Number(postId.replace(/^p_/, ''))
+        : Number(postId)
+      
+      if (!Number.isFinite(postIdNum) || postIdNum <= 0) {
+        setError(`Geçersiz post ID: ${postId}`)
+        return
+      }
+      parentsID = postIdNum
+      category = post.category || null
+    }
+    
     const authorName = user?.name || user?.username || `Kullanıcı #${user?.userId ?? ''}`
     const tempId = `tmp-${Date.now()}`
     const tempComment = {
@@ -276,19 +416,43 @@ export default function Posts() {
       dislikes: 0,
       myVote: 0
     }
-    setPosts(prev => prev.map(p => p.id === postId ? { ...p, comments: [tempComment, ...p.comments] } : p))
+    
+    // Optimistic update
+    setPosts(prev => prev.map(p => {
+      if (p.id !== postId) return p
+      if (commentId) {
+        return { ...p, comments: addCommentToNested(p.comments, commentId, tempComment) }
+      } else {
+        return { ...p, comments: [tempComment, ...p.comments] }
+      }
+    }))
 
     try {
-      const real = await apiAddComment(token, postId.replace(/^p_/, ''), text, user?.userId ?? user?.userID ?? undefined)
-      const realId = real?.commentID || real?.commnetsID || real?.id || tempId
+      // parentsID olarak post'un veya yorumun postID'sini gönder, category'yi de geç
+      const real = await apiAddComment(token, parentsID, text, category, user?.userId ?? user?.userID ?? undefined)
+      const realId = real?.postID || real?.commentID || real?.commnetsID || real?.id || tempId
+      
+      // Update comment ID
       setPosts(prev => prev.map(p => {
         if (p.id !== postId) return p
-        const comments = p.comments.map(c => c.id === tempId ? { ...c, id: realId } : c)
-        return { ...p, comments }
+        if (commentId) {
+          return { ...p, comments: updateCommentIdInNested(p.comments, tempId, realId) }
+        } else {
+          const comments = p.comments.map(c => c.id === tempId ? { ...c, id: realId } : c)
+          return { ...p, comments }
+        }
       }))
     } catch (err) {
       setError(err?.message || 'Yorum eklenemedi.')
-      setPosts(prev => prev.map(p => p.id === postId ? { ...p, comments: p.comments.filter(c => c.id !== tempId) } : p))
+      // Rollback
+      setPosts(prev => prev.map(p => {
+        if (p.id !== postId) return p
+        if (commentId) {
+          return { ...p, comments: removeCommentFromNested(p.comments, tempId) }
+        } else {
+          return { ...p, comments: p.comments.filter(c => c.id !== tempId) }
+        }
+      }))
     }
   }
 
@@ -353,15 +517,35 @@ export default function Posts() {
               }
             }
             if (!rid) {
-              // Son çare: Tüm chatleri çek, ilgili yorumun dislikedUser listesinden benim reaction ID'imi bul
+              // Son çare: Tüm postları çek, ilgili yorumun dislikedUser listesinden benim reaction ID'imi bul
               try {
-                const chats = await getAllChats(token)
-                const chatIdNum = Number(String(postId).replace(/^p_/, ''))
-                const chat = Array.isArray(chats) ? chats.find(c => Number(c?.chatID) === chatIdNum) : null
-                const comment = chat?.comments?.find?.(c => Number(c?.commnetsID ?? c?.commentID ?? c?.id) === realCommentId)
+                const posts = await getAllPosts(token)
+                const postIdNum = Number(String(postId).replace(/^p_/, ''))
+                // Recursive function to find comment in nested structure
+                function findComment(posts, postId, commentId) {
+                  for (const post of posts) {
+                    if (post.postID === postId) {
+                      function searchInComments(comments) {
+                        for (const c of comments) {
+                          if (Number(c?.postID ?? c?.commnetsID ?? c?.commentID ?? c?.id) === commentId) {
+                            return c
+                          }
+                          if (Array.isArray(c?.comments)) {
+                            const found = searchInComments(c.comments)
+                            if (found) return found
+                          }
+                        }
+                        return null
+                      }
+                      return searchInComments(post.comments || [])
+                    }
+                  }
+                  return null
+                }
+                const comment = findComment(posts, postIdNum, realCommentId)
                 const mine2 = comment?.dislikedUser?.find?.(u => Number(u?.userID ?? u?.userId) === Number(meId))
                 rid = mine2?.chatReactionsID ?? mine2?.commentReactionsID ?? mine2?.reactionID ?? mine2?.id
-                console.warn('[Comments] final fallback: getAllChats-derived reactionId', { rid })
+                console.warn('[Comments] final fallback: getAllPosts-derived reactionId', { rid })
               } catch (e2) {
                 console.error('[Comments] final fallback failed', e2)
               }
@@ -479,6 +663,8 @@ export default function Posts() {
             <PostCard
               key={p.id}
               {...p}
+              token={token}
+              postID={p.postID}
               onVote={votePost}
               onAddComment={handleAddComment}
               onCommentVote={voteComment}
@@ -623,3 +809,4 @@ export default function Posts() {
     </Container>
   )
 }
+
