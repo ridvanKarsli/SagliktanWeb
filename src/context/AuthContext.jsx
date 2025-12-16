@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react'
 import { loginUser, registerUser, getUserProfile, refreshToken as refreshTokenApi } from '../services/api.js'
 import { configureApiClient, setAuthToken } from '../services/generated/configureClient'
 
@@ -21,10 +21,38 @@ function parseJwt(token) {
   try { return JSON.parse(b64urlToUtf8(token.split('.')[1])) || {} } catch { return {} }
 }
 function isTokenExpired(token) {
+  if (!token) return true
   const p = parseJwt(token)
   if (!p?.exp) return false
   const nowSec = Math.floor(Date.now() / 1000)
-  return p.exp <= nowSec
+  // Token expire olmadan 2 dakika önce expired kabul et (buffer)
+  const bufferSeconds = 120 // 2 dakika
+  return p.exp <= (nowSec + bufferSeconds)
+}
+
+// Global refresh lock - aynı anda birden fazla refresh yapılmasını engelle
+let refreshPromise = null
+let refreshCallback = null
+
+export function setRefreshCallback(callback) {
+  refreshCallback = callback
+}
+
+export async function attemptTokenRefresh() {
+  // Eğer zaten bir refresh işlemi devam ediyorsa, onu bekle
+  if (refreshPromise) {
+    return refreshPromise
+  }
+  
+  // Yeni refresh başlat
+  if (refreshCallback) {
+    refreshPromise = refreshCallback().finally(() => {
+      refreshPromise = null
+    })
+    return refreshPromise
+  }
+  
+  throw new Error('Refresh callback not set')
 }
 
 const AuthContext = createContext(null)
@@ -57,6 +85,7 @@ export function AuthProvider({ children }) {
                 role: server?.role || p.role || '',
                 userId: server?.userID ?? server?.userId ?? p.userID ?? p.userId ?? null,
               })
+              setLoading(false)
             })
             .catch(() => {
               setUser({
@@ -66,6 +95,7 @@ export function AuthProvider({ children }) {
                 role: p.role || '',
                 userId: p.userID ?? p.userId ?? null,
               })
+              setLoading(false)
             })
         } else if (refreshTokenValue && !isTokenExpired(refreshTokenValue)) {
           // Access token expire olmuş ama refresh token hala geçerli, yenile
@@ -75,7 +105,7 @@ export function AuthProvider({ children }) {
               setToken(accessToken)
               try { configureApiClient(accessToken) } catch {}
               localStorage.setItem('auth', JSON.stringify({ accessToken, refreshToken: newRefreshToken }))
-              getUserProfile(accessToken)
+              return getUserProfile(accessToken)
                 .then(server => {
                   setUser({
                     email: (server?.email || p.sub || '').trim(),
@@ -84,6 +114,7 @@ export function AuthProvider({ children }) {
                     role: server?.role || p.role || '',
                     userId: server?.userID ?? server?.userId ?? p.userID ?? p.userId ?? null,
                   })
+                  setLoading(false)
                 })
                 .catch(() => {
                   setUser({
@@ -93,20 +124,25 @@ export function AuthProvider({ children }) {
                     role: p.role || '',
                     userId: p.userID ?? p.userId ?? null,
                   })
+                  setLoading(false)
                 })
             })
             .catch(() => {
               // Refresh token da geçersiz, çıkış yap
               localStorage.removeItem('auth')
+              setLoading(false)
             })
         } else {
           localStorage.removeItem('auth')
+          setLoading(false)
         }
       } catch {
         localStorage.removeItem('auth')
+        setLoading(false)
       }
+    } else {
+      setLoading(false)
     }
-    setLoading(false)
   }, [])
 
   async function login(email, password) {
@@ -177,7 +213,7 @@ export function AuthProvider({ children }) {
     return true
   }
 
-  async function refreshAccessToken() {
+  const refreshAccessToken = useCallback(async () => {
     const saved = localStorage.getItem('auth')
     if (!saved) throw new Error('Oturum bulunamadı.')
     try {
@@ -195,11 +231,19 @@ export function AuthProvider({ children }) {
       logout()
       throw error
     }
-  }
+  }, [])
 
   function updateProfile(patch) {
     setUser(u => ({ ...u, ...patch }))
   }
+
+  // Refresh callback'i global olarak kaydet
+  useEffect(() => {
+    setRefreshCallback(refreshAccessToken)
+    return () => {
+      setRefreshCallback(null)
+    }
+  }, [refreshAccessToken])
 
   const value = useMemo(
     () => ({ token, user, isAuthenticated: !!token && !!user, loading, login, logout, register, updateProfile, refreshAccessToken }),

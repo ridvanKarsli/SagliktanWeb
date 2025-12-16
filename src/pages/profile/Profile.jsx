@@ -130,6 +130,7 @@ function mapChatToPost(post, meId, authorName, idToName) {
 
   return {
     id: Number.isFinite(postIdNum) ? `p_${postIdNum}` : `p_${postID}`,
+    postID: postIdNum, // Post ID'yi sakla (API çağrıları için gerekli)
     author: authorName,
     content: post.message,
     timestamp: post.uploadDate,
@@ -139,8 +140,18 @@ function mapChatToPost(post, meId, authorName, idToName) {
     comments,
     isOwner,
     category: post.category || null,
-    likedUsers: liked.map(u => ({ userID: u.userID, name: u.name, surname: u.surname })),
-    dislikedUsers: disliked.map(u => ({ userID: u.userID, name: u.name, surname: u.surname }))
+    likedUsers: liked.map(u => ({
+      userID: u?.userID ?? u?.userId,
+      name: u?.name ?? null,
+      surname: u?.surname ?? null,
+      chatReactionsID: u?.chatReactionsID ?? u?.postReactionID ?? u?.reactionID ?? u?.id
+    })),
+    dislikedUsers: disliked.map(u => ({
+      userID: u?.userID ?? u?.userId,
+      name: u?.name ?? null,
+      surname: u?.surname ?? null,
+      chatReactionsID: u?.chatReactionsID ?? u?.postReactionID ?? u?.reactionID ?? u?.id
+    }))
   }
 }
 
@@ -333,52 +344,116 @@ export default function Profile() {
 
   const handleVote = async (postId, delta) => {
     const postID = Number(String(postId).replace(/^p_/, ''))
-    // Post objesini bul ve reaction ID'lerini al
     const post = posts.find(p => p.id === postId)
     if (!post) {
-      alert('Gönderi bulunamadı.')
+      setError('Gönderi bulunamadı.')
       return
     }
-    
-    let prevVote = 0
-    let likeReactionID = null
-    let dislikeReactionID = null
-    
-    // Mevcut reaction ID'lerini bul
+
     const currentUserId = me?.userId ?? me?.userID
-    if (currentUserId) {
-      const likedEntry = post.likedUsers?.find?.(u => Number(u?.userID) === Number(currentUserId))
-      const dislikedEntry = post.dislikedUsers?.find?.(u => Number(u?.userID) === Number(currentUserId))
-      likeReactionID = likedEntry?.chatReactionsID ?? likedEntry?.postReactionID ?? likedEntry?.reactionID ?? likedEntry?.id
-      dislikeReactionID = dislikedEntry?.chatReactionsID ?? dislikedEntry?.postReactionID ?? dislikedEntry?.reactionID ?? dislikedEntry?.id
-    }
-    
-    setPosts(prev => prev.map(p => {
-      if (p.id !== postId) return p
-      prevVote = p.myVote
-      let { myVote, likes, dislikes } = p
-      if (myVote === delta) {
-        if (delta === 1) likes -= 1
-        if (delta === -1) dislikes -= 1
-        myVote = 0
-      } else {
-        if (delta === 1) { likes += 1; if (myVote === -1) dislikes -= 1 }
-        else { dislikes += 1; if (myVote === 1) likes -= 1 }
-        myVote = delta
-      }
-      return { ...p, myVote, likes, dislikes }
-    }))
+    if (!currentUserId || !token) return
+
+    // Reaction ID'leri zaten state'te var, direkt kullan (API çağrısı yok!)
+    const likedEntry = post.likedUsers?.find(u => Number(u.userID) === Number(currentUserId))
+    const dislikedEntry = post.dislikedUsers?.find(u => Number(u.userID) === Number(currentUserId))
+    const likeReactionID = likedEntry?.chatReactionsID ?? likedEntry?.postReactionID ?? likedEntry?.reactionID ?? likedEntry?.id
+    const dislikeReactionID = dislikedEntry?.chatReactionsID ?? dislikedEntry?.postReactionID ?? dislikedEntry?.reactionID ?? dislikedEntry?.id
+
+    // Önceki state değerlerini sakla (rollback için)
+    const prevVote = post.myVote || 0
+    const prevLikes = post.likes || 0
+    const prevDislikes = post.dislikes || 0
+
+    // Optimistic update
+    setPosts(prev => {
+      return prev.map(p => {
+        if (p.id !== postId) return p
+        const { myVote, likes, dislikes } = p
+        let newVote = myVote || 0
+        let newLikes = likes || 0
+        let newDislikes = dislikes || 0
+
+        if (myVote === delta) {
+          // İptal et
+          if (delta === 1) newLikes -= 1
+          if (delta === -1) newDislikes -= 1
+          newVote = 0
+        } else {
+          // Yeni oy ver veya değiştir
+          if (delta === 1) {
+            newLikes += 1
+            if (myVote === -1) newDislikes -= 1
+          } else {
+            newDislikes += 1
+            if (myVote === 1) newLikes -= 1
+          }
+          newVote = delta
+        }
+
+        return { ...p, myVote: newVote, likes: newLikes, dislikes: newDislikes }
+      })
+    })
+
+    // API çağrısı
     try {
       if (prevVote === delta) {
-        if (delta === 1) await cancelLikeChatReaction(token, postID, currentUserId, likeReactionID)
-        else await cancelDislikeChatReaction(token, postID, currentUserId, dislikeReactionID)
-      } else if (delta === 1) {
-        await likeChatReaction(token, postID)
-      } else if (delta === -1) {
+        // Aynı oya tekrar basıldı - İptal et
+        if (delta === 1) {
+          if (!likeReactionID) {
+            throw new Error('Like reaction ID bulunamadı. Lütfen sayfayı yenileyin.')
+          }
+          await cancelLikeChatReaction(token, postID, currentUserId, likeReactionID)
+        } else {
+          if (!dislikeReactionID) {
+            throw new Error('Dislike reaction ID bulunamadı. Lütfen sayfayı yenileyin.')
+          }
+          await cancelDislikeChatReaction(token, postID, currentUserId, dislikeReactionID)
+        }
+      } else if (prevVote === 1 && delta === -1) {
+        // Like varken dislike basıldı - Önce like'ı iptal et, sonra dislike ekle
+        if (!likeReactionID) {
+          throw new Error('Like reaction ID bulunamadı. Lütfen sayfayı yenileyin.')
+        }
+        await cancelLikeChatReaction(token, postID, currentUserId, likeReactionID)
         await dislikeChatReaction(token, postID)
+      } else if (prevVote === -1 && delta === 1) {
+        // Dislike varken like basıldı - Önce dislike'ı iptal et, sonra like ekle
+        if (!dislikeReactionID) {
+          throw new Error('Dislike reaction ID bulunamadı. Lütfen sayfayı yenileyin.')
+        }
+        await cancelDislikeChatReaction(token, postID, currentUserId, dislikeReactionID)
+        await likeChatReaction(token, postID)
+      } else {
+        // Yeni oy ver (prevVote === 0)
+        if (delta === 1) {
+          await likeChatReaction(token, postID)
+        } else if (delta === -1) {
+          await dislikeChatReaction(token, postID)
+        }
       }
+      // API başarılı - UI zaten güncellendi, hiçbir şey yapma
     } catch (e) {
+      // Rollback
+      setPosts(prev => {
+        return prev.map(p => {
+          if (p.id !== postId) return p
+          return {
+            ...p,
+            myVote: prevVote,
+            likes: prevLikes,
+            dislikes: prevDislikes
+          }
+        })
+      })
       setError(e?.message || 'Oy işlemi başarısız.')
+      console.error('[Profile/Post] handleVote error - ROLLBACK YAPILDI', { 
+        postId, 
+        delta, 
+        prevVote,
+        prevLikes,
+        prevDislikes,
+        error: e?.message 
+      })
     }
   }
 
@@ -520,93 +595,175 @@ export default function Profile() {
     }
   }
 
+  // Recursive helper: Nested comments içinde yorumu bul
+  function findCommentRecursive(comments, targetCommentId) {
+    for (const comment of comments) {
+      if (comment.id === targetCommentId) return comment
+      if (Array.isArray(comment.comments) && comment.comments.length > 0) {
+        const found = findCommentRecursive(comment.comments, targetCommentId)
+        if (found) return found
+      }
+    }
+    return null
+  }
+
+  // Recursive helper: Nested comments içinde yorumu güncelle
+  function updateCommentInNested(comments, targetCommentId, updater) {
+    return comments.map(comment => {
+      if (comment.id === targetCommentId) {
+        return updater(comment)
+      }
+      if (Array.isArray(comment.comments) && comment.comments.length > 0) {
+        return { ...comment, comments: updateCommentInNested(comment.comments, targetCommentId, updater) }
+      }
+      return comment
+    })
+  }
+
   const handleCommentVote = async (postId, commentId, delta) => {
     const meId = me?.userId ?? me?.userID
-    // Mevcut yorumdan benim reaction kaydımı bul
+    if (!meId || !token) return
+
+    // Nested comments dahil yorumu bul
     const currentPost = posts.find(p => p.id === postId)
-    const currentComment = currentPost?.comments?.find(c => c.id === commentId)
-    console.debug('[Profile/Comments] voteComment start', { postId, commentId, delta, meId, currentComment })
-    const likedEntry = currentComment?.likedUsers?.find?.(u => Number(u.userID) === Number(meId))
-    const dislikedEntry = currentComment?.dislikedUsers?.find?.(u => Number(u.userID) === Number(meId))
-    const likeReactionId = likedEntry?.chatReactionsID
-    const dislikeReactionId = dislikedEntry?.chatReactionsID
-    const realCommentId = Number(String(commentId).replace(/^c_/, ''))
-    console.debug('[Profile/Comments] current dislikedUsers', { meId, dislikedUsers: currentComment?.dislikedUsers, dislikeReactionId })
-    let prevVote = 0
-    setPosts(prev => prev.map(p => {
-      if (p.id !== postId) return p
-      const comments = p.comments.map(c => {
-        if (c.id !== commentId) return c
-        prevVote = c.myVote
-        let { myVote, likes, dislikes } = c
-        if (myVote === delta) {
-          if (delta === 1) likes -= 1
-          if (delta === -1) dislikes -= 1
-          myVote = 0
-        } else {
-          if (delta === 1) { likes += 1; if (myVote === -1) dislikes -= 1 }
-          else { dislikes += 1; if (myVote === 1) likes -= 1 }
-          myVote = delta
+    if (!currentPost) {
+      setError('Gönderi bulunamadı.')
+      return
+    }
+
+    const currentComment = findCommentRecursive(currentPost.comments || [], commentId)
+    if (!currentComment) {
+      setError('Yorum bulunamadı.')
+      return
+    }
+
+    // Reaction ID'leri zaten state'te var, direkt kullan (API çağrısı yok!)
+    const likedEntry = currentComment.likedUsers?.find(u => Number(u.userID) === Number(meId))
+    const dislikedEntry = currentComment.dislikedUsers?.find(u => Number(u.userID) === Number(meId))
+    const likeReactionId = likedEntry?.chatReactionsID ?? likedEntry?.postReactionID ?? likedEntry?.reactionID ?? likedEntry?.id
+    const dislikeReactionId = dislikedEntry?.chatReactionsID ?? dislikedEntry?.postReactionID ?? dislikedEntry?.reactionID ?? dislikedEntry?.id
+    const realCommentId = currentComment.postID || Number(String(commentId).replace(/^c_/, ''))
+
+    if (!realCommentId) {
+      setError('Geçersiz yorum ID.')
+      return
+    }
+
+    // ÖNCE API'yi kontrol et, başarısızsa UI'ı hiç güncelleme
+    // İptal işlemleri için reaction ID kontrolü
+    if (currentComment.myVote === delta) {
+      // İptal edilecek
+      if (delta === 1 && !likeReactionId) {
+        setError('Like reaction ID bulunamadı. Lütfen sayfayı yenileyin.')
+        return
+      }
+      if (delta === -1 && !dislikeReactionId) {
+        setError('Dislike reaction ID bulunamadı. Lütfen sayfayı yenileyin.')
+        return
+      }
+    }
+
+    // Önceki state değerlerini sakla (rollback için)
+    const prevVote = currentComment.myVote || 0
+    const prevLikes = currentComment.likes || 0
+    const prevDislikes = currentComment.dislikes || 0
+
+    // Optimistic update (nested comments dahil) - SADECE UI'DA
+    setPosts(prev => {
+      return prev.map(p => {
+        if (p.id !== postId) return p
+        return {
+          ...p,
+          comments: updateCommentInNested(p.comments || [], commentId, (c) => {
+            const { myVote, likes, dislikes } = c
+            let newVote = myVote || 0
+            let newLikes = likes || 0
+            let newDislikes = dislikes || 0
+
+            if (myVote === delta) {
+              // İptal et
+              if (delta === 1) newLikes -= 1
+              if (delta === -1) newDislikes -= 1
+              newVote = 0
+            } else {
+              // Yeni oy ver veya değiştir
+              if (delta === 1) {
+                newLikes += 1
+                if (myVote === -1) newDislikes -= 1
+              } else {
+                newDislikes += 1
+                if (myVote === 1) newLikes -= 1
+              }
+              newVote = delta
+            }
+
+            return { ...c, myVote: newVote, likes: newLikes, dislikes: newDislikes }
+          })
         }
-        return { ...c, myVote, likes, dislikes }
       })
-      return { ...p, comments }
-    }))
+    })
+
+    // API çağrısı - BAŞARISIZ OLURSA KESINLIKLE ROLLBACK YAP
     try {
       if (prevVote === delta) {
+        // Aynı oya tekrar basıldı - İptal et
         if (delta === 1) {
-          let rid = likeReactionId
-          if (!rid) {
-            const people = await getLikedCommentPeople(token, realCommentId)
-            console.debug('[Profile/Comments] fetched liked people', { realCommentId, people })
-            const mine = Array.isArray(people) ? people.find(p => Number(p?.userID ?? p?.userId) === Number(meId)) : null
-            rid = mine?.chatReactionsID ?? mine?.commentReactionsID ?? mine?.reactionID ?? mine?.id
-          }
-          console.info('[Profile/Comments] cancel like', { postId, commentId, realCommentId, reactionId: rid })
-          if (!rid) throw new Error('İptal için like reaction ID bulunamadı.')
-          await cancelLikeCommentReaction(token, rid)
+          await cancelLikeCommentReaction(token, likeReactionId)
         } else {
-          let rid = dislikeReactionId
-          if (!rid) {
-            const people = await getDislikedCommentPeople(token, realCommentId)
-            console.debug('[Profile/Comments] fetched disliked people', { realCommentId, people })
-            const mine = Array.isArray(people) ? people.find(p => Number(p?.userID ?? p?.userId) === Number(meId)) : null
-            rid = mine?.chatReactionsID ?? mine?.commentReactionsID ?? mine?.reactionID ?? mine?.id
-            if (!rid) {
-              const uiList = Array.isArray(currentComment?.dislikedUsers) ? currentComment.dislikedUsers : []
-              if (uiList.length === 1) {
-                rid = uiList[0]?.chatReactionsID
-                console.warn('[Profile/Comments] fallback: single dislikedUser used', { rid, uiList })
-              }
-            }
-            if (!rid) {
-              try {
-                const chats = await getAllChats(token)
-                const chatIdNum = Number(String(postId).replace(/^p_/, ''))
-                const chat = Array.isArray(chats) ? chats.find(c => Number(c?.chatID) === chatIdNum) : null
-                const comment = chat?.comments?.find?.(c => Number(c?.commnetsID ?? c?.commentID ?? c?.id) === realCommentId)
-                const mine2 = comment?.dislikedUser?.find?.(u => Number(u?.userID ?? u?.userId) === Number(meId))
-                rid = mine2?.chatReactionsID ?? mine2?.commentReactionsID ?? mine2?.reactionID ?? mine2?.id
-                console.warn('[Profile/Comments] final fallback: getAllChats-derived reactionId', { rid })
-              } catch (e2) {
-                console.error('[Profile/Comments] final fallback failed', e2)
-              }
-            }
-          }
-          console.info('[Profile/Comments] cancel dislike', { postId, commentId, realCommentId, reactionId: rid })
-          if (!rid) throw new Error('İptal için dislike reaction ID bulunamadı.')
-          await cancelDislikeCommentReaction(token, rid)
+          await cancelDislikeCommentReaction(token, dislikeReactionId)
         }
-      } else if (delta === 1) {
-        console.info('[Profile/Comments] like comment', { postId, commentId, realCommentId })
-        await likeCommentReaction(token, realCommentId)
-      } else if (delta === -1) {
-        console.info('[Profile/Comments] dislike comment', { postId, commentId, realCommentId })
+      } else if (prevVote === 1 && delta === -1) {
+        // Like varken dislike basıldı - Önce like'ı iptal et, sonra dislike ekle
+        if (!likeReactionId) {
+          throw new Error('Like reaction ID bulunamadı. Lütfen sayfayı yenileyin.')
+        }
+        await cancelLikeCommentReaction(token, likeReactionId)
         await dislikeCommentReaction(token, realCommentId)
+      } else if (prevVote === -1 && delta === 1) {
+        // Dislike varken like basıldı - Önce dislike'ı iptal et, sonra like ekle
+        if (!dislikeReactionId) {
+          throw new Error('Dislike reaction ID bulunamadı. Lütfen sayfayı yenileyin.')
+        }
+        await cancelDislikeCommentReaction(token, dislikeReactionId)
+        await likeCommentReaction(token, realCommentId)
+      } else {
+        // Yeni oy ver (prevVote === 0)
+        if (delta === 1) {
+          await likeCommentReaction(token, realCommentId)
+        } else if (delta === -1) {
+          await dislikeCommentReaction(token, realCommentId)
+        }
       }
+      // API başarılı - UI zaten güncellendi, hiçbir şey yapma
     } catch (e) {
-      console.error('[Profile/Comments] voteComment error', { postId, commentId, delta, error: e?.message, stack: e?.stack })
-      setError(e?.message || 'Yorum oylama başarısız.')
+      // API BAŞARISIZ - KESINLIKLE ROLLBACK YAP (nested comments dahil)
+      setPosts(prev => {
+        return prev.map(p => {
+          if (p.id !== postId) return p
+          return {
+            ...p,
+            comments: updateCommentInNested(p.comments || [], commentId, (c) => {
+              // Önceki değerlere geri dön
+              return {
+                ...c,
+                myVote: prevVote,
+                likes: prevLikes,
+                dislikes: prevDislikes
+              }
+            })
+          }
+        })
+      })
+      setError(e?.message || 'Yorum oylama işlemi başarısız. Lütfen tekrar deneyin.')
+      console.error('[Profile/Comments] voteComment error - ROLLBACK YAPILDI', { 
+        postId, 
+        commentId, 
+        delta, 
+        prevVote,
+        prevLikes,
+        prevDislikes,
+        error: e?.message 
+      })
     }
   }
 

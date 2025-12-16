@@ -11,9 +11,9 @@ import WorkAddressControllerApi from './generated/src/api/WorkAddressControllerA
 import ContactInfoControllerApi from './generated/src/api/ContactInfoControllerApi'
 import AnnouncementControllerApi from './generated/src/api/AnnouncementControllerApi'
 import ChatReactionsControllerApi from './generated/src/api/ChatReactionsControllerApi'
-import CommentReactionsControllerApi from './generated/src/api/CommentReactionsControllerApi'
 import ApiClient from './generated/src/ApiClient'
 import { setAuthToken } from './generated/configureClient'
+import { attemptTokenRefresh } from '../context/AuthContext.jsx'
 const API_BASE = import.meta.env.VITE_API_BASE?.trim() ||
   'https://saglikta-7d7a2dbc0cf4.herokuapp.com';
 
@@ -35,13 +35,40 @@ const GET_DISLIKED_POST_PEOPLE_PATH = import.meta.env.VITE_GET_DISLIKED_POST_PEO
 
 const ALLOWED_ROLES = new Set(['doctor', 'user']);
 
-async function fetchJson(url, options = {}, { timeoutMs = 15000 } = {}) {
+async function fetchJson(url, options = {}, { timeoutMs = 15000, retryOn401 = true } = {}) {
   const ctrl = new AbortController();
   const id = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
     const res = await fetch(url, { ...options, signal: ctrl.signal });
     let data = null;
     try { data = await res.json(); } catch (_) {}
+    
+    // 401 hatası gelirse token refresh yap ve isteği tekrar dene
+    if (res.status === 401 && retryOn401) {
+      clearTimeout(id);
+      try {
+        // Token refresh yap
+        await attemptTokenRefresh();
+        // Yeni token ile header'ı güncelle
+        const newHeaders = { ...options.headers };
+        const saved = localStorage.getItem('auth');
+        if (saved) {
+          try {
+            const authData = JSON.parse(saved);
+            const newToken = authData.accessToken || authData.token;
+            if (newToken) {
+              newHeaders['Authorization'] = `Bearer ${newToken}`;
+            }
+          } catch {}
+        }
+        // İsteği yeni token ile tekrar dene (sadece 1 kez)
+        return fetchJson(url, { ...options, headers: newHeaders }, { timeoutMs, retryOn401: false });
+      } catch (refreshError) {
+        // Refresh başarısız, hatayı fırlat
+        throw new Error('Oturum süresi dolmuş. Lütfen tekrar giriş yapın.');
+      }
+    }
+    
     if (!res.ok) {
       const msg = data?.message || data?.error || `İstek başarısız (HTTP ${res.status})`;
       throw new Error(msg);
@@ -626,88 +653,120 @@ export async function getDislikedPostPeople(token, postID) {
 }
 
 /* --- Reactions (Comment) --- */
+// Yorumlar da post olarak geçtiği için post reaction API'lerini kullanıyoruz
 export async function likeCommentReaction(token, commentID) {
-  const api = new CommentReactionsControllerApi()
-  return api.likeComment(Number(commentID), `Bearer ${token}`)
+  // Post reaction API kullanarak yorum beğenme
+  if (!token) throw new Error('Token gerekli')
+  if (!commentID) throw new Error('commentID gerekli')
+  const url = `${API_BASE}${LIKE_POST_PATH}?postID=${encodeURIComponent(commentID)}`
+  return fetchJson(url, {
+    method: 'POST',
+    headers: { ...authHeaders(token) }
+  })
 }
+
 export async function dislikeCommentReaction(token, commentID) {
-  const api = new CommentReactionsControllerApi()
-  return api.dislikeComment(Number(commentID), `Bearer ${token}`)
+  // Post reaction API kullanarak yorum beğenmeme
+  if (!token) throw new Error('Token gerekli')
+  if (!commentID) throw new Error('commentID gerekli')
+  const url = `${API_BASE}${DISLIKE_POST_PATH}?postID=${encodeURIComponent(commentID)}`
+  return fetchJson(url, {
+    method: 'POST',
+    headers: { ...authHeaders(token) }
+  })
 }
-export async function cancelLikeCommentReaction(token, commentID) {
-  // DİKKAT: Bu fonksiyon reaction ID (chatReactionsID) bekler
-  try {
-    const api = new CommentReactionsControllerApi()
-    return await api.cancelLikeComment(Number(commentID), `Bearer ${token}`)
-  } catch (e) {
-    const url = `${API_BASE}/CommentReactions/cancelLikeComment?cancelcommmentsLikeID=${encodeURIComponent(commentID)}`
-    return fetchJson(url, { method: 'DELETE', headers: { ...authHeaders(token) } })
+
+export async function cancelLikeCommentReaction(token, commentIDOrReactionID, userID = null, postReactionID = null) {
+  // Post reaction API kullanarak yorum beğenmeyi iptal etme
+  // Geriye uyumluluk: Eğer sadece 2 parametre verilirse (token, reactionID), direkt reactionID kullan
+  // Yeni kullanım: (token, commentID, userID, postReactionID)
+  if (!token) throw new Error('Token gerekli')
+  if (!commentIDOrReactionID) throw new Error('commentID veya reactionID gerekli')
+  
+  let reactionId = postReactionID || null
+  
+  // Eğer sadece 2 parametre verilmişse (eski kullanım), ikinci parametre direkt reactionID'dir
+  if (arguments.length === 2) {
+    reactionId = commentIDOrReactionID
+  } else if (!reactionId && userID && commentIDOrReactionID) {
+    // Yeni yöntem: liked people listesinden bul (fallback)
+    try {
+      const people = await getLikedCommentPeople(token, commentIDOrReactionID)
+      const mine = Array.isArray(people) ? people.find(p => (p?.userID === Number(userID))) : null
+      reactionId = mine?.chatReactionsID ?? mine?.postReactionID ?? mine?.reactionID ?? mine?.id
+    } catch (e) {
+      // Fallback başarısız olursa hata fırlat
+    }
   }
+  
+  if (!reactionId) {
+    throw new Error('İptal edilecek like kaydı bulunamadı. postReactionID gerekli.')
+  }
+  
+  const url = `${API_BASE}${CANCEL_LIKE_POST_PATH}?postReactionID=${encodeURIComponent(reactionId)}`
+  return fetchJson(url, {
+    method: 'DELETE',
+    headers: { ...authHeaders(token) }
+  })
 }
-export async function cancelDislikeCommentReaction(token, commentID) {
-  // DİKKAT: Bu fonksiyon reaction ID (chatReactionsID) bekler
-  try {
-    const api = new CommentReactionsControllerApi()
-    return await api.cancelDislikeComment(Number(commentID), `Bearer ${token}`)
-  } catch (e) {
-    const url = `${API_BASE}/CommentReactions/cancelDislikeComment?cancelcommmentsDislikeID=${encodeURIComponent(commentID)}`
-    return fetchJson(url, { method: 'DELETE', headers: { ...authHeaders(token) } })
+
+export async function cancelDislikeCommentReaction(token, commentIDOrReactionID, userID = null, postReactionID = null) {
+  // Post reaction API kullanarak yorum beğenmemeyi iptal etme
+  // Geriye uyumluluk: Eğer sadece 2 parametre verilirse (token, reactionID), direkt reactionID kullan
+  // Yeni kullanım: (token, commentID, userID, postReactionID)
+  if (!token) throw new Error('Token gerekli')
+  if (!commentIDOrReactionID) throw new Error('commentID veya reactionID gerekli')
+  
+  let reactionId = postReactionID || null
+  
+  // Eğer sadece 2 parametre verilmişse (eski kullanım), ikinci parametre direkt reactionID'dir
+  if (arguments.length === 2) {
+    reactionId = commentIDOrReactionID
+  } else if (!reactionId && userID && commentIDOrReactionID) {
+    // Yeni yöntem: disliked people listesinden bul (fallback)
+    try {
+      const people = await getDislikedCommentPeople(token, commentIDOrReactionID)
+      const mine = Array.isArray(people) ? people.find(p => (p?.userID === Number(userID))) : null
+      reactionId = mine?.chatReactionsID ?? mine?.postReactionID ?? mine?.reactionID ?? mine?.id
+    } catch (e) {
+      // Fallback başarısız olursa hata fırlat
+    }
   }
+  
+  if (!reactionId) {
+    throw new Error('İptal edilecek dislike kaydı bulunamadı. postReactionID gerekli.')
+  }
+  
+  const url = `${API_BASE}${CANCEL_DISLIKE_POST_PATH}?postReactionID=${encodeURIComponent(reactionId)}`
+  return fetchJson(url, {
+    method: 'DELETE',
+    headers: { ...authHeaders(token) }
+  })
 }
 
 // YARDIMCI: Comment için beğenen/beğenmeyen kullanıcı listelerini çek (reactionID bulmak için)
 export async function getLikedCommentPeople(token, commentID) {
-  try {
-    const api = new CommentReactionsControllerApi()
-    const list = await api.getLikedCommentPeope(Number(commentID), `Bearer ${token}`)
-    return Array.isArray(list) ? list : []
-  } catch (e) {
-    // Fallback denemeleri: farklı param ve path varyasyonları
-    const variants = [
-      `${API_BASE}/CommentReactions/getLikedCommentPeope?commentID=${encodeURIComponent(commentID)}`,
-      `${API_BASE}/CommentReactions/getLikedCommentPeope?commnetsID=${encodeURIComponent(commentID)}`,
-      `${API_BASE}/commentReactions/getLikedCommentPeope?commentID=${encodeURIComponent(commentID)}`,
-      `${API_BASE}/commentReactions/getLikedCommentPeope?commnetsID=${encodeURIComponent(commentID)}`,
-    ]
-    for (const url of variants) {
-      try {
-        // debug
-        // eslint-disable-next-line no-console
-        console.debug('[API] getLikedCommentPeople try', url)
-        const data = await fetchJson(url, { method: 'GET', headers: { ...authHeaders(token) } })
-        if (Array.isArray(data) && data.length >= 0) return data
-      } catch {
-        // try next
-      }
-    }
-    return []
-  }
+  // Post reaction API kullanarak yorum beğenen kişileri çekme
+  if (!token) throw new Error('Token gerekli')
+  if (!commentID) throw new Error('commentID gerekli')
+  const url = `${API_BASE}${GET_LIKED_POST_PEOPLE_PATH}?postID=${encodeURIComponent(commentID)}`
+  const data = await fetchJson(url, {
+    method: 'GET',
+    headers: { ...authHeaders(token) }
+  })
+  return Array.isArray(data) ? data : []
 }
 
 export async function getDislikedCommentPeople(token, commentID) {
-  try {
-    const api = new CommentReactionsControllerApi()
-    const list = await api.getDislikedCommentPeope(Number(commentID), `Bearer ${token}`)
-    return Array.isArray(list) ? list : []
-  } catch (e) {
-    const variants = [
-      `${API_BASE}/CommentReactions/getDislikedCommentPeope?commentID=${encodeURIComponent(commentID)}`,
-      `${API_BASE}/CommentReactions/getDislikedCommentPeope?commnetsID=${encodeURIComponent(commentID)}`,
-      `${API_BASE}/commentReactions/getDislikedCommentPeope?commentID=${encodeURIComponent(commentID)}`,
-      `${API_BASE}/commentReactions/getDislikedCommentPeope?commnetsID=${encodeURIComponent(commentID)}`,
-    ]
-    for (const url of variants) {
-      try {
-        // eslint-disable-next-line no-console
-        console.debug('[API] getDislikedCommentPeople try', url)
-        const data = await fetchJson(url, { method: 'GET', headers: { ...authHeaders(token) } })
-        if (Array.isArray(data) && data.length >= 0) return data
-      } catch {
-        // try next
-      }
-    }
-    return []
-  }
+  // Post reaction API kullanarak yorum beğenmeyen kişileri çekme
+  if (!token) throw new Error('Token gerekli')
+  if (!commentID) throw new Error('commentID gerekli')
+  const url = `${API_BASE}${GET_DISLIKED_POST_PEOPLE_PATH}?postID=${encodeURIComponent(commentID)}`
+  const data = await fetchJson(url, {
+    method: 'GET',
+    headers: { ...authHeaders(token) }
+  })
+  return Array.isArray(data) ? data : []
 }
 
 export async function getAllUsers(token, { signal } = {}) {
