@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react'
 import {
   Box, Avatar, Typography, Stack, IconButton, Tooltip, Divider,
   TextField, Button, Chip, List, ListItem, ListItemText, Paper, CircularProgress,
-  Dialog, DialogTitle, DialogContent, DialogActions
+  Dialog, DialogTitle, DialogContent, DialogActions, useMediaQuery
 } from '@mui/material'
+import { useTheme } from '@mui/material/styles'
+import { useNavigate } from 'react-router-dom'
 import { getLikedPostPeople, getDislikedPostPeople, getUserByID } from '../services/api.js'
 import {
   ChatBubbleOutline,
@@ -59,9 +61,14 @@ export default function PostCard({
   onCommentVote,        // (postId, commentId, delta) => void
   onDelete,             // (postId) => void
   onCommentDelete,      // 🔹 (postId, commentId) => void
-  onAuthorClick         // 🔹 (authorId) => void
+  onAuthorClick,        // 🔹 (authorId) => void
+  forceOpenComments     // 🔹 Detay sayfasında yorumları zorla açık tut
 }) {
-  const [openComments, setOpenComments] = useState(false)
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
+  const navigate = useNavigate()
+  // Mobilde yorumlar varsayılan olarak kapalı (detay sayfası hariç), desktop'ta mevcut davranış korunuyor
+  const [openComments, setOpenComments] = useState(forceOpenComments ? true : !isMobile)
   const [commentText, setCommentText] = useState('')
   const [replyingTo, setReplyingTo] = useState(null) // Hangi yoruma yanıt veriliyor
   const [showLikedDialog, setShowLikedDialog] = useState(false)
@@ -76,6 +83,26 @@ export default function PostCard({
   
   // Extract numeric postID from id string (e.g., "p_123" -> 123)
   const numericPostID = postID ?? (typeof id === 'string' && id.startsWith('p_') ? Number(id.replace('p_', '')) : Number(id))
+  
+  // Mobilde post container'a tıklayınca detay sayfasına git (detay sayfasında değilse)
+  const handlePostClick = (e) => {
+    // Eğer detay sayfasındaysak (forceOpenComments varsa), navigate yapma
+    if (forceOpenComments) return
+    
+    // Eğer tıklama bir buton, link veya interactive element üzerindeyse, navigate yapma
+    const target = e.target
+    const isInteractive = target.closest('button, a, [role="button"], input, textarea, [role="dialog"], [role="menu"]') !== null
+    if (isMobile && !isInteractive && numericPostID) {
+      navigate(`/post/${numericPostID}`)
+    }
+  }
+  
+  // Mobilde breakpoint değişince openComments'i güncelle
+  useEffect(() => {
+    if (!isMobile && !openComments) {
+      setOpenComments(false) // Desktop'ta kapalı başlat (kullanıcı butona basarak açar)
+    }
+  }, [isMobile])
   
   // Load liked users when dialog opens
   useEffect(() => {
@@ -166,10 +193,27 @@ export default function PostCard({
       }
     }
   }, [showDislikedDialog, token, numericPostID, dislikedUsers, loadedDislikedUsers])
-  const toggleComments = () => setOpenComments(v => !v)
+  const toggleComments = (e) => {
+    // Mobilde yorum butonuna tıklayınca detay sayfasına git
+    if (isMobile && numericPostID) {
+      e?.stopPropagation?.()
+      navigate(`/post/${numericPostID}`)
+      return
+    }
+    // Desktop'ta mevcut davranış
+    setOpenComments(v => !v)
+  }
   // toggleDetails kaldırıldı
 
-  const handleVote = (delta) => onVote?.(id, delta)
+  const handleVote = (delta, e) => {
+    // Mobilde vote butonuna tıklayınca detay sayfasına git
+    if (isMobile && numericPostID) {
+      e?.stopPropagation?.()
+      navigate(`/post/${numericPostID}`)
+      return
+    }
+    onVote?.(id, delta)
+  }
 
   const handleAdd = (e, commentId = null) => {
     e.preventDefault()
@@ -356,7 +400,15 @@ export default function PostCard({
   const userFullName = (u) => [u?.name, u?.surname].filter(Boolean).join(' ') || `Kullanıcı #${u?.userID || ''}`
 
   return (
-    <Box sx={{ py: { xs: 2.5, md: 3 }, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+    <Box 
+      sx={{ 
+        py: { xs: 2.5, md: 3 }, 
+        px: { xs: 0.5, sm: 0 },
+        borderBottom: '1px solid rgba(255,255,255,0.06)',
+        cursor: (isMobile && !forceOpenComments) ? 'pointer' : 'default'
+      }}
+      onClick={handlePostClick}
+    >
       <Stack direction="row" spacing={{ xs: 1.5, md: 2 }} alignItems="flex-start">
         <Avatar aria-hidden sx={{ bgcolor: 'secondary.main', fontWeight: 800, width: { xs: 40, md: 44 }, height: { xs: 40, md: 44 }, fontSize: { xs: 15, md: 17 } }}>
           {initialsFrom(author)}
@@ -463,7 +515,7 @@ export default function PostCard({
                   minWidth: { xs: 44, md: 44 },
                   minHeight: { xs: 44, md: 44 }
                 }}
-                onClick={() => handleVote(+1)}
+                onClick={(e) => handleVote(+1, e)}
               >
                 <ThumbUpOffAlt sx={{ fontSize: { xs: '20px', md: '24px' } }} />
               </IconButton>
@@ -495,7 +547,7 @@ export default function PostCard({
                   minWidth: { xs: 44, md: 44 },
                   minHeight: { xs: 44, md: 44 }
                 }}
-                onClick={() => handleVote(-1)}
+                onClick={(e) => handleVote(-1, e)}
               >
                 <ThumbDownOffAlt sx={{ fontSize: { xs: '20px', md: '24px' } }} />
               </IconButton>
@@ -779,21 +831,38 @@ export default function PostCard({
 
           {/* Yorumlar Paneli */}
           {openComments && (
-            <Box sx={{ mt: 2.5 }}>
+            <Box sx={{ mt: 2.5, maxHeight: { xs: 'none', md: 'none' }, overflow: 'visible' }}>
               {/* Yorum yaz */}
-              <Box component="form" onSubmit={handleAdd} sx={{ display: 'flex', gap: 1, mb: 2 }}>
+              <Box component="form" onSubmit={handleAdd} sx={{ display: 'flex', gap: { xs: 0.75, md: 1 }, mb: 2, flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
                 <TextField
                   fullWidth
                   placeholder="Yorum yaz…"
                   value={commentText}
                   onChange={(e) => setCommentText(e.target.value)}
                   size="small"
+                  sx={{
+                    '& .MuiInputBase-root': {
+                      fontSize: { xs: '16px', md: '15px' },
+                      minHeight: { xs: 44, md: 40 }
+                    }
+                  }}
                 />
-                <Button type="submit" size="small" sx={{ minHeight: { xs: 40, md: 44 }, minWidth: { xs: 64, md: 72 } }}>Gönder</Button>
+                <Button 
+                  type="submit" 
+                  size="small" 
+                  sx={{ 
+                    minHeight: { xs: 44, md: 40 }, 
+                    minWidth: { xs: 'auto', sm: 72 },
+                    fontSize: { xs: '14px', md: '14px' },
+                    px: { xs: 2, md: 2 }
+                  }}
+                >
+                  Gönder
+                </Button>
               </Box>
 
               {/* Yorum listesi */}
-              <Box>
+              <Box sx={{ maxHeight: { xs: 'calc(100vh - 400px)', md: 'none' }, overflowY: { xs: 'auto', md: 'visible' }, pr: { xs: 0.5, md: 0 } }}>
                 {comments.length === 0 ? (
                   <Box 
                     sx={{ 

@@ -215,6 +215,17 @@ export async function getAllPosts(token) {
   return Array.isArray(data) ? data : [];
 }
 
+export async function getPostWithId(token, postID) {
+  if (!token) throw new Error('Oturum bulunamadı.');
+  if (!postID) throw new Error('Post ID gerekli.');
+  const url = `${API_BASE}/post/getPostWithId?postID=${encodeURIComponent(postID)}`;
+  const data = await fetchJson(url, {
+    method: 'GET',
+    headers: { ...authHeaders(token) }
+  });
+  return data;
+}
+
 export async function getUserProfile(token) {
   if (!token) throw new Error('Oturum bulunamadı.');
   try {
