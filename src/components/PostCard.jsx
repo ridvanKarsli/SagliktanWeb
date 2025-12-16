@@ -279,16 +279,44 @@ export default function PostCard({
                 onAddComment?.(postId, t, comment.id)
                 setReplyText('')
                 setShowReply(false)
-              }} sx={{ display: 'flex', gap: 1, mb: 1 }}>
+              }} sx={{ display: 'flex', gap: { xs: 0.75, md: 1 }, mb: { xs: 1.25, md: 1 }, mt: { xs: 1, md: 0.75 }, flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
                 <TextField
                   fullWidth
                   placeholder="Yanıt yaz…"
                   value={replyText}
                   onChange={(e) => setReplyText(e.target.value)}
                   size="small"
+                  sx={{
+                    '& .MuiInputBase-root': {
+                      fontSize: { xs: '16px', md: '15px' },
+                      minHeight: { xs: 44, md: 40 }
+                    }
+                  }}
                 />
-                <Button type="submit" size="small">Gönder</Button>
-                <Button size="small" onClick={() => { setShowReply(false); setReplyText('') }}>İptal</Button>
+                <Button 
+                  type="submit" 
+                  size="small"
+                  sx={{
+                    minHeight: { xs: 44, md: 40 },
+                    minWidth: { xs: 'auto', sm: 80 },
+                    fontSize: { xs: '14px', md: '14px' },
+                    px: { xs: 2, md: 2 }
+                  }}
+                >
+                  Gönder
+                </Button>
+                <Button 
+                  size="small" 
+                  onClick={() => { setShowReply(false); setReplyText('') }}
+                  sx={{
+                    minHeight: { xs: 44, md: 40 },
+                    minWidth: { xs: 'auto', sm: 70 },
+                    fontSize: { xs: '14px', md: '14px' },
+                    px: { xs: 2, md: 2 }
+                  }}
+                >
+                  İptal
+                </Button>
               </Box>
             )}
             
@@ -358,12 +386,14 @@ export default function PostCard({
                 disabled={deleting}
                 startIcon={deleting ? <CircularProgress size={14} /> : <DeleteOutline />}
                 sx={{
-                  minWidth: { xs: 80, md: 90 },
-                  height: { xs: 32, md: 36 },
+                  minWidth: { xs: 70, md: 90 },
+                  minHeight: { xs: 36, md: 36 },
+                  height: { xs: 36, md: 36 },
                   fontSize: { xs: '0.7rem', md: '0.75rem' },
                   fontWeight: 600,
                   borderColor: 'rgba(244,67,54,0.5)',
                   color: 'error.main',
+                  px: { xs: 1, md: 1.5 },
                   '&:hover': {
                     borderColor: 'error.main',
                     backgroundColor: 'rgba(244,67,54,0.1)'
@@ -393,21 +423,32 @@ export default function PostCard({
               color: 'text.primary',
               wordBreak: 'break-word',
               overflowWrap: 'anywhere',
-              mb: 1.5
+              mb: { xs: 1.25, md: 1.5 },
+              fontSize: { xs: '15px', md: '16px' }
             }}
           >
             {content}
           </Typography>
 
           {/* Aksiyonlar */}
-          <Stack direction="row" spacing={1} sx={{ mt: 1.5 }} alignItems="center" flexWrap="wrap">
+          <Stack direction="row" spacing={{ xs: 0.5, md: 1 }} sx={{ mt: { xs: 1.25, md: 1.5 } }} alignItems="center" flexWrap="wrap">
             {/* Yorumlar aç/kapa */}
             <Tooltip title={openComments ? 'Yorumları gizle' : 'Yorum yap / Yorumları göster'}>
-              <IconButton size="small" sx={{ color: 'text.secondary', width: { xs: 40, md: 44 }, height: { xs: 40, md: 44 } }} onClick={toggleComments}>
-                <ChatBubbleOutline fontSize="small" />
+              <IconButton 
+                size="small" 
+                sx={{ 
+                  color: 'text.secondary', 
+                  width: { xs: 44, md: 44 }, 
+                  height: { xs: 44, md: 44 },
+                  minWidth: { xs: 44, md: 44 },
+                  minHeight: { xs: 44, md: 44 }
+                }} 
+                onClick={toggleComments}
+              >
+                <ChatBubbleOutline sx={{ fontSize: { xs: '20px', md: '24px' } }} />
               </IconButton>
             </Tooltip>
-            <Typography variant="caption" sx={{ color: 'text.secondary', mr: 1 }}>
+            <Typography variant="caption" sx={{ color: 'text.secondary', mr: { xs: 0.5, md: 1 }, fontSize: { xs: '12px', md: '13px' } }}>
               {comments.length}
             </Typography>
 
@@ -415,10 +456,16 @@ export default function PostCard({
             <Tooltip title="Beğen">
               <IconButton
                 size="small"
-                sx={{ color: myVote === 1 ? 'primary.main' : 'text.secondary', width: { xs: 40, md: 44 }, height: { xs: 40, md: 44 } }}
+                sx={{ 
+                  color: myVote === 1 ? 'primary.main' : 'text.secondary', 
+                  width: { xs: 44, md: 44 }, 
+                  height: { xs: 44, md: 44 },
+                  minWidth: { xs: 44, md: 44 },
+                  minHeight: { xs: 44, md: 44 }
+                }}
                 onClick={() => handleVote(+1)}
               >
-                <ThumbUpOffAlt fontSize="small" />
+                <ThumbUpOffAlt sx={{ fontSize: { xs: '20px', md: '24px' } }} />
               </IconButton>
             </Tooltip>
             <Typography 
@@ -426,6 +473,10 @@ export default function PostCard({
               sx={{ 
                 color: 'text.secondary', 
                 cursor: likes > 0 ? 'pointer' : 'default',
+                fontSize: { xs: '12px', md: '13px' },
+                minHeight: { xs: 44, md: 'auto' },
+                display: 'flex',
+                alignItems: 'center',
                 '&:hover': likes > 0 ? { textDecoration: 'underline' } : {}
               }}
               onClick={() => likes > 0 && setShowLikedDialog(true)}
@@ -437,10 +488,16 @@ export default function PostCard({
             <Tooltip title="Beğenme">
               <IconButton
                 size="small"
-                sx={{ color: myVote === -1 ? 'primary.main' : 'text.secondary', width: { xs: 40, md: 44 }, height: { xs: 40, md: 44 } }}
+                sx={{ 
+                  color: myVote === -1 ? 'primary.main' : 'text.secondary', 
+                  width: { xs: 44, md: 44 }, 
+                  height: { xs: 44, md: 44 },
+                  minWidth: { xs: 44, md: 44 },
+                  minHeight: { xs: 44, md: 44 }
+                }}
                 onClick={() => handleVote(-1)}
               >
-                <ThumbDownOffAlt fontSize="small" />
+                <ThumbDownOffAlt sx={{ fontSize: { xs: '20px', md: '24px' } }} />
               </IconButton>
             </Tooltip>
             <Typography 
@@ -448,6 +505,10 @@ export default function PostCard({
               sx={{ 
                 color: 'text.secondary',
                 cursor: dislikes > 0 ? 'pointer' : 'default',
+                fontSize: { xs: '12px', md: '13px' },
+                minHeight: { xs: 44, md: 'auto' },
+                display: 'flex',
+                alignItems: 'center',
                 '&:hover': dislikes > 0 ? { textDecoration: 'underline' } : {}
               }}
               onClick={() => dislikes > 0 && setShowDislikedDialog(true)}
@@ -462,10 +523,14 @@ export default function PostCard({
             onClose={() => setShowLikedDialog(false)}
             maxWidth="sm"
             fullWidth
+            fullScreen={false}
             PaperProps={{
               sx: {
                 bgcolor: 'rgba(7, 20, 28, 0.98)',
-                borderRadius: 2,
+                borderRadius: { xs: 0, sm: 2 },
+                m: { xs: 0, sm: 2 },
+                maxHeight: { xs: '100vh', sm: '80vh' },
+                width: { xs: '100%', sm: 'auto' },
                 boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
                 border: '1px solid rgba(255,255,255,0.1)',
                 color: '#FAF9F6'
@@ -476,19 +541,21 @@ export default function PostCard({
               display: 'flex', 
               alignItems: 'center', 
               justifyContent: 'space-between',
-              pb: 1.5,
+              pb: { xs: 2, md: 1.5 },
+              px: { xs: 2, md: 3 },
+              pt: { xs: 2, md: 1.5 },
               borderBottom: '1px solid rgba(255,255,255,0.1)',
               color: '#FAF9F6'
             }}>
-              <Stack direction="row" spacing={1.5} alignItems="center">
-                <Avatar sx={{ bgcolor: 'primary.main', width: 40, height: 40 }}>
-                  <ThumbUp sx={{ color: 'white' }} />
+              <Stack direction="row" spacing={{ xs: 1.25, md: 1.5 }} alignItems="center">
+                <Avatar sx={{ bgcolor: 'primary.main', width: { xs: 44, md: 40 }, height: { xs: 44, md: 40 } }}>
+                  <ThumbUp sx={{ color: 'white', fontSize: { xs: '22px', md: '20px' } }} />
                 </Avatar>
                 <Box>
-                  <Typography variant="h6" sx={{ fontWeight: 600, color: '#FAF9F6' }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600, color: '#FAF9F6', fontSize: { xs: '18px', md: '20px' } }}>
                     Beğenen Kişiler
                   </Typography>
-                  <Typography variant="caption" sx={{ color: 'rgba(250, 249, 246, 0.7)' }}>
+                  <Typography variant="caption" sx={{ color: 'rgba(250, 249, 246, 0.7)', fontSize: { xs: '12px', md: '13px' } }}>
                     {likes} kişi beğendi
                   </Typography>
                 </Box>
@@ -496,12 +563,23 @@ export default function PostCard({
               <IconButton
                 size="small"
                 onClick={() => setShowLikedDialog(false)}
-                sx={{ color: 'rgba(250, 249, 246, 0.7)' }}
+                sx={{ 
+                  color: 'rgba(250, 249, 246, 0.7)',
+                  width: { xs: 44, md: 40 },
+                  height: { xs: 44, md: 40 },
+                  minWidth: { xs: 44, md: 40 },
+                  minHeight: { xs: 44, md: 40 }
+                }}
               >
-                <Close />
+                <Close sx={{ fontSize: { xs: '22px', md: '20px' } }} />
               </IconButton>
             </DialogTitle>
-            <DialogContent sx={{ p: 0, maxHeight: '60vh', overflow: 'auto', bgcolor: 'transparent' }}>
+            <DialogContent sx={{ 
+              p: { xs: 2, md: 3 }, 
+              maxHeight: { xs: 'calc(100vh - 200px)', sm: '60vh' }, 
+              overflow: 'auto', 
+              bgcolor: 'transparent' 
+            }}>
               {loadingLikedUsers ? (
                 <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 6 }}>
                   <CircularProgress size={32} />
@@ -575,10 +653,14 @@ export default function PostCard({
             onClose={() => setShowDislikedDialog(false)}
             maxWidth="sm"
             fullWidth
+            fullScreen={false}
             PaperProps={{
               sx: {
                 bgcolor: 'rgba(7, 20, 28, 0.98)',
-                borderRadius: 2,
+                borderRadius: { xs: 0, sm: 2 },
+                m: { xs: 0, sm: 2 },
+                maxHeight: { xs: '100vh', sm: '80vh' },
+                width: { xs: '100%', sm: 'auto' },
                 boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
                 border: '1px solid rgba(255,255,255,0.1)',
                 color: '#FAF9F6'
@@ -589,19 +671,21 @@ export default function PostCard({
               display: 'flex', 
               alignItems: 'center', 
               justifyContent: 'space-between',
-              pb: 1.5,
+              pb: { xs: 2, md: 1.5 },
+              px: { xs: 2, md: 3 },
+              pt: { xs: 2, md: 1.5 },
               borderBottom: '1px solid rgba(255,255,255,0.1)',
               color: '#FAF9F6'
             }}>
-              <Stack direction="row" spacing={1.5} alignItems="center">
-                <Avatar sx={{ bgcolor: 'error.main', width: 40, height: 40 }}>
-                  <ThumbDown sx={{ color: 'white' }} />
+              <Stack direction="row" spacing={{ xs: 1.25, md: 1.5 }} alignItems="center">
+                <Avatar sx={{ bgcolor: 'error.main', width: { xs: 44, md: 40 }, height: { xs: 44, md: 40 } }}>
+                  <ThumbDown sx={{ color: 'white', fontSize: { xs: '22px', md: '20px' } }} />
                 </Avatar>
                 <Box>
-                  <Typography variant="h6" sx={{ fontWeight: 600, color: '#FAF9F6' }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600, color: '#FAF9F6', fontSize: { xs: '18px', md: '20px' } }}>
                     Beğenmeyen Kişiler
                   </Typography>
-                  <Typography variant="caption" sx={{ color: 'rgba(250, 249, 246, 0.7)' }}>
+                  <Typography variant="caption" sx={{ color: 'rgba(250, 249, 246, 0.7)', fontSize: { xs: '12px', md: '13px' } }}>
                     {dislikes} kişi beğenmedi
                   </Typography>
                 </Box>
@@ -609,12 +693,23 @@ export default function PostCard({
               <IconButton
                 size="small"
                 onClick={() => setShowDislikedDialog(false)}
-                sx={{ color: 'rgba(250, 249, 246, 0.7)' }}
+                sx={{ 
+                  color: 'rgba(250, 249, 246, 0.7)',
+                  width: { xs: 44, md: 40 },
+                  height: { xs: 44, md: 40 },
+                  minWidth: { xs: 44, md: 40 },
+                  minHeight: { xs: 44, md: 40 }
+                }}
               >
-                <Close />
+                <Close sx={{ fontSize: { xs: '22px', md: '20px' } }} />
               </IconButton>
             </DialogTitle>
-            <DialogContent sx={{ p: 0, maxHeight: '60vh', overflow: 'auto', bgcolor: 'transparent' }}>
+            <DialogContent sx={{ 
+              p: { xs: 2, md: 3 }, 
+              maxHeight: { xs: 'calc(100vh - 200px)', sm: '60vh' }, 
+              overflow: 'auto', 
+              bgcolor: 'transparent' 
+            }}>
               {loadingDislikedUsers ? (
                 <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 6 }}>
                   <CircularProgress size={32} />

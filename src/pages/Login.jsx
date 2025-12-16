@@ -35,14 +35,14 @@ export default function Login() {
       backgroundColor: 'background.default',
       py: { xs: 4, md: 8 }
     }}>
-      <Container maxWidth="sm">
+      <Container maxWidth="sm" sx={{ px: { xs: 2, sm: 3 } }}>
         {/* Animasyonlu Logo */}
-        <Box sx={{ display: 'grid', placeItems: 'center', mb: 3 }}>
-          <AnimatedLogo size={140} mobileSize={120} />
+        <Box sx={{ display: 'grid', placeItems: 'center', mb: { xs: 2.5, md: 3 } }}>
+          <AnimatedLogo size={140} mobileSize={100} />
         </Box>
 
-        <Stack spacing={3} component="form" onSubmit={onSubmit} aria-label="Giriş formu" noValidate sx={{ maxWidth: 400, mx: 'auto' }}>
-          <Typography variant="h4" sx={{ fontWeight: 700, textAlign: 'center' }}>
+        <Stack spacing={{ xs: 2.5, md: 3 }} component="form" onSubmit={onSubmit} aria-label="Giriş formu" noValidate sx={{ maxWidth: 400, mx: 'auto', width: '100%' }}>
+          <Typography variant="h4" sx={{ fontWeight: 700, textAlign: 'center', fontSize: { xs: 24, sm: 28, md: 32 } }}>
             Giriş Yap
           </Typography>
 
@@ -55,6 +55,11 @@ export default function Login() {
             autoFocus
             autoComplete="email"
             inputProps={{ 'aria-label': 'E-posta' }}
+            sx={{
+              '& .MuiInputBase-root': {
+                fontSize: { xs: '16px', sm: '16px' }
+              }
+            }}
           />
 
           <TextField
@@ -65,9 +70,24 @@ export default function Login() {
             required
             autoComplete="current-password"
             inputProps={{ minLength: 4, 'aria-label': 'Şifre' }}
+            sx={{
+              '& .MuiInputBase-root': {
+                fontSize: { xs: '16px', sm: '16px' }
+              }
+            }}
           />
 
-          <Button type="submit" disabled={loading}>
+          <Button 
+            type="submit" 
+            disabled={loading}
+            size="large"
+            sx={{
+              minHeight: { xs: 48, md: 44 },
+              fontSize: { xs: '16px', md: '15px' },
+              fontWeight: 600,
+              py: { xs: 1.5, md: 1.25 }
+            }}
+          >
             {loading ? (<><CircularProgress size={18} sx={{ mr: 1 }} /> Giriş yapılıyor…</>) : 'Giriş Yap'}
           </Button>
 

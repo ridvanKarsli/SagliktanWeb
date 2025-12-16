@@ -38,15 +38,15 @@ export default function AIChat() {
   }
 
   return (
-    <Box sx={{ py: { xs: 2, md: 3 } }}>
+    <Box sx={{ py: { xs: 1.5, md: 3 }, px: { xs: 0.5, sm: 0 } }}>
       <Stack 
         direction="row" 
-        spacing={2} 
+        spacing={{ xs: 1.5, md: 2 }} 
         alignItems="center" 
         sx={{ 
-          mb: { xs: 3, md: 4 },
-          p: { xs: 2, md: 2.5 },
-          borderRadius: 3,
+          mb: { xs: 2.5, md: 4 },
+          p: { xs: 1.5, md: 2.5 },
+          borderRadius: { xs: 2, md: 3 },
           backgroundColor: 'rgba(255,255,255,0.04)',
           border: '1px solid rgba(255,255,255,0.1)',
           backdropFilter: 'blur(8px)'
@@ -57,31 +57,32 @@ export default function AIChat() {
           src="/Lumo.png"
           alt="Lumo"
           sx={{ 
-            width: { xs: 72, md: 96 }, 
-            height: { xs: 72, md: 96 }, 
+            width: { xs: 64, md: 96 }, 
+            height: { xs: 64, md: 96 }, 
             objectFit: 'contain',
             display: 'block',
-            filter: 'drop-shadow(0 4px 12px rgba(52,195,161,0.3))'
+            filter: 'drop-shadow(0 4px 12px rgba(52,195,161,0.3))',
+            flexShrink: 0
           }}
         />
-        <Box>
-          <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>
+        <Box sx={{ minWidth: 0, flex: 1 }}>
+          <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5, fontSize: { xs: '20px', md: '24px' } }}>
             Lumo ile Sohbet
           </Typography>
-          <Typography variant="body2" sx={{ color: 'text.secondary', opacity: 0.8 }}>
+          <Typography variant="body2" sx={{ color: 'text.secondary', opacity: 0.8, fontSize: { xs: '13px', md: '14px' } }}>
             Sağlıklı yaşam asistanınız
           </Typography>
         </Box>
       </Stack>
 
-      <Stack spacing={1.5} sx={{ minHeight: 360 }}>
+      <Stack spacing={{ xs: 1.25, md: 1.5 }} sx={{ minHeight: { xs: 300, md: 360 } }}>
         <Box sx={{
           display: 'flex',
           flexDirection: 'column',
-          gap: 0.75,
-          maxHeight: { xs: 360, md: 480 },
+          gap: { xs: 1, md: 0.75 },
+          maxHeight: { xs: 'calc(100vh - 280px)', md: 480 },
           overflowY: 'auto',
-          pr: 0.5
+          pr: { xs: 0.25, md: 0.5 }
         }}>
           {messages.map((m, i) => {
             const isUser = m.role === 'user'
@@ -119,7 +120,7 @@ export default function AIChat() {
                     overflowWrap: 'anywhere'
                   }}
                 >
-                  <Typography variant="body2" sx={{ lineHeight: 1.7, whiteSpace: 'pre-wrap', color: 'text.primary' }}>{m.text}</Typography>
+                  <Typography variant="body2" sx={{ lineHeight: 1.7, whiteSpace: 'pre-wrap', color: 'text.primary', fontSize: { xs: '14px', md: '15px' } }}>{m.text}</Typography>
                 </Box>
               </Stack>
             )
@@ -145,15 +146,30 @@ export default function AIChat() {
           )}
         </Box>
 
-        <Box component="form" onSubmit={send} sx={{ display: 'flex', gap: { xs: 0.75, md: 1 }, pt: 1 }}>
+        <Box component="form" onSubmit={send} sx={{ display: 'flex', gap: { xs: 0.75, md: 1 }, pt: { xs: 0.75, md: 1 } }}>
           <TextField
             fullWidth
             placeholder="Mesaj yaz…"
             value={input}
             onChange={e => setInput(e.target.value)}
             aria-label="AI mesaj girişi"
+            sx={{
+              '& .MuiInputBase-root': {
+                fontSize: { xs: '16px', sm: '16px' },
+                minHeight: { xs: 48, md: 40 }
+              }
+            }}
           />
-          <Button type="submit" disabled={loading}>
+          <Button 
+            type="submit" 
+            disabled={loading}
+            sx={{
+              minHeight: { xs: 48, md: 40 },
+              minWidth: { xs: 80, md: 100 },
+              fontSize: { xs: '14px', md: '15px' },
+              fontWeight: 600
+            }}
+          >
             Gönder
           </Button>
         </Box>

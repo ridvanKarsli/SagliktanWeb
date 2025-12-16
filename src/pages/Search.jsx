@@ -303,10 +303,12 @@ export default function Search() {
             variant="contained" 
             sx={{ 
               whiteSpace: 'nowrap', 
-              minHeight: { xs: 44, sm: 40 },
+              minHeight: { xs: 48, sm: 40 },
               minWidth: { xs: 100, sm: 120 },
+              fontSize: { xs: '13px', sm: '14px' },
               fontWeight: 600,
-              flexShrink: 0
+              flexShrink: 0,
+              px: { xs: 1.5, sm: 2 }
             }}
           >
             Profili Gör
@@ -317,10 +319,10 @@ export default function Search() {
   }
 
   return (
-    <Box sx={{ py: { xs: 2, md: 3 } }}>
+    <Box sx={{ py: { xs: 1.5, md: 3 }, px: { xs: 0.5, sm: 0 } }}>
       {/* Başlık ve Sekmeler */}
-      <Stack spacing={2.5} sx={{ mb: 4 }}>
-        <Typography variant="h5" sx={{ fontWeight: 700, fontSize: { xs: 22, sm: 26, md: 28 } }}>
+      <Stack spacing={{ xs: 2, md: 2.5 }} sx={{ mb: { xs: 3, md: 4 } }}>
+        <Typography variant="h5" sx={{ fontWeight: 700, fontSize: { xs: 20, sm: 24, md: 28 } }}>
           Kişi Ara
         </Typography>
         
@@ -363,7 +365,8 @@ export default function Search() {
             InputLabelProps={{ shrink: false }}
             sx={{
               '& .MuiInputBase-root': {
-                fontSize: { xs: '1rem', sm: '1.05rem' }
+                fontSize: { xs: '16px', sm: '16px' },
+                minHeight: { xs: 48, md: 40 }
               }
             }}
           />

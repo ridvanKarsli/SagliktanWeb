@@ -715,9 +715,9 @@ export default function Posts() {
   const sorted = useMemo(() => [...posts].sort((a, b) => b.timestamp - a.timestamp), [posts])
 
   return (
-    <Container maxWidth="sm" sx={{ py: { xs: 2, md: 4 }, px: { xs: 1, sm: 2 } }}>
+    <Container maxWidth="sm" sx={{ py: { xs: 1.5, md: 4 }, px: { xs: 1, sm: 2 } }}>
       {/* Header */}
-      <Stack spacing={1} sx={{ mb: 3 }}>
+      <Stack spacing={1} sx={{ mb: { xs: 2, md: 3 } }}>
         <Typography
           variant="h5"
           sx={{ fontWeight: 700, fontSize: { xs: 20, sm: 24, md: 28 } }}
@@ -727,7 +727,7 @@ export default function Posts() {
       </Stack>
 
       {/* Kategori filtresi */}
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ mb: 3 }}>
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: 1.5, sm: 1.5 }} sx={{ mb: { xs: 2, md: 3 } }}>
         <Autocomplete
           fullWidth
           options={categories}
@@ -743,6 +743,11 @@ export default function Posts() {
               label="Kategoriye göre filtrele"
               size="small"
               helperText={catsError ? `Liste alınamadı: ${catsError}` : 'Boş bırakılırsa tüm gönderiler gösterilir.'}
+              sx={{
+                '& .MuiInputBase-root': {
+                  fontSize: { xs: '16px', sm: '15px' }
+                }
+              }}
             />
           )}
           slotProps={{
@@ -757,7 +762,16 @@ export default function Posts() {
           }}
         />
         {category && (
-          <Button variant="outlined" color="secondary" onClick={() => setCategory('')} sx={{ whiteSpace: 'nowrap' }}>
+          <Button 
+            variant="outlined" 
+            color="secondary" 
+            onClick={() => setCategory('')} 
+            sx={{ 
+              whiteSpace: 'nowrap',
+              minHeight: { xs: 44, sm: 40 },
+              fontSize: { xs: '14px', sm: '14px' }
+            }}
+          >
             Filtreyi Temizle
           </Button>
         )}
@@ -830,7 +844,14 @@ export default function Posts() {
         color="primary"
         aria-label="Yeni gönderi"
         onClick={openDialog}
-        sx={{ position: 'fixed', right: 16, bottom: { xs: 'calc(72px + env(safe-area-inset-bottom, 0px) + 12px)', md: 24 }, zIndex: (t) => t.zIndex.appBar + 3 }}
+        sx={{ 
+          position: 'fixed', 
+          right: { xs: 16, md: 24 }, 
+          bottom: { xs: 'calc(72px + env(safe-area-inset-bottom, 0px) + 16px)', md: 24 }, 
+          zIndex: (t) => t.zIndex.appBar + 3,
+          width: { xs: 56, md: 56 },
+          height: { xs: 56, md: 56 }
+        }}
       >
         <Add />
       </Fab>
@@ -852,10 +873,22 @@ export default function Posts() {
           }
         }}
       >
-        <DialogTitle sx={{ fontWeight: 800, color: '#FAF9F6' }}>Yeni Gönderi</DialogTitle>
-        <DialogContent dividers sx={{ borderColor: 'rgba(255,255,255,0.12)' }}>
+        <DialogTitle sx={{ 
+          fontWeight: 800, 
+          color: '#FAF9F6',
+          fontSize: { xs: '20px', md: '24px' },
+          px: { xs: 2, md: 3 },
+          py: { xs: 2, md: 1.5 }
+        }}>
+          Yeni Gönderi
+        </DialogTitle>
+        <DialogContent dividers sx={{ 
+          borderColor: 'rgba(255,255,255,0.12)',
+          px: { xs: 2, md: 3 },
+          py: { xs: 2, md: 2.5 }
+        }}>
           <Box component="form" id="compose-form" onSubmit={onSubmitNewPost}>
-            <Stack spacing={1.5} sx={{ mt: 1 }}>
+            <Stack spacing={{ xs: 2, md: 1.5 }} sx={{ mt: { xs: 0, md: 1 } }}>
               <TextField
                 autoFocus
                 placeholder="Ne paylaşmak istersin?"
@@ -866,6 +899,11 @@ export default function Posts() {
                 size="small"
                 InputLabelProps={{ shrink: false }}
                 aria-label="Yeni gönderi mesajı"
+                sx={{
+                  '& .MuiInputBase-root': {
+                    fontSize: { xs: '16px', md: '15px' }
+                  }
+                }}
               />
 
               {/* Kategori: Hastalık isimlerinden autocomplete (AddDiseaseForm ile uyumlu) */}
@@ -887,6 +925,11 @@ export default function Posts() {
                     size="small"
                     required
                     helperText={catsError ? `Liste alınamadı: ${catsError}` : ''}
+                    sx={{
+                      '& .MuiInputBase-root': {
+                        fontSize: { xs: '16px', md: '15px' }
+                      }
+                    }}
                   />
                 )}
                 slotProps={{
@@ -898,7 +941,9 @@ export default function Posts() {
                       backdropFilter: 'blur(6px)',
                       '& .MuiAutocomplete-option': {
                         color: '#FAF9F6',
-                        minHeight: 44,
+                        minHeight: { xs: 48, md: 44 },
+                        fontSize: { xs: '15px', md: '14px' },
+                        py: { xs: 1.5, md: 1 },
                         '&[aria-selected="true"]': { bgcolor: 'rgba(52,195,161,0.22)' },
                         '&.Mui-focused': { bgcolor: 'rgba(255,255,255,0.08)' }
                       }
@@ -909,9 +954,36 @@ export default function Posts() {
             </Stack>
           </Box>
         </DialogContent>
-        <DialogActions sx={{ px: 3, py: 2 }}>
-          <Button onClick={closeDialog} color="secondary" variant="text" disabled={submitting}>Vazgeç</Button>
-          <Button type="submit" form="compose-form" variant="contained" disabled={submitting}>
+        <DialogActions sx={{ 
+          px: { xs: 2, md: 3 }, 
+          py: { xs: 2, md: 2 },
+          gap: { xs: 1, md: 1.5 }
+        }}>
+          <Button 
+            onClick={closeDialog} 
+            color="secondary" 
+            variant="text" 
+            disabled={submitting}
+            sx={{
+              minHeight: { xs: 44, md: 40 },
+              fontSize: { xs: '15px', md: '14px' },
+              px: { xs: 2, md: 2 }
+            }}
+          >
+            Vazgeç
+          </Button>
+          <Button 
+            type="submit" 
+            form="compose-form" 
+            variant="contained" 
+            disabled={submitting}
+            sx={{
+              minHeight: { xs: 44, md: 40 },
+              fontSize: { xs: '15px', md: '14px' },
+              px: { xs: 3, md: 3 },
+              fontWeight: 600
+            }}
+          >
             {submitting ? 'Paylaşılıyor…' : 'Paylaş'}
           </Button>
         </DialogActions>

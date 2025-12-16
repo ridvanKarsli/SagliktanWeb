@@ -806,29 +806,39 @@ export default function Profile() {
   }
 
   return (
-    <Container maxWidth="sm" sx={{ py: { xs: 2, md: 4 }, px: { xs: 1, sm: 2 } }}>
+    <Container maxWidth="sm" sx={{ py: { xs: 1.5, md: 4 }, px: { xs: 1, sm: 2 } }}>
       {/* Header */}
-      <Stack direction="row" justifyContent="flex-end" alignItems="center" sx={{ mb: 2, position: 'relative' }}>
+      <Stack direction="row" justifyContent="flex-end" alignItems="center" sx={{ mb: { xs: 1.5, md: 2 }, position: 'relative' }}>
         {/* Mobilde sağ üstte 3 nokta menü */}
         <IconButton
           onClick={handleMobileMenuOpen}
-          sx={{ display: { xs: 'flex', sm: 'none' }, position: 'absolute', right: 0, top: 0, zIndex: 15 }}
+          sx={{ 
+            display: { xs: 'flex', sm: 'none' }, 
+            position: 'absolute', 
+            right: 0, 
+            top: 0, 
+            zIndex: 15,
+            width: { xs: 48, md: 40 },
+            height: { xs: 48, md: 40 },
+            minWidth: { xs: 48, md: 40 },
+            minHeight: { xs: 48, md: 40 }
+          }}
           aria-label="Menü Aç"
         >
-          <MoreVertIcon sx={{ fontSize: 30 }} />
+          <MoreVertIcon sx={{ fontSize: { xs: 28, md: 24 } }} />
         </IconButton>
         {/* Masaüstü için boşluk */}
       </Stack>
 
       {/* Avatar ve menus: avatar tıklandığında her zamanki gibi */}
-      <Stack spacing={1.5} sx={{ alignItems: 'center', textAlign: 'center', position: 'relative', mb: 3 }}>
+      <Stack spacing={1.5} sx={{ alignItems: 'center', textAlign: 'center', position: 'relative', mb: { xs: 2.5, md: 3 } }}>
         <Avatar
           sx={{
-            width: { xs: 72, md: 80 },
-            height: { xs: 72, md: 80 },
+            width: { xs: 80, md: 80 },
+            height: { xs: 80, md: 80 },
             bgcolor: 'secondary.main',
             fontWeight: 800,
-            fontSize: { xs: 24, md: 26 },
+            fontSize: { xs: 26, md: 26 },
             cursor: 'pointer'
           }}
           aria-label="Kullanıcı avatarı"
@@ -840,7 +850,7 @@ export default function Profile() {
       </Stack>
 
       {/* Navigasyon - Mobilde Select, Desktop'ta Tabs */}
-      <Box sx={{ mb: 3 }}>
+      <Box sx={{ mb: { xs: 2.5, md: 3 } }}>
         {isSmUp ? (
           <Tabs
             value={tab}
@@ -853,9 +863,9 @@ export default function Profile() {
               '& .MuiTab-root': {
                 fontWeight: 600,
                 textTransform: 'none',
-                minHeight: 56,
-                fontSize: 15,
-                px: 3,
+                minHeight: { xs: 48, md: 56 },
+                fontSize: { xs: '14px', md: 15 },
+                px: { xs: 2, md: 3 },
                 '&.Mui-selected': {
                   color: 'primary.main',
                 }
@@ -875,8 +885,10 @@ export default function Profile() {
                 borderRadius: 2,
                 color: 'text.primary',
                 '& .MuiSelect-select': {
-                  py: 1.5,
-                  fontWeight: 600
+                  py: { xs: 1.75, md: 1.5 },
+                  fontWeight: 600,
+                  fontSize: { xs: '15px', md: '16px' },
+                  minHeight: { xs: 48, md: 40 }
                 },
                 '& .MuiOutlinedInput-notchedOutline': {
                   borderColor: 'rgba(255,255,255,0.12)'

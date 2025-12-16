@@ -71,11 +71,48 @@ function AddSpecializationForm({ onAdded, onClose }) {
       </Stack>
 
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems="stretch">
-        <TextField fullWidth label="Uzmanlık Adı" value={name} onChange={(e) => setName(e.target.value)} size="small" required />
-        <TextField fullWidth label="Deneyim (yıl)" type="number" inputProps={{ min: 0, max: 60, step: 1 }}
-          value={exp} onChange={(e) => setExp(e.target.value)} size="small" required />
-        <Button type="submit" variant="contained" disabled={!canSubmit || loading}
-          startIcon={loading ? <CircularProgress size={16} /> : <AddIcon />} sx={{ minHeight: 44, px: 2 }}>
+        <TextField 
+          fullWidth 
+          label="Uzmanlık Adı" 
+          value={name} 
+          onChange={(e) => setName(e.target.value)} 
+          size="small" 
+          required 
+          sx={{
+            '& .MuiInputBase-root': {
+              fontSize: { xs: '16px', md: '15px' },
+              minHeight: { xs: 48, md: 40 }
+            }
+          }}
+        />
+        <TextField 
+          fullWidth 
+          label="Deneyim (yıl)" 
+          type="number" 
+          inputProps={{ min: 0, max: 60, step: 1 }}
+          value={exp} 
+          onChange={(e) => setExp(e.target.value)} 
+          size="small" 
+          required 
+          sx={{
+            '& .MuiInputBase-root': {
+              fontSize: { xs: '16px', md: '15px' },
+              minHeight: { xs: 48, md: 40 }
+            }
+          }}
+        />
+        <Button 
+          type="submit" 
+          variant="contained" 
+          disabled={!canSubmit || loading}
+          startIcon={loading ? <CircularProgress size={16} /> : <AddIcon />} 
+          sx={{ 
+            minHeight: { xs: 48, md: 44 }, 
+            px: { xs: 2.5, md: 2 },
+            fontSize: { xs: '15px', md: '14px' },
+            fontWeight: 600
+          }}
+        >
           Kaydet
         </Button>
       </Stack>
@@ -135,18 +172,90 @@ function AddAddressForm({ onAdded, onClose }) {
       </Stack>
 
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems="stretch">
-        <TextField fullWidth label="İş Yeri" value={form.workPlaceName} onChange={updateField('workPlaceName')} size="small" required />
-        <TextField fullWidth label="Sokak/Cadde" value={form.street} onChange={updateField('street')} size="small" />
+        <TextField 
+          fullWidth 
+          label="İş Yeri" 
+          value={form.workPlaceName} 
+          onChange={updateField('workPlaceName')} 
+          size="small" 
+          required 
+          sx={{
+            '& .MuiInputBase-root': {
+              fontSize: { xs: '16px', md: '15px' },
+              minHeight: { xs: 48, md: 40 }
+            }
+          }}
+        />
+        <TextField 
+          fullWidth 
+          label="Sokak/Cadde" 
+          value={form.street} 
+          onChange={updateField('street')} 
+          size="small" 
+          sx={{
+            '& .MuiInputBase-root': {
+              fontSize: { xs: '16px', md: '15px' },
+              minHeight: { xs: 48, md: 40 }
+            }
+          }}
+        />
       </Stack>
 
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems="stretch" sx={{ mt: 1.5 }}>
-        <TextField fullWidth label="İlçe" value={form.county} onChange={updateField('county')} size="small" />
-        <TextField fullWidth label="Şehir" value={form.city} onChange={updateField('city')} size="small" />
-        <TextField fullWidth label="Ülke" value={form.country} onChange={updateField('country')} size="small" />
+        <TextField 
+          fullWidth 
+          label="İlçe" 
+          value={form.county} 
+          onChange={updateField('county')} 
+          size="small" 
+          sx={{
+            '& .MuiInputBase-root': {
+              fontSize: { xs: '16px', md: '15px' },
+              minHeight: { xs: 48, md: 40 }
+            }
+          }}
+        />
+        <TextField 
+          fullWidth 
+          label="Şehir" 
+          value={form.city} 
+          onChange={updateField('city')} 
+          size="small" 
+          sx={{
+            '& .MuiInputBase-root': {
+              fontSize: { xs: '16px', md: '15px' },
+              minHeight: { xs: 48, md: 40 }
+            }
+          }}
+        />
+        <TextField 
+          fullWidth 
+          label="Ülke" 
+          value={form.country} 
+          onChange={updateField('country')} 
+          size="small" 
+          sx={{
+            '& .MuiInputBase-root': {
+              fontSize: { xs: '16px', md: '15px' },
+              minHeight: { xs: 48, md: 40 }
+            }
+          }}
+        />
       </Stack>
 
-      <Button type="submit" variant="contained" disabled={!canSubmit || loading}
-        startIcon={loading ? <CircularProgress size={16} /> : <AddIcon />} sx={{ minHeight: 44, px: 2, mt: 2 }}>
+      <Button 
+        type="submit" 
+        variant="contained" 
+        disabled={!canSubmit || loading}
+        startIcon={loading ? <CircularProgress size={16} /> : <AddIcon />} 
+        sx={{ 
+          minHeight: { xs: 48, md: 44 }, 
+          px: { xs: 2.5, md: 2 }, 
+          mt: 2,
+          fontSize: { xs: '15px', md: '14px' },
+          fontWeight: 600
+        }}
+      >
         Kaydet
       </Button>
 
@@ -201,11 +310,48 @@ function AddContactForm({ onAdded, onClose }) {
       </Stack>
 
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems="stretch">
-        <TextField fullWidth label="E-posta" value={form.email} onChange={updateField('email')} size="small" required type="email" />
-        <TextField fullWidth label="Telefon" value={form.phoneNumber} onChange={updateField('phoneNumber')} size="small" required
-          inputProps={{ inputMode: 'numeric', pattern: '[0-9]*' }} />
-        <Button type="submit" variant="contained" disabled={!canSubmit || loading}
-          startIcon={loading ? <CircularProgress size={16} /> : <AddIcon />} sx={{ minHeight: 44, px: 2 }}>
+        <TextField 
+          fullWidth 
+          label="E-posta" 
+          value={form.email} 
+          onChange={updateField('email')} 
+          size="small" 
+          required 
+          type="email" 
+          sx={{
+            '& .MuiInputBase-root': {
+              fontSize: { xs: '16px', md: '15px' },
+              minHeight: { xs: 48, md: 40 }
+            }
+          }}
+        />
+        <TextField 
+          fullWidth 
+          label="Telefon" 
+          value={form.phoneNumber} 
+          onChange={updateField('phoneNumber')} 
+          size="small" 
+          required
+          inputProps={{ inputMode: 'numeric', pattern: '[0-9]*' }} 
+          sx={{
+            '& .MuiInputBase-root': {
+              fontSize: { xs: '16px', md: '15px' },
+              minHeight: { xs: 48, md: 40 }
+            }
+          }}
+        />
+        <Button 
+          type="submit" 
+          variant="contained" 
+          disabled={!canSubmit || loading}
+          startIcon={loading ? <CircularProgress size={16} /> : <AddIcon />} 
+          sx={{ 
+            minHeight: { xs: 48, md: 44 }, 
+            px: { xs: 2.5, md: 2 },
+            fontSize: { xs: '15px', md: '14px' },
+            fontWeight: 600
+          }}
+        >
           Kaydet
         </Button>
       </Stack>
@@ -271,13 +417,64 @@ function AddAnnouncementForm({ onAdded, onClose }) {
       </Stack>
 
       <Stack spacing={1.5}>
-        <TextField fullWidth label="Başlık" value={form.title} onChange={updateField('title')} size="small" required />
-        <TextField fullWidth multiline minRows={3} label="İçerik" value={form.content} onChange={updateField('content')} size="small" required />
+        <TextField 
+          fullWidth 
+          label="Başlık" 
+          value={form.title} 
+          onChange={updateField('title')} 
+          size="small" 
+          required 
+          sx={{
+            '& .MuiInputBase-root': {
+              fontSize: { xs: '16px', md: '15px' },
+              minHeight: { xs: 48, md: 40 }
+            }
+          }}
+        />
+        <TextField 
+          fullWidth 
+          multiline 
+          minRows={3} 
+          label="İçerik" 
+          value={form.content} 
+          onChange={updateField('content')} 
+          size="small" 
+          required 
+          sx={{
+            '& .MuiInputBase-root': {
+              fontSize: { xs: '16px', md: '15px' }
+            }
+          }}
+        />
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
-          <TextField fullWidth label="Tarih" type="date" value={form.uploadDate} onChange={updateField('uploadDate')}
-            InputLabelProps={{ shrink: true }} size="small" required />
-          <Button type="submit" variant="contained" disabled={!canSubmit || loading}
-            startIcon={loading ? <CircularProgress size={16} /> : <AddIcon />} sx={{ minHeight: 44, px: 2 }}>
+          <TextField 
+            fullWidth 
+            label="Tarih" 
+            type="date" 
+            value={form.uploadDate} 
+            onChange={updateField('uploadDate')}
+            InputLabelProps={{ shrink: true }} 
+            size="small" 
+            required 
+            sx={{
+              '& .MuiInputBase-root': {
+                fontSize: { xs: '16px', md: '15px' },
+                minHeight: { xs: 48, md: 40 }
+              }
+            }}
+          />
+          <Button 
+            type="submit" 
+            variant="contained" 
+            disabled={!canSubmit || loading}
+            startIcon={loading ? <CircularProgress size={16} /> : <AddIcon />} 
+            sx={{ 
+              minHeight: { xs: 48, md: 44 }, 
+              px: { xs: 2.5, md: 2 },
+              fontSize: { xs: '15px', md: '14px' },
+              fontWeight: 600
+            }}
+          >
             Kaydet
           </Button>
         </Stack>

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   Box, Stack, Typography, TextField, Button,
-  Alert, CircularProgress, Autocomplete, Collapse, Paper
+  Alert, CircularProgress, Autocomplete, Collapse, Paper, Tooltip
 } from '@mui/material'
 import { Add as AddIcon, Close as CloseIcon, DeleteOutline as DeleteIcon } from '@mui/icons-material'
 import { useAuth } from '../../context/AuthContext.jsx'
@@ -117,7 +117,9 @@ function AddDiseaseForm({ onAdded, onClose }) {
                 backdropFilter: 'blur(6px)',
                 '& .MuiAutocomplete-option': {
                   color: '#FAF9F6',
-                  minHeight: 44,
+                  minHeight: { xs: 48, md: 44 },
+                  fontSize: { xs: '15px', md: '14px' },
+                  py: { xs: 1.5, md: 1 },
                   '&[aria-selected="true"]': { bgcolor: 'rgba(52,195,161,0.22)' },
                   '&.Mui-focused': { bgcolor: 'rgba(255,255,255,0.08)' }
                 }
@@ -132,6 +134,12 @@ function AddDiseaseForm({ onAdded, onClose }) {
               required
               helperText={fetchErr ? `Liste alınamadı: ${fetchErr}` : ''}
               inputProps={{ ...params.inputProps, readOnly: !!selectedName }}
+              sx={{
+                '& .MuiInputBase-root': {
+                  fontSize: { xs: '16px', md: '15px' },
+                  minHeight: { xs: 48, md: 40 }
+                }
+              }}
             />
           )}
         />
@@ -144,6 +152,12 @@ function AddDiseaseForm({ onAdded, onClose }) {
           onChange={(e) => setDate(e.target.value)}
           size="small"
           InputLabelProps={{ shrink: true }}
+          sx={{
+            '& .MuiInputBase-root': {
+              fontSize: { xs: '16px', md: '15px' },
+              minHeight: { xs: 48, md: 40 }
+            }
+          }}
         />
 
         <Button
@@ -151,7 +165,12 @@ function AddDiseaseForm({ onAdded, onClose }) {
           variant="contained"
           disabled={!canSubmit || loading}
           startIcon={loading ? <CircularProgress size={16} /> : <AddIcon />}
-          sx={{ minHeight: 44, px: 2 }}
+          sx={{ 
+            minHeight: { xs: 48, md: 44 }, 
+            px: { xs: 2.5, md: 2 },
+            fontSize: { xs: '15px', md: '14px' },
+            fontWeight: 600
+          }}
           aria-label="Hastalık kaydet"
         >
           Kaydet

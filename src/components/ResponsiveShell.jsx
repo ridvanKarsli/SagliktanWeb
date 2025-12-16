@@ -120,32 +120,66 @@ export default function ResponsiveShell({ children }) {
             color: '#fff'
           }}
         >
-          <Toolbar sx={{ px: { xs: 2, md: 3 }, gap: 1 }}>
+          <Toolbar sx={{ px: { xs: 1.5, md: 3 }, gap: { xs: 0.5, md: 1 }, minHeight: { xs: 56, md: 64 } }}>
             {!isMdUp && (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <AnimatedLogo size={32} mobileSize={32} showBorder={true} />
-                <Typography variant="h6" sx={{ fontWeight: 800 }}>Sağlıktan</Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flex: 1, minWidth: 0 }}>
+                <AnimatedLogo size={32} mobileSize={28} showBorder={true} />
+                <Typography variant="h6" sx={{ fontWeight: 800, fontSize: { xs: '18px', sm: '20px' } }}>Sağlıktan</Typography>
               </Box>
             )}
-            <Typography variant="h6" sx={{ fontWeight: 800, mx: { xs: 1, md: 2 } }}>
-              {headerTitle}
-            </Typography>
-            <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 1 }}>
+            {isMdUp && (
+              <Typography variant="h6" sx={{ fontWeight: 800, mx: { xs: 1, md: 2 }, fontSize: { xs: '18px', md: '20px' } }}>
+                {headerTitle}
+              </Typography>
+            )}
+            {!isMdUp && headerTitle && (
+              <Typography variant="body1" sx={{ fontWeight: 600, fontSize: '15px', color: 'rgba(255,255,255,0.9)', ml: 1 }}>
+                {headerTitle}
+              </Typography>
+            )}
+            <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: { xs: 0.25, md: 1 } }}>
               <Tooltip title="Ara">
-                <IconButton onClick={() => navigate('/search')} sx={{ color: '#fff' }}>
-                  <Search />
+                <IconButton 
+                  onClick={() => navigate('/search')} 
+                  sx={{ 
+                    color: '#fff',
+                    width: { xs: 44, md: 40 },
+                    height: { xs: 44, md: 40 },
+                    minWidth: { xs: 44, md: 40 },
+                    minHeight: { xs: 44, md: 40 }
+                  }}
+                >
+                  <Search sx={{ fontSize: { xs: '22px', md: '24px' } }} />
                 </IconButton>
               </Tooltip>
               <Tooltip title="Yeni Gönderi">
-                <IconButton onClick={() => navigate('/posts?new=1')} sx={{ color: '#fff' }}>
-                  <AddCircleOutline />
+                <IconButton 
+                  onClick={() => navigate('/posts?new=1')} 
+                  sx={{ 
+                    color: '#fff',
+                    width: { xs: 44, md: 40 },
+                    height: { xs: 44, md: 40 },
+                    minWidth: { xs: 44, md: 40 },
+                    minHeight: { xs: 44, md: 40 }
+                  }}
+                >
+                  <AddCircleOutline sx={{ fontSize: { xs: '22px', md: '24px' } }} />
                 </IconButton>
               </Tooltip>
               {token && (
                 <>
                   <Tooltip title="Menü">
-                    <IconButton onClick={handleMenuOpen} sx={{ color: '#fff' }}>
-                      <AccountCircleIcon sx={{ fontSize: 32 }} />
+                    <IconButton 
+                      onClick={handleMenuOpen} 
+                      sx={{ 
+                        color: '#fff',
+                        width: { xs: 44, md: 40 },
+                        height: { xs: 44, md: 40 },
+                        minWidth: { xs: 44, md: 40 },
+                        minHeight: { xs: 44, md: 40 }
+                      }}
+                    >
+                      <AccountCircleIcon sx={{ fontSize: { xs: 28, md: 32 } }} />
                     </IconButton>
                   </Tooltip>
                   <Menu
@@ -167,10 +201,34 @@ export default function ResponsiveShell({ children }) {
                       },
                     }}
                   >
-                    <MenuItem onClick={goProfile} sx={{ color: '#fff', fontWeight: 600, borderRadius: 2, px: 2.5, py: 1.15, '&:hover': { bgcolor: 'primary.main', color: '#fff' } }}>
+                    <MenuItem 
+                      onClick={goProfile} 
+                      sx={{ 
+                        color: '#fff', 
+                        fontWeight: 600, 
+                        borderRadius: 2, 
+                        px: 2.5, 
+                        py: { xs: 1.5, md: 1.15 },
+                        minHeight: { xs: 48, md: 40 },
+                        fontSize: { xs: '15px', md: '14px' },
+                        '&:hover': { bgcolor: 'primary.main', color: '#fff' } 
+                      }}
+                    >
                       <AccountCircleIcon sx={{ mr: 1, color: 'primary.main' }} /> Profilim
                     </MenuItem>
-                    <MenuItem onClick={handleLogout} sx={{ color: '#fff', fontWeight: 600, borderRadius: 2, px: 2.5, py: 1.15, '&:hover': { bgcolor: 'error.main', color: '#fff' } }}>
+                    <MenuItem 
+                      onClick={handleLogout} 
+                      sx={{ 
+                        color: '#fff', 
+                        fontWeight: 600, 
+                        borderRadius: 2, 
+                        px: 2.5, 
+                        py: { xs: 1.5, md: 1.15 },
+                        minHeight: { xs: 48, md: 40 },
+                        fontSize: { xs: '15px', md: '14px' },
+                        '&:hover': { bgcolor: 'error.main', color: '#fff' } 
+                      }}
+                    >
                       <LogoutIcon sx={{ mr: 1, color: 'error.main' }} /> Çıkış Yap
                     </MenuItem>
                   </Menu>
@@ -185,12 +243,22 @@ export default function ResponsiveShell({ children }) {
           component="main"
           sx={{
             width: '100%',
+            maxWidth: '100%',
             mx: 'auto',
-            maxWidth: { xs: '100%', sm: 680, lg: 980 },
+            overflowX: 'hidden',
             pb: { xs: `calc(${MOBILE_NAV_HEIGHT}px + env(safe-area-inset-bottom, 0px) + 12px)`, md: 0 }
           }}
         >
-          {children}
+          <Box
+            sx={{
+              width: '100%',
+              maxWidth: { xs: '100%', sm: 680, lg: 980 },
+              mx: 'auto',
+              overflowX: 'hidden'
+            }}
+          >
+            {children}
+          </Box>
         </Box>
 
         {/* Mobil Alt Bar – her zaman en altta (fixed) */}
@@ -215,15 +283,24 @@ export default function ResponsiveShell({ children }) {
               sx={{
                 height: MOBILE_NAV_HEIGHT,
                 background: 'transparent',
-                px: 1,
+                px: { xs: 0.5, sm: 1 },
                 '& .MuiBottomNavigationAction-root': {
                   color: 'rgba(255,255,255,0.85)',
-                  minWidth: 0,
+                  minWidth: { xs: 60, sm: 70 },
+                  minHeight: { xs: 48, sm: 56 },
                   position: 'relative',
-                  paddingInline: 1.25,
+                  paddingInline: { xs: 0.75, sm: 1.25 },
                   '& .MuiBottomNavigationAction-label': {
                     fontWeight: 600,
-                    opacity: 0.9
+                    opacity: 0.9,
+                    fontSize: { xs: '11px', sm: '12px' },
+                    marginTop: { xs: 0.25, sm: 0.5 },
+                    '&.Mui-selected': {
+                      fontSize: { xs: '11px', sm: '12px' }
+                    }
+                  },
+                  '& .MuiSvgIcon-root': {
+                    fontSize: { xs: '24px', sm: '28px' }
                   }
                 },
                 '& .Mui-selected': { color: 'primary.main' }

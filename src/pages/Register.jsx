@@ -68,14 +68,14 @@ export default function Register() {
 
   return (
     <Box sx={{ minHeight: '100vh', display: 'grid', alignItems: 'center', backgroundColor: 'background.default', py: { xs: 4, md: 8 } }}>
-      <Container maxWidth="sm">
+      <Container maxWidth="sm" sx={{ px: { xs: 2, sm: 3 } }}>
         {/* Animasyonlu Logo */}
-        <Box sx={{ display: 'grid', placeItems: 'center', mb: 3 }}>
-          <AnimatedLogo size={140} mobileSize={120} />
+        <Box sx={{ display: 'grid', placeItems: 'center', mb: { xs: 2.5, md: 3 } }}>
+          <AnimatedLogo size={140} mobileSize={100} />
         </Box>
 
-        <Stack spacing={3} component="form" onSubmit={onSubmit} aria-label="Kayıt formu" noValidate sx={{ maxWidth: 500, mx: 'auto' }}>
-          <Typography variant="h4" sx={{ fontWeight: 700, textAlign: 'center' }}>Kayıt Ol</Typography>
+        <Stack spacing={{ xs: 2.5, md: 3 }} component="form" onSubmit={onSubmit} aria-label="Kayıt formu" noValidate sx={{ maxWidth: 500, mx: 'auto', width: '100%' }}>
+          <Typography variant="h4" sx={{ fontWeight: 700, textAlign: 'center', fontSize: { xs: 24, sm: 28, md: 32 } }}>Kayıt Ol</Typography>
 
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
             <TextField
@@ -84,6 +84,11 @@ export default function Register() {
               value={form.name}
               onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
               autoComplete="given-name"
+              sx={{
+                '& .MuiInputBase-root': {
+                  fontSize: { xs: '16px', sm: '16px' }
+                }
+              }}
             />
             <TextField
               label="Soyisim"
@@ -91,6 +96,11 @@ export default function Register() {
               value={form.surname}
               onChange={e => setForm(f => ({ ...f, surname: e.target.value }))}
               autoComplete="family-name"
+              sx={{
+                '& .MuiInputBase-root': {
+                  fontSize: { xs: '16px', sm: '16px' }
+                }
+              }}
             />
           </Stack>
 
@@ -104,6 +114,11 @@ export default function Register() {
             InputLabelProps={{ shrink: true }}
             inputProps={{ min: '1900-01-01', max: new Date().toISOString().split('T')[0] }}
             autoComplete="bday"
+            sx={{
+              '& .MuiInputBase-root': {
+                fontSize: { xs: '16px', sm: '16px' }
+              }
+            }}
           />
 
           {/* Rol seçimi — menü yazıları görünür */}
@@ -123,11 +138,18 @@ export default function Register() {
                     backdropFilter: 'blur(6px)',
                     '& .MuiMenuItem-root': {
                       color: '#FAF9F6',
+                      fontSize: { xs: '16px', sm: '15px' },
+                      minHeight: { xs: 48, sm: 40 },
                       '&.Mui-selected': { bgcolor: 'rgba(52,195,161,0.18)' },
                       '&:hover': { bgcolor: 'rgba(255,255,255,0.06)' }
                     }
                   }
                 }
+              }
+            }}
+            sx={{
+              '& .MuiInputBase-root': {
+                fontSize: { xs: '16px', sm: '16px' }
               }
             }}
           >
@@ -142,6 +164,11 @@ export default function Register() {
             value={form.email}
             onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
             autoComplete="email"
+            sx={{
+              '& .MuiInputBase-root': {
+                fontSize: { xs: '16px', sm: '16px' }
+              }
+            }}
           />
 
           <TextField
@@ -152,6 +179,11 @@ export default function Register() {
             value={form.password}
             onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
             autoComplete="new-password"
+            sx={{
+              '& .MuiInputBase-root': {
+                fontSize: { xs: '16px', sm: '16px' }
+              }
+            }}
           />
 
           <TextField
@@ -161,9 +193,24 @@ export default function Register() {
             value={form.confirmPassword}
             onChange={e => setForm(f => ({ ...f, confirmPassword: e.target.value }))}
             autoComplete="new-password"
+            sx={{
+              '& .MuiInputBase-root': {
+                fontSize: { xs: '16px', sm: '16px' }
+              }
+            }}
           />
 
-          <Button type="submit" disabled={loading}>
+          <Button 
+            type="submit" 
+            disabled={loading}
+            size="large"
+            sx={{
+              minHeight: { xs: 48, md: 44 },
+              fontSize: { xs: '16px', md: '15px' },
+              fontWeight: 600,
+              py: { xs: 1.5, md: 1.25 }
+            }}
+          >
             {loading ? (<><CircularProgress size={18} sx={{ mr: 1 }} /> Kaydediliyor…</>) : 'Kayıt Ol'}
           </Button>
 

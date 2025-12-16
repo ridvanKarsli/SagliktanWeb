@@ -1,7 +1,11 @@
 
 
 * { box-sizing: border-box; }
-html, body, #root { height: 100%; }
+html, body, #root { 
+  height: 100%;
+  overflow-x: hidden;
+  width: 100%;
+}
 
 body {
   background:
@@ -9,6 +13,7 @@ body {
     radial-gradient(900px 600px at -10% 15%, rgba(27,122,133,0.16), transparent 55%),
     #0B3A4E;
   margin: 0;
+  position: relative;
 }
 
 :root { --safe-bottom: env(safe-area-inset-bottom, 0px); }
@@ -17,4 +22,11 @@ body {
   outline: 2px solid rgba(52,195,161,0.9);
   outline-offset: 2px;
   border-radius: 8px;
+}
+
+/* Mobil için görsel ve içerik genişlik kontrolü */
+img, video, iframe {
+  max-width: 100%;
+  height: auto;
+  display: block;
 }
