@@ -788,6 +788,46 @@ export async function getAllUsers(token, { signal } = {}) {
   }
 }
 
+// Tüm doktorları çek
+export async function getAllDoctors(token, { signal } = {}) {
+  if (!token) throw new Error('Oturum bulunamadı. Lütfen tekrar giriş yapın.');
+  try {
+    const api = new ReadableDoctorControllerApi()
+    const data = await api.getAllDoctor(`Bearer ${token}`)
+    return Array.isArray(data) ? data.map(d => ({
+      userID: d.userID, name: d.name, surname: d.surname,
+      dateOfBirth: d.dateOfBirth, role: 'doctor', email: d.email
+    })) : []
+  } catch (e) {
+    const url = `${API_BASE}/doctor/doctors`;
+    const data = await fetchJson(url, { method: 'GET', headers: { ...authHeaders(token), 'Accept': 'application/json' }, signal });
+    return Array.isArray(data) ? data.map(d => ({
+      userID: d.userID, name: d.name, surname: d.surname,
+      dateOfBirth: d.dateOfBirth, role: 'doctor', email: d.email
+    })) : [];
+  }
+}
+
+// Tüm public kullanıcıları çek (user rolündekiler)
+export async function getAllPublicUsers(token, { signal } = {}) {
+  if (!token) throw new Error('Oturum bulunamadı. Lütfen tekrar giriş yapın.');
+  try {
+    const api = new ReadablePublicUserControllerApi()
+    const data = await api.getAllPublicUser(`Bearer ${token}`)
+    return Array.isArray(data) ? data.map(u => ({
+      userID: u.userID, name: u.name, surname: u.surname,
+      dateOfBirth: u.dateOfBirth, role: 'user', email: u.email
+    })) : []
+  } catch (e) {
+    const url = `${API_BASE}/publicUser/publicUsers`;
+    const data = await fetchJson(url, { method: 'GET', headers: { ...authHeaders(token), 'Accept': 'application/json' }, signal });
+    return Array.isArray(data) ? data.map(u => ({
+      userID: u.userID, name: u.name, surname: u.surname,
+      dateOfBirth: u.dateOfBirth, role: 'user', email: u.email
+    })) : [];
+  }
+}
+
 export async function addChat(token, { message, category }, { signal } = {}) {
   // Yeni API: addPost kullanarak ana post ekle (parentsID = 0)
   return addPost(token, { parentsID: 0, message, category }, { signal })

@@ -1,14 +1,15 @@
 import { useMemo, useState, useEffect } from 'react'
 import {
   Box, Button, Avatar, Grid, TextField, Stack, Typography, Divider,
-  Alert, CircularProgress, Chip, IconButton, Tooltip, Paper
+  Alert, CircularProgress, Chip, IconButton, Tooltip, Paper, Tabs, Tab
 } from '@mui/material'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Close as CloseIcon } from '@mui/icons-material'
+import { Close as CloseIcon, LocalHospital as DoctorIcon, People as UserIcon } from '@mui/icons-material'
 import { useAuth } from '../context/AuthContext.jsx'
-import { getAllUsers } from '../services/api.js'
+import { getAllDoctors, getAllPublicUsers } from '../services/api.js'
 
-const RECENT_KEY = 'recent_users_v1'
+const RECENT_KEY_DOCTORS = 'recent_doctors_v1'
+const RECENT_KEY_USERS = 'recent_users_v1'
 const MAX_RECENTS = 12
 const RANDOM_COUNT = 20
 const SEARCH_LIMIT = 50
@@ -32,22 +33,24 @@ function prettyDate(d) {
   const dt = d ? new Date(d) : null
   return dt && !isNaN(dt) ? dt.toLocaleDateString('tr-TR') : 'Belirtilmemiş'
 }
-function loadRecents() {
+function loadRecents(type) {
+  const key = type === 'doctor' ? RECENT_KEY_DOCTORS : RECENT_KEY_USERS
   try {
-    const raw = localStorage.getItem(RECENT_KEY)
+    const raw = localStorage.getItem(key)
     const arr = JSON.parse(raw || '[]')
     return Array.isArray(arr) ? arr : []
   } catch { return [] }
 }
-function saveRecents(list) {
-  try { localStorage.setItem(RECENT_KEY, JSON.stringify(list)) } catch {}
+function saveRecents(list, type) {
+  const key = type === 'doctor' ? RECENT_KEY_DOCTORS : RECENT_KEY_USERS
+  try { localStorage.setItem(key, JSON.stringify(list)) } catch {}
 }
-function upsertRecent(user, current) {
+function upsertRecent(user, current, type) {
   const key = `${user.userID}-${(user.email || '').toLowerCase()}`
   const filtered = current.filter(r => `${r.userID}-${(r.email || '').toLowerCase()}` !== key)
   const now = new Date().toISOString()
   const next = [{ ...user, _ts: now }, ...filtered].slice(0, MAX_RECENTS)
-  saveRecents(next)
+  saveRecents(next, type)
   return next
 }
 function pickRandom(arr, n) {
@@ -66,24 +69,86 @@ export default function Search() {
   const nav = useNavigate()
   const params = new URLSearchParams(loc.search)
   const initialQ = params.get('q') || ''
+  const initialTab = params.get('tab') || 'doctor' // 'doctor' veya 'user'
 
   const [q, setQ] = useState(initialQ)
-  const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState(initialTab === 'user' ? 1 : 0)
+  const [loadingDoctors, setLoadingDoctors] = useState(false)
+  const [loadingUsers, setLoadingUsers] = useState(false)
   const [error, setError] = useState('')
+  const [doctors, setDoctors] = useState([])
   const [users, setUsers] = useState([])
-  const [recents, setRecents] = useState(loadRecents())
+  const [recents, setRecents] = useState(loadRecents(initialTab === 'user' ? 'user' : 'doctor'))
   const [randomBlock, setRandomBlock] = useState([])
 
   useEffect(() => { setQ(initialQ) }, [initialQ])
+  useEffect(() => {
+    const tab = activeTab === 0 ? 'doctor' : 'user'
+    const currentTab = params.get('tab') || 'doctor'
+    if (currentTab !== tab) {
+      const sp = new URLSearchParams(loc.search)
+      sp.set('tab', tab)
+      nav(`/search${sp.toString() ? `?${sp.toString()}` : ''}`, { replace: true })
+    }
+    setRecents(loadRecents(tab))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab])
 
+  // Doktorları yükle
   useEffect(() => {
     let mounted = true
     const controller = new AbortController()
-    async function load() {
-      if (!token) { setLoading(false); setError('Oturum bulunamadı.'); return }
-      setLoading(true); setError('')
+    async function loadDoctors() {
+      if (!token) return
+      if (doctors.length > 0) {
+        // Zaten yüklenmişse, sadece random block'u güncelle
+        if (activeTab === 0) {
+          setRandomBlock(pickRandom(doctors, RANDOM_COUNT))
+        }
+        return
+      }
+      setLoadingDoctors(true); setError('')
       try {
-        const list = await getAllUsers(token, { signal: controller.signal })
+        const list = await getAllDoctors(token, { signal: controller.signal })
+        if (!mounted) return
+        const seen = new Set()
+        const uniq = []
+        for (const d of list) {
+          const key = `${d.userID}-${(d.email || '').toLowerCase()}`
+          if (!seen.has(key)) { uniq.push(d); seen.add(key) }
+        }
+        setDoctors(uniq)
+        if (activeTab === 0) {
+          setRandomBlock(pickRandom(uniq, RANDOM_COUNT))
+        }
+      } catch (e) {
+        if (!mounted) return
+        setError(e?.message || 'Doktorlar alınamadı.')
+      } finally {
+        if (mounted) setLoadingDoctors(false)
+      }
+    }
+    loadDoctors()
+    return () => { mounted = false; controller.abort() }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token])
+
+  // Kullanıcıları yükle
+  useEffect(() => {
+    let mounted = true
+    const controller = new AbortController()
+    async function loadUsers() {
+      if (!token) return
+      if (users.length > 0) {
+        // Zaten yüklenmişse, sadece random block'u güncelle
+        if (activeTab === 1) {
+          setRandomBlock(pickRandom(users, RANDOM_COUNT))
+        }
+        return
+      }
+      setLoadingUsers(true); setError('')
+      try {
+        const list = await getAllPublicUsers(token, { signal: controller.signal })
         if (!mounted) return
         const seen = new Set()
         const uniq = []
@@ -92,36 +157,62 @@ export default function Search() {
           if (!seen.has(key)) { uniq.push(u); seen.add(key) }
         }
         setUsers(uniq)
-        setRandomBlock(pickRandom(uniq, RANDOM_COUNT))
+        if (activeTab === 1) {
+          setRandomBlock(pickRandom(uniq, RANDOM_COUNT))
+        }
       } catch (e) {
         if (!mounted) return
         setError(e?.message || 'Kullanıcılar alınamadı.')
       } finally {
-        if (mounted) setLoading(false)
+        if (mounted) setLoadingUsers(false)
       }
     }
-    load()
+    loadUsers()
     return () => { mounted = false; controller.abort() }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token])
+
+  // Tab değiştiğinde random block'u güncelle
+  useEffect(() => {
+    if (activeTab === 0 && doctors.length > 0) {
+      setRandomBlock(pickRandom(doctors, RANDOM_COUNT))
+    } else if (activeTab === 1 && users.length > 0) {
+      setRandomBlock(pickRandom(users, RANDOM_COUNT))
+    }
+  }, [activeTab, doctors, users])
+
+  const loading = activeTab === 0 ? loadingDoctors : loadingUsers
+
+  const currentList = activeTab === 0 ? doctors : users
+  const currentType = activeTab === 0 ? 'doctor' : 'user'
 
   const results = useMemo(() => {
     const s = q.trim().toLowerCase()
     if (!s) return []
-    const filtered = users.filter(u => {
+    const filtered = currentList.filter(u => {
       const name = `${u.name || ''} ${u.surname || ''}`.toLowerCase()
       const email = (u.email || '').toLowerCase()
       const role = normalizeRole(u.role).toLowerCase()
       return name.includes(s) || email.includes(s) || role.includes(s)
     })
     return filtered.slice(0, SEARCH_LIMIT)
-  }, [q, users])
+  }, [q, currentList])
 
   const onSearchSubmit = (e) => {
     e.preventDefault()
     const next = q.trim()
     const sp = new URLSearchParams(loc.search)
     if (next) sp.set('q', next); else sp.delete('q')
+    sp.set('tab', currentType)
     nav(`/search${sp.toString() ? `?${sp.toString()}` : ''}`)
+  }
+
+  const handleTabChange = (event, newValue) => {
+    setActiveTab(newValue)
+    setQ('')
+    const sp = new URLSearchParams()
+    sp.set('tab', newValue === 0 ? 'doctor' : 'user')
+    nav(`/search?${sp.toString()}`, { replace: true })
   }
 
   const visitProfile = (user) => {
@@ -133,12 +224,15 @@ export default function Search() {
       email: user.email,
       role: user.role,
       dateOfBirth: user.dateOfBirth
-    }, recents)
+    }, recents, currentType)
     setRecents(next)
     nav(`/profile?userID=${encodeURIComponent(user.userID)}`)
   }
 
-  const clearRecents = () => { saveRecents([]); setRecents([]) }
+  const clearRecents = () => { 
+    saveRecents([], currentType)
+    setRecents([]) 
+  }
 
   const SectionItem = ({ u }) => {
     const role = normalizeRole(u.role)
@@ -224,15 +318,45 @@ export default function Search() {
 
   return (
     <Box sx={{ py: { xs: 2, md: 3 } }}>
-      {/* Başlık ve Arama */}
+      {/* Başlık ve Sekmeler */}
       <Stack spacing={2.5} sx={{ mb: 4 }}>
         <Typography variant="h5" sx={{ fontWeight: 700, fontSize: { xs: 22, sm: 26, md: 28 } }}>
           Kişi Ara
         </Typography>
+        
+        {/* Tab'lar */}
+        <Tabs
+          value={activeTab}
+          onChange={handleTabChange}
+          sx={{
+            borderBottom: 1,
+            borderColor: 'divider',
+            '& .MuiTab-root': {
+              textTransform: 'none',
+              fontWeight: 600,
+              fontSize: { xs: '0.95rem', sm: '1rem' },
+              minHeight: { xs: 48, sm: 56 },
+              px: { xs: 2, sm: 3 }
+            }
+          }}
+        >
+          <Tab 
+            icon={<DoctorIcon sx={{ mb: 0.5 }} />} 
+            iconPosition="start"
+            label="Doktor Ara" 
+          />
+          <Tab 
+            icon={<UserIcon sx={{ mb: 0.5 }} />} 
+            iconPosition="start"
+            label="Kullanıcı Ara" 
+          />
+        </Tabs>
+
+        {/* Arama Kutusu */}
         <Box component="form" onSubmit={onSearchSubmit}>
           <TextField
             fullWidth
-            placeholder="Uzman veya kullanıcı ara…"
+            placeholder={activeTab === 0 ? "Doktor ara… (isim, uzmanlık alanı)" : "Kullanıcı ara… (isim, e-posta)"}
             value={q}
             onChange={e => setQ(e.target.value)}
             size="medium"
