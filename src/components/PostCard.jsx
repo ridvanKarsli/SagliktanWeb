@@ -67,8 +67,8 @@ export default function PostCard({
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
   const navigate = useNavigate()
-  // Mobilde yorumlar varsayılan olarak kapalı (detay sayfası hariç), desktop'ta mevcut davranış korunuyor
-  const [openComments, setOpenComments] = useState(forceOpenComments ? true : !isMobile)
+  // Yorumlar varsayılan olarak kapalı (sadece detay sayfasında forceOpenComments true ise açık)
+  const [openComments, setOpenComments] = useState(forceOpenComments ? true : false)
   const [commentText, setCommentText] = useState('')
   const [replyingTo, setReplyingTo] = useState(null) // Hangi yoruma yanıt veriliyor
   const [showLikedDialog, setShowLikedDialog] = useState(false)
@@ -96,13 +96,6 @@ export default function PostCard({
       navigate(`/post/${numericPostID}`)
     }
   }
-  
-  // Mobilde breakpoint değişince openComments'i güncelle
-  useEffect(() => {
-    if (!isMobile && !openComments) {
-      setOpenComments(false) // Desktop'ta kapalı başlat (kullanıcı butona basarak açar)
-    }
-  }, [isMobile])
   
   // Load liked users when dialog opens
   useEffect(() => {
@@ -206,12 +199,21 @@ export default function PostCard({
   // toggleDetails kaldırıldı
 
   const handleVote = (delta, e) => {
-    // Mobilde vote butonuna tıklayınca detay sayfasına git
+    // Eğer detay sayfasındaysak (forceOpenComments varsa), direkt vote yap
+    if (forceOpenComments) {
+      e?.stopPropagation?.()
+      onVote?.(id, delta)
+      return
+    }
+    
+    // Mobilde vote butonuna tıklayınca detay sayfasına git (detay sayfası değilse)
     if (isMobile && numericPostID) {
       e?.stopPropagation?.()
       navigate(`/post/${numericPostID}`)
       return
     }
+    
+    // Desktop'ta veya detay sayfasında direkt vote yap
     onVote?.(id, delta)
   }
 
@@ -225,27 +227,61 @@ export default function PostCard({
     if (!openComments) setOpenComments(true)
   }
   
-  // Recursive component for nested comments
+  // Recursive component for nested comments - Twitter tarzı
+  // Maksimum depth: 6 seviye (çok derinleşmesini önlemek için)
+  const MAX_COMMENT_DEPTH = 6
   const CommentItem = ({ comment, postId, depth = 0 }) => {
     const [replyText, setReplyText] = useState('')
     const [showReply, setShowReply] = useState(false)
     const canDeleteComment = !!onCommentDelete && (isOwner || (currentUserId && comment.authorId && comment.authorId === currentUserId))
     
+    // Depth limit kontrolü - çok derinleşirse daha fazla indent yapma
+    const effectiveDepth = Math.min(depth, MAX_COMMENT_DEPTH)
+    
     return (
-      <Box sx={{ ml: depth > 0 ? 3 : 0, mt: 1.5, pl: depth > 0 ? 2 : 0, borderLeft: depth > 0 ? '2px solid rgba(255,255,255,0.1)' : 'none' }}>
+      <Box 
+        sx={{ 
+          ml: effectiveDepth > 0 ? { xs: Math.min(effectiveDepth * 1.5, 4), md: Math.min(effectiveDepth * 2, 6) } : 0, 
+          mt: effectiveDepth > 0 ? 1.5 : 0,
+          pl: effectiveDepth > 0 ? { xs: Math.min(effectiveDepth * 1.5, 3), md: Math.min(effectiveDepth * 2, 4) } : 0,
+          borderLeft: effectiveDepth > 0 ? '2px solid rgba(255,255,255,0.08)' : 'none',
+          py: 1.5,
+          borderBottom: depth === 0 ? '1px solid rgba(255,255,255,0.05)' : 'none',
+          '&:hover': {
+            backgroundColor: depth === 0 ? 'rgba(255,255,255,0.02)' : 'transparent'
+          },
+          transition: 'background-color 0.2s ease',
+          // Mobilde çok geniş olmasını önle
+          maxWidth: '100%',
+          overflow: 'visible'
+        }}
+      >
         <Stack direction="row" spacing={1.5} alignItems="flex-start">
-          <Avatar sx={{ bgcolor: 'secondary.main', fontWeight: 800, width: 32, height: 32 }}>
+          <Avatar sx={{ bgcolor: 'secondary.main', fontWeight: 800, width: 40, height: 40, fontSize: 14 }}>
             {initialsFrom(comment.author)}
           </Avatar>
           
-          <Box sx={{ flex: 1 }}>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
             <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
-              <Stack direction="row" spacing={1} alignItems="baseline" sx={{ flex: 1, minWidth: 0 }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.primary' }}>
+              <Stack direction="row" spacing={0.75} alignItems="center" sx={{ flex: 1, minWidth: 0 }}>
+                <Typography 
+                  variant="subtitle2" 
+                  sx={{ 
+                    fontWeight: 700, 
+                    color: 'text.primary',
+                    fontSize: { xs: '14px', md: '15px' }
+                  }}
+                >
                   {comment.author}
                 </Typography>
-                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                  {new Date(comment.timestamp).toLocaleString()}
+                <Typography 
+                  variant="caption" 
+                  sx={{ 
+                    color: 'text.secondary',
+                    fontSize: { xs: '13px', md: '13px' }
+                  }}
+                >
+                  · {new Date(comment.timestamp).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}
                 </Typography>
               </Stack>
               
@@ -257,8 +293,8 @@ export default function PostCard({
                   onClick={() => onCommentDelete?.(postId, comment.id)}
                   startIcon={<DeleteOutline fontSize="small" />}
                   sx={{
-                    minWidth: { xs: 70, md: 80 },
-                    height: { xs: 28, md: 32 },
+                    minWidth: { xs: 60, md: 70 },
+                    height: { xs: 28, md: 28 },
                     fontSize: { xs: '0.65rem', md: '0.7rem' },
                     fontWeight: 600,
                     borderColor: 'rgba(244,67,54,0.5)',
@@ -274,89 +310,225 @@ export default function PostCard({
               )}
             </Stack>
             
-            <Typography variant="body2" sx={{ color: 'text.primary', mb: 0.75 }}>
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                color: 'text.primary', 
+                mb: 0.75,
+                fontSize: { xs: '14px', md: '15px' },
+                lineHeight: 1.5,
+                whiteSpace: 'pre-wrap'
+              }}
+            >
               {comment.text}
             </Typography>
             
-            <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mb: 1 }}>
-              <Tooltip title="Beğen">
-                <IconButton
-                  size="small"
-                  sx={{ color: comment.myVote === 1 ? 'primary.main' : 'text.secondary', width: { xs: 32, md: 36 }, height: { xs: 32, md: 36 } }}
-                  onClick={() => onCommentVote?.(postId, comment.id, +1)}
-                >
-                  <ThumbUpOffAlt fontSize="inherit" />
-                </IconButton>
-              </Tooltip>
-              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                {comment.likes}
-              </Typography>
-              
-              <Tooltip title="Beğenme">
-                <IconButton
-                  size="small"
-                  sx={{ color: comment.myVote === -1 ? 'primary.main' : 'text.secondary', width: { xs: 32, md: 36 }, height: { xs: 32, md: 36 } }}
-                  onClick={() => onCommentVote?.(postId, comment.id, -1)}
-                >
-                  <ThumbDownOffAlt fontSize="inherit" />
-                </IconButton>
-              </Tooltip>
-              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                {comment.dislikes}
-              </Typography>
-              
-              <Button
-                size="small"
+            {/* Aksiyonlar - Twitter tarzı */}
+            <Stack 
+              direction="row" 
+              spacing={0} 
+              sx={{ 
+                mt: 0.75,
+                maxWidth: { xs: '100%', md: '400px' },
+                justifyContent: 'space-between'
+              }} 
+              alignItems="center"
+            >
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 0.5,
+                  color: 'text.secondary',
+                  cursor: 'pointer',
+                  borderRadius: '50%',
+                  transition: 'all 0.2s ease',
+                  '&:hover': {
+                    color: 'primary.main',
+                    backgroundColor: 'rgba(52,195,161,0.1)'
+                  }
+                }}
                 onClick={() => setShowReply(!showReply)}
-                sx={{ ml: 1, minWidth: 'auto', fontSize: '0.75rem' }}
               >
-                Yanıtla
-              </Button>
+                <IconButton
+                  size="small"
+                  sx={{ 
+                    color: 'inherit',
+                    width: 32, 
+                    height: 32,
+                    minWidth: 32,
+                    minHeight: 32,
+                    '&:hover': {
+                      backgroundColor: 'transparent'
+                    }
+                  }}
+                >
+                  <ChatBubbleOutline sx={{ fontSize: '16px' }} />
+                </IconButton>
+              </Box>
+
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 0.5,
+                  color: comment.myVote === 1 ? 'primary.main' : 'text.secondary',
+                  cursor: 'pointer',
+                  borderRadius: '50%',
+                  transition: 'all 0.2s ease',
+                  '&:hover': {
+                    color: 'primary.main',
+                    backgroundColor: 'rgba(52,195,161,0.1)'
+                  }
+                }}
+                onClick={() => onCommentVote?.(postId, comment.id, +1)}
+              >
+                <IconButton
+                  size="small"
+                  sx={{ 
+                    color: 'inherit',
+                    width: 32, 
+                    height: 32,
+                    minWidth: 32,
+                    minHeight: 32,
+                    '&:hover': {
+                      backgroundColor: 'transparent'
+                    }
+                  }}
+                >
+                  <ThumbUpOffAlt sx={{ fontSize: '16px' }} />
+                </IconButton>
+                {comment.likes > 0 && (
+                  <Typography 
+                    variant="caption" 
+                    sx={{ 
+                      color: 'inherit',
+                      fontSize: '13px'
+                    }}
+                  >
+                    {comment.likes}
+                  </Typography>
+                )}
+              </Box>
+
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 0.5,
+                  color: comment.myVote === -1 ? 'error.main' : 'text.secondary',
+                  cursor: 'pointer',
+                  borderRadius: '50%',
+                  transition: 'all 0.2s ease',
+                  '&:hover': {
+                    color: 'error.main',
+                    backgroundColor: 'rgba(244,67,54,0.1)'
+                  }
+                }}
+                onClick={() => onCommentVote?.(postId, comment.id, -1)}
+              >
+                <IconButton
+                  size="small"
+                  sx={{ 
+                    color: 'inherit',
+                    width: 32, 
+                    height: 32,
+                    minWidth: 32,
+                    minHeight: 32,
+                    '&:hover': {
+                      backgroundColor: 'transparent'
+                    }
+                  }}
+                >
+                  <ThumbDownOffAlt sx={{ fontSize: '16px' }} />
+                </IconButton>
+                {comment.dislikes > 0 && (
+                  <Typography 
+                    variant="caption" 
+                    sx={{ 
+                      color: 'inherit',
+                      fontSize: '13px'
+                    }}
+                  >
+                    {comment.dislikes}
+                  </Typography>
+                )}
+              </Box>
             </Stack>
             
-            {/* Reply form */}
+            {/* Reply form - Twitter tarzı */}
             {showReply && (
-              <Box component="form" onSubmit={(e) => {
-                e.preventDefault()
-                const t = replyText.trim()
-                if (!t) return
-                onAddComment?.(postId, t, comment.id)
-                setReplyText('')
-                setShowReply(false)
-              }} sx={{ display: 'flex', gap: { xs: 0.75, md: 1 }, mb: { xs: 1.25, md: 1 }, mt: { xs: 1, md: 0.75 }, flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
+              <Box 
+                component="form" 
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  const t = replyText.trim()
+                  if (!t) return
+                  onAddComment?.(postId, t, comment.id)
+                  setReplyText('')
+                  setShowReply(false)
+                }} 
+                sx={{ 
+                  display: 'flex', 
+                  gap: 1, 
+                  mb: 1, 
+                  mt: 1.5, 
+                  flexWrap: { xs: 'wrap', sm: 'nowrap' },
+                  pt: 1.5,
+                  borderTop: '1px solid rgba(255,255,255,0.08)'
+                }}
+              >
                 <TextField
                   fullWidth
                   placeholder="Yanıt yaz…"
                   value={replyText}
                   onChange={(e) => setReplyText(e.target.value)}
                   size="small"
+                  variant="outlined"
                   sx={{
                     '& .MuiInputBase-root': {
-                      fontSize: { xs: '16px', md: '15px' },
-                      minHeight: { xs: 44, md: 40 }
+                      fontSize: { xs: '15px', md: '15px' },
+                      minHeight: { xs: 40, md: 40 },
+                      backgroundColor: 'rgba(255,255,255,0.03)',
+                      borderColor: 'rgba(255,255,255,0.1)',
+                      '&:hover': {
+                        borderColor: 'rgba(255,255,255,0.15)'
+                      },
+                      '&.Mui-focused': {
+                        borderColor: 'primary.main',
+                        backgroundColor: 'rgba(255,255,255,0.05)'
+                      }
+                    },
+                    '& .MuiOutlinedInput-notchedOutline': {
+                      borderColor: 'rgba(255,255,255,0.1)'
                     }
                   }}
                 />
                 <Button 
                   type="submit" 
+                  variant="contained"
                   size="small"
                   sx={{
-                    minHeight: { xs: 44, md: 40 },
-                    minWidth: { xs: 'auto', sm: 80 },
+                    minHeight: { xs: 40, md: 40 },
+                    minWidth: { xs: 80, sm: 90 },
                     fontSize: { xs: '14px', md: '14px' },
-                    px: { xs: 2, md: 2 }
+                    px: { xs: 2, md: 2.5 },
+                    fontWeight: 600,
+                    borderRadius: 2
                   }}
                 >
                   Gönder
                 </Button>
                 <Button 
                   size="small" 
+                  variant="outlined"
                   onClick={() => { setShowReply(false); setReplyText('') }}
                   sx={{
-                    minHeight: { xs: 44, md: 40 },
-                    minWidth: { xs: 'auto', sm: 70 },
+                    minHeight: { xs: 40, md: 40 },
+                    minWidth: { xs: 70, sm: 80 },
                     fontSize: { xs: '14px', md: '14px' },
-                    px: { xs: 2, md: 2 }
+                    px: { xs: 2, md: 2 },
+                    borderRadius: 2
                   }}
                 >
                   İptal
@@ -365,8 +537,8 @@ export default function PostCard({
             )}
             
             {/* Nested comments */}
-            {comment.comments && comment.comments.length > 0 && (
-              <Box sx={{ mt: 1.5 }}>
+            {comment.comments && comment.comments.length > 0 && depth < MAX_COMMENT_DEPTH && (
+              <Box sx={{ mt: 1.5, overflow: 'visible' }}>
                 {comment.comments.map((nestedComment) => (
                   <CommentItem
                     key={nestedComment.id}
@@ -375,6 +547,14 @@ export default function PostCard({
                     depth={depth + 1}
                   />
                 ))}
+              </Box>
+            )}
+            {/* Depth limit'e ulaşıldığında bilgi mesajı */}
+            {comment.comments && comment.comments.length > 0 && depth >= MAX_COMMENT_DEPTH && (
+              <Box sx={{ mt: 1, pl: 2, py: 1 }}>
+                <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '12px', fontStyle: 'italic' }}>
+                  Daha fazla yanıt görmek için üst seviyedeki yorumu genişletin
+                </Typography>
               </Box>
             )}
           </Box>
@@ -400,47 +580,91 @@ export default function PostCard({
   const userFullName = (u) => [u?.name, u?.surname].filter(Boolean).join(' ') || `Kullanıcı #${u?.userID || ''}`
 
   return (
-    <Box 
-      sx={{ 
-        py: { xs: 2.5, md: 3 }, 
-        px: { xs: 0.5, sm: 0 },
-        borderBottom: '1px solid rgba(255,255,255,0.06)',
-        cursor: (isMobile && !forceOpenComments) ? 'pointer' : 'default'
+    <Paper
+      elevation={0}
+      sx={{
+        p: { xs: 2, md: 2.5 },
+        px: { xs: 2, sm: 3 },
+        borderRadius: 0,
+        borderBottom: '1px solid rgba(255,255,255,0.08)',
+        backgroundColor: 'transparent',
+        cursor: (isMobile && !forceOpenComments) ? 'pointer' : 'default',
+        transition: 'background-color 0.2s ease',
+        '&:hover': {
+          backgroundColor: 'rgba(255,255,255,0.03)'
+        }
       }}
       onClick={handlePostClick}
     >
       <Stack direction="row" spacing={{ xs: 1.5, md: 2 }} alignItems="flex-start">
-        <Avatar aria-hidden sx={{ bgcolor: 'secondary.main', fontWeight: 800, width: { xs: 40, md: 44 }, height: { xs: 40, md: 44 }, fontSize: { xs: 15, md: 17 } }}>
+        <Avatar 
+          aria-hidden 
+          sx={{ 
+            bgcolor: 'secondary.main', 
+            fontWeight: 800, 
+            width: 48, 
+            height: 48, 
+            fontSize: 18,
+            cursor: onAuthorClick && authorId ? 'pointer' : 'default',
+            '&:hover': onAuthorClick && authorId ? { opacity: 0.8 } : {}
+          }}
+          onClick={(e) => {
+            if (authorId && onAuthorClick) {
+              e.stopPropagation()
+              onAuthorClick(authorId)
+            }
+          }}
+        >
           {initialsFrom(author)}
         </Avatar>
 
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          {/* Üst bilgi satırı */}
-          <Stack direction="row" spacing={1} alignItems="baseline" sx={{ mb: 1, minWidth: 0, flexWrap: 'wrap' }}>
+          {/* Üst bilgi satırı - Twitter tarzı */}
+          <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5, minWidth: 0, flexWrap: 'wrap' }}>
             <Typography
-              variant="subtitle1"
-              sx={{ fontWeight: 600, color: 'text.primary', cursor: onAuthorClick && authorId ? 'pointer' : 'default' }}
-              onClick={() => authorId && onAuthorClick?.(authorId)}
+              variant="subtitle2"
+              sx={{ 
+                fontWeight: 700, 
+                color: 'text.primary', 
+                cursor: onAuthorClick && authorId ? 'pointer' : 'default',
+                fontSize: { xs: '15px', md: '15px' },
+                '&:hover': onAuthorClick && authorId ? { textDecoration: 'underline' } : {}
+              }}
+              onClick={(e) => {
+                if (authorId && onAuthorClick) {
+                  e.stopPropagation()
+                  onAuthorClick(authorId)
+                }
+              }}
               title={author}
             >
               {author}
             </Typography>
-            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-              {dt.toLocaleString()}
+            <Typography 
+              variant="caption" 
+              sx={{ 
+                color: 'text.secondary',
+                fontSize: { xs: '13px', md: '15px' }
+              }}
+            >
+              · {dt.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}
             </Typography>
             <Box sx={{ flex: 1 }} />
             {isOwner && !!onDelete && (
               <Button
-                size="small"
+                    size="small"
                 variant="outlined"
                 color="error"
-                onClick={handleDeletePost}
-                disabled={deleting}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleDeletePost()
+                }}
+                    disabled={deleting}
                 startIcon={deleting ? <CircularProgress size={14} /> : <DeleteOutline />}
                 sx={{
                   minWidth: { xs: 70, md: 90 },
-                  minHeight: { xs: 36, md: 36 },
-                  height: { xs: 36, md: 36 },
+                  minHeight: { xs: 32, md: 32 },
+                  height: { xs: 32, md: 32 },
                   fontSize: { xs: '0.7rem', md: '0.75rem' },
                   fontWeight: 600,
                   borderColor: 'rgba(244,67,54,0.5)',
@@ -463,110 +687,201 @@ export default function PostCard({
               size="small"
               label={category}
               variant="outlined"
-              sx={{ mb: 1.5, fontSize: '0.7rem', height: 24 }}
+              sx={{ 
+                mb: 1, 
+                fontSize: '0.7rem', 
+                height: 22,
+                borderColor: 'rgba(255,255,255,0.2)',
+                color: 'text.secondary'
+              }}
             />
           )}
 
-          {/* İçerik */}
+          {/* İçerik - Twitter tarzı */}
           <Typography
             variant="body1"
             sx={{
-              lineHeight: 1.7,
+              lineHeight: 1.5,
               color: 'text.primary',
               wordBreak: 'break-word',
               overflowWrap: 'anywhere',
-              mb: { xs: 1.25, md: 1.5 },
-              fontSize: { xs: '15px', md: '16px' }
+              mb: { xs: 1, md: 1.25 },
+              fontSize: { xs: '15px', md: '15px' },
+              whiteSpace: 'pre-wrap'
             }}
           >
             {content}
           </Typography>
 
-          {/* Aksiyonlar */}
-          <Stack direction="row" spacing={{ xs: 0.5, md: 1 }} sx={{ mt: { xs: 1.25, md: 1.5 } }} alignItems="center" flexWrap="wrap">
-            {/* Yorumlar aç/kapa */}
-            <Tooltip title={openComments ? 'Yorumları gizle' : 'Yorum yap / Yorumları göster'}>
-              <IconButton 
-                size="small" 
-                sx={{ 
-                  color: 'text.secondary', 
-                  width: { xs: 44, md: 44 }, 
-                  height: { xs: 44, md: 44 },
-                  minWidth: { xs: 44, md: 44 },
-                  minHeight: { xs: 44, md: 44 }
-                }} 
-                onClick={toggleComments}
+          {/* Aksiyonlar - Twitter tarzı */}
+          <Stack 
+            direction="row" 
+            spacing={{ xs: 0, md: 0 }} 
+            sx={{ 
+              mt: { xs: 0.75, md: 1 },
+              maxWidth: { xs: '100%', md: '425px' },
+              justifyContent: 'space-between'
+            }} 
+            alignItems="center"
+          >
+            {/* Yorumlar - Twitter tarzı */}
+            <Tooltip title={openComments ? 'Yorumları gizle' : 'Yorumları göster'}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 0.5,
+                  color: openComments ? 'primary.main' : 'text.secondary',
+                  cursor: 'pointer',
+                  borderRadius: '50%',
+                  transition: 'all 0.2s ease',
+                  '&:hover': {
+                    color: 'primary.main',
+                    backgroundColor: 'rgba(52,195,161,0.1)'
+                  }
+                }}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  toggleComments(e)
+                }}
               >
-                <ChatBubbleOutline sx={{ fontSize: { xs: '20px', md: '24px' } }} />
-              </IconButton>
+                <IconButton 
+                  size="small" 
+                  sx={{ 
+                    color: 'inherit',
+                    width: { xs: 36, md: 36 }, 
+                    height: { xs: 36, md: 36 },
+                    minWidth: { xs: 36, md: 36 },
+                    minHeight: { xs: 36, md: 36 },
+                    '&:hover': {
+                      backgroundColor: 'transparent'
+                    }
+                  }}
+                >
+                  <ChatBubbleOutline sx={{ fontSize: { xs: '18px', md: '18px' } }} />
+                </IconButton>
+                <Typography 
+                  variant="caption" 
+                  sx={{ 
+                    color: 'inherit',
+                    fontSize: { xs: '13px', md: '13px' },
+                    minWidth: 'auto'
+                  }}
+                >
+                  {comments.length > 0 ? comments.length : ''}
+                </Typography>
+              </Box>
             </Tooltip>
-            <Typography variant="caption" sx={{ color: 'text.secondary', mr: { xs: 0.5, md: 1 }, fontSize: { xs: '12px', md: '13px' } }}>
-              {comments.length}
-            </Typography>
 
-            {/* Like */}
-            <Tooltip title="Beğen">
+            {/* Like - Twitter tarzı */}
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.5,
+                color: myVote === 1 ? 'primary.main' : 'text.secondary',
+                cursor: 'pointer',
+                borderRadius: '50%',
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  color: 'primary.main',
+                  backgroundColor: 'rgba(52,195,161,0.1)'
+                }
+              }}
+              onClick={(e) => {
+                e.stopPropagation()
+                handleVote(+1, e)
+              }}
+            >
               <IconButton
                 size="small"
                 sx={{ 
-                  color: myVote === 1 ? 'primary.main' : 'text.secondary', 
-                  width: { xs: 44, md: 44 }, 
-                  height: { xs: 44, md: 44 },
-                  minWidth: { xs: 44, md: 44 },
-                  minHeight: { xs: 44, md: 44 }
+                  color: 'inherit',
+                  width: { xs: 36, md: 36 }, 
+                  height: { xs: 36, md: 36 },
+                  minWidth: { xs: 36, md: 36 },
+                  minHeight: { xs: 36, md: 36 },
+                  '&:hover': {
+                    backgroundColor: 'transparent'
+                  }
                 }}
-                onClick={(e) => handleVote(+1, e)}
               >
-                <ThumbUpOffAlt sx={{ fontSize: { xs: '20px', md: '24px' } }} />
+                <ThumbUpOffAlt sx={{ fontSize: { xs: '18px', md: '18px' } }} />
               </IconButton>
-            </Tooltip>
-            <Typography 
-              variant="caption" 
-              sx={{ 
-                color: 'text.secondary', 
-                cursor: likes > 0 ? 'pointer' : 'default',
-                fontSize: { xs: '12px', md: '13px' },
-                minHeight: { xs: 44, md: 'auto' },
+              <Typography 
+                variant="caption" 
+                sx={{ 
+                  color: 'inherit',
+                  cursor: likes > 0 ? 'pointer' : 'default',
+                  fontSize: { xs: '13px', md: '13px' },
+                  minWidth: 'auto',
+                  '&:hover': likes > 0 ? { textDecoration: 'underline' } : {}
+                }}
+                onClick={(e) => {
+                  if (likes > 0) {
+                    e.stopPropagation()
+                    setShowLikedDialog(true)
+                  }
+                }}
+              >
+                {likes > 0 ? likes : ''}
+            </Typography>
+            </Box>
+
+            {/* Dislike - Twitter tarzı */}
+            <Box
+              sx={{
                 display: 'flex',
                 alignItems: 'center',
-                '&:hover': likes > 0 ? { textDecoration: 'underline' } : {}
+                gap: 0.5,
+                color: myVote === -1 ? 'error.main' : 'text.secondary',
+                cursor: 'pointer',
+                borderRadius: '50%',
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  color: 'error.main',
+                  backgroundColor: 'rgba(244,67,54,0.1)'
+                }
               }}
-              onClick={() => likes > 0 && setShowLikedDialog(true)}
+              onClick={(e) => {
+                e.stopPropagation()
+                handleVote(-1, e)
+              }}
             >
-              {likes}
-            </Typography>
-
-            {/* Dislike */}
-            <Tooltip title="Beğenme">
               <IconButton
                 size="small"
                 sx={{ 
-                  color: myVote === -1 ? 'primary.main' : 'text.secondary', 
-                  width: { xs: 44, md: 44 }, 
-                  height: { xs: 44, md: 44 },
-                  minWidth: { xs: 44, md: 44 },
-                  minHeight: { xs: 44, md: 44 }
+                  color: 'inherit',
+                  width: { xs: 36, md: 36 }, 
+                  height: { xs: 36, md: 36 },
+                  minWidth: { xs: 36, md: 36 },
+                  minHeight: { xs: 36, md: 36 },
+                  '&:hover': {
+                    backgroundColor: 'transparent'
+                  }
                 }}
-                onClick={(e) => handleVote(-1, e)}
               >
-                <ThumbDownOffAlt sx={{ fontSize: { xs: '20px', md: '24px' } }} />
+                <ThumbDownOffAlt sx={{ fontSize: { xs: '18px', md: '18px' } }} />
               </IconButton>
-            </Tooltip>
-            <Typography 
-              variant="caption" 
-              sx={{ 
-                color: 'text.secondary',
-                cursor: dislikes > 0 ? 'pointer' : 'default',
-                fontSize: { xs: '12px', md: '13px' },
-                minHeight: { xs: 44, md: 'auto' },
-                display: 'flex',
-                alignItems: 'center',
-                '&:hover': dislikes > 0 ? { textDecoration: 'underline' } : {}
-              }}
-              onClick={() => dislikes > 0 && setShowDislikedDialog(true)}
-            >
-              {dislikes}
+              <Typography 
+                variant="caption" 
+                sx={{ 
+                  color: 'inherit',
+                  cursor: dislikes > 0 ? 'pointer' : 'default',
+                  fontSize: { xs: '13px', md: '13px' },
+                  minWidth: 'auto',
+                  '&:hover': dislikes > 0 ? { textDecoration: 'underline' } : {}
+                }}
+                onClick={(e) => {
+                  if (dislikes > 0) {
+                    e.stopPropagation()
+                    setShowDislikedDialog(true)
+                  }
+                }}
+              >
+                {dislikes > 0 ? dislikes : ''}
             </Typography>
+            </Box>
           </Stack>
 
           {/* Beğenen Kişiler Dialog */}
@@ -829,45 +1144,76 @@ export default function PostCard({
             </DialogContent>
           </Dialog>
 
-          {/* Yorumlar Paneli */}
+          {/* Yorumlar Paneli - Twitter tarzı */}
           {openComments && (
-            <Box sx={{ mt: 2.5, maxHeight: { xs: 'none', md: 'none' }, overflow: 'visible' }}>
-              {/* Yorum yaz */}
-              <Box component="form" onSubmit={handleAdd} sx={{ display: 'flex', gap: { xs: 0.75, md: 1 }, mb: 2, flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
+            <Box sx={{ mt: 2, overflow: 'visible', width: '100%' }}>
+              {/* Yorum yaz - Twitter tarzı */}
+              <Box 
+                component="form" 
+                onSubmit={handleAdd} 
+                sx={{ 
+                  display: 'flex', 
+                  gap: 1, 
+                  mb: 2, 
+                  flexWrap: { xs: 'wrap', sm: 'nowrap' },
+                  pt: 1,
+                  borderTop: '1px solid rgba(255,255,255,0.08)'
+                }}
+              >
                 <TextField
                   fullWidth
                   placeholder="Yorum yaz…"
                   value={commentText}
                   onChange={(e) => setCommentText(e.target.value)}
                   size="small"
+                  variant="outlined"
                   sx={{
                     '& .MuiInputBase-root': {
-                      fontSize: { xs: '16px', md: '15px' },
-                      minHeight: { xs: 44, md: 40 }
+                      fontSize: { xs: '15px', md: '15px' },
+                      minHeight: { xs: 40, md: 40 },
+                      backgroundColor: 'rgba(255,255,255,0.03)',
+                      borderColor: 'rgba(255,255,255,0.1)',
+                      '&:hover': {
+                        borderColor: 'rgba(255,255,255,0.15)'
+                      },
+                      '&.Mui-focused': {
+                        borderColor: 'primary.main',
+                        backgroundColor: 'rgba(255,255,255,0.05)'
+                      }
+                    },
+                    '& .MuiOutlinedInput-notchedOutline': {
+                      borderColor: 'rgba(255,255,255,0.1)'
                     }
                   }}
                 />
                 <Button 
                   type="submit" 
+                  variant="contained"
                   size="small" 
                   sx={{ 
-                    minHeight: { xs: 44, md: 40 }, 
-                    minWidth: { xs: 'auto', sm: 72 },
+                    minHeight: { xs: 40, md: 40 }, 
+                    minWidth: { xs: 80, sm: 90 },
                     fontSize: { xs: '14px', md: '14px' },
-                    px: { xs: 2, md: 2 }
+                    px: { xs: 2, md: 2.5 },
+                    fontWeight: 600,
+                    borderRadius: 2
                   }}
                 >
                   Gönder
                 </Button>
               </Box>
 
-              {/* Yorum listesi */}
-              <Box sx={{ maxHeight: { xs: 'calc(100vh - 400px)', md: 'none' }, overflowY: { xs: 'auto', md: 'visible' }, pr: { xs: 0.5, md: 0 } }}>
+              {/* Yorum listesi - Twitter tarzı */}
+              <Box sx={{ 
+                pr: { xs: 0.5, md: 0 },
+                // Max-height kaldırıldı - tüm yorumlar görünsün
+                overflow: 'visible'
+              }}>
                 {comments.length === 0 ? (
                   <Box 
                     sx={{ 
                       textAlign: 'center', 
-                      py: 3,
+                      py: 4,
                       px: 2,
                       borderRadius: 2,
                       backgroundColor: 'rgba(255,255,255,0.02)',
@@ -888,22 +1234,22 @@ export default function PostCard({
                         filter: 'drop-shadow(0 4px 12px rgba(52,195,161,0.15))'
                       }}
                     />
-                    <Typography variant="body2" sx={{ color: 'text.secondary', opacity: 0.9 }}>
-                      İlk yorumu sen yaz.
-                    </Typography>
+                    <Typography variant="body2" sx={{ color: 'text.secondary', opacity: 0.9, fontSize: '14px' }}>
+                    İlk yorumu sen yaz.
+                  </Typography>
                   </Box>
                 ) : (
-                  <Stack spacing={2}>
+                  <Stack spacing={0}>
                     {comments.map((c) => (
                       <CommentItem key={c.id} comment={c} postId={id} depth={0} />
                     ))}
-                  </Stack>
+                        </Stack>
                 )}
               </Box>
             </Box>
           )}
         </Box>
       </Stack>
-    </Box>
+    </Paper>
   )
 }

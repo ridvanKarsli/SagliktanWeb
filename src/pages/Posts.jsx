@@ -715,19 +715,19 @@ export default function Posts() {
   const sorted = useMemo(() => [...posts].sort((a, b) => b.timestamp - a.timestamp), [posts])
 
   return (
-    <Container maxWidth="sm" sx={{ py: { xs: 1.5, md: 4 }, px: { xs: 1, sm: 2 } }}>
-      {/* Header */}
-      <Stack spacing={1} sx={{ mb: { xs: 2, md: 3 } }}>
+    <Container maxWidth="md" sx={{ py: { xs: 0, md: 0 }, px: { xs: 0, sm: 0 }, maxWidth: { xs: '100%', sm: '600px', md: '600px' } }}>
+      {/* Header - Twitter tarzı */}
+      <Stack spacing={1} sx={{ mb: { xs: 2, md: 2 }, px: { xs: 2, sm: 3 }, pt: { xs: 2, md: 2 }, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
         <Typography
           variant="h5"
-          sx={{ fontWeight: 700, fontSize: { xs: 20, sm: 24, md: 28 } }}
+          sx={{ fontWeight: 700, fontSize: { xs: 20, sm: 20, md: 20 } }}
         >
           Topluluk Akışı
         </Typography>
       </Stack>
 
-      {/* Kategori filtresi */}
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: 1.5, sm: 1.5 }} sx={{ mb: { xs: 2, md: 3 } }}>
+      {/* Kategori filtresi - Twitter tarzı */}
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: 1.5, sm: 1.5 }} sx={{ mb: { xs: 0, md: 0 }, px: { xs: 2, sm: 3 }, py: { xs: 1.5, md: 1.5 }, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
         <Autocomplete
           fullWidth
           options={categories}
@@ -790,7 +790,7 @@ export default function Posts() {
           </Stack>
         </Box>
       ) : (
-        <Stack spacing={0}>
+        <Box sx={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
           {sorted.map(p => (
             <PostCard
               key={p.id}
@@ -808,10 +808,7 @@ export default function Posts() {
               sx={{ 
                 textAlign: 'center', 
                 py: { xs: 8, md: 10 },
-                px: 3,
-                borderRadius: 3,
-                backgroundColor: 'rgba(255,255,255,0.03)',
-                border: '1px solid rgba(255,255,255,0.08)'
+                px: { xs: 2, sm: 3 }
               }}
             >
               <Box
@@ -828,15 +825,15 @@ export default function Posts() {
                   filter: 'drop-shadow(0 8px 24px rgba(52,195,161,0.25))'
                 }}
               />
-              <Typography variant="h5" sx={{ color: 'text.primary', mb: 1, fontWeight: 700 }}>
+              <Typography variant="h5" sx={{ color: 'text.primary', mb: 1, fontWeight: 700, fontSize: { xs: '20px', md: '24px' } }}>
                 Henüz mesaj yok
               </Typography>
-              <Typography variant="body1" sx={{ color: 'text.secondary', opacity: 0.9 }}>
+              <Typography variant="body1" sx={{ color: 'text.secondary', opacity: 0.9, fontSize: { xs: '14px', md: '16px' } }}>
                 İlk gönderiyi sen yap ve topluluğa katıl!
               </Typography>
             </Box>
           )}
-        </Stack>
+        </Box>
       )}
 
       {/* Composer FAB */}

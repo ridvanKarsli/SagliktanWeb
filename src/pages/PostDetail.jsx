@@ -140,6 +140,76 @@ export default function PostDetail() {
   const [error, setError] = useState('')
   const [idToName, setIdToName] = useState(new Map())
 
+  // Helper function: Extract all user IDs from post data (including liked/disliked users)
+  const extractAllUserIds = (postData) => {
+    const userIds = new Set()
+    if (postData?.userID) userIds.add(postData.userID)
+    
+    // Post'un liked/disliked users
+    if (Array.isArray(postData.likedUser)) {
+      postData.likedUser.forEach(u => {
+        if (u?.userID) userIds.add(u.userID)
+      })
+    }
+    if (Array.isArray(postData.dislikedUser)) {
+      postData.dislikedUser.forEach(u => {
+        if (u?.userID) userIds.add(u.userID)
+      })
+    }
+    
+    const extractFromComments = (comments) => {
+      if (!Array.isArray(comments)) return
+      comments.forEach(comment => {
+        if (comment?.userID) userIds.add(comment.userID)
+        if (Array.isArray(comment.likedUser)) {
+          comment.likedUser.forEach(u => {
+            if (u?.userID) userIds.add(u.userID)
+          })
+        }
+        if (Array.isArray(comment.dislikedUser)) {
+          comment.dislikedUser.forEach(u => {
+            if (u?.userID) userIds.add(u.userID)
+          })
+        }
+        if (Array.isArray(comment.comments)) extractFromComments(comment.comments)
+      })
+    }
+    if (Array.isArray(postData.comments)) extractFromComments(postData.comments)
+    
+    return userIds
+  }
+
+  // Helper function: Load user names for user IDs and update idToName map
+  const loadUserNames = async (userIds, currentNameMap) => {
+    const updatedNameMap = new Map(currentNameMap)
+    await Promise.all(
+      Array.from(userIds).map(async (uid) => {
+        if (!updatedNameMap.has(uid)) {
+          try {
+            const userData = await getUserByID(token, uid)
+            if (userData?.name || userData?.surname) {
+              updatedNameMap.set(uid, [userData.name, userData.surname].filter(Boolean).join(' '))
+            }
+          } catch (e) {
+            console.error(`Failed to fetch user ${uid}:`, e)
+          }
+        }
+      })
+    )
+    return updatedNameMap
+  }
+
+  // Helper function: Reload post with updated user names
+  const reloadPostWithUserNames = async (postId) => {
+    const updated = await getPostWithId(token, postId)
+    const userIds = extractAllUserIds(updated)
+    const updatedNameMap = await loadUserNames(userIds, idToName)
+    setIdToName(updatedNameMap)
+    const updatedModel = toPostModel(updated, user?.userID, updatedNameMap)
+    setPost(updatedModel)
+    return updatedModel
+  }
+
   // Load post data
   useEffect(() => {
     if (!postID || !token) return
@@ -152,34 +222,9 @@ export default function PostDetail() {
       .then(async (data) => {
         if (!mounted) return
         
-        // Build author name map
-        const userIds = new Set()
-        if (data?.userID) userIds.add(data.userID)
-        
-        const extractUserIds = (comments) => {
-          if (!Array.isArray(comments)) return
-          comments.forEach(comment => {
-            if (comment?.userID) userIds.add(comment.userID)
-            if (Array.isArray(comment.comments)) extractUserIds(comment.comments)
-          })
-        }
-        if (Array.isArray(data.comments)) extractUserIds(data.comments)
-        
-        // Fetch user names
-        const nameMap = new Map()
-        await Promise.all(
-          Array.from(userIds).map(async (uid) => {
-            try {
-              const userData = await getUserByID(token, uid)
-              if (userData?.name || userData?.surname) {
-                nameMap.set(uid, [userData.name, userData.surname].filter(Boolean).join(' '))
-              }
-            } catch (e) {
-              console.error(`Failed to fetch user ${uid}:`, e)
-            }
-          })
-        )
-        
+        // Build author name map - liked/disliked users dahil
+        const userIds = extractAllUserIds(data)
+        const nameMap = await loadUserNames(userIds, new Map())
         setIdToName(nameMap)
         const postModel = toPostModel(data, user?.userID, nameMap)
         setPost(postModel)
@@ -198,36 +243,89 @@ export default function PostDetail() {
   // Vote handlers
   const handleVote = async (postId, delta) => {
     if (!token || !post) return
+    
     const numericId = post.postID
-    const prevVote = post.myVote
-    const prevLikes = post.likes
-    const prevDislikes = post.dislikes
+    const currentUserId = user?.userID ?? user?.userId
+    if (!currentUserId) return
+
+    // Reaction ID'leri state'teki likedUsers/dislikedUsers array'lerinden al
+    const likedEntry = post.likedUsers?.find(u => Number(u.userID) === Number(currentUserId))
+    const dislikedEntry = post.dislikedUsers?.find(u => Number(u.userID) === Number(currentUserId))
+    const likeReactionID = likedEntry?.chatReactionsID ?? likedEntry?.postReactionID ?? likedEntry?.reactionID ?? likedEntry?.id
+    const dislikeReactionID = dislikedEntry?.chatReactionsID ?? dislikedEntry?.postReactionID ?? dislikedEntry?.reactionID ?? dislikedEntry?.id
+
+    const prevVote = post.myVote || 0
+    const prevLikes = post.likes || 0
+    const prevDislikes = post.dislikes || 0
 
     // Optimistic update
+    let newVote = prevVote
+    let newLikes = prevLikes
+    let newDislikes = prevDislikes
+
+    if (prevVote === delta) {
+      // İptal et
+      if (delta === 1) newLikes -= 1
+      if (delta === -1) newDislikes -= 1
+      newVote = 0
+    } else {
+      // Yeni oy ver veya değiştir
+      if (delta === 1) {
+        newLikes += 1
+        if (prevVote === -1) newDislikes -= 1
+      } else {
+        newDislikes += 1
+        if (prevVote === 1) newLikes -= 1
+      }
+      newVote = delta
+    }
+
     setPost(p => ({
       ...p,
-      myVote: delta === 1 ? 1 : -1,
-      likes: delta === 1 ? p.likes + (prevVote === 1 ? 0 : 1) - (prevVote === -1 ? 1 : 0) : p.likes - (prevVote === 1 ? 1 : 0),
-      dislikes: delta === -1 ? p.dislikes + (prevVote === -1 ? 0 : 1) - (prevVote === 1 ? 1 : 0) : p.dislikes - (prevVote === -1 ? 1 : 0)
+      myVote: newVote,
+      likes: newLikes,
+      dislikes: newDislikes
     }))
 
     try {
       if (prevVote === delta) {
-        // Cancel
-        if (delta === 1) await cancelLikeChatReaction(token, numericId)
-        else await cancelDislikeChatReaction(token, numericId)
+        // Aynı oya tekrar basıldı - İptal et
+        if (delta === 1) {
+          if (!likeReactionID) {
+            throw new Error('Like reaction ID bulunamadı. Lütfen sayfayı yenileyin.')
+          }
+          await cancelLikeChatReaction(token, numericId, currentUserId, likeReactionID)
+        } else {
+          if (!dislikeReactionID) {
+            throw new Error('Dislike reaction ID bulunamadı. Lütfen sayfayı yenileyin.')
+          }
+          await cancelDislikeChatReaction(token, numericId, currentUserId, dislikeReactionID)
+        }
+      } else if (prevVote === 1 && delta === -1) {
+        // Like varken dislike basıldı - Önce like'ı iptal et, sonra dislike ekle
+        if (!likeReactionID) {
+          throw new Error('Like reaction ID bulunamadı. Lütfen sayfayı yenileyin.')
+        }
+        await cancelLikeChatReaction(token, numericId, currentUserId, likeReactionID)
+        await dislikeChatReaction(token, numericId)
+      } else if (prevVote === -1 && delta === 1) {
+        // Dislike varken like basıldı - Önce dislike'ı iptal et, sonra like ekle
+        if (!dislikeReactionID) {
+          throw new Error('Dislike reaction ID bulunamadı. Lütfen sayfayı yenileyin.')
+        }
+        await cancelDislikeChatReaction(token, numericId, currentUserId, dislikeReactionID)
+        await likeChatReaction(token, numericId)
       } else {
-        // Switch or new
-        if (prevVote === -1) await cancelDislikeChatReaction(token, numericId)
-        if (prevVote === 1) await cancelLikeChatReaction(token, numericId)
-        if (delta === 1) await likeChatReaction(token, numericId)
-        else await dislikeChatReaction(token, numericId)
+        // Yeni oy ver (prevVote === 0)
+        if (delta === 1) {
+          await likeChatReaction(token, numericId)
+        } else if (delta === -1) {
+          await dislikeChatReaction(token, numericId)
+        }
       }
       
-      // Reload post to get accurate state
-      const updated = await getPostWithId(token, numericId)
-      const updatedModel = toPostModel(updated, user?.userID, idToName)
-      setPost(updatedModel)
+      // API başarılı - Reload post to get accurate state
+      await reloadPostWithUserNames(numericId)
     } catch (err) {
       // Rollback
       setPost(p => ({
@@ -243,6 +341,9 @@ export default function PostDetail() {
   const handleCommentVote = async (postId, commentId, delta) => {
     if (!token || !post) return
     
+    const currentUserId = user?.userID ?? user?.userId
+    if (!currentUserId) return
+    
     const findComment = (comments, targetId) => {
       for (const comment of comments) {
         if (comment.id === targetId) return comment
@@ -257,20 +358,59 @@ export default function PostDetail() {
     const comment = findComment(post.comments, commentId)
     if (!comment) return
     
+    // Reaction ID'leri state'teki likedUsers/dislikedUsers array'lerinden al
+    const likedEntry = comment.likedUsers?.find(u => Number(u.userID) === Number(currentUserId))
+    const dislikedEntry = comment.dislikedUsers?.find(u => Number(u.userID) === Number(currentUserId))
+    const likeReactionId = likedEntry?.chatReactionsID ?? likedEntry?.postReactionID ?? likedEntry?.reactionID ?? likedEntry?.id
+    const dislikeReactionId = dislikedEntry?.chatReactionsID ?? dislikedEntry?.postReactionID ?? dislikedEntry?.reactionID ?? dislikedEntry?.id
+    
     const numericCommentId = comment.postID
-    const prevVote = comment.myVote
-    const prevLikes = comment.likes
-    const prevDislikes = comment.dislikes
+    const prevVote = comment.myVote || 0
+    const prevLikes = comment.likes || 0
+    const prevDislikes = comment.dislikes || 0
+
+    // İptal işlemleri için reaction ID kontrolü
+    if (prevVote === delta) {
+      if (delta === 1 && !likeReactionId) {
+        alert('Like reaction ID bulunamadı. Lütfen sayfayı yenileyin.')
+        return
+      }
+      if (delta === -1 && !dislikeReactionId) {
+        alert('Dislike reaction ID bulunamadı. Lütfen sayfayı yenileyin.')
+        return
+      }
+    }
 
     // Optimistic update
     const updateComment = (comments) => {
       return comments.map(c => {
         if (c.id === commentId) {
+          let newVote = prevVote
+          let newLikes = prevLikes
+          let newDislikes = prevDislikes
+
+          if (prevVote === delta) {
+            // İptal et
+            if (delta === 1) newLikes -= 1
+            if (delta === -1) newDislikes -= 1
+            newVote = 0
+          } else {
+            // Yeni oy ver veya değiştir
+            if (delta === 1) {
+              newLikes += 1
+              if (prevVote === -1) newDislikes -= 1
+            } else {
+              newDislikes += 1
+              if (prevVote === 1) newLikes -= 1
+            }
+            newVote = delta
+          }
+          
           return {
             ...c,
-            myVote: delta === 1 ? 1 : -1,
-            likes: delta === 1 ? c.likes + (prevVote === 1 ? 0 : 1) - (prevVote === -1 ? 1 : 0) : c.likes - (prevVote === 1 ? 1 : 0),
-            dislikes: delta === -1 ? c.dislikes + (prevVote === -1 ? 0 : 1) - (prevVote === 1 ? 1 : 0) : c.dislikes - (prevVote === -1 ? 1 : 0)
+            myVote: newVote,
+            likes: newLikes,
+            dislikes: newDislikes
           }
         }
         if (c.comments?.length) {
@@ -284,19 +424,31 @@ export default function PostDetail() {
 
     try {
       if (prevVote === delta) {
-        if (delta === 1) await cancelLikeCommentReaction(token, numericCommentId)
-        else await cancelDislikeCommentReaction(token, numericCommentId)
+        // Aynı oya tekrar basıldı - İptal et
+        if (delta === 1) {
+          await cancelLikeCommentReaction(token, numericCommentId, currentUserId, likeReactionId)
+        } else {
+          await cancelDislikeCommentReaction(token, numericCommentId, currentUserId, dislikeReactionId)
+        }
+      } else if (prevVote === 1 && delta === -1) {
+        // Like varken dislike basıldı - Önce like'ı iptal et, sonra dislike ekle
+        await cancelLikeCommentReaction(token, numericCommentId, currentUserId, likeReactionId)
+        await dislikeCommentReaction(token, numericCommentId)
+      } else if (prevVote === -1 && delta === 1) {
+        // Dislike varken like basıldı - Önce dislike'ı iptal et, sonra like ekle
+        await cancelDislikeCommentReaction(token, numericCommentId, currentUserId, dislikeReactionId)
+        await likeCommentReaction(token, numericCommentId)
       } else {
-        if (prevVote === -1) await cancelDislikeCommentReaction(token, numericCommentId)
-        if (prevVote === 1) await cancelLikeCommentReaction(token, numericCommentId)
-        if (delta === 1) await likeCommentReaction(token, numericCommentId)
-        else await dislikeCommentReaction(token, numericCommentId)
+        // Yeni oy ver (prevVote === 0)
+        if (delta === 1) {
+          await likeCommentReaction(token, numericCommentId)
+        } else if (delta === -1) {
+          await dislikeCommentReaction(token, numericCommentId)
+        }
       }
       
       // Reload post
-      const updated = await getPostWithId(token, post.postID)
-      const updatedModel = toPostModel(updated, user?.userID, idToName)
-      setPost(updatedModel)
+      await reloadPostWithUserNames(post.postID)
     } catch (err) {
       // Rollback - restore original state
       const rollbackComment = (comments) => {
@@ -330,9 +482,7 @@ export default function PostDetail() {
       await addComment(token, parentID, text, post.category || null, user?.userID)
       
       // Reload post after adding comment
-      const updated = await getPostWithId(token, post.postID)
-      const updatedModel = toPostModel(updated, user?.userID, idToName)
-      setPost(updatedModel)
+      await reloadPostWithUserNames(post.postID)
     } catch (err) {
       alert(err?.message || 'Yorum eklenirken bir hata oluştu.')
     }
@@ -348,9 +498,7 @@ export default function PostDetail() {
     if (!token || !post) return
     // Reload post after deleting comment
     try {
-      const updated = await getPostWithId(token, post.postID)
-      const updatedModel = toPostModel(updated, user?.userID, idToName)
-      setPost(updatedModel)
+      await reloadPostWithUserNames(post.postID)
     } catch (err) {
       console.error('Failed to reload post:', err)
     }
