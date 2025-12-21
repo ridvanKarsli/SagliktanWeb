@@ -241,11 +241,11 @@ export default function Search() {
       <Paper
         elevation={0}
         sx={{
-          p: { xs: 1.5, sm: 2 },
+          p: { xs: 1.25, sm: 2 },
           borderRadius: 2,
           backgroundColor: 'rgba(255,255,255,0.03)',
           border: '1px solid rgba(255,255,255,0.08)',
-          mb: 1.5,
+          mb: 1.25,
           transition: 'all 0.2s ease',
           '&:hover': {
             backgroundColor: 'rgba(255,255,255,0.05)',
@@ -264,9 +264,9 @@ export default function Search() {
               sx={{ 
                 bgcolor: 'secondary.main', 
                 fontWeight: 800, 
-                width: { xs: 48, sm: 52 }, 
-                height: { xs: 48, sm: 52 },
-                fontSize: { xs: 16, sm: 18 }
+                width: { xs: 44, sm: 52 }, 
+                height: { xs: 44, sm: 52 },
+                fontSize: { xs: 15, sm: 18 }
               }}
               aria-label={`${nameFull} avatarı`}
             >
@@ -319,10 +319,10 @@ export default function Search() {
   }
 
   return (
-    <Box sx={{ py: { xs: 1.5, md: 3 }, px: { xs: 0.5, sm: 0 } }}>
+    <Box sx={{ py: { xs: 1, md: 0 }, px: { xs: 0, sm: 0 } }}>
       {/* Başlık ve Sekmeler */}
-      <Stack spacing={{ xs: 2, md: 2.5 }} sx={{ mb: { xs: 3, md: 4 } }}>
-        <Typography variant="h5" sx={{ fontWeight: 700, fontSize: { xs: 20, sm: 24, md: 28 } }}>
+      <Stack spacing={{ xs: 1.5, md: 2.5 }} sx={{ mb: { xs: 2, md: 4 }, px: { xs: 1.5, md: 3 }, pt: { xs: 1.5, md: 3 }, borderBottom: { md: '1px solid rgba(255,255,255,0.08)' } }}>
+        <Typography variant="h5" sx={{ fontWeight: 700, fontSize: { xs: 18, sm: 24, md: 28 } }}>
           Kişi Ara
         </Typography>
         
@@ -373,7 +373,7 @@ export default function Search() {
         </Box>
       </Stack>
 
-      {error && <Alert severity="error" variant="filled" sx={{ mb: 1 }}>{error}</Alert>}
+      {error && <Alert severity="error" variant="filled" sx={{ mb: 1, mx: { xs: 1.5, md: 3 } }}>{error}</Alert>}
       {loading && (
         <Box sx={{ display: 'grid', placeItems: 'center', py: 3 }}>
           <CircularProgress size={22} />
@@ -381,7 +381,7 @@ export default function Search() {
       )}
 
       {!loading && !error && (
-        <>
+        <Box sx={{ px: { xs: 1.5, md: 3 } }}>
           {q.trim() ? (
             <Stack spacing={2}>
               <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500 }}>
@@ -428,7 +428,7 @@ export default function Search() {
               )}
             </Stack>
           ) : (
-            <Stack spacing={4}>
+            <Stack spacing={4} sx={{ pt: 2 }}>
               {/* Son Arananlar */}
               <Box>
                 <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
@@ -491,7 +491,7 @@ export default function Search() {
               </Box>
             </Stack>
           )}
-        </>
+        </Box>
       )}
     </Box>
   )

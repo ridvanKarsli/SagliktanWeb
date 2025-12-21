@@ -38,18 +38,16 @@ export default function AIChat() {
   }
 
   return (
-    <Box sx={{ py: { xs: 1.5, md: 3 }, px: { xs: 0.5, sm: 0 } }}>
+    <Box sx={{ py: { xs: 1, md: 0 }, px: { xs: 0, sm: 0 }, height: '100%', display: 'flex', flexDirection: 'column' }}>
       <Stack 
         direction="row" 
-        spacing={{ xs: 1.5, md: 2 }} 
+        spacing={{ xs: 1.25, md: 2 }} 
         alignItems="center" 
         sx={{ 
-          mb: { xs: 2.5, md: 4 },
-          p: { xs: 1.5, md: 2.5 },
-          borderRadius: { xs: 2, md: 3 },
-          backgroundColor: 'rgba(255,255,255,0.04)',
-          border: '1px solid rgba(255,255,255,0.1)',
-          backdropFilter: 'blur(8px)'
+          mb: { xs: 2, md: 3 },
+          p: { xs: 1.25, md: 2.5 },
+          px: { xs: 1.5, md: 3 },
+          borderBottom: { md: '1px solid rgba(255,255,255,0.08)' }
         }}
       >
         <Box
@@ -75,12 +73,12 @@ export default function AIChat() {
         </Box>
       </Stack>
 
-      <Stack spacing={{ xs: 1.25, md: 1.5 }} sx={{ minHeight: { xs: 300, md: 360 } }}>
+      <Stack spacing={{ xs: 1.25, md: 1.5 }} sx={{ minHeight: { xs: 300, md: 360 }, flex: 1, px: { xs: 1.5, md: 3 } }}>
         <Box sx={{
           display: 'flex',
           flexDirection: 'column',
           gap: { xs: 1, md: 0.75 },
-          maxHeight: { xs: 'calc(100vh - 280px)', md: 480 },
+          maxHeight: { xs: 'calc(100vh - 280px)', md: 'calc(100vh - 200px)' },
           overflowY: 'auto',
           pr: { xs: 0.25, md: 0.5 }
         }}>
@@ -146,7 +144,18 @@ export default function AIChat() {
           )}
         </Box>
 
-        <Box component="form" onSubmit={send} sx={{ display: 'flex', gap: { xs: 0.75, md: 1 }, pt: { xs: 0.75, md: 1 } }}>
+        <Box 
+          component="form" 
+          onSubmit={send} 
+          sx={{ 
+            display: 'flex', 
+            gap: { xs: 0.75, md: 1 }, 
+            pt: { xs: 0.75, md: 1 },
+            px: { xs: 2, md: 3 },
+            pb: { xs: 2, md: 3 },
+            borderTop: { md: '1px solid rgba(255,255,255,0.08)' }
+          }}
+        >
           <TextField
             fullWidth
             placeholder="Mesaj yaz…"

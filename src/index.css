@@ -8,10 +8,7 @@ html, body, #root {
 }
 
 body {
-  background:
-    radial-gradient(1200px 800px at 85% -10%, rgba(52,195,161,0.16), transparent 60%),
-    radial-gradient(900px 600px at -10% 15%, rgba(27,122,133,0.16), transparent 55%),
-    #0B3A4E;
+  background: #000000; /* Twitter dark mode */
   margin: 0;
   position: relative;
 }

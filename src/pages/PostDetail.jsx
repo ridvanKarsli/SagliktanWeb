@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
-  Box, Container, Stack, Typography, CircularProgress, Alert, IconButton,
+  Box, Stack, Typography, CircularProgress, Alert, IconButton,
   useMediaQuery
 } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
@@ -510,50 +510,51 @@ export default function PostDetail() {
 
   if (loading) {
     return (
-      <Container maxWidth="sm" sx={{ py: { xs: 2, md: 4 }, px: { xs: 1, sm: 2 } }}>
+      <Box sx={{ py: { xs: 2, md: 0 }, px: { xs: 0, sm: 0 } }}>
         <Box sx={{ display: 'grid', placeItems: 'center', minHeight: 300, py: 4 }}>
           <CircularProgress size={32} />
         </Box>
-      </Container>
+      </Box>
     )
   }
 
   if (error) {
     return (
-      <Container maxWidth="sm" sx={{ py: { xs: 2, md: 4 }, px: { xs: 1, sm: 2 } }}>
+      <Box sx={{ py: { xs: 2, md: 0 }, px: { xs: 2, md: 3 } }}>
         <Stack spacing={2}>
           <IconButton onClick={() => navigate('/posts')} sx={{ alignSelf: 'flex-start' }}>
             <ArrowBack />
           </IconButton>
           <Alert severity="error">{error}</Alert>
         </Stack>
-      </Container>
+      </Box>
     )
   }
 
   if (!post) {
     return (
-      <Container maxWidth="sm" sx={{ py: { xs: 2, md: 4 }, px: { xs: 1, sm: 2 } }}>
+      <Box sx={{ py: { xs: 2, md: 0 }, px: { xs: 2, md: 3 } }}>
         <Stack spacing={2}>
           <IconButton onClick={() => navigate('/posts')} sx={{ alignSelf: 'flex-start' }}>
             <ArrowBack />
           </IconButton>
           <Alert severity="info">Post bulunamadı.</Alert>
         </Stack>
-      </Container>
+      </Box>
     )
   }
 
   const isOwner = user?.userID === post.authorId
 
   return (
-    <Container maxWidth="sm" sx={{ py: { xs: 1.5, md: 4 }, px: { xs: 1, sm: 2 } }}>
+    <Box sx={{ py: { xs: 1.5, md: 0 }, px: { xs: 0, sm: 0 } }}>
       {/* Back button - only on mobile */}
       {isMobile && (
         <IconButton 
           onClick={() => navigate('/posts')} 
           sx={{ 
             mb: 2,
+            ml: 2,
             width: { xs: 44, md: 40 },
             height: { xs: 44, md: 40 }
           }}
@@ -577,7 +578,7 @@ export default function PostDetail() {
         onAuthorClick={handleAuthorClick}
         forceOpenComments={true}
       />
-    </Container>
+    </Box>
   )
 }
 

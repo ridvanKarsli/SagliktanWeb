@@ -18,8 +18,8 @@ import MenuItem from '@mui/material/MenuItem';
 import { useState } from 'react';
 import AnimatedLogo from './AnimatedLogo.jsx';
 
-const railWidth = 84
-const MOBILE_NAV_HEIGHT = 72 // px
+const railWidth = 275 // Twitter tarzı geniş sidebar
+const MOBILE_NAV_HEIGHT = 60 // px - Twitter mobil gibi daha kompakt
 
 const navItems = [
   { label: 'Gönderiler', icon: <Home />, to: '/posts', header: 'Topluluk Akışı' },
@@ -53,7 +53,7 @@ export default function ResponsiveShell({ children }) {
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh' }}>
-      {/* Nav Rail (md+) */}
+      {/* Sol Sidebar - Twitter tarzı (md+) */}
       {isMdUp && (
         <Drawer
           variant="permanent"
@@ -63,185 +63,245 @@ export default function ResponsiveShell({ children }) {
             '& .MuiDrawer-paper': {
               width: railWidth,
               boxSizing: 'border-box',
-              backgroundColor: 'transparent',
-              borderRight: '1px solid rgba(255,255,255,0.10)',
-              backdropFilter: 'blur(4px)'
+              backgroundColor: 'rgba(0,0,0,0.65)',
+              borderRight: '1px solid rgba(255,255,255,0.08)',
+              backdropFilter: 'blur(12px)',
+              px: 2
             }
           }}
           open
           aria-label="Ana gezinme"
         >
-          <Toolbar sx={{ justifyContent: 'center', mt: 1 }}>
-            <AnimatedLogo size={40} mobileSize={40} showBorder={true} />
-          </Toolbar>
+          {/* Logo */}
+          <Box sx={{ py: 2, px: 1 }}>
+            <AnimatedLogo size={32} mobileSize={32} showBorder={false} />
+          </Box>
 
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5, mt: 1 }}>
+          {/* Navigation Items - Twitter tarzı */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mt: 1 }}>
             {navItems.map(item => {
               const active = location.pathname.startsWith(item.to)
               return (
-                <Tooltip title={item.label} placement="right" key={item.to}>
-                  <IconButton
-                    onClick={() => navigate(item.to)}
-                    sx={{
-                      color: active ? 'primary.main' : 'rgba(255,255,255,0.85)',
-                      borderRadius: 3,
-                      width: 56, height: 56
+                <Box
+                  key={item.to}
+                  onClick={() => navigate(item.to)}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 3,
+                    px: 3,
+                    py: 1.5,
+                    borderRadius: 3,
+                    cursor: 'pointer',
+                    color: active ? 'text.primary' : 'text.secondary',
+                    backgroundColor: active ? 'rgba(255,255,255,0.08)' : 'transparent',
+                    transition: 'all 0.2s ease',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255,255,255,0.05)',
+                      color: 'text.primary'
+                    }
+                  }}
+                >
+                  <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    minWidth: 24,
+                    '& svg': { fontSize: 26 }
+                  }}>
+                    {item.icon}
+                  </Box>
+                  <Typography 
+                    sx={{ 
+                      fontWeight: active ? 700 : 500,
+                      fontSize: '20px',
+                      lineHeight: 1.2
                     }}
                   >
-                    {item.icon}
-                  </IconButton>
-                </Tooltip>
+                    {item.label}
+                  </Typography>
+                </Box>
               )
             })}
           </Box>
 
           <Box sx={{ flex: 1 }} />
-          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
-            <Tooltip title="Çıkış">
-              <IconButton onClick={logout} sx={{ color: 'rgba(255,255,255,0.9)' }}>
+          
+          {/* Çıkış butonu */}
+          <Box sx={{ px: 3, py: 2 }}>
+            <Box
+              onClick={logout}
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 3,
+                px: 3,
+                py: 1.5,
+                borderRadius: 3,
+                cursor: 'pointer',
+                color: 'text.secondary',
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  backgroundColor: 'rgba(255,255,255,0.05)',
+                  color: 'text.primary'
+                }
+              }}
+            >
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                minWidth: 24,
+                '& svg': { fontSize: 26 }
+              }}>
                 <Logout />
-              </IconButton>
-            </Tooltip>
+              </Box>
+              <Typography 
+                sx={{ 
+                  fontWeight: 500,
+                  fontSize: '20px',
+                  lineHeight: 1.2
+                }}
+              >
+                Çıkış Yap
+              </Typography>
+            </Box>
           </Box>
         </Drawer>
       )}
 
       {/* İçerik alanı */}
       <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-        {/* Header (aramasız) */}
+        {/* Header - Twitter tarzı */}
         <AppBar
           position="sticky"
           color="transparent"
           elevation={0}
           sx={{
             borderBottom: '1px solid rgba(255,255,255,0.08)',
-            backgroundColor: 'rgba(7,20,28,0.4)',
-            backdropFilter: 'blur(8px)',
-            color: '#fff'
+            backgroundColor: 'rgba(0,0,0,0.65)',
+            backdropFilter: 'blur(12px)',
+            color: '#fff',
+            zIndex: (theme) => theme.zIndex.drawer + 1
           }}
         >
-          <Toolbar sx={{ px: { xs: 1.5, md: 3 }, gap: { xs: 0.5, md: 1 }, minHeight: { xs: 56, md: 64 } }}>
+          <Toolbar 
+            sx={{ 
+              px: { xs: 1.5, md: 3 }, 
+              gap: { xs: 0.5, md: 1 }, 
+              minHeight: { xs: 48, md: 53 },
+              maxWidth: { md: 600 },
+              mx: 'auto',
+              width: '100%',
+              borderLeft: { md: '1px solid rgba(255,255,255,0.08)' },
+              borderRight: { md: '1px solid rgba(255,255,255,0.08)' }
+            }}
+          >
             {!isMdUp && (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flex: 1, minWidth: 0 }}>
-                <AnimatedLogo size={32} mobileSize={28} showBorder={true} />
-                <Typography variant="h6" sx={{ fontWeight: 800, fontSize: { xs: '18px', sm: '20px' } }}>Sağlıktan</Typography>
-              </Box>
+              <Typography 
+                variant="h6" 
+                sx={{ 
+                  fontWeight: 700, 
+                  fontSize: '20px',
+                  flex: 1
+                }}
+              >
+                {headerTitle}
+              </Typography>
             )}
             {isMdUp && (
-              <Typography variant="h6" sx={{ fontWeight: 800, mx: { xs: 1, md: 2 }, fontSize: { xs: '18px', md: '20px' } }}>
+              <Typography 
+                variant="h6" 
+                sx={{ 
+                  fontWeight: 700, 
+                  fontSize: '20px',
+                  flex: 1
+                }}
+              >
                 {headerTitle}
               </Typography>
             )}
-            {!isMdUp && headerTitle && (
-              <Typography variant="body1" sx={{ fontWeight: 600, fontSize: '15px', color: 'rgba(255,255,255,0.9)', ml: 1 }}>
-                {headerTitle}
-              </Typography>
-            )}
-            <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: { xs: 0.25, md: 1 } }}>
-              <Tooltip title="Ara">
-                <IconButton 
-                  onClick={() => navigate('/search')} 
-                  sx={{ 
-                    color: '#fff',
-                    width: { xs: 44, md: 40 },
-                    height: { xs: 44, md: 40 },
-                    minWidth: { xs: 44, md: 40 },
-                    minHeight: { xs: 44, md: 40 }
-                  }}
-                >
-                  <Search sx={{ fontSize: { xs: '22px', md: '24px' } }} />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Yeni Gönderi">
-                <IconButton 
-                  onClick={() => navigate('/posts?new=1')} 
-                  sx={{ 
-                    color: '#fff',
-                    width: { xs: 44, md: 40 },
-                    height: { xs: 44, md: 40 },
-                    minWidth: { xs: 44, md: 40 },
-                    minHeight: { xs: 44, md: 40 }
-                  }}
-                >
-                  <AddCircleOutline sx={{ fontSize: { xs: '22px', md: '24px' } }} />
-                </IconButton>
-              </Tooltip>
-              {token && (
-                <>
-                  <Tooltip title="Menü">
-                    <IconButton 
-                      onClick={handleMenuOpen} 
-                      sx={{ 
-                        color: '#fff',
-                        width: { xs: 44, md: 40 },
-                        height: { xs: 44, md: 40 },
-                        minWidth: { xs: 44, md: 40 },
-                        minHeight: { xs: 44, md: 40 }
-                      }}
-                    >
-                      <AccountCircleIcon sx={{ fontSize: { xs: 28, md: 32 } }} />
-                    </IconButton>
-                  </Tooltip>
-                  <Menu
-                    anchorEl={menuAnchor}
-                    open={Boolean(menuAnchor)}
-                    onClose={handleMenuClose}
-                    anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                    transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-                    getContentAnchorEl={null}
-                    sx={{
-                      '& .MuiPaper-root': {
-                        bgcolor: '#192837',
-                        color: '#fff',
-                        borderRadius: 2,
-                        minWidth: 160,
-                        boxShadow: 12,
-                        py: 0.5,
-                        border: 'none',
-                      },
+            {token && (
+              <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center' }}>
+                <Tooltip title="Menü">
+                  <IconButton 
+                    onClick={handleMenuOpen} 
+                    sx={{ 
+                      color: 'text.secondary',
+                      width: { xs: 40, md: 36 },
+                      height: { xs: 40, md: 36 },
+                      minWidth: { xs: 40, md: 36 },
+                      minHeight: { xs: 40, md: 36 },
+                      '&:hover': {
+                        backgroundColor: 'rgba(255,255,255,0.08)',
+                        color: 'text.primary'
+                      }
                     }}
                   >
-                    <MenuItem 
-                      onClick={goProfile} 
-                      sx={{ 
-                        color: '#fff', 
-                        fontWeight: 600, 
-                        borderRadius: 2, 
-                        px: 2.5, 
-                        py: { xs: 1.5, md: 1.15 },
-                        minHeight: { xs: 48, md: 40 },
-                        fontSize: { xs: '15px', md: '14px' },
-                        '&:hover': { bgcolor: 'primary.main', color: '#fff' } 
-                      }}
-                    >
-                      <AccountCircleIcon sx={{ mr: 1, color: 'primary.main' }} /> Profilim
-                    </MenuItem>
-                    <MenuItem 
-                      onClick={handleLogout} 
-                      sx={{ 
-                        color: '#fff', 
-                        fontWeight: 600, 
-                        borderRadius: 2, 
-                        px: 2.5, 
-                        py: { xs: 1.5, md: 1.15 },
-                        minHeight: { xs: 48, md: 40 },
-                        fontSize: { xs: '15px', md: '14px' },
-                        '&:hover': { bgcolor: 'error.main', color: '#fff' } 
-                      }}
-                    >
-                      <LogoutIcon sx={{ mr: 1, color: 'error.main' }} /> Çıkış Yap
-                    </MenuItem>
-                  </Menu>
-                </>
-              )}
-            </Box>
+                    <AccountCircleIcon sx={{ fontSize: { xs: 24, md: 24 } }} />
+                  </IconButton>
+                </Tooltip>
+                <Menu
+                  anchorEl={menuAnchor}
+                  open={Boolean(menuAnchor)}
+                  onClose={handleMenuClose}
+                  anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                  transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                  getContentAnchorEl={null}
+                  sx={{
+                    '& .MuiPaper-root': {
+                      bgcolor: 'rgba(0,0,0,0.8)',
+                      color: '#fff',
+                      borderRadius: 2,
+                      minWidth: 200,
+                      boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+                      py: 0.5,
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      backdropFilter: 'blur(12px)'
+                    },
+                  }}
+                >
+                  <MenuItem 
+                    onClick={goProfile} 
+                    sx={{ 
+                      color: '#fff', 
+                      fontWeight: 500, 
+                      borderRadius: 1, 
+                      px: 2.5, 
+                      py: { xs: 1.5, md: 1.15 },
+                      minHeight: { xs: 48, md: 40 },
+                      fontSize: { xs: '15px', md: '15px' },
+                      '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' } 
+                    }}
+                  >
+                    <AccountCircleIcon sx={{ mr: 1.5, fontSize: 20 }} /> Profilim
+                  </MenuItem>
+                  <MenuItem 
+                    onClick={handleLogout} 
+                    sx={{ 
+                      color: '#fff', 
+                      fontWeight: 500, 
+                      borderRadius: 1, 
+                      px: 2.5, 
+                      py: { xs: 1.5, md: 1.15 },
+                      minHeight: { xs: 48, md: 40 },
+                      fontSize: { xs: '15px', md: '15px' },
+                      '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' } 
+                    }}
+                  >
+                    <LogoutIcon sx={{ mr: 1.5, fontSize: 20 }} /> Çıkış Yap
+                  </MenuItem>
+                </Menu>
+              </Box>
+            )}
           </Toolbar>
         </AppBar>
 
-        {/* Sayfa gövdesi (mobilde alt menü yüksekliğini tolere et) */}
+        {/* Ana İçerik Alanı - Twitter tarzı */}
         <Box
           component="main"
           sx={{
+            display: 'flex',
             width: '100%',
             maxWidth: '100%',
             mx: 'auto',
@@ -249,19 +309,59 @@ export default function ResponsiveShell({ children }) {
             pb: { xs: `calc(${MOBILE_NAV_HEIGHT}px + env(safe-area-inset-bottom, 0px) + 12px)`, md: 0 }
           }}
         >
+          {/* Ana İçerik - Twitter tarzı ortalanmış, mobilde tam genişlik */}
           <Box
             sx={{
-              width: '100%',
-              maxWidth: { xs: '100%', sm: 680, lg: 980 },
+              flex: 1,
+              minWidth: 0,
+              maxWidth: { xs: '100%', md: 600 },
               mx: 'auto',
+              width: '100%',
+              borderLeft: { md: '1px solid rgba(255,255,255,0.08)' },
+              borderRight: { md: '1px solid rgba(255,255,255,0.08)' },
               overflowX: 'hidden'
             }}
           >
             {children}
           </Box>
+          
+          {/* Sağ Sidebar - Twitter tarzı (lg+) */}
+          {isMdUp && (
+            <Box
+              sx={{
+                display: { md: 'none', lg: 'block' },
+                width: 350,
+                flexShrink: 0,
+                px: 3,
+                py: 2,
+                borderLeft: '1px solid rgba(255,255,255,0.08)',
+                backgroundColor: 'rgba(0,0,0,0.65)',
+                backdropFilter: 'blur(12px)'
+              }}
+            >
+              {/* Sağ sidebar içeriği - şimdilik boş, ileride trends eklenebilir */}
+              <Box sx={{ mt: 2 }}>
+                <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '20px', mb: 2, color: 'text.primary' }}>
+                  Keşfet
+                </Typography>
+                <Box
+                  sx={{
+                    p: 3,
+                    borderRadius: 2,
+                    backgroundColor: 'rgba(255,255,255,0.03)',
+                    border: '1px solid rgba(255,255,255,0.08)'
+                  }}
+                >
+                  <Typography variant="body2" sx={{ color: 'text.secondary', textAlign: 'center' }}>
+                    Yakında burada öneriler ve trendler görünecek
+                  </Typography>
+                </Box>
+              </Box>
+            </Box>
+          )}
         </Box>
 
-        {/* Mobil Alt Bar – her zaman en altta (fixed) */}
+        {/* Mobil Alt Bar – Twitter/X mobil gibi sadece ikonlar */}
         {!isMdUp && (
           <Box
             sx={{
@@ -271,43 +371,39 @@ export default function ResponsiveShell({ children }) {
               bottom: 0,
               height: `calc(${MOBILE_NAV_HEIGHT}px + env(safe-area-inset-bottom, 0px))`,
               zIndex: (t) => t.zIndex.appBar + 2,
-              borderTop: '1px solid rgba(255,255,255,0.12)',
-              backdropFilter: 'blur(10px)',
-              backgroundColor: 'rgba(7,20,28,0.45)'
+              borderTop: '1px solid rgba(255,255,255,0.08)',
+              backdropFilter: 'blur(12px)',
+              backgroundColor: 'rgba(0,0,0,0.65)'
             }}
           >
             <BottomNavigation
               value={current}
               onChange={(_, value) => navigate(navItems[value].to)}
-              showLabels
+              showLabels={false}
               sx={{
                 height: MOBILE_NAV_HEIGHT,
                 background: 'transparent',
-                px: { xs: 0.5, sm: 1 },
+                px: 0,
                 '& .MuiBottomNavigationAction-root': {
-                  color: 'rgba(255,255,255,0.85)',
-                  minWidth: { xs: 60, sm: 70 },
-                  minHeight: { xs: 48, sm: 56 },
-                  position: 'relative',
-                  paddingInline: { xs: 0.75, sm: 1.25 },
-                  '& .MuiBottomNavigationAction-label': {
-                    fontWeight: 600,
-                    opacity: 0.9,
-                    fontSize: { xs: '11px', sm: '12px' },
-                    marginTop: { xs: 0.25, sm: 0.5 },
-                    '&.Mui-selected': {
-                      fontSize: { xs: '11px', sm: '12px' }
-                    }
-                  },
+                  color: 'rgba(255,255,255,0.6)',
+                  minWidth: 0,
+                  minHeight: 0,
+                  padding: 0,
+                  maxWidth: '25%',
                   '& .MuiSvgIcon-root': {
-                    fontSize: { xs: '24px', sm: '28px' }
+                    fontSize: '26px'
+                  },
+                  '&.Mui-selected': {
+                    color: 'primary.main',
+                    '& .MuiSvgIcon-root': {
+                      fontSize: '28px'
+                    }
                   }
-                },
-                '& .Mui-selected': { color: 'primary.main' }
+                }
               }}
             >
               {navItems.map(item => (
-                <BottomNavigationAction key={item.to} label={item.label} icon={item.icon} />
+                <BottomNavigationAction key={item.to} icon={item.icon} />
               ))}
             </BottomNavigation>
             {/* safe-area boşluğu */}

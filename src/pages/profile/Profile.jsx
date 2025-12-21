@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import {
   Alert, Avatar, Box, Stack, Typography, Divider, CircularProgress,
-  Container,
   Toolbar, IconButton, Paper, Menu, MenuItem
 } from '@mui/material'
 import { useLocation, useNavigate } from 'react-router-dom'
@@ -65,15 +64,15 @@ function Row({ label, value }) {
         }
       }}
     >
-      <Box sx={{
-        display: 'grid',
+    <Box sx={{
+      display: 'grid',
         gridTemplateColumns: { xs: '1fr', sm: '140px 1fr' },
         gap: { xs: 1, sm: 2 },
         alignItems: 'start'
       }}>
         <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500 }}>{label}</Typography>
         <Typography variant="body1" sx={{ fontWeight: 600, wordBreak: 'break-word', color: 'text.primary' }}>{value || 'Belirtilmemiş'}</Typography>
-      </Box>
+    </Box>
     </Paper>
   )
 }
@@ -350,13 +349,13 @@ export default function Profile() {
     // Optimistic update
     setPosts(prev => {
       return prev.map(p => {
-        if (p.id !== postId) return p
+      if (p.id !== postId) return p
         const { myVote, likes, dislikes } = p
         let newVote = myVote || 0
         let newLikes = likes || 0
         let newDislikes = dislikes || 0
 
-        if (myVote === delta) {
+      if (myVote === delta) {
           // İptal et
           if (delta === 1) newLikes -= 1
           if (delta === -1) newDislikes -= 1
@@ -366,7 +365,7 @@ export default function Profile() {
           if (delta === 1) {
             newLikes += 1
             if (myVote === -1) newDislikes -= 1
-          } else {
+      } else {
             newDislikes += 1
             if (myVote === 1) newLikes -= 1
           }
@@ -410,7 +409,7 @@ export default function Profile() {
         // Yeni oy ver (prevVote === 0)
         if (delta === 1) {
           await likeChatReaction(token, postID)
-        } else if (delta === -1) {
+      } else if (delta === -1) {
           await dislikeChatReaction(token, postID)
         }
       }
@@ -555,10 +554,10 @@ export default function Profile() {
           if (commentId) {
             return { ...p, comments: updateCommentIdInNested(p.comments, tempId, realId) }
           } else {
-            const comments = p.comments.map(c =>
-              c.id === tempId ? { ...c, id: realId } : c
-            )
-            return { ...p, comments }
+          const comments = p.comments.map(c =>
+            c.id === tempId ? { ...c, id: realId } : c
+          )
+          return { ...p, comments }
           }
         })
       )
@@ -654,7 +653,7 @@ export default function Profile() {
     // Optimistic update (nested comments dahil) - SADECE UI'DA
     setPosts(prev => {
       return prev.map(p => {
-        if (p.id !== postId) return p
+      if (p.id !== postId) return p
         return {
           ...p,
           comments: updateCommentInNested(p.comments || [], commentId, (c) => {
@@ -663,7 +662,7 @@ export default function Profile() {
             let newLikes = likes || 0
             let newDislikes = dislikes || 0
 
-            if (myVote === delta) {
+        if (myVote === delta) {
               // İptal et
               if (delta === 1) newLikes -= 1
               if (delta === -1) newDislikes -= 1
@@ -673,7 +672,7 @@ export default function Profile() {
               if (delta === 1) {
                 newLikes += 1
                 if (myVote === -1) newDislikes -= 1
-              } else {
+        } else {
                 newDislikes += 1
                 if (myVote === 1) newLikes -= 1
               }
@@ -712,9 +711,9 @@ export default function Profile() {
       } else {
         // Yeni oy ver (prevVote === 0)
         if (delta === 1) {
-          await likeCommentReaction(token, realCommentId)
-        } else if (delta === -1) {
-          await dislikeCommentReaction(token, realCommentId)
+        await likeCommentReaction(token, realCommentId)
+      } else if (delta === -1) {
+        await dislikeCommentReaction(token, realCommentId)
         }
       }
       // API başarılı - UI zaten güncellendi, hiçbir şey yapma
@@ -789,12 +788,12 @@ export default function Profile() {
   }
 
   return (
-    <Container maxWidth="sm" sx={{ py: { xs: 1.5, md: 4 }, px: { xs: 1, sm: 2 } }}>
-      {/* Header */}
-      <Stack direction="row" justifyContent="flex-end" alignItems="center" sx={{ mb: { xs: 1.5, md: 2 }, position: 'relative' }}>
-        {/* Mobilde sağ üstte 3 nokta menü */}
-        <IconButton
-          onClick={handleMobileMenuOpen}
+    <Box sx={{ width: '100%', py: { xs: 1, md: 0 }, px: { xs: 0, sm: 0 } }}>
+        {/* Header */}
+      <Stack direction="row" justifyContent="flex-end" alignItems="center" sx={{ mb: { xs: 1.5, md: 2 }, position: 'relative', px: { xs: 1.5, md: 3 }, pt: { xs: 1.5, md: 3 } }}>
+          {/* Mobilde sağ üstte 3 nokta menü */}
+          <IconButton
+            onClick={handleMobileMenuOpen}
           sx={{ 
             display: { xs: 'flex', sm: 'none' }, 
             position: 'absolute', 
@@ -806,41 +805,41 @@ export default function Profile() {
             minWidth: { xs: 48, md: 40 },
             minHeight: { xs: 48, md: 40 }
           }}
-          aria-label="Menü Aç"
-        >
+            aria-label="Menü Aç"
+          >
           <MoreVertIcon sx={{ fontSize: { xs: 28, md: 24 } }} />
-        </IconButton>
-        {/* Masaüstü için boşluk */}
-      </Stack>
+          </IconButton>
+          {/* Masaüstü için boşluk */}
+        </Stack>
 
-      {/* Avatar ve menus: avatar tıklandığında her zamanki gibi */}
-      <Stack spacing={1.5} sx={{ alignItems: 'center', textAlign: 'center', position: 'relative', mb: { xs: 2.5, md: 3 } }}>
-        <Avatar
-          sx={{
+        {/* Avatar ve menus: avatar tıklandığında her zamanki gibi */}
+      <Stack spacing={1.5} sx={{ alignItems: 'center', textAlign: 'center', position: 'relative', mb: { xs: 2, md: 3 }, px: { xs: 1.5, md: 3 } }}>
+          <Avatar
+            sx={{
             width: { xs: 80, md: 80 },
             height: { xs: 80, md: 80 },
-            bgcolor: 'secondary.main',
-            fontWeight: 800,
+              bgcolor: 'secondary.main',
+              fontWeight: 800,
             fontSize: { xs: 26, md: 26 },
             cursor: 'pointer'
-          }}
-          aria-label="Kullanıcı avatarı"
-        >
-          {initialsFrom(profileData?.name, profileData?.email)}
-        </Avatar>
-        {/* Menüleri render et: avatar veya mobile butondan açılır */}
-        <ProfileMenu anchorEl={null} open={Boolean(mobileMenuAnchor)} onClose={handleMenuClose} />
-      </Stack>
+            }}
+            aria-label="Kullanıcı avatarı"
+          >
+            {initialsFrom(profileData?.name, profileData?.email)}
+          </Avatar>
+          {/* Menüleri render et: avatar veya mobile butondan açılır */}
+          <ProfileMenu anchorEl={null} open={Boolean(mobileMenuAnchor)} onClose={handleMenuClose} />
+        </Stack>
 
       {/* İçerik - Tüm bölümler alt alta */}
-      <Stack spacing={{ xs: 3, md: 4 }}>
+      <Stack spacing={{ xs: 2.5, md: 4 }} sx={{ px: { xs: 1.5, md: 3 } }}>
         {/* Bilgiler Bölümü */}
         <Box>
           <Typography 
             variant="h6" 
-            sx={{ 
+          sx={{
               mb: 2, 
-              fontWeight: 700, 
+                fontWeight: 700,
               fontSize: { xs: '18px', md: '20px' },
               color: 'text.primary'
             }}
@@ -848,11 +847,11 @@ export default function Profile() {
             Bilgiler
           </Typography>
           <Stack spacing={0}>
-            <Row label="İsim" value={profileData?.name} />
-            <Row label="Soyisim" value={profileData?.surname} />
-            <Row label="Doğum Tarihi" value={prettyDate(profileData?.dateOfBirth)} />
-            <Row label="Rol" value={isDoctor ? 'Doktor' : 'Kullanıcı'} />
-          </Stack>
+              <Row label="İsim" value={profileData?.name} />
+              <Row label="Soyisim" value={profileData?.surname} />
+              <Row label="Doğum Tarihi" value={prettyDate(profileData?.dateOfBirth)} />
+              <Row label="Rol" value={isDoctor ? 'Doktor' : 'Kullanıcı'} />
+            </Stack>
         </Box>
 
         {/* Doktor Bölümleri */}
@@ -952,11 +951,11 @@ export default function Profile() {
             Gönderilerim
           </Typography>
           <Stack spacing={0}>
-            {postsLoading ? (
+              {postsLoading ? (
               <Box sx={{ display: 'grid', placeItems: 'center', py: 4 }}>
-                <CircularProgress size={22} />
-              </Box>
-            ) : posts.length === 0 ? (
+                  <CircularProgress size={22} />
+                </Box>
+              ) : posts.length === 0 ? (
               <Box 
                 sx={{ 
                   textAlign: 'center', 
@@ -988,24 +987,24 @@ export default function Profile() {
                   İlk gönderinizi paylaşın
                 </Typography>
               </Box>
-            ) : (
-              posts.map(p => (
-                <PostCard
-                  key={p.id}
-                  {...p}
+              ) : (
+                posts.map(p => (
+                  <PostCard
+                    key={p.id}
+                    {...p}
                   token={token}
                   postID={p.postID}
-                  deleting={deletingId === p.id}
-                  {...(!isVisitor ? { onDelete: (postId) => handleDeletePost(postId) } : {})}
-                  onVote={handleVote}
-                  {...(!isVisitor ? { onAddComment: handleAddComment, onCommentVote: handleCommentVote, onCommentDelete: (postId, commentId) => handleDeleteComment(postId, commentId) } : {})}
-                />
-              ))
-            )}
-          </Stack>
+                    deleting={deletingId === p.id}
+                    {...(!isVisitor ? { onDelete: (postId) => handleDeletePost(postId) } : {})}
+                    onVote={handleVote}
+                    {...(!isVisitor ? { onAddComment: handleAddComment, onCommentVote: handleCommentVote, onCommentDelete: (postId, commentId) => handleDeleteComment(postId, commentId) } : {})}
+                  />
+                ))
+              )}
+            </Stack>
         </Box>
       </Stack>
       <Toolbar sx={{ minHeight: 16 }} /> {/* alt boşluk */}
-    </Container>
+    </Box>
   )
 }

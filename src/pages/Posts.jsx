@@ -2,11 +2,11 @@ import { useMemo, useState, useEffect, useRef } from 'react'
 import {
   Box, Button, Stack, TextField, Typography, Divider,
   Fab, Dialog, DialogTitle, DialogContent, DialogActions,
-  useMediaQuery, Alert, Snackbar, CircularProgress, Container,
-  Autocomplete
+  useMediaQuery, Alert, Snackbar, CircularProgress,
+  Autocomplete, Avatar, IconButton
 } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
-import { Add } from '@mui/icons-material'
+import { Add, Close } from '@mui/icons-material'
 import { useLocation, useNavigate } from 'react-router-dom'
 
 import PostCard from '../components/PostCard.jsx'
@@ -27,6 +27,16 @@ import { getLikedCommentPeople, getDislikedCommentPeople } from '../services/api
 import { addChat } from '../services/api.js'
 
 /* ---------------- Utils ---------------- */
+function initialsFrom(name = '') {
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase()
+  if (parts.length === 1) {
+    const s = parts[0]
+    return ((s[0] || '') + (s[1] || '')).toUpperCase()
+  }
+  return '?'
+}
+
 function parseYMD(ymd) {
   // "YYYY-MM-DD" -> local timestamp
   if (!ymd) return Date.now()
@@ -715,19 +725,9 @@ export default function Posts() {
   const sorted = useMemo(() => [...posts].sort((a, b) => b.timestamp - a.timestamp), [posts])
 
   return (
-    <Container maxWidth="md" sx={{ py: { xs: 0, md: 0 }, px: { xs: 0, sm: 0 }, maxWidth: { xs: '100%', sm: '600px', md: '600px' } }}>
-      {/* Header - Twitter tarzı */}
-      <Stack spacing={1} sx={{ mb: { xs: 2, md: 2 }, px: { xs: 2, sm: 3 }, pt: { xs: 2, md: 2 }, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-        <Typography
-          variant="h5"
-          sx={{ fontWeight: 700, fontSize: { xs: 20, sm: 20, md: 20 } }}
-        >
-          Topluluk Akışı
-        </Typography>
-      </Stack>
-
-      {/* Kategori filtresi - Twitter tarzı */}
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: 1.5, sm: 1.5 }} sx={{ mb: { xs: 0, md: 0 }, px: { xs: 2, sm: 3 }, py: { xs: 1.5, md: 1.5 }, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+    <Box sx={{ width: '100%' }}>
+      {/* Kategori filtresi - Twitter tarzı, mobilde daha kompakt */}
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: 1.5, sm: 1.5 }} sx={{ mb: { xs: 0, md: 0 }, px: { xs: 1.5, sm: 3 }, py: { xs: 1, md: 1.5 }, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
         <Autocomplete
           fullWidth
           options={categories}
@@ -844,7 +844,7 @@ export default function Posts() {
         sx={{ 
           position: 'fixed', 
           right: { xs: 16, md: 24 }, 
-          bottom: { xs: 'calc(72px + env(safe-area-inset-bottom, 0px) + 16px)', md: 24 }, 
+          bottom: { xs: 'calc(60px + env(safe-area-inset-bottom, 0px) + 16px)', md: 24 }, 
           zIndex: (t) => t.zIndex.appBar + 3,
           width: { xs: 56, md: 56 },
           height: { xs: 56, md: 56 }
@@ -853,7 +853,7 @@ export default function Posts() {
         <Add />
       </Fab>
 
-      {/* Yeni Gönderi Dialog */}
+      {/* Yeni Gönderi Dialog - Twitter/X tarzı */}
       <Dialog
         open={dialogOpen}
         onClose={submitting ? undefined : closeDialog}
@@ -862,128 +862,243 @@ export default function Posts() {
         fullWidth
         PaperProps={{
           sx: {
-            bgcolor: 'rgba(7,20,28,0.92)',
-            border: '1px solid rgba(255,255,255,0.14)',
-            backdropFilter: 'blur(8px)',
-            borderRadius: 0,
-            color: 'text.primary'
+            bgcolor: 'rgba(0,0,0,0.85)',
+            border: 'none',
+            backdropFilter: 'blur(12px)',
+            borderRadius: { xs: 0, sm: 2 },
+            color: 'text.primary',
+            maxHeight: { xs: '100vh', sm: '90vh' }
           }
         }}
       >
-        <DialogTitle sx={{ 
-          fontWeight: 800, 
-          color: '#FAF9F6',
-          fontSize: { xs: '20px', md: '24px' },
-          px: { xs: 2, md: 3 },
-          py: { xs: 2, md: 1.5 }
+        {/* Header - Twitter/X tarzı */}
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between',
+          px: { xs: 1.5, sm: 2 },
+          py: { xs: 1.25, sm: 1.5 },
+          borderBottom: '1px solid rgba(255,255,255,0.08)'
         }}>
-          Yeni Gönderi
-        </DialogTitle>
-        <DialogContent dividers sx={{ 
-          borderColor: 'rgba(255,255,255,0.12)',
-          px: { xs: 2, md: 3 },
-          py: { xs: 2, md: 2.5 }
+          <IconButton
+            onClick={closeDialog}
+            disabled={submitting}
+            sx={{
+              color: 'text.secondary',
+              width: { xs: 36, sm: 40 },
+              height: { xs: 36, sm: 40 },
+              '&:hover': {
+                backgroundColor: 'rgba(255,255,255,0.08)',
+                color: 'text.primary'
+              }
+            }}
+          >
+            <Close sx={{ fontSize: { xs: 20, sm: 22 } }} />
+          </IconButton>
+          <Typography 
+            variant="h6" 
+            sx={{ 
+              fontWeight: 700, 
+              fontSize: { xs: '18px', sm: '20px' },
+              flex: 1,
+              textAlign: 'center',
+              pr: { xs: 36, sm: 40 } // X butonunun genişliği kadar sağdan boşluk
+            }}
+          >
+            Gönderi oluştur
+          </Typography>
+        </Box>
+
+        <DialogContent sx={{ 
+          px: { xs: 1.5, sm: 2 },
+          py: { xs: 1.5, sm: 2 },
+          '&.MuiDialogContent-root': {
+            paddingTop: { xs: 1.5, sm: 2 }
+          }
         }}>
           <Box component="form" id="compose-form" onSubmit={onSubmitNewPost}>
-            <Stack spacing={{ xs: 2, md: 1.5 }} sx={{ mt: { xs: 0, md: 1 } }}>
-              <TextField
-                autoFocus
-                placeholder="Ne paylaşmak istersin?"
-                multiline
-                minRows={4}
-                value={msg}
-                onChange={e => setMsg(e.target.value)}
-                size="small"
-                InputLabelProps={{ shrink: false }}
-                aria-label="Yeni gönderi mesajı"
-                sx={{
-                  '& .MuiInputBase-root': {
-                    fontSize: { xs: '16px', md: '15px' }
-                  }
+            <Stack direction="row" spacing={1.5} alignItems="flex-start">
+              {/* Avatar */}
+              <Avatar 
+                sx={{ 
+                  bgcolor: 'secondary.main', 
+                  fontWeight: 800, 
+                  width: { xs: 40, sm: 44 }, 
+                  height: { xs: 40, sm: 44 },
+                  fontSize: { xs: 16, sm: 18 },
+                  flexShrink: 0
                 }}
-              />
+              >
+                {initialsFrom([user?.name, user?.surname].filter(Boolean).join(' ') || 'Kullanıcı')}
+              </Avatar>
 
-              {/* Kategori: Hastalık isimlerinden autocomplete (AddDiseaseForm ile uyumlu) */}
-              <Autocomplete
-                fullWidth
-                options={categories}
-                loading={catsLoading}
-                value={category || null}
-                onChange={(_, v) => setCategory(v || '')}
-                disablePortal
-                blurOnSelect
-                disableClearable
-                isOptionEqualToValue={(opt, val) => String(opt) === String(val)}
-                getOptionLabel={(opt) => (typeof opt === 'string' ? opt : '')}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Kategori (Hastalık) Seçin"
-                    size="small"
-                    required
-                    helperText={catsError ? `Liste alınamadı: ${catsError}` : ''}
-                    sx={{
-                      '& .MuiInputBase-root': {
-                        fontSize: { xs: '16px', md: '15px' }
+              {/* İçerik */}
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                {/* Textarea - Twitter/X tarzı */}
+                <TextField
+                  autoFocus
+                  placeholder="Ne paylaşmak istersin?"
+                  multiline
+                  minRows={6}
+                  maxRows={12}
+                  value={msg}
+                  onChange={e => setMsg(e.target.value)}
+                  variant="standard"
+                  InputProps={{
+                    disableUnderline: true
+                  }}
+                  sx={{
+                    width: '100%',
+                    '& .MuiInputBase-root': {
+                      fontSize: { xs: '18px', sm: '20px' },
+                      lineHeight: 1.5,
+                      color: 'text.primary',
+                      '&::placeholder': {
+                        color: 'text.secondary',
+                        opacity: 0.7
+                      }
+                    },
+                    '& .MuiInputBase-input': {
+                      py: { xs: 1, sm: 1.25 },
+                      minHeight: { xs: '120px', sm: '140px' }
+                    }
+                  }}
+                />
+
+                {/* Kategori - Twitter/X tarzı minimal */}
+                <Box sx={{ mt: 2 }}>
+                  <Autocomplete
+                    fullWidth
+                    options={categories}
+                    loading={catsLoading}
+                    value={category || null}
+                    onChange={(_, v) => setCategory(v || '')}
+                    disablePortal
+                    blurOnSelect
+                    disableClearable
+                    isOptionEqualToValue={(opt, val) => String(opt) === String(val)}
+                    getOptionLabel={(opt) => (typeof opt === 'string' ? opt : '')}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        placeholder="Kategori seçin (zorunlu)"
+                        variant="outlined"
+                        size="small"
+                        required
+                        error={!category && msg.trim().length > 0}
+                        helperText={catsError ? `Liste alınamadı: ${catsError}` : (!category && msg.trim().length > 0 ? 'Kategori seçmeniz gerekiyor' : '')}
+                        sx={{
+                          '& .MuiInputBase-root': {
+                            fontSize: { xs: '15px', sm: '15px' },
+                            backgroundColor: 'rgba(255,255,255,0.03)',
+                            borderRadius: 2,
+                            '&:hover': {
+                              backgroundColor: 'rgba(255,255,255,0.05)'
+                            },
+                            '&.Mui-focused': {
+                              backgroundColor: 'rgba(255,255,255,0.05)'
+                            }
+                          },
+                          '& .MuiOutlinedInput-notchedOutline': {
+                            borderColor: 'rgba(255,255,255,0.1)'
+                          },
+                          '&:hover .MuiOutlinedInput-notchedOutline': {
+                            borderColor: 'rgba(255,255,255,0.15)'
+                          },
+                          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                            borderColor: 'primary.main'
+                          }
+                        }}
+                      />
+                    )}
+                    slotProps={{
+                      paper: {
+                        sx: {
+                          bgcolor: 'rgba(0,0,0,0.95)',
+                          color: '#FAF9F6',
+                          border: '1px solid rgba(255,255,255,0.12)',
+                          backdropFilter: 'blur(12px)',
+                          borderRadius: 2,
+                          mt: 0.5,
+                          '& .MuiAutocomplete-option': {
+                            color: '#FAF9F6',
+                            minHeight: { xs: 48, md: 44 },
+                            fontSize: { xs: '15px', md: '15px' },
+                            py: { xs: 1.5, md: 1 },
+                            '&[aria-selected="true"]': { bgcolor: 'rgba(52,195,161,0.22)' },
+                            '&.Mui-focused': { bgcolor: 'rgba(255,255,255,0.08)' }
+                          }
+                        }
                       }
                     }}
                   />
-                )}
-                slotProps={{
-                  paper: {
-                    sx: {
-                      bgcolor: 'rgba(7,20,28,0.98)',
-                      color: '#FAF9F6',
-                      border: '1px solid rgba(255,255,255,0.12)',
-                      backdropFilter: 'blur(6px)',
-                      '& .MuiAutocomplete-option': {
-                        color: '#FAF9F6',
-                        minHeight: { xs: 48, md: 44 },
-                        fontSize: { xs: '15px', md: '14px' },
-                        py: { xs: 1.5, md: 1 },
-                        '&[aria-selected="true"]': { bgcolor: 'rgba(52,195,161,0.22)' },
-                        '&.Mui-focused': { bgcolor: 'rgba(255,255,255,0.08)' }
-                      }
-                    }
-                  }
-                }}
-              />
+                </Box>
+              </Box>
             </Stack>
           </Box>
         </DialogContent>
-        <DialogActions sx={{ 
-          px: { xs: 2, md: 3 }, 
-          py: { xs: 2, md: 2 },
-          gap: { xs: 1, md: 1.5 }
+
+        {/* Footer - Twitter/X tarzı */}
+        <Box sx={{ 
+          px: { xs: 1.5, sm: 2 },
+          py: { xs: 1.5, sm: 2 },
+          borderTop: '1px solid rgba(255,255,255,0.08)',
+          display: 'flex',
+          justifyContent: 'flex-end',
+          gap: 1.5
         }}>
           <Button 
             onClick={closeDialog} 
-            color="secondary" 
-            variant="text" 
+            variant="outlined"
             disabled={submitting}
             sx={{
-              minHeight: { xs: 44, md: 40 },
-              fontSize: { xs: '15px', md: '14px' },
-              px: { xs: 2, md: 2 }
+              minHeight: { xs: 40, sm: 36 },
+              minWidth: { xs: 80, sm: 90 },
+              fontSize: { xs: '15px', sm: '15px' },
+              fontWeight: 600,
+              borderRadius: 2,
+              borderColor: 'rgba(255,255,255,0.2)',
+              color: 'text.primary',
+              '&:hover': {
+                borderColor: 'rgba(255,255,255,0.3)',
+                backgroundColor: 'rgba(255,255,255,0.05)'
+              }
             }}
           >
-            Vazgeç
+            İptal
           </Button>
           <Button 
             type="submit" 
             form="compose-form" 
-            variant="contained" 
-            disabled={submitting}
+            variant="contained"
+            disabled={submitting || !msg.trim() || !category}
             sx={{
-              minHeight: { xs: 44, md: 40 },
-              fontSize: { xs: '15px', md: '14px' },
-              px: { xs: 3, md: 3 },
-              fontWeight: 600
+              minHeight: { xs: 40, sm: 36 },
+              minWidth: { xs: 100, sm: 110 },
+              fontSize: { xs: '15px', sm: '15px' },
+              fontWeight: 700,
+              borderRadius: 2,
+              backgroundColor: 'primary.main',
+              color: '#fff',
+              '&:hover': {
+                backgroundColor: 'primary.dark'
+              },
+              '&:disabled': {
+                backgroundColor: 'rgba(52,195,161,0.3)',
+                color: 'rgba(255,255,255,0.5)'
+              }
             }}
           >
-            {submitting ? 'Paylaşılıyor…' : 'Paylaş'}
+            {submitting ? (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <CircularProgress size={16} sx={{ color: 'inherit' }} />
+                <span>Paylaşılıyor…</span>
+              </Box>
+            ) : (
+              'Paylaş'
+            )}
           </Button>
-        </DialogActions>
+        </Box>
       </Dialog>
 
       {/* Bildirimler */}
@@ -993,7 +1108,7 @@ export default function Posts() {
       <Snackbar open={!!success} autoHideDuration={2500} onClose={() => setSuccess('')}>
         <Alert severity="success" variant="filled" onClose={() => setSuccess('')}>{success}</Alert>
       </Snackbar>
-    </Container>
+    </Box>
   )
 }
 

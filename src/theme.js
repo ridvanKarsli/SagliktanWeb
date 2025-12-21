@@ -7,22 +7,30 @@ const paper = '#FAF9F6'
 
 const theme = createTheme({
   palette: {
-    mode: 'light',
+    mode: 'dark',
     primary: { main: primary },
     secondary: { main: secondary },
-    background: { default: bgDark, paper },
-    text: { primary: '#FAF9F6', secondary: 'rgba(255,255,255,0.85)' }
+    background: { 
+      default: '#000000', // Twitter dark mode
+      paper: 'rgba(0,0,0,0.6)' 
+    },
+    text: { 
+      primary: '#FFFFFF', // Twitter white
+      secondary: 'rgba(255,255,255,0.7)' // Twitter gray
+    }
   },
-  shape: { borderRadius: 10 }, // hafif yuvarlatılmış
+  shape: { borderRadius: 16 }, // Twitter tarzı daha yuvarlak
   typography: {
-    fontFamily: 'Inter, system-ui, -apple-system, Segoe UI, Arial, sans-serif',
-    h1: { fontSize: '2.2rem', fontWeight: 800, letterSpacing: -0.3, color: '#FAF9F6' },
-    h2: { fontSize: '1.8rem', fontWeight: 800, letterSpacing: -0.2, color: '#FAF9F6' },
-    h3: { fontSize: '1.5rem', fontWeight: 800, color: '#FAF9F6' },
-    h4: { fontSize: '1.25rem', fontWeight: 700, color: '#FAF9F6' },
-    body1: { color: 'rgba(255,255,255,0.92)' },
-    body2: { color: 'rgba(255,255,255,0.85)' },
-    button: { textTransform: 'none', fontWeight: 600 }
+    fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+    h1: { fontSize: '2rem', fontWeight: 700, letterSpacing: -0.5, color: '#FFFFFF' },
+    h2: { fontSize: '1.5rem', fontWeight: 700, letterSpacing: -0.3, color: '#FFFFFF' },
+    h3: { fontSize: '1.25rem', fontWeight: 700, letterSpacing: -0.2, color: '#FFFFFF' },
+    h4: { fontSize: '1.125rem', fontWeight: 700, color: '#FFFFFF' },
+    h5: { fontSize: '1rem', fontWeight: 700, color: '#FFFFFF' },
+    h6: { fontSize: '0.9375rem', fontWeight: 700, color: '#FFFFFF' },
+    body1: { fontSize: '0.9375rem', lineHeight: 1.5, color: '#FFFFFF' },
+    body2: { fontSize: '0.875rem', lineHeight: 1.5, color: 'rgba(255,255,255,0.7)' },
+    button: { textTransform: 'none', fontWeight: 700, fontSize: '0.9375rem' }
   },
   components: {
     MuiCssBaseline: {
@@ -36,8 +44,21 @@ const theme = createTheme({
     MuiButton: {
       defaultProps: { variant: 'contained', disableElevation: true },
       styleOverrides: {
-        root: { paddingInline: 16, paddingBlock: 10, borderRadius: 10 },
-        containedPrimary: { boxShadow: '0 6px 16px rgba(52,195,161,0.35)' }
+        root: { 
+          paddingInline: 16, 
+          paddingBlock: 10, 
+          borderRadius: 20, // Twitter tarzı daha yuvarlak
+          fontWeight: 700,
+          fontSize: '0.9375rem',
+          textTransform: 'none'
+        },
+        containedPrimary: { 
+          boxShadow: 'none',
+          '&:hover': {
+            boxShadow: 'none',
+            opacity: 0.9
+          }
+        }
       }
     },
     MuiTextField: {

@@ -583,28 +583,28 @@ export default function PostCard({
     <Paper
       elevation={0}
       sx={{
-        p: { xs: 2, md: 2.5 },
-        px: { xs: 2, sm: 3 },
+        p: { xs: 1.5, md: 2.5 },
+        px: { xs: 1.5, sm: 3 },
         borderRadius: 0,
         borderBottom: '1px solid rgba(255,255,255,0.08)',
         backgroundColor: 'transparent',
         cursor: (isMobile && !forceOpenComments) ? 'pointer' : 'default',
-        transition: 'background-color 0.2s ease',
+        transition: 'background-color 0.15s ease',
         '&:hover': {
           backgroundColor: 'rgba(255,255,255,0.03)'
         }
       }}
       onClick={handlePostClick}
     >
-      <Stack direction="row" spacing={{ xs: 1.5, md: 2 }} alignItems="flex-start">
+      <Stack direction="row" spacing={{ xs: 1.25, md: 2 }} alignItems="flex-start">
         <Avatar 
           aria-hidden 
           sx={{ 
             bgcolor: 'secondary.main', 
             fontWeight: 800, 
-            width: 48, 
-            height: 48, 
-            fontSize: 18,
+            width: { xs: 42, md: 48 }, 
+            height: { xs: 42, md: 48 }, 
+            fontSize: { xs: 16, md: 18 },
             cursor: onAuthorClick && authorId ? 'pointer' : 'default',
             '&:hover': onAuthorClick && authorId ? { opacity: 0.8 } : {}
           }}
@@ -759,7 +759,7 @@ export default function PostCard({
                   }}
                 >
                   <ChatBubbleOutline sx={{ fontSize: { xs: '18px', md: '18px' } }} />
-                </IconButton>
+              </IconButton>
                 <Typography 
                   variant="caption" 
                   sx={{ 
