@@ -324,41 +324,6 @@ export default function ResponsiveShell({ children }) {
           >
             {children}
           </Box>
-          
-          {/* Sağ Sidebar - Twitter tarzı (lg+) */}
-          {isMdUp && (
-            <Box
-              sx={{
-                display: { md: 'none', lg: 'block' },
-                width: 350,
-                flexShrink: 0,
-                px: 3,
-                py: 2,
-                borderLeft: '1px solid rgba(255,255,255,0.08)',
-                backgroundColor: 'rgba(0,0,0,0.65)',
-                backdropFilter: 'blur(12px)'
-              }}
-            >
-              {/* Sağ sidebar içeriği - şimdilik boş, ileride trends eklenebilir */}
-              <Box sx={{ mt: 2 }}>
-                <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '20px', mb: 2, color: 'text.primary' }}>
-                  Keşfet
-                </Typography>
-                <Box
-                  sx={{
-                    p: 3,
-                    borderRadius: 2,
-                    backgroundColor: 'rgba(255,255,255,0.03)',
-                    border: '1px solid rgba(255,255,255,0.08)'
-                  }}
-                >
-                  <Typography variant="body2" sx={{ color: 'text.secondary', textAlign: 'center' }}>
-                    Yakında burada öneriler ve trendler görünecek
-                  </Typography>
-                </Box>
-              </Box>
-            </Box>
-          )}
         </Box>
 
         {/* Mobil Alt Bar – Twitter/X mobil gibi sadece ikonlar */}
