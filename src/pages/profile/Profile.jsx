@@ -1,10 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Alert, Avatar, Box, Stack, Typography, Divider, CircularProgress,
-  Tabs, Tab, Container, useMediaQuery, Select, MenuItem, FormControl, InputLabel,
-  Toolbar, IconButton, Paper
+  Container,
+  Toolbar, IconButton, Paper, Menu, MenuItem
 } from '@mui/material'
-import { useTheme } from '@mui/material/styles'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import PostCard from '../../components/PostCard.jsx'
@@ -32,7 +31,6 @@ import {
 import DoctorPart from './DoctorPart.jsx'
 import UserPart from './UserPart.jsx'
 import { Logout as LogoutIcon, AccountCircle as AccountCircleIcon } from '@mui/icons-material';
-import Menu from '@mui/material/Menu';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 
 /* ---------------- Helpers ---------------- */
@@ -159,8 +157,6 @@ function mapChatToPost(post, meId, authorName, idToName) {
 export default function Profile() {
   const { token, user: me, logout } = useAuth()
   const navigate = useNavigate()
-  const theme = useTheme()
-  const isSmUp = useMediaQuery(theme.breakpoints.up('sm'))
   const location = useLocation()
   const searchParams = new URLSearchParams(location.search)
   const userIdParam = searchParams.get('userID')
@@ -174,7 +170,6 @@ export default function Profile() {
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [tab, setTab] = useState(0)
   const [mobileMenuAnchor, setMobileMenuAnchor] = useState(null);
   const handleMobileMenuOpen = (e) => setMobileMenuAnchor(e.currentTarget);
   const handleMenuClose = () => { setMobileMenuAnchor(null); };
@@ -310,19 +305,7 @@ export default function Profile() {
   const isUser = profileData?.role === 'user'
   const isVisitor = !!userIdParam && (Number(userIdParam) !== (me?.userId ?? me?.userID))
 
-  const tabs = useMemo(() => ([
-    { key: 'info', label: 'Bilgiler' },
-    ...(isDoctor ? [
-      { key: 'spec', label: 'Uzmanlık' },
-      { key: 'addr', label: 'Adresler' },
-      { key: 'contact', label: 'İletişim' },
-      { key: 'ann', label: 'Duyurular' },
-    ] : []),
-    ...(isUser ? [{ key: 'diseases', label: 'Hastalıklarım' }] : []),
-    { key: 'posts', label: 'Gönderilerim' },
-  ]), [isDoctor, isUser])
-
-  const currentKey = tabs[tab]?.key || 'info'
+  // Tab/select yapısı kaldırıldı - tüm içerik alt alta gösterilecek
 
   // Post silme
   async function handleDeletePost(postId) {
@@ -849,109 +832,125 @@ export default function Profile() {
         <ProfileMenu anchorEl={null} open={Boolean(mobileMenuAnchor)} onClose={handleMenuClose} />
       </Stack>
 
-      {/* Navigasyon - Mobilde Select, Desktop'ta Tabs */}
-      <Box sx={{ mb: { xs: 2.5, md: 3 } }}>
-        {isSmUp ? (
-          <Tabs
-            value={tab}
-            onChange={(_, v) => setTab(v)}
-            variant="scrollable"
-            scrollButtons="auto"
-            aria-label="Profil sekmeleri"
-            sx={{
-              borderBottom: '1px solid rgba(255,255,255,0.08)',
-              '& .MuiTab-root': {
-                fontWeight: 600,
-                textTransform: 'none',
-                minHeight: { xs: 48, md: 56 },
-                fontSize: { xs: '14px', md: 15 },
-                px: { xs: 2, md: 3 },
-                '&.Mui-selected': {
-                  color: 'primary.main',
-                }
-              }
+      {/* İçerik - Tüm bölümler alt alta */}
+      <Stack spacing={{ xs: 3, md: 4 }}>
+        {/* Bilgiler Bölümü */}
+        <Box>
+          <Typography 
+            variant="h6" 
+            sx={{ 
+              mb: 2, 
+              fontWeight: 700, 
+              fontSize: { xs: '18px', md: '20px' },
+              color: 'text.primary'
             }}
           >
-            {tabs.map(t => <Tab key={t.key} label={t.label} />)}
-          </Tabs>
-        ) : (
-          <FormControl fullWidth>
-            <Select
-              value={tab}
-              onChange={(e) => setTab(e.target.value)}
-              sx={{
-                backgroundColor: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.12)',
-                borderRadius: 2,
-                color: 'text.primary',
-                '& .MuiSelect-select': {
-                  py: { xs: 1.75, md: 1.5 },
-                  fontWeight: 600,
-                  fontSize: { xs: '15px', md: '16px' },
-                  minHeight: { xs: 48, md: 40 }
-                },
-                '& .MuiOutlinedInput-notchedOutline': {
-                  borderColor: 'rgba(255,255,255,0.12)'
-                },
-                '&:hover .MuiOutlinedInput-notchedOutline': {
-                  borderColor: 'rgba(255,255,255,0.2)'
-                },
-                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                  borderColor: 'primary.main'
-                }
-              }}
-              MenuProps={{
-                PaperProps: {
-                  sx: {
-                    bgcolor: 'rgba(7,20,28,0.98)',
-                    border: '1px solid rgba(255,255,255,0.12)',
-                    '& .MuiMenuItem-root': {
-                      color: '#FAF9F6',
-                      '&.Mui-selected': {
-                        bgcolor: 'rgba(52,195,161,0.18)',
-                        color: 'primary.main'
-                      },
-                      '&:hover': {
-                        bgcolor: 'rgba(255,255,255,0.08)'
-                      }
-                    }
-                  }
-                }
-              }}
-            >
-              {tabs.map((t, index) => (
-                <MenuItem key={t.key} value={index}>
-                  {t.label}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        )}
-      </Box>
-
-      {/* İçerik */}
-      <Box>
-        {currentKey === 'info' && (
+            Bilgiler
+          </Typography>
           <Stack spacing={0}>
             <Row label="İsim" value={profileData?.name} />
             <Row label="Soyisim" value={profileData?.surname} />
             <Row label="Doğum Tarihi" value={prettyDate(profileData?.dateOfBirth)} />
             <Row label="Rol" value={isDoctor ? 'Doktor' : 'Kullanıcı'} />
           </Stack>
+        </Box>
+
+        {/* Doktor Bölümleri */}
+        {isDoctor && (
+          <>
+            <Box>
+              <Typography 
+                variant="h6" 
+                sx={{ 
+                  mb: 2, 
+                  fontWeight: 700, 
+                  fontSize: { xs: '18px', md: '20px' },
+                  color: 'text.primary'
+                }}
+              >
+                Uzmanlık
+              </Typography>
+              <DoctorPart doctorData={doctorData} sectionKey="spec" canEdit={!isVisitor} />
+            </Box>
+
+            <Box>
+              <Typography 
+                variant="h6" 
+                sx={{ 
+                  mb: 2, 
+                  fontWeight: 700, 
+                  fontSize: { xs: '18px', md: '20px' },
+                  color: 'text.primary'
+                }}
+              >
+                Adresler
+              </Typography>
+              <DoctorPart doctorData={doctorData} sectionKey="addr" canEdit={!isVisitor} />
+            </Box>
+
+            <Box>
+              <Typography 
+                variant="h6" 
+                sx={{ 
+                  mb: 2, 
+                  fontWeight: 700, 
+                  fontSize: { xs: '18px', md: '20px' },
+                  color: 'text.primary'
+                }}
+              >
+                İletişim
+              </Typography>
+              <DoctorPart doctorData={doctorData} sectionKey="contact" canEdit={!isVisitor} />
+            </Box>
+
+            <Box>
+              <Typography 
+                variant="h6" 
+                sx={{ 
+                  mb: 2, 
+                  fontWeight: 700, 
+                  fontSize: { xs: '18px', md: '20px' },
+                  color: 'text.primary'
+                }}
+              >
+                Duyurular
+              </Typography>
+              <DoctorPart doctorData={doctorData} sectionKey="ann" canEdit={!isVisitor} />
+            </Box>
+          </>
         )}
 
-          {/* Doktor sekmeleri */}
-          {isDoctor && ['spec', 'addr', 'contact', 'ann'].includes(currentKey) && (
-            <DoctorPart doctorData={doctorData} sectionKey={currentKey} canEdit={!isVisitor} />
-          )}
+        {/* Kullanıcı Bölümleri */}
+        {isUser && (
+          <Box>
+            <Typography 
+              variant="h6" 
+              sx={{ 
+                mb: 2, 
+                fontWeight: 700, 
+                fontSize: { xs: '18px', md: '20px' },
+                color: 'text.primary'
+              }}
+            >
+              Hastalıklarım
+            </Typography>
+            <UserPart publicUserData={publicUserData} sectionKey="diseases" canEdit={!isVisitor} />
+          </Box>
+        )}
 
-          {/* Kullanıcı sekmeleri */}
-          {isUser && currentKey === 'diseases' && (
-            <UserPart publicUserData={publicUserData} sectionKey={currentKey} canEdit={!isVisitor} />
-          )}
-
-        {/* Gönderiler */}
-        {currentKey === 'posts' && (
+        {/* Gönderiler Bölümü */}
+        <Box>
+          <Typography 
+            variant="h6" 
+            sx={{ 
+              mb: 2, 
+              fontWeight: 700, 
+              fontSize: { xs: '18px', md: '20px' },
+              color: 'text.primary'
+            }}
+          >
+            Gönderilerim
+          </Typography>
           <Stack spacing={0}>
             {postsLoading ? (
               <Box sx={{ display: 'grid', placeItems: 'center', py: 4 }}>
@@ -1004,8 +1003,8 @@ export default function Profile() {
               ))
             )}
           </Stack>
-        )}
-      </Box>
+        </Box>
+      </Stack>
       <Toolbar sx={{ minHeight: 16 }} /> {/* alt boşluk */}
     </Container>
   )
