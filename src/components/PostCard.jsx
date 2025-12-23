@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import {
   Box, Avatar, Typography, Stack, IconButton, Tooltip, Divider,
   TextField, Button, Chip, List, ListItem, ListItemText, Paper, CircularProgress,
-  Dialog, DialogTitle, DialogContent, DialogActions, useMediaQuery
+  Dialog, DialogTitle, DialogContent, DialogActions, useMediaQuery, Menu, MenuItem
 } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
 import { useNavigate } from 'react-router-dom'
@@ -14,7 +14,8 @@ import {
   DeleteOutline,
   Close,
   ThumbUp,
-  ThumbDown
+  ThumbDown,
+  MoreVert
 } from '@mui/icons-material'
 
 function initialsFrom(name = '') {
@@ -77,6 +78,8 @@ export default function PostCard({
   const [loadedDislikedUsers, setLoadedDislikedUsers] = useState(null)
   const [loadingLikedUsers, setLoadingLikedUsers] = useState(false)
   const [loadingDislikedUsers, setLoadingDislikedUsers] = useState(false)
+  const [menuAnchor, setMenuAnchor] = useState(null)
+  const openMenu = Boolean(menuAnchor)
   // openDetails, toggleDetails, handleDetails kaldırıldı
 
   const dt = new Date(timestamp)
@@ -233,6 +236,8 @@ export default function PostCard({
   const CommentItem = ({ comment, postId, depth = 0 }) => {
     const [replyText, setReplyText] = useState('')
     const [showReply, setShowReply] = useState(false)
+    const [commentMenuAnchor, setCommentMenuAnchor] = useState(null)
+    const openCommentMenu = Boolean(commentMenuAnchor)
     const canDeleteComment = !!onCommentDelete && (isOwner || (currentUserId && comment.authorId && comment.authorId === currentUserId))
     
     // Depth limit kontrolü - çok derinleşirse daha fazla indent yapma
@@ -286,27 +291,72 @@ export default function PostCard({
               </Stack>
               
               {canDeleteComment && (
-                <Button
-                  size="small"
-                  variant="outlined"
-                  color="error"
-                  onClick={() => onCommentDelete?.(postId, comment.id)}
-                  startIcon={<DeleteOutline fontSize="small" />}
-                  sx={{
-                    minWidth: { xs: 60, md: 70 },
-                    height: { xs: 28, md: 28 },
-                    fontSize: { xs: '0.65rem', md: '0.7rem' },
-                    fontWeight: 600,
-                    borderColor: 'rgba(244,67,54,0.5)',
-                    color: 'error.main',
-                    '&:hover': {
-                      borderColor: 'error.main',
-                      backgroundColor: 'rgba(244,67,54,0.1)'
-                    }
-                  }}
-                >
-                  Sil
-                </Button>
+                <>
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setCommentMenuAnchor(e.currentTarget)
+                    }}
+                    sx={{
+                      color: 'text.secondary',
+                      width: { xs: 28, md: 28 },
+                      height: { xs: 28, md: 28 },
+                      '&:hover': {
+                        color: 'text.primary',
+                        backgroundColor: 'rgba(255,255,255,0.08)'
+                      }
+                    }}
+                  >
+                    <MoreVert sx={{ fontSize: { xs: '16px', md: '16px' } }} />
+                  </IconButton>
+                  <Menu
+                    anchorEl={commentMenuAnchor}
+                    open={openCommentMenu}
+                    onClose={() => setCommentMenuAnchor(null)}
+                    anchorOrigin={{
+                      vertical: 'bottom',
+                      horizontal: 'right',
+                    }}
+                    transformOrigin={{
+                      vertical: 'top',
+                      horizontal: 'right',
+                    }}
+                    PaperProps={{
+                      sx: {
+                        bgcolor: 'rgba(7, 20, 28, 0.98)',
+                        border: '1px solid rgba(255,255,255,0.12)',
+                        borderRadius: 2,
+                        minWidth: 140,
+                        mt: 0.5
+                      }
+                    }}
+                  >
+                    <MenuItem
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setCommentMenuAnchor(null)
+                        const ok = window.confirm('Bu yorumu silmek istediğinize emin misiniz?')
+                        if (ok) {
+                          onCommentDelete?.(postId, comment.id)
+                        }
+                      }}
+                      sx={{
+                        color: 'error.main',
+                        fontSize: { xs: '14px', md: '14px' },
+                        py: { xs: 1, md: 1 },
+                        '&:hover': {
+                          backgroundColor: 'rgba(244,67,54,0.1)'
+                        }
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <DeleteOutline sx={{ fontSize: 18 }} />
+                        <span>Sil</span>
+                      </Box>
+                    </MenuItem>
+                  </Menu>
+                </>
               )}
             </Stack>
             
@@ -651,33 +701,80 @@ export default function PostCard({
             </Typography>
             <Box sx={{ flex: 1 }} />
             {isOwner && !!onDelete && (
-              <Button
-                    size="small"
-                variant="outlined"
-                color="error"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleDeletePost()
-                }}
+              <>
+                <IconButton
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setMenuAnchor(e.currentTarget)
+                  }}
+                  sx={{
+                    color: 'text.secondary',
+                    width: { xs: 32, md: 32 },
+                    height: { xs: 32, md: 32 },
+                    '&:hover': {
+                      color: 'text.primary',
+                      backgroundColor: 'rgba(255,255,255,0.08)'
+                    }
+                  }}
+                >
+                  <MoreVert sx={{ fontSize: { xs: '18px', md: '18px' } }} />
+                </IconButton>
+                <Menu
+                  anchorEl={menuAnchor}
+                  open={openMenu}
+                  onClose={() => setMenuAnchor(null)}
+                  anchorOrigin={{
+                    vertical: 'bottom',
+                    horizontal: 'right',
+                  }}
+                  transformOrigin={{
+                    vertical: 'top',
+                    horizontal: 'right',
+                  }}
+                  PaperProps={{
+                    sx: {
+                      bgcolor: 'rgba(7, 20, 28, 0.98)',
+                      border: '1px solid rgba(255,255,255,0.12)',
+                      borderRadius: 2,
+                      minWidth: 160,
+                      mt: 0.5
+                    }
+                  }}
+                >
+                  <MenuItem
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setMenuAnchor(null)
+                      handleDeletePost()
+                    }}
                     disabled={deleting}
-                startIcon={deleting ? <CircularProgress size={14} /> : <DeleteOutline />}
-                sx={{
-                  minWidth: { xs: 70, md: 90 },
-                  minHeight: { xs: 32, md: 32 },
-                  height: { xs: 32, md: 32 },
-                  fontSize: { xs: '0.7rem', md: '0.75rem' },
-                  fontWeight: 600,
-                  borderColor: 'rgba(244,67,54,0.5)',
-                  color: 'error.main',
-                  px: { xs: 1, md: 1.5 },
-                  '&:hover': {
-                    borderColor: 'error.main',
-                    backgroundColor: 'rgba(244,67,54,0.1)'
-                  }
-                }}
-              >
-                {deleting ? 'Siliniyor' : 'Sil'}
-              </Button>
+                    sx={{
+                      color: 'error.main',
+                      fontSize: { xs: '14px', md: '14px' },
+                      py: { xs: 1, md: 1 },
+                      '&:hover': {
+                        backgroundColor: 'rgba(244,67,54,0.1)'
+                      },
+                      '&.Mui-disabled': {
+                        opacity: 0.5
+                      }
+                    }}
+                  >
+                    {deleting ? (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <CircularProgress size={16} sx={{ color: 'error.main' }} />
+                        <span>Siliniyor...</span>
+                      </Box>
+                    ) : (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <DeleteOutline sx={{ fontSize: 18 }} />
+                        <span>Sil</span>
+                      </Box>
+                    )}
+                  </MenuItem>
+                </Menu>
+              </>
             )}
           </Stack>
 

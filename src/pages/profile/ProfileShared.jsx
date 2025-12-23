@@ -49,37 +49,88 @@ export function SectionList({ items, renderItem, getKey, emptyText }) {
 }
 
 export function SubRow({ label, value, icon }) {
-  return (
-    <Box sx={{
-      display: 'grid',
-      gridTemplateColumns: { xs: '1fr', sm: '140px 1fr' },
-      gap: { xs: 1, sm: 2 },
-      alignItems: 'start',
-      py: { xs: 0.5, sm: 0.75 }
-    }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        {icon}
-        <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500 }}>{label}</Typography>
+  // Eğer icon varsa, label'ı göster (icon ile birlikte), yoksa sadece değeri göster
+  if (icon && label) {
+    return (
+      <Box sx={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 1.5,
+        py: { xs: 0.75, sm: 1 }
+      }}>
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          width: 32,
+          height: 32,
+          borderRadius: 1,
+          bgcolor: 'rgba(255,255,255,0.05)',
+          color: 'text.secondary',
+          flexShrink: 0
+        }}>
+          {icon}
+        </Box>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Typography variant="caption" sx={{ 
+            color: 'text.secondary', 
+            fontWeight: 500,
+            fontSize: '11px',
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px',
+            display: 'block',
+            mb: 0.25
+          }}>
+            {label}
+          </Typography>
+          <Typography variant="body1" sx={{ 
+            fontWeight: 600, 
+            wordBreak: 'break-word', 
+            color: 'text.primary',
+            fontSize: { xs: '14px', md: '15px' }
+          }}>
+            {value || '—'}
+          </Typography>
+        </Box>
       </Box>
-      <Typography variant="body1" sx={{ fontWeight: 600, wordBreak: 'break-word', color: 'text.primary' }}>{value || '—'}</Typography>
-    </Box>
+    )
+  }
+  
+  // Icon yoksa, sadece değeri göster (label gereksiz)
+  return (
+    <Typography variant="body1" sx={{ 
+      fontWeight: 500, 
+      wordBreak: 'break-word', 
+      color: 'text.primary',
+      py: { xs: 0.5, sm: 0.75 },
+      fontSize: { xs: '14px', md: '15px' }
+    }}>
+      {value || '—'}
+    </Typography>
   )
 }
 
-export function Section({ title, count, children, chipIcon }) {
+export function Section({ title, count, children, chipIcon, actionIcon, onActionClick }) {
   return (
     <Box sx={{ mb: { xs: 3, sm: 4 } }}>
-      <Typography 
-        variant="h6" 
-        sx={{ 
-          fontWeight: 700, 
-          mb: { xs: 2, sm: 2.5 },
-          fontSize: { xs: 18, sm: 20 },
-          color: 'text.primary'
-        }}
-      >
-        {title}{count != null ? ` (${count})` : ''}
-      </Typography>
+      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: { xs: 2, sm: 2.5 } }}>
+        <Typography 
+          variant="h6" 
+          sx={{ 
+            fontWeight: 700, 
+            fontSize: { xs: 18, sm: 20 },
+            color: 'text.primary',
+            flex: 1
+          }}
+        >
+          {title}
+        </Typography>
+        {actionIcon && onActionClick && (
+          <Box onClick={onActionClick} sx={{ cursor: 'pointer' }}>
+            {actionIcon}
+          </Box>
+        )}
+      </Stack>
       <Box>{children}</Box>
     </Box>
   )

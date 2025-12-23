@@ -20,7 +20,8 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   </React.StrictMode>
 )
 
-if ('serviceWorker' in navigator) {
+// Service Worker sadece production'da aktif olsun
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
     const swUrl = '/sw.js'
     navigator.serviceWorker.register(swUrl).catch(console.error)

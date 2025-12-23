@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   Box, Stack, Typography, TextField, Button,
-  Alert, CircularProgress, Autocomplete, Collapse, Paper, Tooltip
+  Alert, CircularProgress, Autocomplete, Collapse, Paper, Tooltip, IconButton, Menu, MenuItem
 } from '@mui/material'
-import { Add as AddIcon, Close as CloseIcon, DeleteOutline as DeleteIcon } from '@mui/icons-material'
+import { Add as AddIcon, Close as CloseIcon, DeleteOutline as DeleteIcon, CalendarToday, Edit, MoreVert } from '@mui/icons-material'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { addDisease, getDiseaseNames, deleteDisease } from '../../services/api.js'
 import { Section, SectionList, SubRow, prettyDate } from './ProfileShared.jsx'
@@ -192,6 +192,7 @@ export default function UserPart({ publicUserData, sectionKey, canEdit = false }
   const [openForm, setOpenForm] = useState(false)
   const [delErr, setDelErr] = useState('')
   const [delLoadingId, setDelLoadingId] = useState(null)
+  const [menuAnchors, setMenuAnchors] = useState({}) // Her hastalık için menü anchor'u
 
   if (!publicUserData) return null
 
@@ -217,22 +218,28 @@ export default function UserPart({ publicUserData, sectionKey, canEdit = false }
   if (sectionKey !== 'diseases') return null
 
   return (
-    <Section title="Hastalıklarım" count={items.length}>
-      {canEdit && (
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
-          <Button
-            variant={openForm ? 'outlined' : 'contained'}
-            onClick={() => setOpenForm(v => !v)}
-            startIcon={<AddIcon />}
-            size="small"
-            sx={{ minHeight: 40 }}
-            aria-expanded={openForm ? 'true' : 'false'}
-          >
-            {openForm ? 'Hastalık Ekle (Kapat)' : 'Hastalık Ekle'}
-          </Button>
-        </Box>
-      )}
-
+    <Section 
+      title="Hastalıklarım" 
+      count={items.length}
+      actionIcon={canEdit ? (
+        <IconButton
+          size="small"
+          onClick={() => setOpenForm(true)}
+          sx={{
+            color: 'text.secondary',
+            width: { xs: 36, md: 36 },
+            height: { xs: 36, md: 36 },
+            '&:hover': {
+              color: 'primary.main',
+              backgroundColor: 'rgba(52,195,161,0.1)'
+            }
+          }}
+        >
+          <Edit sx={{ fontSize: { xs: '20px', md: '20px' } }} />
+        </IconButton>
+      ) : null}
+      onActionClick={canEdit ? () => setOpenForm(true) : undefined}
+    >
       {delErr && <Alert sx={{ mb: 1 }} severity="error" variant="filled">{delErr}</Alert>}
 
       <SectionList
@@ -243,6 +250,9 @@ export default function UserPart({ publicUserData, sectionKey, canEdit = false }
           const name = getDiseaseName(d)
           const diagDate = prettyDate(d?.dateOfDiagnosis)
           const id = getDiseaseId(d)
+          const menuAnchor = menuAnchors[id] || null
+          const openMenu = Boolean(menuAnchor)
+          
           return (
             <Paper
               elevation={0}
@@ -260,32 +270,98 @@ export default function UserPart({ publicUserData, sectionKey, canEdit = false }
               }}
             >
               <Stack spacing={1.5}>
-                <SubRow label="Hastalık" value={name} />
-                <SubRow label="Tanı Tarihi" value={diagDate} />
-
-                {canEdit && (
-                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', pt: 1, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-                    <Button
-                      variant="outlined"
-                      color="error"
-                      size="small"
-                      startIcon={delLoadingId === id ? <CircularProgress size={16} /> : <DeleteIcon />}
-                      onClick={() => handleDeleteDisease(d)}
-                      disabled={!id || delLoadingId === id}
-                      sx={{
-                        minWidth: 100,
-                        fontWeight: 600,
-                        borderColor: 'rgba(244,67,54,0.5)',
-                        color: 'error.main',
-                        '&:hover': {
-                          borderColor: 'error.main',
-                          backgroundColor: 'rgba(244,67,54,0.1)'
-                        }
-                      }}
-                    >
-                      {delLoadingId === id ? 'Siliniyor...' : 'Sil'}
-                    </Button>
-                  </Box>
+                <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
+                  <Typography variant="h6" sx={{ 
+                    fontWeight: 700,
+                    fontSize: { xs: '16px', md: '18px' },
+                    color: 'text.primary',
+                    flex: 1
+                  }}>
+                    {name}
+                  </Typography>
+                  
+                  {canEdit && (
+                    <>
+                      <IconButton
+                        size="small"
+                        onClick={(e) => setMenuAnchors(prev => ({ ...prev, [id]: e.currentTarget }))}
+                        sx={{
+                          color: 'text.secondary',
+                          width: { xs: 32, md: 32 },
+                          height: { xs: 32, md: 32 },
+                          '&:hover': {
+                            color: 'text.primary',
+                            backgroundColor: 'rgba(255,255,255,0.08)'
+                          }
+                        }}
+                      >
+                        <MoreVert sx={{ fontSize: { xs: '18px', md: '18px' } }} />
+                      </IconButton>
+                      
+                      <Menu
+                        anchorEl={menuAnchor}
+                        open={openMenu}
+                        onClose={() => setMenuAnchors(prev => ({ ...prev, [id]: null }))}
+                        anchorOrigin={{
+                          vertical: 'bottom',
+                          horizontal: 'right',
+                        }}
+                        transformOrigin={{
+                          vertical: 'top',
+                          horizontal: 'right',
+                        }}
+                        PaperProps={{
+                          sx: {
+                            bgcolor: 'rgba(7, 20, 28, 0.98)',
+                            border: '1px solid rgba(255,255,255,0.12)',
+                            borderRadius: 2,
+                            minWidth: 140,
+                            mt: 0.5
+                          }
+                        }}
+                      >
+                        <MenuItem
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setMenuAnchors(prev => ({ ...prev, [id]: null }))
+                            handleDeleteDisease(d)
+                          }}
+                          disabled={!id || delLoadingId === id}
+                          sx={{
+                            color: 'error.main',
+                            fontSize: { xs: '14px', md: '14px' },
+                            py: { xs: 1, md: 1 },
+                            '&:hover': {
+                              backgroundColor: 'rgba(244,67,54,0.1)'
+                            },
+                            '&.Mui-disabled': {
+                              opacity: 0.5
+                            }
+                          }}
+                        >
+                          {delLoadingId === id ? (
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <CircularProgress size={16} sx={{ color: 'error.main' }} />
+                              <span>Siliniyor...</span>
+                            </Box>
+                          ) : (
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <DeleteIcon sx={{ fontSize: 18 }} />
+                              <span>Sil</span>
+                            </Box>
+                          )}
+                        </MenuItem>
+                      </Menu>
+                    </>
+                  )}
+                </Stack>
+                
+                {diagDate && diagDate !== 'Belirtilmemiş' && (
+                  <SubRow 
+                    icon={<CalendarToday fontSize="small" />}
+                    label="Tanı Tarihi"
+                    value={diagDate} 
+                  />
                 )}
               </Stack>
             </Paper>

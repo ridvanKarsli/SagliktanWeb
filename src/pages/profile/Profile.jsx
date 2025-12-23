@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   Alert, Avatar, Box, Stack, Typography, Divider, CircularProgress,
-  Toolbar, IconButton, Paper, Menu, MenuItem
+  Toolbar, Paper
 } from '@mui/material'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
@@ -29,8 +29,6 @@ import {
 } from '../../services/api.js'
 import DoctorPart from './DoctorPart.jsx'
 import UserPart from './UserPart.jsx'
-import { Logout as LogoutIcon, AccountCircle as AccountCircleIcon } from '@mui/icons-material';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
 
 /* ---------------- Helpers ---------------- */
 function initialsFrom(name = '', fallback = '') {
@@ -45,36 +43,7 @@ function initialsFrom(name = '', fallback = '') {
 }
 function prettyDate(d) {
   const dt = d ? new Date(d) : null
-  return dt && !isNaN(dt) ? dt.toLocaleDateString('tr-TR') : 'Belirtilmemiş'
-}
-function Row({ label, value }) {
-  return (
-    <Paper
-      elevation={0}
-      sx={{
-        p: { xs: 1.5, sm: 2 },
-        borderRadius: 2,
-        backgroundColor: 'rgba(255,255,255,0.03)',
-        border: '1px solid rgba(255,255,255,0.08)',
-        mb: 1.5,
-        transition: 'all 0.2s ease',
-        '&:hover': {
-          backgroundColor: 'rgba(255,255,255,0.05)',
-          borderColor: 'rgba(255,255,255,0.12)'
-        }
-      }}
-    >
-    <Box sx={{
-      display: 'grid',
-        gridTemplateColumns: { xs: '1fr', sm: '140px 1fr' },
-        gap: { xs: 1, sm: 2 },
-        alignItems: 'start'
-      }}>
-        <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500 }}>{label}</Typography>
-        <Typography variant="body1" sx={{ fontWeight: 600, wordBreak: 'break-word', color: 'text.primary' }}>{value || 'Belirtilmemiş'}</Typography>
-    </Box>
-    </Paper>
-  )
+  return dt && !isNaN(dt) ? dt.toLocaleDateString('tr-TR', { year: 'numeric', month: 'long', day: 'numeric' }) : null
 }
 
 const displayName = (u) =>
@@ -169,31 +138,6 @@ export default function Profile() {
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [mobileMenuAnchor, setMobileMenuAnchor] = useState(null);
-  const handleMobileMenuOpen = (e) => setMobileMenuAnchor(e.currentTarget);
-  const handleMenuClose = () => { setMobileMenuAnchor(null); };
-
-  // Menü içeriği fonksiyonu: (kopya önle için)
-  function ProfileMenu({ anchorEl, open, onClose }) {
-    return (
-      <Menu
-        anchorEl={anchorEl}
-        open={open}
-        onClose={onClose}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-        transformOrigin={{ vertical: 'top', horizontal: 'center' }}
-        getContentAnchorEl={null}
-        sx={{ mt: 1 }}
-      >
-        <MenuItem onClick={() => { onClose(); navigate('/profile'); }}>
-          <AccountCircleIcon sx={{ mr: 1, color: 'primary.main' }} /> Profilim
-        </MenuItem>
-        <MenuItem onClick={() => { onClose(); logout(); navigate('/'); }}>
-          <LogoutIcon sx={{ mr: 1, color: 'error.main' }} /> Çıkış Yap
-        </MenuItem>
-      </Menu>
-    )
-  }
 
 
   useEffect(() => {
@@ -789,131 +733,111 @@ export default function Profile() {
 
   return (
     <Box sx={{ width: '100%', py: { xs: 1, md: 0 }, px: { xs: 0, sm: 0 } }}>
-        {/* Header */}
-      <Stack direction="row" justifyContent="flex-end" alignItems="center" sx={{ mb: { xs: 1.5, md: 2 }, position: 'relative', px: { xs: 1.5, md: 3 }, pt: { xs: 1.5, md: 3 } }}>
-          {/* Mobilde sağ üstte 3 nokta menü */}
-          <IconButton
-            onClick={handleMobileMenuOpen}
+        {/* Profil Başlığı */}
+      <Box sx={{ 
+        mb: { xs: 3, md: 4 },
+        px: { xs: 1.5, md: 3 }
+      }}>
+        {/* Profil içeriği */}
+        <Stack 
+          direction={{ xs: 'column', sm: 'row' }} 
+          spacing={2}
           sx={{ 
-            display: { xs: 'flex', sm: 'none' }, 
-            position: 'absolute', 
-            right: 0, 
-            top: 0, 
-            zIndex: 15,
-            width: { xs: 48, md: 40 },
-            height: { xs: 48, md: 40 },
-            minWidth: { xs: 48, md: 40 },
-            minHeight: { xs: 48, md: 40 }
+            alignItems: { xs: 'center', sm: 'flex-start' },
+            textAlign: { xs: 'center', sm: 'left' },
+            pt: { xs: 2, md: 3 }
           }}
-            aria-label="Menü Aç"
-          >
-          <MoreVertIcon sx={{ fontSize: { xs: 28, md: 24 } }} />
-          </IconButton>
-          {/* Masaüstü için boşluk */}
-        </Stack>
-
-        {/* Avatar ve menus: avatar tıklandığında her zamanki gibi */}
-      <Stack spacing={1.5} sx={{ alignItems: 'center', textAlign: 'center', position: 'relative', mb: { xs: 2, md: 3 }, px: { xs: 1.5, md: 3 } }}>
+        >
+          {/* Avatar */}
           <Avatar
             sx={{
-            width: { xs: 80, md: 80 },
-            height: { xs: 80, md: 80 },
+              width: { xs: 100, md: 120 },
+              height: { xs: 100, md: 120 },
               bgcolor: 'secondary.main',
               fontWeight: 800,
-            fontSize: { xs: 26, md: 26 },
-            cursor: 'pointer'
+              fontSize: { xs: 32, md: 40 }
             }}
             aria-label="Kullanıcı avatarı"
           >
-            {initialsFrom(profileData?.name, profileData?.email)}
+            {initialsFrom([profileData?.name, profileData?.surname].filter(Boolean).join(' ') || profileData?.email)}
           </Avatar>
-          {/* Menüleri render et: avatar veya mobile butondan açılır */}
-          <ProfileMenu anchorEl={null} open={Boolean(mobileMenuAnchor)} onClose={handleMenuClose} />
+
+          {/* İsim ve Bilgiler */}
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography 
+              variant="h4" 
+              sx={{ 
+                fontWeight: 700,
+                fontSize: { xs: '24px', md: '32px' },
+                color: 'text.primary',
+                mb: 0.5,
+                wordBreak: 'break-word'
+              }}
+            >
+              {[profileData?.name, profileData?.surname].filter(Boolean).join(' ') || 'Kullanıcı'}
+            </Typography>
+            
+            <Stack 
+              direction={{ xs: 'column', sm: 'row' }} 
+              spacing={{ xs: 0.5, sm: 2 }}
+              sx={{ 
+                flexWrap: 'wrap',
+                alignItems: { xs: 'center', sm: 'flex-start' },
+                justifyContent: { xs: 'center', sm: 'flex-start' }
+              }}
+            >
+              {profileData?.role && (
+                <Box sx={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  px: 1.5,
+                  py: 0.5,
+                  borderRadius: 2,
+                  bgcolor: isDoctor ? 'rgba(52,195,161,0.15)' : 'rgba(14,165,233,0.15)',
+                  border: `1px solid ${isDoctor ? 'rgba(52,195,161,0.3)' : 'rgba(14,165,233,0.3)'}`
+                }}>
+                  <Typography variant="body2" sx={{ 
+                    fontWeight: 600,
+                    color: isDoctor ? 'secondary.main' : 'primary.main',
+                    fontSize: { xs: '13px', md: '14px' }
+                  }}>
+                    {isDoctor ? 'Doktor' : 'Kullanıcı'}
+                  </Typography>
+                </Box>
+              )}
+              
+              {prettyDate(profileData?.dateOfBirth) && (
+                <Typography variant="body2" sx={{ 
+                  color: 'text.secondary',
+                  fontSize: { xs: '13px', md: '14px' }
+                }}>
+                  {prettyDate(profileData?.dateOfBirth)}
+                </Typography>
+              )}
+            </Stack>
+          </Box>
         </Stack>
+      </Box>
 
       {/* İçerik - Tüm bölümler alt alta */}
       <Stack spacing={{ xs: 2.5, md: 4 }} sx={{ px: { xs: 1.5, md: 3 } }}>
-        {/* Bilgiler Bölümü */}
-        <Box>
-          <Typography 
-            variant="h6" 
-          sx={{
-              mb: 2, 
-                fontWeight: 700,
-              fontSize: { xs: '18px', md: '20px' },
-              color: 'text.primary'
-            }}
-          >
-            Bilgiler
-          </Typography>
-          <Stack spacing={0}>
-              <Row label="İsim" value={profileData?.name} />
-              <Row label="Soyisim" value={profileData?.surname} />
-              <Row label="Doğum Tarihi" value={prettyDate(profileData?.dateOfBirth)} />
-              <Row label="Rol" value={isDoctor ? 'Doktor' : 'Kullanıcı'} />
-            </Stack>
-        </Box>
 
         {/* Doktor Bölümleri */}
         {isDoctor && (
           <>
             <Box>
-              <Typography 
-                variant="h6" 
-                sx={{ 
-                  mb: 2, 
-                  fontWeight: 700, 
-                  fontSize: { xs: '18px', md: '20px' },
-                  color: 'text.primary'
-                }}
-              >
-                Uzmanlık
-              </Typography>
               <DoctorPart doctorData={doctorData} sectionKey="spec" canEdit={!isVisitor} />
             </Box>
 
             <Box>
-              <Typography 
-                variant="h6" 
-                sx={{ 
-                  mb: 2, 
-                  fontWeight: 700, 
-                  fontSize: { xs: '18px', md: '20px' },
-                  color: 'text.primary'
-                }}
-              >
-                Adresler
-              </Typography>
               <DoctorPart doctorData={doctorData} sectionKey="addr" canEdit={!isVisitor} />
             </Box>
 
             <Box>
-              <Typography 
-                variant="h6" 
-                sx={{ 
-                  mb: 2, 
-                  fontWeight: 700, 
-                  fontSize: { xs: '18px', md: '20px' },
-                  color: 'text.primary'
-                }}
-              >
-                İletişim
-              </Typography>
               <DoctorPart doctorData={doctorData} sectionKey="contact" canEdit={!isVisitor} />
             </Box>
 
             <Box>
-              <Typography 
-                variant="h6" 
-                sx={{ 
-                  mb: 2, 
-                  fontWeight: 700, 
-                  fontSize: { xs: '18px', md: '20px' },
-                  color: 'text.primary'
-                }}
-              >
-                Duyurular
-              </Typography>
               <DoctorPart doctorData={doctorData} sectionKey="ann" canEdit={!isVisitor} />
             </Box>
           </>
@@ -922,17 +846,6 @@ export default function Profile() {
         {/* Kullanıcı Bölümleri */}
         {isUser && (
           <Box>
-            <Typography 
-              variant="h6" 
-              sx={{ 
-                mb: 2, 
-                fontWeight: 700, 
-                fontSize: { xs: '18px', md: '20px' },
-                color: 'text.primary'
-              }}
-            >
-              Hastalıklarım
-            </Typography>
             <UserPart publicUserData={publicUserData} sectionKey="diseases" canEdit={!isVisitor} />
           </Box>
         )}

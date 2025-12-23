@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react'
 import {
   Box, Stack, Typography, TextField, Button, Alert,
-  CircularProgress, Paper
+  CircularProgress, Paper, IconButton, Menu, MenuItem
 } from '@mui/material'
 import {
   LocalHospital, WorkHistory, Business, Place, Phone, Email, Campaign,
-  Add as AddIcon, DeleteOutline as DeleteIcon
+  Add as AddIcon, DeleteOutline as DeleteIcon, Edit, MoreVert
 } from '@mui/icons-material'
 import { useAuth } from '../../context/AuthContext.jsx'
 import {
@@ -520,6 +520,12 @@ export default function DoctorPart({ doctorData, sectionKey, canEdit = true }) {
   const [delAnnErr, setDelAnnErr] = useState('')
   const [delAnnLoadingId, setDelAnnLoadingId] = useState(null)
 
+  // Menü anchor state'leri
+  const [specMenuAnchors, setSpecMenuAnchors] = useState({})
+  const [addrMenuAnchors, setAddrMenuAnchors] = useState({})
+  const [contactMenuAnchors, setContactMenuAnchors] = useState({})
+  const [annMenuAnchors, setAnnMenuAnchors] = useState({})
+
   // --- DELETE handlers ---
   async function deleteSpecById(item) {
     setDelSpecErr('')
@@ -576,104 +582,40 @@ export default function DoctorPart({ doctorData, sectionKey, canEdit = true }) {
   // --- RENDER ---
   if (sectionKey === 'spec') {
     return (
-      <Section title="Uzmanlık" count={specItems.length} chipIcon={<LocalHospital sx={{ fontSize: 18 }} />}>
-        {canEdit && (
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1, gap: 1, flexWrap: 'wrap' }}>
-            {delSpecErr && <Alert sx={{ flex: 1, minWidth: 240 }} severity="error" variant="filled">{delSpecErr}</Alert>}
-            <Box sx={{ flex: 1 }} />
-            <Button variant={openSpecForm ? 'outlined' : 'contained'} onClick={() => setOpenSpecForm(v => !v)}
-              startIcon={<AddIcon />} size="small" sx={{ minHeight: 40 }} aria-expanded={openSpecForm ? 'true' : 'false'}>
-              {openSpecForm ? 'Uzmanlık Ekle (Kapat)' : 'Uzmanlık Ekle'}
-            </Button>
-          </Box>
-        )}
+      <Section 
+        title="Uzmanlık" 
+        count={specItems.length} 
+        chipIcon={<LocalHospital sx={{ fontSize: 18 }} />}
+        actionIcon={canEdit ? (
+          <IconButton
+            size="small"
+            onClick={() => setOpenSpecForm(true)}
+            sx={{
+              color: 'text.secondary',
+              width: { xs: 36, md: 36 },
+              height: { xs: 36, md: 36 },
+              '&:hover': {
+                color: 'primary.main',
+                backgroundColor: 'rgba(52,195,161,0.1)'
+              }
+            }}
+          >
+            <Edit sx={{ fontSize: { xs: '20px', md: '20px' } }} />
+          </IconButton>
+        ) : null}
+        onActionClick={canEdit ? () => setOpenSpecForm(true) : undefined}
+      >
+        {delSpecErr && <Alert sx={{ mb: 1 }} severity="error" variant="filled">{delSpecErr}</Alert>}
 
         <SectionList
           items={specItems}
           emptyText="Uzmanlık alanı bulunamadı."
           getKey={(spec, i) => spec?.specializationID ?? i}
-          renderItem={(spec) => (
-            <Paper
-              elevation={0}
-              sx={{
-                p: { xs: 1.5, sm: 2 },
-                borderRadius: 2,
-                backgroundColor: 'rgba(255,255,255,0.03)',
-                border: '1px solid rgba(255,255,255,0.08)',
-                position: 'relative',
-                transition: 'all 0.2s ease',
-                '&:hover': {
-                  backgroundColor: 'rgba(255,255,255,0.05)',
-                  borderColor: 'rgba(255,255,255,0.12)'
-                }
-              }}
-            >
-              <Stack spacing={1.5}>
-                <SubRow 
-                  icon={<LocalHospital fontSize="small" />} 
-                  label="Uzmanlık" 
-                  value={spec?.nameOfSpecialization} 
-                />
-                <SubRow 
-                  icon={<WorkHistory fontSize="small" />} 
-                  label="Deneyim"
-                  value={(spec?.specializationExperience ?? spec?.experienceYears) != null
-                    ? `${spec?.specializationExperience ?? spec?.experienceYears} yıl` : '—'} 
-                />
-                {canEdit && (
-                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', pt: 1, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-                    <Button
-                      variant="outlined"
-                      color="error"
-                      size="small"
-                      startIcon={delSpecLoadingId === (spec?.specializationID) ? <CircularProgress size={16} /> : <DeleteIcon />}
-                      onClick={() => deleteSpecById(spec)}
-                      disabled={delSpecLoadingId === (spec?.specializationID)}
-                      sx={{
-                        minWidth: 100,
-                        fontWeight: 600,
-                        borderColor: 'rgba(244,67,54,0.5)',
-                        color: 'error.main',
-                        '&:hover': {
-                          borderColor: 'error.main',
-                          backgroundColor: 'rgba(244,67,54,0.1)'
-                        }
-                      }}
-                    >
-                      {delSpecLoadingId === (spec?.specializationID) ? 'Siliniyor...' : 'Sil'}
-                    </Button>
-                  </Box>
-                )}
-              </Stack>
-            </Paper>
-          )}
-        />
-
-        {canEdit && openSpecForm && <AddSpecializationForm onAdded={(x) => setSpecItems(p => [x, ...p])} onClose={() => setOpenSpecForm(false)} />}
-      </Section>
-    )
-  }
-
-  if (sectionKey === 'addr') {
-    return (
-      <Section title="Adresler" count={addrItems.length} chipIcon={<Business sx={{ fontSize: 18 }} />}>
-        {canEdit && (
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1, gap: 1, flexWrap: 'wrap' }}>
-            {delAddrErr && <Alert sx={{ flex: 1, minWidth: 240 }} severity="error" variant="filled">{delAddrErr}</Alert>}
-            <Box sx={{ flex: 1 }} />
-            <Button variant={openAddrForm ? 'outlined' : 'contained'} onClick={() => setOpenAddrForm(v => !v)}
-              startIcon={<AddIcon />} size="small" sx={{ minHeight: 40 }} aria-expanded={openAddrForm ? 'true' : 'false'}>
-              {openAddrForm ? 'Adres Ekle (Kapat)' : 'Adres Ekle'}
-            </Button>
-          </Box>
-        )}
-
-        <SectionList
-          items={addrItems}
-          emptyText="Çalışma adresi bulunamadı."
-          getKey={(a, i) => a?.adressID ?? a?.addressID ?? i}
-          renderItem={(a) => {
-            const addrId = a?.addressID ?? a?.adressID
+          renderItem={(spec) => {
+            const id = spec?.specializationID
+            const menuAnchor = specMenuAnchors[id] || null
+            const openMenu = Boolean(menuAnchor)
+            
             return (
               <Paper
                 elevation={0}
@@ -691,32 +633,242 @@ export default function DoctorPart({ doctorData, sectionKey, canEdit = true }) {
                 }}
               >
                 <Stack spacing={1.5}>
-                  <SubRow icon={<Business fontSize="small" />} label="İş Yeri" value={a?.workPlaceName} />
-                  <SubRow icon={<Place fontSize="small" />} label="Adres"
-                    value={[a?.street, a?.county, a?.city, a?.country].filter(Boolean).join(', ')} />
-                  {canEdit && (
-                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', pt: 1, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-                      <Button
-                        variant="outlined"
-                        color="error"
+                  <Stack direction="row" alignItems="center" spacing={1}>
+                    <Box sx={{ flex: 1 }}>
+                      <SubRow 
+                        icon={<LocalHospital fontSize="small" />} 
+                        label="Uzmanlık" 
+                        value={spec?.nameOfSpecialization} 
+                      />
+                    </Box>
+                    {canEdit && (
+                      <IconButton
                         size="small"
-                        startIcon={delAddrLoadingId === addrId ? <CircularProgress size={16} /> : <DeleteIcon />}
-                        onClick={() => deleteAddrById(a)}
-                        disabled={delAddrLoadingId === addrId}
+                        onClick={(e) => setSpecMenuAnchors(prev => ({ ...prev, [id]: e.currentTarget }))}
                         sx={{
-                          minWidth: 100,
-                          fontWeight: 600,
-                          borderColor: 'rgba(244,67,54,0.5)',
-                          color: 'error.main',
+                          color: 'text.secondary',
+                          width: { xs: 32, md: 32 },
+                          height: { xs: 32, md: 32 },
                           '&:hover': {
-                            borderColor: 'error.main',
-                            backgroundColor: 'rgba(244,67,54,0.1)'
+                            color: 'text.primary',
+                            backgroundColor: 'rgba(255,255,255,0.08)'
                           }
                         }}
                       >
-                        {delAddrLoadingId === addrId ? 'Siliniyor...' : 'Sil'}
-                      </Button>
+                        <MoreVert sx={{ fontSize: { xs: '18px', md: '18px' } }} />
+                      </IconButton>
+                    )}
+                  </Stack>
+                  
+                  {(spec?.specializationExperience ?? spec?.experienceYears) != null && (
+                    <SubRow 
+                      icon={<WorkHistory fontSize="small" />} 
+                      label="Deneyim"
+                      value={`${spec?.specializationExperience ?? spec?.experienceYears} yıl`} 
+                    />
+                  )}
+                  
+                  {canEdit && (
+                    <Menu
+                      anchorEl={menuAnchor}
+                      open={openMenu}
+                      onClose={() => setSpecMenuAnchors(prev => ({ ...prev, [id]: null }))}
+                      anchorOrigin={{
+                        vertical: 'bottom',
+                        horizontal: 'right',
+                      }}
+                      transformOrigin={{
+                        vertical: 'top',
+                        horizontal: 'right',
+                      }}
+                      PaperProps={{
+                        sx: {
+                          bgcolor: 'rgba(7, 20, 28, 0.98)',
+                          border: '1px solid rgba(255,255,255,0.12)',
+                          borderRadius: 2,
+                          minWidth: 140,
+                          mt: 0.5
+                        }
+                      }}
+                    >
+                      <MenuItem
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setSpecMenuAnchors(prev => ({ ...prev, [id]: null }))
+                          deleteSpecById(spec)
+                        }}
+                        disabled={delSpecLoadingId === id}
+                        sx={{
+                          color: 'error.main',
+                          fontSize: { xs: '14px', md: '14px' },
+                          py: { xs: 1, md: 1 },
+                          '&:hover': {
+                            backgroundColor: 'rgba(244,67,54,0.1)'
+                          },
+                          '&.Mui-disabled': {
+                            opacity: 0.5
+                          }
+                        }}
+                      >
+                        {delSpecLoadingId === id ? (
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <CircularProgress size={16} sx={{ color: 'error.main' }} />
+                            <span>Siliniyor...</span>
+                          </Box>
+                        ) : (
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <DeleteIcon sx={{ fontSize: 18 }} />
+                            <span>Sil</span>
+                          </Box>
+                        )}
+                      </MenuItem>
+                    </Menu>
+                  )}
+                </Stack>
+              </Paper>
+            )
+          }}
+        />
+
+        {canEdit && openSpecForm && <AddSpecializationForm onAdded={(x) => setSpecItems(p => [x, ...p])} onClose={() => setOpenSpecForm(false)} />}
+      </Section>
+    )
+  }
+
+  if (sectionKey === 'addr') {
+    return (
+      <Section 
+        title="Adresler" 
+        count={addrItems.length} 
+        chipIcon={<Business sx={{ fontSize: 18 }} />}
+        actionIcon={canEdit ? (
+          <IconButton
+            size="small"
+            onClick={() => setOpenAddrForm(true)}
+            sx={{
+              color: 'text.secondary',
+              width: { xs: 36, md: 36 },
+              height: { xs: 36, md: 36 },
+              '&:hover': {
+                color: 'primary.main',
+                backgroundColor: 'rgba(52,195,161,0.1)'
+              }
+            }}
+          >
+            <Edit sx={{ fontSize: { xs: '20px', md: '20px' } }} />
+          </IconButton>
+        ) : null}
+        onActionClick={canEdit ? () => setOpenAddrForm(true) : undefined}
+      >
+        {delAddrErr && <Alert sx={{ mb: 1 }} severity="error" variant="filled">{delAddrErr}</Alert>}
+
+        <SectionList
+          items={addrItems}
+          emptyText="Çalışma adresi bulunamadı."
+          getKey={(a, i) => a?.adressID ?? a?.addressID ?? i}
+          renderItem={(a) => {
+            const addrId = a?.addressID ?? a?.adressID
+            const menuAnchor = addrMenuAnchors[addrId] || null
+            const openMenu = Boolean(menuAnchor)
+            
+            return (
+              <Paper
+                elevation={0}
+                sx={{
+                  p: { xs: 1.5, sm: 2 },
+                  borderRadius: 2,
+                  backgroundColor: 'rgba(255,255,255,0.03)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  position: 'relative',
+                  transition: 'all 0.2s ease',
+                  '&:hover': {
+                    backgroundColor: 'rgba(255,255,255,0.05)',
+                    borderColor: 'rgba(255,255,255,0.12)'
+                  }
+                }}
+              >
+                <Stack spacing={1.5}>
+                  <Stack direction="row" alignItems="center" spacing={1}>
+                    <Box sx={{ flex: 1 }}>
+                      <SubRow icon={<Business fontSize="small" />} label="İş Yeri" value={a?.workPlaceName} />
                     </Box>
+                    {canEdit && (
+                      <IconButton
+                        size="small"
+                        onClick={(e) => setAddrMenuAnchors(prev => ({ ...prev, [addrId]: e.currentTarget }))}
+                        sx={{
+                          color: 'text.secondary',
+                          width: { xs: 32, md: 32 },
+                          height: { xs: 32, md: 32 },
+                          '&:hover': {
+                            color: 'text.primary',
+                            backgroundColor: 'rgba(255,255,255,0.08)'
+                          }
+                        }}
+                      >
+                        <MoreVert sx={{ fontSize: { xs: '18px', md: '18px' } }} />
+                      </IconButton>
+                    )}
+                  </Stack>
+                  
+                  <SubRow icon={<Place fontSize="small" />} label="Adres"
+                    value={[a?.street, a?.county, a?.city, a?.country].filter(Boolean).join(', ')} />
+                  
+                  {canEdit && (
+                    <Menu
+                      anchorEl={menuAnchor}
+                      open={openMenu}
+                      onClose={() => setAddrMenuAnchors(prev => ({ ...prev, [addrId]: null }))}
+                      anchorOrigin={{
+                        vertical: 'bottom',
+                        horizontal: 'right',
+                      }}
+                      transformOrigin={{
+                        vertical: 'top',
+                        horizontal: 'right',
+                      }}
+                      PaperProps={{
+                        sx: {
+                          bgcolor: 'rgba(7, 20, 28, 0.98)',
+                          border: '1px solid rgba(255,255,255,0.12)',
+                          borderRadius: 2,
+                          minWidth: 140,
+                          mt: 0.5
+                        }
+                      }}
+                    >
+                      <MenuItem
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setAddrMenuAnchors(prev => ({ ...prev, [addrId]: null }))
+                          deleteAddrById(a)
+                        }}
+                        disabled={delAddrLoadingId === addrId}
+                        sx={{
+                          color: 'error.main',
+                          fontSize: { xs: '14px', md: '14px' },
+                          py: { xs: 1, md: 1 },
+                          '&:hover': {
+                            backgroundColor: 'rgba(244,67,54,0.1)'
+                          },
+                          '&.Mui-disabled': {
+                            opacity: 0.5
+                          }
+                        }}
+                      >
+                        {delAddrLoadingId === addrId ? (
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <CircularProgress size={16} sx={{ color: 'error.main' }} />
+                            <span>Siliniyor...</span>
+                          </Box>
+                        ) : (
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <DeleteIcon sx={{ fontSize: 18 }} />
+                            <span>Sil</span>
+                          </Box>
+                        )}
+                      </MenuItem>
+                    </Menu>
                   )}
                 </Stack>
               </Paper>
@@ -731,68 +883,142 @@ export default function DoctorPart({ doctorData, sectionKey, canEdit = true }) {
 
   if (sectionKey === 'contact') {
     return (
-      <Section title="İletişim" count={contactItems.length} chipIcon={<Phone sx={{ fontSize: 18 }} />}>
-        {canEdit && (
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1, gap: 1, flexWrap: 'wrap' }}>
-            {delContactErr && <Alert sx={{ flex: 1, minWidth: 240 }} severity="error" variant="filled">{delContactErr}</Alert>}
-            <Box sx={{ flex: 1 }} />
-            <Button variant={openContactForm ? 'outlined' : 'contained'} onClick={() => setOpenContactForm(v => !v)}
-              startIcon={<AddIcon />} size="small" sx={{ minHeight: 40 }} aria-expanded={openContactForm ? 'true' : 'false'}>
-              {openContactForm ? 'İletişim Ekle (Kapat)' : 'İletişim Ekle'}
-            </Button>
-          </Box>
-        )}
+      <Section 
+        title="İletişim" 
+        count={contactItems.length} 
+        chipIcon={<Phone sx={{ fontSize: 18 }} />}
+        actionIcon={canEdit ? (
+          <IconButton
+            size="small"
+            onClick={() => setOpenContactForm(true)}
+            sx={{
+              color: 'text.secondary',
+              width: { xs: 36, md: 36 },
+              height: { xs: 36, md: 36 },
+              '&:hover': {
+                color: 'primary.main',
+                backgroundColor: 'rgba(52,195,161,0.1)'
+              }
+            }}
+          >
+            <Edit sx={{ fontSize: { xs: '20px', md: '20px' } }} />
+          </IconButton>
+        ) : null}
+        onActionClick={canEdit ? () => setOpenContactForm(true) : undefined}
+      >
+        {delContactErr && <Alert sx={{ mb: 1 }} severity="error" variant="filled">{delContactErr}</Alert>}
 
         <SectionList
           items={contactItems}
           emptyText="İletişim bilgisi bulunamadı."
           getKey={(c, i) => c?.contactID ?? i}
-          renderItem={(c) => (
-            <Paper
-              elevation={0}
-              sx={{
-                p: { xs: 1.5, sm: 2 },
-                borderRadius: 2,
-                backgroundColor: 'rgba(255,255,255,0.03)',
-                border: '1px solid rgba(255,255,255,0.08)',
-                position: 'relative',
-                transition: 'all 0.2s ease',
-                '&:hover': {
-                  backgroundColor: 'rgba(255,255,255,0.05)',
-                  borderColor: 'rgba(255,255,255,0.12)'
-                }
-              }}
-            >
-              <Stack spacing={1.5}>
-                <SubRow icon={<Email fontSize="small" />} label="E-posta" value={c?.email} />
-                <SubRow icon={<Phone fontSize="small" />} label="Telefon" value={c?.phoneNumber} />
-                {canEdit && (
-                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', pt: 1, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-                    <Button
-                      variant="outlined"
-                      color="error"
-                      size="small"
-                      startIcon={delContactLoadingId === c?.contactID ? <CircularProgress size={16} /> : <DeleteIcon />}
-                      onClick={() => deleteContactById(c)}
-                      disabled={delContactLoadingId === c?.contactID}
-                      sx={{
-                        minWidth: 100,
-                        fontWeight: 600,
-                        borderColor: 'rgba(244,67,54,0.5)',
-                        color: 'error.main',
-                        '&:hover': {
-                          borderColor: 'error.main',
-                          backgroundColor: 'rgba(244,67,54,0.1)'
+          renderItem={(c) => {
+            const id = c?.contactID
+            const menuAnchor = contactMenuAnchors[id] || null
+            const openMenu = Boolean(menuAnchor)
+            
+            return (
+              <Paper
+                elevation={0}
+                sx={{
+                  p: { xs: 1.5, sm: 2 },
+                  borderRadius: 2,
+                  backgroundColor: 'rgba(255,255,255,0.03)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  position: 'relative',
+                  transition: 'all 0.2s ease',
+                  '&:hover': {
+                    backgroundColor: 'rgba(255,255,255,0.05)',
+                    borderColor: 'rgba(255,255,255,0.12)'
+                  }
+                }}
+              >
+                <Stack spacing={1.5}>
+                  <Stack direction="row" alignItems="center" spacing={1}>
+                    <Box sx={{ flex: 1 }}>
+                      <SubRow icon={<Email fontSize="small" />} label="E-posta" value={c?.email} />
+                    </Box>
+                    {canEdit && (
+                      <IconButton
+                        size="small"
+                        onClick={(e) => setContactMenuAnchors(prev => ({ ...prev, [id]: e.currentTarget }))}
+                        sx={{
+                          color: 'text.secondary',
+                          width: { xs: 32, md: 32 },
+                          height: { xs: 32, md: 32 },
+                          '&:hover': {
+                            color: 'text.primary',
+                            backgroundColor: 'rgba(255,255,255,0.08)'
+                          }
+                        }}
+                      >
+                        <MoreVert sx={{ fontSize: { xs: '18px', md: '18px' } }} />
+                      </IconButton>
+                    )}
+                  </Stack>
+                  
+                  <SubRow icon={<Phone fontSize="small" />} label="Telefon" value={c?.phoneNumber} />
+                  
+                  {canEdit && (
+                    <Menu
+                      anchorEl={menuAnchor}
+                      open={openMenu}
+                      onClose={() => setContactMenuAnchors(prev => ({ ...prev, [id]: null }))}
+                      anchorOrigin={{
+                        vertical: 'bottom',
+                        horizontal: 'right',
+                      }}
+                      transformOrigin={{
+                        vertical: 'top',
+                        horizontal: 'right',
+                      }}
+                      PaperProps={{
+                        sx: {
+                          bgcolor: 'rgba(7, 20, 28, 0.98)',
+                          border: '1px solid rgba(255,255,255,0.12)',
+                          borderRadius: 2,
+                          minWidth: 140,
+                          mt: 0.5
                         }
                       }}
                     >
-                      {delContactLoadingId === c?.contactID ? 'Siliniyor...' : 'Sil'}
-                    </Button>
-                  </Box>
-                )}
-              </Stack>
-            </Paper>
-          )}
+                      <MenuItem
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setContactMenuAnchors(prev => ({ ...prev, [id]: null }))
+                          deleteContactById(c)
+                        }}
+                        disabled={delContactLoadingId === id}
+                        sx={{
+                          color: 'error.main',
+                          fontSize: { xs: '14px', md: '14px' },
+                          py: { xs: 1, md: 1 },
+                          '&:hover': {
+                            backgroundColor: 'rgba(244,67,54,0.1)'
+                          },
+                          '&.Mui-disabled': {
+                            opacity: 0.5
+                          }
+                        }}
+                      >
+                        {delContactLoadingId === id ? (
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <CircularProgress size={16} sx={{ color: 'error.main' }} />
+                            <span>Siliniyor...</span>
+                          </Box>
+                        ) : (
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <DeleteIcon sx={{ fontSize: 18 }} />
+                            <span>Sil</span>
+                          </Box>
+                        )}
+                      </MenuItem>
+                    </Menu>
+                  )}
+                </Stack>
+              </Paper>
+            )
+          }}
         />
 
         {canEdit && openContactForm && <AddContactForm onAdded={(x) => setContactItems(p => [x, ...p])} onClose={() => setOpenContactForm(false)} />}
@@ -802,69 +1028,143 @@ export default function DoctorPart({ doctorData, sectionKey, canEdit = true }) {
 
   if (sectionKey === 'ann') {
     return (
-      <Section title="Duyurular" count={annItems.length} chipIcon={<Campaign sx={{ fontSize: 18 }} />}>
-        {canEdit && (
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1, gap: 1, flexWrap: 'wrap' }}>
-            {delAnnErr && <Alert sx={{ flex: 1, minWidth: 240 }} severity="error" variant="filled">{delAnnErr}</Alert>}
-            <Box sx={{ flex: 1 }} />
-            <Button variant={openAnnForm ? 'outlined' : 'contained'} onClick={() => setOpenAnnForm(v => !v)}
-              startIcon={<AddIcon />} size="small" sx={{ minHeight: 40 }} aria-expanded={openAnnForm ? 'true' : 'false'}>
-              {openAnnForm ? 'Duyuru Ekle (Kapat)' : 'Duyuru Ekle'}
-            </Button>
-          </Box>
-        )}
+      <Section 
+        title="Duyurular" 
+        count={annItems.length} 
+        chipIcon={<Campaign sx={{ fontSize: 18 }} />}
+        actionIcon={canEdit ? (
+          <IconButton
+            size="small"
+            onClick={() => setOpenAnnForm(true)}
+            sx={{
+              color: 'text.secondary',
+              width: { xs: 36, md: 36 },
+              height: { xs: 36, md: 36 },
+              '&:hover': {
+                color: 'primary.main',
+                backgroundColor: 'rgba(52,195,161,0.1)'
+              }
+            }}
+          >
+            <Edit sx={{ fontSize: { xs: '20px', md: '20px' } }} />
+          </IconButton>
+        ) : null}
+        onActionClick={canEdit ? () => setOpenAnnForm(true) : undefined}
+      >
+        {delAnnErr && <Alert sx={{ mb: 1 }} severity="error" variant="filled">{delAnnErr}</Alert>}
 
         <SectionList
           items={annItems}
           emptyText="Duyuru bulunamadı."
           getKey={(a, i) => a?.announcementID ?? i}
-          renderItem={(a) => (
-            <Paper
-              elevation={0}
-              sx={{
-                p: { xs: 1.5, sm: 2 },
-                borderRadius: 2,
-                backgroundColor: 'rgba(255,255,255,0.03)',
-                border: '1px solid rgba(255,255,255,0.08)',
-                position: 'relative',
-                transition: 'all 0.2s ease',
-                '&:hover': {
-                  backgroundColor: 'rgba(255,255,255,0.05)',
-                  borderColor: 'rgba(255,255,255,0.12)'
-                }
-              }}
-            >
-              <Stack spacing={1.5}>
-                <SubRow icon={<Campaign fontSize="small" />} label="Başlık" value={a?.title} />
-                <SubRow label="İçerik" value={a?.content} />
-                <SubRow label="Tarih" value={prettyDate(a?.uploadDate)} />
-                {canEdit && (
-                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', pt: 1, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-                    <Button
-                      variant="outlined"
-                      color="error"
-                      size="small"
-                      startIcon={delAnnLoadingId === a?.announcementID ? <CircularProgress size={16} /> : <DeleteIcon />}
-                      onClick={() => deleteAnnById(a)}
-                      disabled={delAnnLoadingId === a?.announcementID}
-                      sx={{
-                        minWidth: 100,
-                        fontWeight: 600,
-                        borderColor: 'rgba(244,67,54,0.5)',
-                        color: 'error.main',
-                        '&:hover': {
-                          borderColor: 'error.main',
-                          backgroundColor: 'rgba(244,67,54,0.1)'
+          renderItem={(a) => {
+            const id = a?.announcementID
+            const menuAnchor = annMenuAnchors[id] || null
+            const openMenu = Boolean(menuAnchor)
+            
+            return (
+              <Paper
+                elevation={0}
+                sx={{
+                  p: { xs: 1.5, sm: 2 },
+                  borderRadius: 2,
+                  backgroundColor: 'rgba(255,255,255,0.03)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  position: 'relative',
+                  transition: 'all 0.2s ease',
+                  '&:hover': {
+                    backgroundColor: 'rgba(255,255,255,0.05)',
+                    borderColor: 'rgba(255,255,255,0.12)'
+                  }
+                }}
+              >
+                <Stack spacing={1.5}>
+                  <Stack direction="row" alignItems="center" spacing={1}>
+                    <Box sx={{ flex: 1 }}>
+                      <SubRow icon={<Campaign fontSize="small" />} label="Başlık" value={a?.title} />
+                    </Box>
+                    {canEdit && (
+                      <IconButton
+                        size="small"
+                        onClick={(e) => setAnnMenuAnchors(prev => ({ ...prev, [id]: e.currentTarget }))}
+                        sx={{
+                          color: 'text.secondary',
+                          width: { xs: 32, md: 32 },
+                          height: { xs: 32, md: 32 },
+                          '&:hover': {
+                            color: 'text.primary',
+                            backgroundColor: 'rgba(255,255,255,0.08)'
+                          }
+                        }}
+                      >
+                        <MoreVert sx={{ fontSize: { xs: '18px', md: '18px' } }} />
+                      </IconButton>
+                    )}
+                  </Stack>
+                  
+                  <SubRow label="İçerik" value={a?.content} />
+                  <SubRow label="Tarih" value={prettyDate(a?.uploadDate)} />
+                  
+                  {canEdit && (
+                    <Menu
+                      anchorEl={menuAnchor}
+                      open={openMenu}
+                      onClose={() => setAnnMenuAnchors(prev => ({ ...prev, [id]: null }))}
+                      anchorOrigin={{
+                        vertical: 'bottom',
+                        horizontal: 'right',
+                      }}
+                      transformOrigin={{
+                        vertical: 'top',
+                        horizontal: 'right',
+                      }}
+                      PaperProps={{
+                        sx: {
+                          bgcolor: 'rgba(7, 20, 28, 0.98)',
+                          border: '1px solid rgba(255,255,255,0.12)',
+                          borderRadius: 2,
+                          minWidth: 140,
+                          mt: 0.5
                         }
                       }}
                     >
-                      {delAnnLoadingId === a?.announcementID ? 'Siliniyor...' : 'Sil'}
-                    </Button>
-                  </Box>
-                )}
-              </Stack>
-            </Paper>
-          )}
+                      <MenuItem
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setAnnMenuAnchors(prev => ({ ...prev, [id]: null }))
+                          deleteAnnById(a)
+                        }}
+                        disabled={delAnnLoadingId === id}
+                        sx={{
+                          color: 'error.main',
+                          fontSize: { xs: '14px', md: '14px' },
+                          py: { xs: 1, md: 1 },
+                          '&:hover': {
+                            backgroundColor: 'rgba(244,67,54,0.1)'
+                          },
+                          '&.Mui-disabled': {
+                            opacity: 0.5
+                          }
+                        }}
+                      >
+                        {delAnnLoadingId === id ? (
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <CircularProgress size={16} sx={{ color: 'error.main' }} />
+                            <span>Siliniyor...</span>
+                          </Box>
+                        ) : (
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <DeleteIcon sx={{ fontSize: 18 }} />
+                            <span>Sil</span>
+                          </Box>
+                        )}
+                      </MenuItem>
+                    </Menu>
+                  )}
+                </Stack>
+              </Paper>
+            )
+          }}
         />
 
         {canEdit && openAnnForm && <AddAnnouncementForm onAdded={(x) => setAnnItems(p => [x, ...p])} onClose={() => setOpenAnnForm(false)} />}

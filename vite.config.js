@@ -6,8 +6,8 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 3000,
-    host: true, // LAN'dan erişim ve mobil cihazlarda test için
+    host: 'localhost',
     open: true,
-    // HMR ayarlarını varsayılan bırakmak, mobil/çapraz cihazlarda daha stabil çalışır
+    strictPort: false,
   },
 });

@@ -155,9 +155,10 @@ export default function Posts() {
   const navigate = useNavigate()
 
   const [posts, setPosts] = useState([])
+  const [allPosts, setAllPosts] = useState([]) // Tüm postları sakla (client-side filtreleme için)
   const [msg, setMsg] = useState('')
 
-  const [category, setCategory] = useState('')
+  const [category, setCategory] = useState(null) // null olarak başlat (Autocomplete ile uyumlu)
   const [categories, setCategories] = useState([])
   const [catsLoading, setCatsLoading] = useState(false)
   const [catsError, setCatsError] = useState('')
@@ -167,6 +168,7 @@ export default function Posts() {
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  const [filterLoading, setFilterLoading] = useState(false) // Filtreleme için ayrı loading state
 
   const params = new URLSearchParams(location.search)
   const dialogOpen = params.get('new') === '1'
@@ -176,29 +178,65 @@ export default function Posts() {
     if (location.hash === '#compose') navigate('/posts?new=1', { replace: true })
   }, [location.hash, navigate])
 
-  async function loadChats() {
-    setLoading(true)
+  async function loadChats(useFilter = false) {
+    const isLoadingInitial = !useFilter
+    if (isLoadingInitial) {
+      setLoading(true)
+    } else {
+      setFilterLoading(true)
+    }
     setError('')
+    
     try {
-      // Filter posts by category if needed (server-side filtering)
-      const allPosts = category 
-        ? await getChatsWithFilter(token, category)
-        : await getAllPosts(token)
+      let fetchedPosts = []
+      
+      // Server-side filtreleme dene
+      if (category && category.trim()) {
+        try {
+          fetchedPosts = await getChatsWithFilter(token, category.trim())
+          // Eğer server-side filtreleme başarısız olduysa (boş döndü ama hata yok), 
+          // client-side filtreleme için tüm postları yükle
+          if (Array.isArray(fetchedPosts) && fetchedPosts.length === 0 && allPosts.length > 0) {
+            // Client-side filtreleme yap
+            fetchedPosts = allPosts.filter(p => {
+              const postCategory = p?.category || ''
+              return String(postCategory).toLowerCase().trim() === String(category).toLowerCase().trim()
+            })
+          }
+        } catch (filterError) {
+          console.warn('[Posts] Server-side filter failed, using client-side fallback:', filterError)
+          // Server-side filtreleme başarısız oldu, client-side filtreleme yap
+          if (allPosts.length > 0) {
+            fetchedPosts = allPosts.filter(p => {
+              const postCategory = p?.category || ''
+              return String(postCategory).toLowerCase().trim() === String(category).toLowerCase().trim()
+            })
+          } else {
+            // Tüm postları yükle ve sonra filtrele
+            const all = await getAllPosts(token)
+            fetchedPosts = all.filter(p => {
+              const postCategory = p?.category || ''
+              return String(postCategory).toLowerCase().trim() === String(category).toLowerCase().trim()
+            })
+          }
+        }
+      } else {
+        // Kategori yok, tüm postları yükle
+        fetchedPosts = await getAllPosts(token)
+      }
+      
       // Filter only top-level posts (parentsID === 0)
-      const data = allPosts.filter(p => p.parentsID === 0)
+      const data = Array.isArray(fetchedPosts) 
+        ? fetchedPosts.filter(p => p.parentsID === 0)
+        : []
       
       // Debug: Ham payload ve yorumlardaki reaction ID'ler
       try {
-        console.groupCollapsed('[Feed] getAllPosts payload')
-        console.debug('count:', Array.isArray(data) ? data.length : 0)
-        ;(Array.isArray(data) ? data : []).slice(0, 10).forEach((p, idx) => {
+        console.groupCollapsed(`[Feed] ${category ? 'Filtered' : 'All'} posts payload`)
+        console.debug('count:', data.length, 'category:', category || 'none')
+        ;(data || []).slice(0, 10).forEach((p, idx) => {
           const comments = Array.isArray(p?.comments) ? p.comments : []
-          console.debug(`#${idx} postID=${p?.postID} comments=${comments.length}`)
-          comments.slice(0, 10).forEach((c, ci) => {
-            const liked = Array.isArray(c?.likedUser) ? c.likedUser : []
-            const disliked = Array.isArray(c?.dislikedUser) ? c.dislikedUser : []
-            console.debug(`  c#${ci} postID=${c?.postID} likedIDs=`, liked.map(u => u?.chatReactionsID), 'dislikedIDs=', disliked.map(u => u?.chatReactionsID))
-          })
+          console.debug(`#${idx} postID=${p?.postID} category=${p?.category} comments=${comments.length}`)
         })
         console.groupEnd()
       } catch {}
@@ -234,19 +272,53 @@ export default function Posts() {
         return toPostModel(post, meId, authorName, idToName)
       })
       mapped.sort((a, b) => b.timestamp - a.timestamp) // yeni → eski
-      setPosts(mapped)
+      
+      // Eğer kategori yoksa, tüm postları hem posts hem allPosts'a kaydet
+      if (!category || !category.trim()) {
+        setAllPosts(mapped)
+        setPosts(mapped)
+      } else {
+        // Kategori varsa, sadece filtrelenmiş postları göster
+        setPosts(mapped)
+        // allPosts'u güncelleme (client-side filtreleme için eski verileri kullan)
+      }
     } catch (e) {
       setError(e.message || 'Gönderiler alınamadı.')
+      // Hata durumunda client-side filtreleme dene
+      if (category && category.trim() && allPosts.length > 0) {
+        const filtered = allPosts.filter(p => {
+          const postCategory = p?.category || ''
+          return String(postCategory).toLowerCase().trim() === String(category).toLowerCase().trim()
+        })
+        setPosts(filtered)
+      }
     } finally {
-      setLoading(false)
+      if (isLoadingInitial) {
+        setLoading(false)
+      } else {
+        setFilterLoading(false)
+      }
     }
   }
 
+  // İlk yükleme ve token değişikliği
   useEffect(() => {
     if (!token) { setLoading(false); return }
-    loadChats()
+    loadChats(false) // İlk yükleme
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, category])
+  }, [token])
+
+  // Kategori değişikliği için ayrı effect (debounce ile)
+  useEffect(() => {
+    if (!token) return
+    
+    const timeoutId = setTimeout(() => {
+      loadChats(true) // Filtreleme
+    }, 300) // 300ms debounce
+    
+    return () => clearTimeout(timeoutId)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [category])
 
   // Kategori listesi: sayfa ilk açıldığında yükle
   useEffect(() => {
@@ -268,7 +340,7 @@ export default function Posts() {
 
   const closeDialog = () => {
     setMsg('')
-    setCategory('')
+    setCategory(null) // null olarak sıfırla
     params.delete('new')
     navigate(`/posts${params.toString() ? `?${params.toString()}` : ''}`, { replace: true })
   }
@@ -707,14 +779,14 @@ export default function Posts() {
   const onSubmitNewPost = async (e) => {
     e.preventDefault()
     if (!msg.trim()) { setError('Mesaj boş olamaz.'); return }
-    if (!category) { setError('Lütfen bir kategori seçiniz.'); return }
+    if (!category || !category.trim()) { setError('Lütfen bir kategori seçiniz.'); return }
 
     setSubmitting(true)
     try {
-      await addChat(token, { message: msg.trim(), category })
+      await addChat(token, { message: msg.trim(), category: category.trim() })
       setSuccess('Gönderi oluşturuldu.')
       closeDialog()
-      await loadChats() // sunucudaki kanonik veriyi göster
+      await loadChats(false) // sunucudaki kanonik veriyi göster
     } catch (err) {
       setError(err.message || 'Gönderi oluşturulamadı.')
     } finally {
@@ -729,20 +801,30 @@ export default function Posts() {
       {/* Kategori filtresi - Twitter tarzı, mobilde daha kompakt */}
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: 1.5, sm: 1.5 }} sx={{ mb: { xs: 0, md: 0 }, px: { xs: 1.5, sm: 3 }, py: { xs: 1, md: 1.5 }, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
         <Autocomplete
+          key={`category-filter-${category || 'none'}`}
           fullWidth
           options={categories}
-          loading={catsLoading}
-          value={category || null}
-          onChange={(_, v) => setCategory(v || '')}
+          loading={catsLoading || filterLoading}
+          value={category}
+          onChange={(_, v) => {
+            setCategory(v || null)
+          }}
           disablePortal
           blurOnSelect
           clearOnBlur={false}
+          clearOnEscape
+          isOptionEqualToValue={(opt, val) => {
+            if (!opt && !val) return true
+            if (!opt || !val) return false
+            return String(opt).trim().toLowerCase() === String(val).trim().toLowerCase()
+          }}
+          getOptionLabel={(opt) => (typeof opt === 'string' ? opt : '')}
           renderInput={(params) => (
             <TextField
               {...params}
               label="Kategoriye göre filtrele"
               size="small"
-              helperText={catsError ? `Liste alınamadı: ${catsError}` : 'Boş bırakılırsa tüm gönderiler gösterilir.'}
+              helperText={catsError ? `Liste alınamadı: ${catsError}` : (filterLoading ? 'Filtreleniyor...' : 'Boş bırakılırsa tüm gönderiler gösterilir.')}
               sx={{
                 '& .MuiInputBase-root': {
                   fontSize: { xs: '16px', sm: '15px' }
@@ -758,6 +840,14 @@ export default function Posts() {
                 border: '1px solid rgba(255,255,255,0.12)',
                 backdropFilter: 'blur(6px)'
               }
+            },
+            clearIndicator: {
+              sx: {
+                color: 'text.secondary',
+                '&:hover': {
+                  color: 'text.primary'
+                }
+              }
             }
           }}
         />
@@ -765,7 +855,8 @@ export default function Posts() {
           <Button 
             variant="outlined" 
             color="secondary" 
-            onClick={() => setCategory('')} 
+            onClick={() => setCategory(null)} 
+            disabled={filterLoading}
             sx={{ 
               whiteSpace: 'nowrap',
               minHeight: { xs: 44, sm: 40 },
@@ -781,6 +872,13 @@ export default function Posts() {
       {loading ? (
         <Box sx={{ display: 'grid', placeItems: 'center', minHeight: 240, py: 4 }}>
           <CircularProgress size={22} />
+        </Box>
+      ) : filterLoading ? (
+        <Box sx={{ display: 'grid', placeItems: 'center', minHeight: 120, py: 2 }}>
+          <Stack spacing={1.5} alignItems="center">
+            <CircularProgress size={20} />
+            <Typography variant="body2" sx={{ color: 'text.secondary' }}>Filtreleniyor...</Typography>
+          </Stack>
         </Box>
       ) : error && !dialogOpen ? (
         <Box sx={{ display: 'grid', placeItems: 'center', py: 4 }}>
@@ -917,29 +1015,99 @@ export default function Posts() {
           }
         }}>
           <Box component="form" id="compose-form" onSubmit={onSubmitNewPost}>
-            <Stack direction="row" spacing={1.5} alignItems="flex-start">
-              {/* Avatar */}
-              <Avatar 
-                sx={{ 
-                  bgcolor: 'secondary.main', 
-                  fontWeight: 800, 
-                  width: { xs: 40, sm: 44 }, 
-                  height: { xs: 40, sm: 44 },
-                  fontSize: { xs: 16, sm: 18 },
-                  flexShrink: 0
+            <Stack spacing={2}>
+              {/* Kategori - İLK SIRADA, mobil uyumlu */}
+              <Autocomplete
+                fullWidth
+                options={categories}
+                loading={catsLoading}
+                value={category}
+                onChange={(_, v) => setCategory(v)}
+                disablePortal
+                blurOnSelect
+                disableClearable
+                isOptionEqualToValue={(opt, val) => String(opt) === String(val)}
+                getOptionLabel={(opt) => (typeof opt === 'string' ? opt : '')}
+                autoFocus={!fullScreen}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    placeholder="Kategori seçin (zorunlu)"
+                    variant="outlined"
+                    size={fullScreen ? 'medium' : 'small'}
+                    required
+                    error={!category && msg.trim().length > 0}
+                    helperText={catsError ? `Liste alınamadı: ${catsError}` : (!category && msg.trim().length > 0 ? 'Kategori seçmeniz gerekiyor' : '')}
+                    sx={{
+                      '& .MuiInputBase-root': {
+                        fontSize: { xs: '16px', sm: '15px' },
+                        backgroundColor: 'rgba(255,255,255,0.03)',
+                        borderRadius: 2,
+                        minHeight: { xs: 56, sm: 48 },
+                        '&:hover': {
+                          backgroundColor: 'rgba(255,255,255,0.05)'
+                        },
+                        '&.Mui-focused': {
+                          backgroundColor: 'rgba(255,255,255,0.05)'
+                        }
+                      },
+                      '& .MuiOutlinedInput-notchedOutline': {
+                        borderColor: 'rgba(255,255,255,0.1)',
+                        borderWidth: { xs: '2px', sm: '1px' }
+                      },
+                      '&:hover .MuiOutlinedInput-notchedOutline': {
+                        borderColor: 'rgba(255,255,255,0.15)'
+                      },
+                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                        borderColor: 'primary.main',
+                        borderWidth: { xs: '2px', sm: '2px' }
+                      }
+                    }}
+                  />
+                )}
+                slotProps={{
+                  paper: {
+                    sx: {
+                      bgcolor: 'rgba(0,0,0,0.95)',
+                      color: '#FAF9F6',
+                      border: '1px solid rgba(255,255,255,0.12)',
+                      backdropFilter: 'blur(12px)',
+                      borderRadius: 2,
+                      mt: 0.5,
+                      '& .MuiAutocomplete-option': {
+                        color: '#FAF9F6',
+                        minHeight: { xs: 56, md: 44 },
+                        fontSize: { xs: '16px', md: '15px' },
+                        py: { xs: 1.5, md: 1 },
+                        '&[aria-selected="true"]': { bgcolor: 'rgba(52,195,161,0.22)' },
+                        '&.Mui-focused': { bgcolor: 'rgba(255,255,255,0.08)' }
+                      }
+                    }
+                  }
                 }}
-              >
-                {initialsFrom([user?.name, user?.surname].filter(Boolean).join(' ') || 'Kullanıcı')}
-              </Avatar>
+              />
 
-              {/* İçerik */}
-              <Box sx={{ flex: 1, minWidth: 0 }}>
+              {/* Avatar ve Textarea - Yan yana */}
+              <Stack direction="row" spacing={1.5} alignItems="flex-start">
+                {/* Avatar */}
+                <Avatar 
+                  sx={{ 
+                    bgcolor: 'secondary.main', 
+                    fontWeight: 800, 
+                    width: { xs: 40, sm: 44 }, 
+                    height: { xs: 40, sm: 44 },
+                    fontSize: { xs: 16, sm: 18 },
+                    flexShrink: 0
+                  }}
+                >
+                  {initialsFrom([user?.name, user?.surname].filter(Boolean).join(' ') || 'Kullanıcı')}
+                </Avatar>
+
                 {/* Textarea - Twitter/X tarzı */}
                 <TextField
-                  autoFocus
                   placeholder="Ne paylaşmak istersin?"
                   multiline
-                  minRows={6}
+                  minRows={fullScreen ? 8 : 6}
                   maxRows={12}
                   value={msg}
                   onChange={e => setMsg(e.target.value)}
@@ -948,7 +1116,8 @@ export default function Posts() {
                     disableUnderline: true
                   }}
                   sx={{
-                    width: '100%',
+                    flex: 1,
+                    minWidth: 0,
                     '& .MuiInputBase-root': {
                       fontSize: { xs: '18px', sm: '20px' },
                       lineHeight: 1.5,
@@ -960,80 +1129,11 @@ export default function Posts() {
                     },
                     '& .MuiInputBase-input': {
                       py: { xs: 1, sm: 1.25 },
-                      minHeight: { xs: '120px', sm: '140px' }
+                      minHeight: { xs: '140px', sm: '140px' }
                     }
                   }}
                 />
-
-                {/* Kategori - Twitter/X tarzı minimal */}
-                <Box sx={{ mt: 2 }}>
-                  <Autocomplete
-                    fullWidth
-                    options={categories}
-                    loading={catsLoading}
-                    value={category || null}
-                    onChange={(_, v) => setCategory(v || '')}
-                    disablePortal
-                    blurOnSelect
-                    disableClearable
-                    isOptionEqualToValue={(opt, val) => String(opt) === String(val)}
-                    getOptionLabel={(opt) => (typeof opt === 'string' ? opt : '')}
-                    renderInput={(params) => (
-                      <TextField
-                        {...params}
-                        placeholder="Kategori seçin (zorunlu)"
-                        variant="outlined"
-                        size="small"
-                        required
-                        error={!category && msg.trim().length > 0}
-                        helperText={catsError ? `Liste alınamadı: ${catsError}` : (!category && msg.trim().length > 0 ? 'Kategori seçmeniz gerekiyor' : '')}
-                        sx={{
-                          '& .MuiInputBase-root': {
-                            fontSize: { xs: '15px', sm: '15px' },
-                            backgroundColor: 'rgba(255,255,255,0.03)',
-                            borderRadius: 2,
-                            '&:hover': {
-                              backgroundColor: 'rgba(255,255,255,0.05)'
-                            },
-                            '&.Mui-focused': {
-                              backgroundColor: 'rgba(255,255,255,0.05)'
-                            }
-                          },
-                          '& .MuiOutlinedInput-notchedOutline': {
-                            borderColor: 'rgba(255,255,255,0.1)'
-                          },
-                          '&:hover .MuiOutlinedInput-notchedOutline': {
-                            borderColor: 'rgba(255,255,255,0.15)'
-                          },
-                          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                            borderColor: 'primary.main'
-                          }
-                        }}
-                      />
-                    )}
-                    slotProps={{
-                      paper: {
-                        sx: {
-                          bgcolor: 'rgba(0,0,0,0.95)',
-                          color: '#FAF9F6',
-                          border: '1px solid rgba(255,255,255,0.12)',
-                          backdropFilter: 'blur(12px)',
-                          borderRadius: 2,
-                          mt: 0.5,
-                          '& .MuiAutocomplete-option': {
-                            color: '#FAF9F6',
-                            minHeight: { xs: 48, md: 44 },
-                            fontSize: { xs: '15px', md: '15px' },
-                            py: { xs: 1.5, md: 1 },
-                            '&[aria-selected="true"]': { bgcolor: 'rgba(52,195,161,0.22)' },
-                            '&.Mui-focused': { bgcolor: 'rgba(255,255,255,0.08)' }
-                          }
-                        }
-                      }
-                    }}
-                  />
-                </Box>
-              </Box>
+              </Stack>
             </Stack>
           </Box>
         </DialogContent>
@@ -1071,7 +1171,7 @@ export default function Posts() {
             type="submit" 
             form="compose-form" 
             variant="contained"
-            disabled={submitting || !msg.trim() || !category}
+            disabled={submitting || !msg.trim() || !category || !category.trim()}
             sx={{
               minHeight: { xs: 40, sm: 36 },
               minWidth: { xs: 100, sm: 110 },
