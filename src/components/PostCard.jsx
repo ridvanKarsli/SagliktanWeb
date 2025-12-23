@@ -63,7 +63,8 @@ export default function PostCard({
   onDelete,             // (postId) => void
   onCommentDelete,      // 🔹 (postId, commentId) => void
   onAuthorClick,        // 🔹 (authorId) => void
-  forceOpenComments     // 🔹 Detay sayfasında yorumları zorla açık tut
+  forceOpenComments,    // 🔹 Detay sayfasında yorumları zorla açık tut
+  onViewComments        // 🔹 (commentPostID) => void - Yorumların detay sayfasına git
 }) {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
@@ -586,26 +587,40 @@ export default function PostCard({
               </Box>
             )}
             
-            {/* Nested comments */}
-            {comment.comments && comment.comments.length > 0 && depth < MAX_COMMENT_DEPTH && (
-              <Box sx={{ mt: 1.5, overflow: 'visible' }}>
-                {comment.comments.map((nestedComment) => (
-                  <CommentItem
-                    key={nestedComment.id}
-                    comment={nestedComment}
-                    postId={postId}
-                    depth={depth + 1}
-                  />
-                ))}
-              </Box>
-            )}
-            {/* Depth limit'e ulaşıldığında bilgi mesajı */}
-            {comment.comments && comment.comments.length > 0 && depth >= MAX_COMMENT_DEPTH && (
-              <Box sx={{ mt: 1, pl: 2, py: 1 }}>
-                <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '12px', fontStyle: 'italic' }}>
-                  Daha fazla yanıt görmek için üst seviyedeki yorumu genişletin
-                </Typography>
-              </Box>
+            {/* Yeni mantık: Nested comments gösterme, bunun yerine "Yorumları Gör" butonu göster */}
+            {comment.childCommentCount > 0 && (
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={() => {
+                  if (comment.postID && onViewComments) {
+                    onViewComments(comment.postID)
+                  }
+                }}
+                sx={{
+                  mt: 1.5,
+                  fontSize: { xs: '14px', md: '13px' },
+                  py: { xs: 0.75, md: 0.5 },
+                  px: { xs: 2, md: 2 },
+                  minHeight: { xs: 40, md: 32 }, // Mobilde daha büyük touch target
+                  borderRadius: 2,
+                  borderColor: 'rgba(255,255,255,0.2)',
+                  color: 'text.secondary',
+                  textTransform: 'none',
+                  fontWeight: 500,
+                  width: { xs: '100%', sm: 'auto' }, // Mobilde tam genişlik
+                  '&:hover': {
+                    borderColor: 'primary.main',
+                    color: 'primary.main',
+                    backgroundColor: 'rgba(52,195,161,0.1)'
+                  },
+                  '&:active': {
+                    transform: { xs: 'scale(0.98)', md: 'none' } // Mobilde basma efekti
+                  }
+                }}
+              >
+                {comment.childCommentCount} {comment.childCommentCount === 1 ? 'yorumu' : 'yorumu'} gör
+              </Button>
             )}
           </Box>
         </Stack>

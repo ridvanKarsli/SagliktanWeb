@@ -65,7 +65,7 @@ function myVoteFor(currentUserId, likedUsers, dislikedUsers) {
 }
 
 // Recursive function to convert nested comments
-function toCommentModel(comment, currentUserId, idToName) {
+function toCommentModel(comment, currentUserId, idToName, includeNested = true) {
   const cLiked = dedupUsers(comment.likedUser || [])
   const cDisliked = dedupUsers(comment.dislikedUser || [])
   const cidRaw = comment.postID ?? comment.commnetsID ?? comment.commentsID ?? comment.id
@@ -74,9 +74,9 @@ function toCommentModel(comment, currentUserId, idToName) {
   const authorId = comment.userID ?? comment.userId
   const authorOverride = idToName?.get?.(authorId)
   
-  // Recursively process nested comments
-  const nestedComments = Array.isArray(comment.comments)
-    ? comment.comments.map(c => toCommentModel(c, currentUserId, idToName))
+  // Recursively process nested comments (sadece includeNested true ise)
+  const nestedComments = includeNested && Array.isArray(comment.comments)
+    ? comment.comments.map(c => toCommentModel(c, currentUserId, idToName, includeNested))
     : []
 
   return {
@@ -102,7 +102,9 @@ function toCommentModel(comment, currentUserId, idToName) {
       chatReactionsID: u?.chatReactionsID ?? u?.commentReactionsID ?? u?.reactionID ?? u?.id
     })),
     comments: nestedComments,
-    category: comment.category || null // Category'yi de sakla
+    category: comment.category || null, // Category'yi de sakla
+    // Alt yorum sayısını sakla (nested comments gösterilmediğinde kullanılacak)
+    childCommentCount: Array.isArray(comment.comments) ? comment.comments.length : 0
   }
 }
 
@@ -775,6 +777,11 @@ export default function Posts() {
     navigate(`/profile?userID=${encodeURIComponent(authorId)}`)
   }
 
+  const handleViewComments = (commentPostID) => {
+    // Yorumun detay sayfasına git
+    navigate(`/post/${commentPostID}`)
+  }
+
   // Yeni gönderi gönder (gerçek API çağrısı)
   const onSubmitNewPost = async (e) => {
     e.preventDefault()
@@ -899,6 +906,7 @@ export default function Posts() {
               onAddComment={handleAddComment}
               onCommentVote={voteComment}
               onAuthorClick={openAuthorProfile}
+              onViewComments={handleViewComments}
             />
           ))}
           {sorted.length === 0 && (

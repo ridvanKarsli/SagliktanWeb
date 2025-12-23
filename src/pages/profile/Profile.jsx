@@ -57,8 +57,8 @@ function mapChatToPost(post, meId, authorName, idToName) {
     liked.some(u => u.userID === meId) ? 1 :
     disliked.some(u => u.userID === meId) ? -1 : 0
 
-  // Recursive function to convert nested comments
-  const mapComment = (c) => {
+  // Recursive function to convert nested comments (ana sayfadaki mantıkla aynı)
+  const mapComment = (c, includeNested = false) => {
     const cLiked = Array.isArray(c.likedUser) ? c.likedUser : []
     const cDisliked = Array.isArray(c.dislikedUser) ? c.dislikedUser : []
     const cVote =
@@ -69,7 +69,11 @@ function mapChatToPost(post, meId, authorName, idToName) {
     const author = override || c.userName || `Kullanıcı #${c.userID}`
     const cidRaw = c.postID ?? c.commnetsID ?? c.commentID ?? c.id
     const cidNum = Number(cidRaw)
-    const nestedComments = Array.isArray(c.comments) ? c.comments.map(mapComment) : []
+    
+    // Yeni mantık: includeNested false ise nested comments gösterme (sadece direkt alt yorumlar)
+    const nestedComments = includeNested && Array.isArray(c.comments)
+      ? c.comments.map(nc => mapComment(nc, includeNested))
+      : []
     
     return {
       id: Number.isFinite(cidNum) ? `c_${cidNum}` : `c_tmp_${Math.random().toString(36).slice(2)}`,
@@ -84,11 +88,14 @@ function mapChatToPost(post, meId, authorName, idToName) {
       likedUsers: cLiked.map(u => ({ userID: u.userID, chatReactionsID: u.chatReactionsID ?? u.commentReactionsID ?? u.reactionID ?? u.id })),
       dislikedUsers: cDisliked.map(u => ({ userID: u.userID, chatReactionsID: u.chatReactionsID ?? u.commentReactionsID ?? u.reactionID ?? u.id })),
       comments: nestedComments,
-      category: c.category || post.category || null
+      category: c.category || post.category || null,
+      // Alt yorum sayısını sakla (nested comments gösterilmediğinde kullanılacak)
+      childCommentCount: Array.isArray(c.comments) ? c.comments.length : 0
     }
   }
   
-  const comments = Array.isArray(post.comments) ? post.comments.map(mapComment) : []
+  // Profil sayfasında da sadece direkt alt yorumları göster (nested comments gösterme)
+  const comments = Array.isArray(post.comments) ? post.comments.map(c => mapComment(c, false)) : []
 
   const isOwner = (post.userID === meId) || (post.userId === meId)
   const postID = post.postID ?? post.chatID
@@ -716,6 +723,11 @@ export default function Profile() {
     }
   }
 
+  // Yorumların detay sayfasına git (ana sayfadaki mantıkla aynı)
+  const handleViewComments = (commentPostID) => {
+    navigate(`/post/${commentPostID}`)
+  }
+
   if (loading) {
     return (
       <Box sx={{ display: 'grid', placeItems: 'center', minHeight: 400 }}>
@@ -911,6 +923,7 @@ export default function Profile() {
                     {...(!isVisitor ? { onDelete: (postId) => handleDeletePost(postId) } : {})}
                     onVote={handleVote}
                     {...(!isVisitor ? { onAddComment: handleAddComment, onCommentVote: handleCommentVote, onCommentDelete: (postId, commentId) => handleDeleteComment(postId, commentId) } : {})}
+                    onViewComments={handleViewComments}
                   />
                 ))
               )}

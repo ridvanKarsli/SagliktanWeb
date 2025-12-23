@@ -48,7 +48,7 @@ function myVoteFor(currentUserId, likedUsers, dislikedUsers) {
   return 0
 }
 
-function toCommentModel(comment, currentUserId, idToName) {
+function toCommentModel(comment, currentUserId, idToName, includeNested = false) {
   const cLiked = dedupUsers(comment.likedUser || [])
   const cDisliked = dedupUsers(comment.dislikedUser || [])
   const cidRaw = comment.postID ?? comment.commnetsID ?? comment.commentsID ?? comment.id
@@ -57,8 +57,9 @@ function toCommentModel(comment, currentUserId, idToName) {
   const authorId = comment.userID ?? comment.userId
   const authorOverride = idToName?.get?.(authorId)
   
-  const nestedComments = Array.isArray(comment.comments)
-    ? comment.comments.map(c => toCommentModel(c, currentUserId, idToName))
+  // Yeni mantık: includeNested false ise nested comments gösterme (sadece direkt alt yorumlar)
+  const nestedComments = includeNested && Array.isArray(comment.comments)
+    ? comment.comments.map(c => toCommentModel(c, currentUserId, idToName, includeNested))
     : []
 
   return {
@@ -84,16 +85,19 @@ function toCommentModel(comment, currentUserId, idToName) {
       chatReactionsID: u?.chatReactionsID ?? u?.commentReactionsID ?? u?.reactionID ?? u?.id
     })),
     comments: nestedComments,
-    category: comment.category || null
+    category: comment.category || null,
+    // Alt yorum sayısını sakla (nested comments gösterilmediğinde kullanılacak)
+    childCommentCount: Array.isArray(comment.comments) ? comment.comments.length : 0
   }
 }
 
-function toPostModel(post, currentUserId, idToName) {
+function toPostModel(post, currentUserId, idToName, includeNestedComments = false) {
   const liked = dedupUsers(post.likedUser || [])
   const disliked = dedupUsers(post.dislikedUser || [])
 
+  // Yeni mantık: PostDetail'de sadece direkt alt yorumları göster (nested comments gösterme)
   const comments = Array.isArray(post.comments)
-    ? post.comments.map(c => toCommentModel(c, currentUserId, idToName))
+    ? post.comments.map(c => toCommentModel(c, currentUserId, idToName, includeNestedComments))
     : []
 
   const authorFull = idToName?.get?.(post.userID)
@@ -104,6 +108,7 @@ function toPostModel(post, currentUserId, idToName) {
   return {
     id: `p_${post.postID}`,
     postID: post.postID,
+    parentsID: post.parentsID ?? 0, // Üst seviyeye dönüş için gerekli
     author: authorFull,
     authorId: post.userID ?? post.userId,
     content: post.message ?? '',
@@ -205,7 +210,8 @@ export default function PostDetail() {
     const userIds = extractAllUserIds(updated)
     const updatedNameMap = await loadUserNames(userIds, idToName)
     setIdToName(updatedNameMap)
-    const updatedModel = toPostModel(updated, user?.userID, updatedNameMap)
+    // PostDetail'de sadece direkt alt yorumları göster (nested comments gösterme)
+    const updatedModel = toPostModel(updated, user?.userID, updatedNameMap, false)
     setPost(updatedModel)
     return updatedModel
   }
@@ -226,7 +232,8 @@ export default function PostDetail() {
         const userIds = extractAllUserIds(data)
         const nameMap = await loadUserNames(userIds, new Map())
         setIdToName(nameMap)
-        const postModel = toPostModel(data, user?.userID, nameMap)
+        // PostDetail'de sadece direkt alt yorumları göster (nested comments gösterme)
+        const postModel = toPostModel(data, user?.userID, nameMap, false)
         setPost(postModel)
       })
       .catch((err) => {
@@ -508,6 +515,11 @@ export default function PostDetail() {
     navigate(`/profile?userID=${authorId}`)
   }
 
+  const handleViewComments = (commentPostID) => {
+    // Yorumun detay sayfasına git
+    navigate(`/post/${commentPostID}`)
+  }
+
   if (loading) {
     return (
       <Box sx={{ py: { xs: 2, md: 0 }, px: { xs: 0, sm: 0 } }}>
@@ -548,20 +560,52 @@ export default function PostDetail() {
 
   return (
     <Box sx={{ py: { xs: 1.5, md: 0 }, px: { xs: 0, sm: 0 } }}>
-      {/* Back button - only on mobile */}
-      {isMobile && (
+      {/* Back button - Breadcrumb navigation */}
+      <Box sx={{ 
+        px: { xs: 1.5, md: 3 }, 
+        py: { xs: 1, md: 1.5 },
+        display: 'flex',
+        alignItems: 'center',
+        gap: { xs: 1, md: 1.5 }
+      }}>
         <IconButton 
-          onClick={() => navigate('/posts')} 
+          onClick={() => {
+            // Eğer parentsID varsa ve 0 değilse, üst seviyeye git
+            if (post?.parentsID && post.parentsID !== 0) {
+              navigate(`/post/${post.parentsID}`)
+            } else {
+              // Ana post sayfasına git
+              navigate('/posts')
+            }
+          }} 
           sx={{ 
-            mb: 2,
-            ml: 2,
-            width: { xs: 44, md: 40 },
-            height: { xs: 44, md: 40 }
+            width: { xs: 48, md: 40 }, // Mobilde daha büyük touch target
+            height: { xs: 48, md: 40 },
+            color: 'text.secondary',
+            '&:hover': {
+              color: 'text.primary',
+              backgroundColor: 'rgba(255,255,255,0.08)'
+            },
+            '&:active': {
+              transform: { xs: 'scale(0.95)', md: 'none' } // Mobilde basma efekti
+            }
           }}
         >
-          <ArrowBack />
+          <ArrowBack sx={{ fontSize: { xs: '24px', md: '20px' } }} />
         </IconButton>
-      )}
+        {post?.parentsID && post.parentsID !== 0 && (
+          <Typography 
+            variant="caption" 
+            sx={{ 
+              color: 'text.secondary',
+              fontSize: { xs: '13px', md: '13px' },
+              fontWeight: 500
+            }}
+          >
+            Yorum detayı
+          </Typography>
+        )}
+      </Box>
       
       <PostCard
         key={post.id}
@@ -577,6 +621,7 @@ export default function PostDetail() {
         onCommentDelete={handleDeleteComment}
         onAuthorClick={handleAuthorClick}
         forceOpenComments={true}
+        onViewComments={handleViewComments}
       />
     </Box>
   )
