@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   Box, Stack, Typography, TextField, Button,
-  Alert, CircularProgress, Autocomplete, Collapse, Paper, Tooltip, IconButton, Menu, MenuItem
+  CircularProgress, Autocomplete, Collapse, Paper, Tooltip, IconButton, Menu, MenuItem
 } from '@mui/material'
 import { Add as AddIcon, Close as CloseIcon, DeleteOutline as DeleteIcon, CalendarToday, Edit, MoreVert } from '@mui/icons-material'
 import { useAuth } from '../../context/AuthContext.jsx'
+import { useNotification } from '../../context/NotificationContext.jsx'
 import { addDisease, getDiseaseNames, deleteDisease } from '../../services/api.js'
 import { Section, SectionList, SubRow, prettyDate } from './ProfileShared.jsx'
 
@@ -19,28 +20,26 @@ function getDiseaseId(d) {
 /* -------- Form: Hastalık Ekle -------- */
 function AddDiseaseForm({ onAdded, onClose }) {
   const { token } = useAuth()
+  const { showError, showSuccess } = useNotification()
   const [diseaseNames, setDiseaseNames] = useState([])
   const [fetching, setFetching] = useState(false)
-  const [fetchErr, setFetchErr] = useState('')
 
   const [selectedName, setSelectedName] = useState(null)
   const [date, setDate] = useState('') // YYYY-MM-DD
 
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
 
   useEffect(() => {
     let mounted = true
     const controller = new AbortController()
     async function loadNames() {
       if (!token) return
-      setFetching(true); setFetchErr('')
+      setFetching(true)
       try {
         const names = await getDiseaseNames(token, { signal: controller.signal })
         if (mounted) setDiseaseNames(names ?? [])
       } catch (e) {
-        if (mounted) setFetchErr(e?.message || 'Hastalık listesi alınamadı.')
+        if (mounted) showError(e?.message || 'Hastalık listesi alınamadı.')
       } finally {
         if (mounted) setFetching(false)
       }
@@ -53,9 +52,9 @@ function AddDiseaseForm({ onAdded, onClose }) {
 
   async function handleSubmit(e) {
     e.preventDefault()
-    if (!token) { setError('Oturum bulunamadı. Lütfen tekrar giriş yapın.'); return }
+    if (!token) { showError('Oturum bulunamadı. Lütfen tekrar giriş yapın.'); return }
     if (!canSubmit) return
-    setLoading(true); setError(''); setSuccess('')
+    setLoading(true)
     try {
       const payload = { diseaseName: String(selectedName).trim(), dateOfDiagnosis: date || null }
       const created = await addDisease(token, payload)
@@ -64,10 +63,10 @@ function AddDiseaseForm({ onAdded, onClose }) {
         name: payload.diseaseName,
         dateOfDiagnosis: payload.dateOfDiagnosis,
       })
-      setSuccess('Hastalık başarıyla eklendi.')
+      showSuccess('Hastalık başarıyla eklendi.')
       setTimeout(() => { onClose?.() }, 900)
     } catch (err) {
-      setError(err?.message || 'Kayıt sırasında bir hata oluştu.')
+      showError(err?.message || 'Kayıt sırasında bir hata oluştu.')
     } finally {
       setLoading(false)
     }
@@ -177,8 +176,6 @@ function AddDiseaseForm({ onAdded, onClose }) {
         </Button>
       </Stack>
 
-      {error && <Alert sx={{ mt: 1.5 }} severity="error" variant="filled">{error}</Alert>}
-      {success && <Alert sx={{ mt: 1.5 }} severity="success" variant="filled">{success}</Alert>}
     </Paper>
   )
 }

@@ -55,7 +55,11 @@ async function fetchJson(url, options = {}, { timeoutMs = 15000, retryOn401 = tr
         await attemptTokenRefresh();
         // Yeni token ile header'ı güncelle
         const newHeaders = { ...options.headers };
-        const saved = localStorage.getItem('auth');
+        // Önce localStorage, sonra sessionStorage'dan token al
+        let saved = localStorage.getItem('auth');
+        if (!saved) {
+          saved = sessionStorage.getItem('auth');
+        }
         if (saved) {
           try {
             const authData = JSON.parse(saved);

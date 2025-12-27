@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
-  Alert, Box, Button, Container, Snackbar, Stack, TextField, Typography, Divider, Link, MenuItem, CircularProgress,
+  Box, Button, Container, Stack, TextField, Typography, Divider, Link, MenuItem, CircularProgress,
 } from '@mui/material'
 import { useAuth } from '../context/AuthContext.jsx'
+import { useNotification } from '../context/NotificationContext.jsx'
 import { useNavigate, Link as RouterLink } from 'react-router-dom'
 import AnimatedLogo from '../components/AnimatedLogo.jsx'
 import WelcomeScreen from '../components/WelcomeScreen.jsx'
@@ -11,6 +12,7 @@ const ALLOWED_ROLES = ['doctor', 'user']
 
 export default function Register() {
   const { register } = useAuth()
+  const { showError } = useNotification()
   const navigate = useNavigate()
 
   const [form, setForm] = useState({
@@ -63,10 +65,18 @@ export default function Register() {
     } catch (err) {
       const errorMessage = (err && err.message) ? err.message : String(err) || 'Kayıt başarısız.'
       setError(errorMessage)
+      showError(errorMessage)
     } finally {
       setLoading(false)
     }
   }
+
+  // Error state'i değiştiğinde bildirim göster (eski kod uyumluluğu için)
+  useEffect(() => {
+    if (error) {
+      showError(error)
+    }
+  }, [error, showError])
 
   // Hoş geldin ekranını göster
   if (showWelcome) {
@@ -227,10 +237,6 @@ export default function Register() {
           </Typography>
         </Stack>
       </Container>
-
-      <Snackbar open={!!error} autoHideDuration={4000} onClose={() => setError('')}>
-        <Alert severity="error" variant="filled" onClose={() => setError('')}>{error}</Alert>
-      </Snackbar>
     </Box>
   )
 }

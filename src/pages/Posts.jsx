@@ -2,7 +2,7 @@ import { useMemo, useState, useEffect, useRef } from 'react'
 import {
   Box, Button, Stack, TextField, Typography, Divider,
   Fab, Dialog, DialogTitle, DialogContent, DialogActions,
-  useMediaQuery, Alert, Snackbar, CircularProgress,
+  useMediaQuery, CircularProgress,
   Autocomplete, Avatar, IconButton
 } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
@@ -11,6 +11,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 
 import PostCard from '../components/PostCard.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
+import { useNotification } from '../context/NotificationContext.jsx'
 import { getAllPosts, getChatsWithFilter, getDiseaseNames, getUserByID } from '../services/api.js'
 import { addComment as apiAddComment } from '../services/api.js'
 import {
@@ -147,6 +148,7 @@ export default function Posts() {
   const theme = useTheme()
   const fullScreen = useMediaQuery(theme.breakpoints.down('sm'))
   const { user, token } = useAuth()
+  const { showError, showSuccess } = useNotification()
   const location = useLocation()
   const navigate = useNavigate()
 
@@ -160,8 +162,6 @@ export default function Posts() {
   const [catsError, setCatsError] = useState('')
   const catsLoadedRef = useRef(false)
 
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [filterLoading, setFilterLoading] = useState(false) // Filtreleme için ayrı loading state
@@ -181,7 +181,6 @@ export default function Posts() {
     } else {
       setFilterLoading(true)
     }
-    setError('')
     
     try {
       let fetchedPosts = []
@@ -279,7 +278,7 @@ export default function Posts() {
         // allPosts'u güncelleme (client-side filtreleme için eski verileri kullan)
       }
     } catch (e) {
-      setError(e.message || 'Gönderiler alınamadı.')
+      showError(e.message || 'Gönderiler alınamadı.')
       // Hata durumunda client-side filtreleme dene
       if (category && category.trim() && allPosts.length > 0) {
         const filtered = allPosts.filter(p => {
@@ -349,7 +348,7 @@ export default function Posts() {
     const postID = Number(String(postId).replace(/^p_/, ''))
     const post = posts.find(p => p.id === postId)
     if (!post) {
-      setError('Gönderi bulunamadı.')
+      showError('Gönderi bulunamadı.')
       return
     }
 
@@ -425,7 +424,7 @@ export default function Posts() {
           }
         })
       })
-      setError(e?.message || 'Oy işlemi başarısız.')
+      showError(e?.message || 'Oy işlemi başarısız.')
       console.error('[Post] votePost error - ROLLBACK YAPILDI', { 
         postId, 
         delta, 
@@ -491,7 +490,7 @@ export default function Posts() {
     // Post objesini bul
     const post = posts.find(p => p.id === postId)
     if (!post) {
-      setError('Gönderi bulunamadı.')
+      showError('Gönderi bulunamadı.')
       return
     }
     
@@ -501,7 +500,7 @@ export default function Posts() {
       // Yoruma yorum ekleniyor - commentId'den yorumu bul
       const targetComment = findCommentInNested(post.comments, commentId)
       if (!targetComment || !targetComment.postID) {
-        setError('Yorum bulunamadı.')
+        showError('Yorum bulunamadı.')
         return
       }
       parentsID = targetComment.postID
@@ -513,7 +512,7 @@ export default function Posts() {
         : Number(postId)
       
       if (!Number.isFinite(postIdNum) || postIdNum <= 0) {
-        setError(`Geçersiz post ID: ${postId}`)
+        showError(`Geçersiz post ID: ${postId}`)
         return
       }
       parentsID = postIdNum
@@ -558,7 +557,7 @@ export default function Posts() {
         }
       }))
     } catch (err) {
-      setError(err?.message || 'Yorum eklenemedi.')
+      showError(err?.message || 'Yorum eklenemedi.')
       // Rollback
       setPosts(prev => prev.map(p => {
         if (p.id !== postId) return p
@@ -603,13 +602,13 @@ export default function Posts() {
     // Nested comments dahil yorumu bul
     const currentPost = posts.find(p => p.id === postId)
     if (!currentPost) {
-      setError('Gönderi bulunamadı.')
+      showError('Gönderi bulunamadı.')
       return
     }
 
     const currentComment = findCommentRecursive(currentPost.comments || [], commentId)
     if (!currentComment) {
-      setError('Yorum bulunamadı.')
+      showError('Yorum bulunamadı.')
       return
     }
 
@@ -621,7 +620,7 @@ export default function Posts() {
     const realCommentId = currentComment.postID || Number(String(commentId).replace(/^c_/, ''))
 
     if (!realCommentId) {
-      setError('Geçersiz yorum ID.')
+      showError('Geçersiz yorum ID.')
       return
     }
 
@@ -630,11 +629,11 @@ export default function Posts() {
     if (currentComment.myVote === delta) {
       // İptal edilecek
       if (delta === 1 && !likeReactionId) {
-        setError('Like reaction ID bulunamadı. Lütfen sayfayı yenileyin.')
+        showError('Like reaction ID bulunamadı. Lütfen sayfayı yenileyin.')
         return
       }
       if (delta === -1 && !dislikeReactionId) {
-        setError('Dislike reaction ID bulunamadı. Lütfen sayfayı yenileyin.')
+        showError('Dislike reaction ID bulunamadı. Lütfen sayfayı yenileyin.')
         return
       }
     }
@@ -713,7 +712,7 @@ export default function Posts() {
           }
         })
       })
-      setError(e?.message || 'Yorum oylama işlemi başarısız. Lütfen tekrar deneyin.')
+      showError(e?.message || 'Yorum oylama işlemi başarısız. Lütfen tekrar deneyin.')
       console.error('[Comments] voteComment error - ROLLBACK YAPILDI', { 
         postId, 
         commentId, 
@@ -739,17 +738,17 @@ export default function Posts() {
   // Yeni gönderi gönder (gerçek API çağrısı)
   const onSubmitNewPost = async (e) => {
     e.preventDefault()
-    if (!msg.trim()) { setError('Mesaj boş olamaz.'); return }
-    if (!category || !category.trim()) { setError('Lütfen bir kategori seçiniz.'); return }
+    if (!msg.trim()) { showError('Mesaj boş olamaz.'); return }
+    if (!category || !category.trim()) { showError('Lütfen bir kategori seçiniz.'); return }
 
     setSubmitting(true)
     try {
       await addChat(token, { message: msg.trim(), category: category.trim() })
-      setSuccess('Gönderi oluşturuldu.')
+      showSuccess('Gönderi oluşturuldu.')
       closeDialog()
       await loadChats(false) // sunucudaki kanonik veriyi göster
     } catch (err) {
-      setError(err.message || 'Gönderi oluşturulamadı.')
+      showError(err.message || 'Gönderi oluşturulamadı.')
     } finally {
       setSubmitting(false)
     }
@@ -839,13 +838,6 @@ export default function Posts() {
           <Stack spacing={1.5} alignItems="center">
             <CircularProgress size={20} />
             <Typography variant="body2" sx={{ color: 'text.secondary' }}>Filtreleniyor...</Typography>
-          </Stack>
-        </Box>
-      ) : error && !dialogOpen ? (
-        <Box sx={{ display: 'grid', placeItems: 'center', py: 4 }}>
-          <Stack spacing={1.5} alignItems="center">
-            <Alert severity="error" variant="filled">{error}</Alert>
-            <Button onClick={loadChats} size="small" variant="contained">Tekrar Dene</Button>
           </Stack>
         </Box>
       ) : (
@@ -1163,13 +1155,6 @@ export default function Posts() {
         </Box>
       </Dialog>
 
-      {/* Bildirimler */}
-      <Snackbar open={!!error && !loading} autoHideDuration={4000} onClose={() => setError('')}>
-        <Alert severity="error" variant="filled" onClose={() => setError('')}>{error}</Alert>
-      </Snackbar>
-      <Snackbar open={!!success} autoHideDuration={2500} onClose={() => setSuccess('')}>
-        <Alert severity="success" variant="filled" onClose={() => setSuccess('')}>{success}</Alert>
-      </Snackbar>
     </Box>
   )
 }

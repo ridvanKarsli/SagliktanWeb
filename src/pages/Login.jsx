@@ -1,15 +1,18 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
-  Alert, Box, Button, Container, Link, Snackbar, Stack, TextField, Typography, Divider, CircularProgress
+  Box, Button, Container, Link, Stack, TextField, Typography, Divider, CircularProgress, FormControlLabel, Checkbox
 } from '@mui/material'
 import { useAuth } from '../context/AuthContext.jsx'
+import { useNotification } from '../context/NotificationContext.jsx'
 import { useNavigate, Link as RouterLink } from 'react-router-dom'
 import AnimatedLogo from '../components/AnimatedLogo.jsx'
 
 export default function Login() {
   const { login } = useAuth()
+  const { showError } = useNotification()
   const navigate = useNavigate()
   const [form, setForm] = useState({ email: '', pw: '' })
+  const [rememberMe, setRememberMe] = useState(true) // Varsayılan olarak işaretli
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -18,14 +21,23 @@ export default function Login() {
     setError('')
     setLoading(true)
     try {
-      await login(form.email.trim(), form.pw)
+      await login(form.email.trim(), form.pw, rememberMe)
       navigate('/posts', { replace: true })
     } catch (err) {
-      setError((err && err.message) ? err.message : String(err) || 'Giriş başarısız.')
+      const errorMessage = (err && err.message) ? err.message : String(err) || 'Giriş başarısız.'
+      setError(errorMessage)
+      showError(errorMessage)
     } finally {
       setLoading(false)
     }
   }
+
+  // Error state'i değiştiğinde bildirim göster (eski kod uyumluluğu için)
+  useEffect(() => {
+    if (error) {
+      showError(error)
+    }
+  }, [error, showError])
 
   return (
     <Box sx={{
@@ -77,6 +89,22 @@ export default function Login() {
             }}
           />
 
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                color="primary"
+              />
+            }
+            label="Beni Hatırla"
+            sx={{
+              '& .MuiFormControlLabel-label': {
+                fontSize: { xs: '14px', sm: '15px' }
+              }
+            }}
+          />
+
           <Button 
             type="submit" 
             disabled={loading}
@@ -101,17 +129,6 @@ export default function Login() {
           </Typography>
         </Stack>
       </Container>
-
-      <Snackbar
-        open={!!error}
-        autoHideDuration={4500}
-        onClose={() => setError('')}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert severity="error" variant="filled" onClose={() => setError('')}>
-          {error}
-        </Alert>
-      </Snackbar>
     </Box>
   )
 }

@@ -11,7 +11,6 @@ export default function WelcomeScreen({ onContinue }) {
       navigate('/', { replace: true })
     }
   }
-
   return (
     <Box
       sx={{
@@ -25,10 +24,10 @@ export default function WelcomeScreen({ onContinue }) {
       }}
     >
       <Stack
-        spacing={4}
+        spacing={{ xs: 3, sm: 4 }}
         alignItems="center"
         sx={{
-          maxWidth: 500,
+          maxWidth: { xs: '100%', sm: 500 },
           width: '100%',
           textAlign: 'center'
         }}
@@ -56,22 +55,23 @@ export default function WelcomeScreen({ onContinue }) {
             sx={{
               backgroundColor: 'primary.main',
               color: 'primary.contrastText',
-              px: { xs: 3, sm: 4 },
-              py: { xs: 2.5, sm: 3 },
-              borderRadius: 4,
+              px: { xs: 2.5, sm: 4 },
+              py: { xs: 2, sm: 3 },
+              borderRadius: { xs: 3, sm: 4 },
               position: 'relative',
-              boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+              boxShadow: { xs: '0 4px 12px rgba(0,0,0,0.15)', sm: '0 8px 24px rgba(0,0,0,0.2)' },
+              wordBreak: 'break-word',
               '&::after': {
                 content: '""',
                 position: 'absolute',
-                bottom: -16,
+                bottom: { xs: -12, sm: -16 },
                 left: '50%',
                 transform: 'translateX(-50%)',
                 width: 0,
                 height: 0,
-                borderLeft: '16px solid transparent',
-                borderRight: '16px solid transparent',
-                borderTop: `16px solid`,
+                borderLeft: { xs: '12px solid transparent', sm: '16px solid transparent' },
+                borderRight: { xs: '12px solid transparent', sm: '16px solid transparent' },
+                borderTop: { xs: `12px solid`, sm: `16px solid` },
                 borderTopColor: 'primary.main',
                 filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))'
               }
@@ -81,9 +81,10 @@ export default function WelcomeScreen({ onContinue }) {
               variant="h5"
               sx={{
                 fontWeight: 700,
-                fontSize: { xs: 22, sm: 26 },
-                lineHeight: 1.4,
-                mb: 1
+                fontSize: { xs: 20, sm: 26 },
+                lineHeight: { xs: 1.3, sm: 1.4 },
+                mb: { xs: 0.75, sm: 1 },
+                wordBreak: 'break-word'
               }}
             >
               Aramıza Hoş Geldin! 🎉
@@ -91,9 +92,11 @@ export default function WelcomeScreen({ onContinue }) {
             <Typography
               variant="body1"
               sx={{
-                fontSize: { xs: 15, sm: 17 },
+                fontSize: { xs: 14, sm: 17 },
                 opacity: 0.95,
-                lineHeight: 1.6
+                lineHeight: { xs: 1.5, sm: 1.6 },
+                wordBreak: 'break-word',
+                overflowWrap: 'break-word'
               }}
             >
               Artık Sagliktan ailesinin bir parçasısın. Hemen giriş yap ve keşfetmeye başla!
@@ -104,8 +107,8 @@ export default function WelcomeScreen({ onContinue }) {
         {/* Lumo Görseli */}
         <Box
           sx={{
-            width: { xs: 200, sm: 250 },
-            height: { xs: 200, sm: 250 },
+            width: { xs: 180, sm: 250 },
+            height: { xs: 180, sm: 250 },
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -125,7 +128,7 @@ export default function WelcomeScreen({ onContinue }) {
                 transform: 'translateY(0)'
               },
               '50%': {
-                transform: 'translateY(-12px)'
+                transform: { xs: 'translateY(-8px)', sm: 'translateY(-12px)' }
               }
             }
           }}

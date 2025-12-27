@@ -5,6 +5,7 @@ import {
 } from '@mui/material'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
+import { useNotification } from '../../context/NotificationContext.jsx'
 import PostCard from '../../components/PostCard.jsx'
 import {
   getUserProfile,
@@ -47,17 +48,20 @@ const displayName = (u) =>
 function mapChatToPost(post, meId, authorName, idToName) {
   const liked = Array.isArray(post.likedUser) ? post.likedUser : []
   const disliked = Array.isArray(post.dislikedUser) ? post.dislikedUser : []
+  // UserID karşılaştırması Number() ile yapılmalı (tip uyumsuzluğu sorunu)
+  const meIdNum = Number(meId)
   const myVote =
-    liked.some(u => u.userID === meId) ? 1 :
-    disliked.some(u => u.userID === meId) ? -1 : 0
+    liked.some(u => Number(u?.userID ?? u?.userId) === meIdNum) ? 1 :
+    disliked.some(u => Number(u?.userID ?? u?.userId) === meIdNum) ? -1 : 0
 
   // Recursive function to convert nested comments (ana sayfadaki mantıkla aynı)
   const mapComment = (c, includeNested = false) => {
     const cLiked = Array.isArray(c.likedUser) ? c.likedUser : []
     const cDisliked = Array.isArray(c.dislikedUser) ? c.dislikedUser : []
+    // UserID karşılaştırması Number() ile yapılmalı (tip uyumsuzluğu sorunu)
     const cVote =
-      cLiked.some(u => u.userID === meId) ? 1 :
-      cDisliked.some(u => u.userID === meId) ? -1 : 0
+      cLiked.some(u => Number(u?.userID ?? u?.userId) === meIdNum) ? 1 :
+      cDisliked.some(u => Number(u?.userID ?? u?.userId) === meIdNum) ? -1 : 0
 
     const override = idToName?.get?.(c?.userID ?? c?.userId)
     const author = override || c.userName || `Kullanıcı #${c.userID}`
@@ -125,6 +129,7 @@ function mapChatToPost(post, meId, authorName, idToName) {
 /* ---------------- Page ---------------- */
 export default function Profile() {
   const { token, user: me, logout } = useAuth()
+  const { showError } = useNotification()
   const navigate = useNavigate()
   const location = useLocation()
   const searchParams = new URLSearchParams(location.search)
@@ -145,7 +150,15 @@ export default function Profile() {
     let mounted = true
     async function load() {
       if (!token) { setLoading(false); return }
+      
+      // userIdParam değiştiğinde state'leri sıfırla
+      setProfileData(null)
+      setDoctorData(null)
+      setPublicUserData(null)
+      setPosts([])
       setError('')
+      setLoading(true)
+      
       try {
         let base
         const viewingOther = !!userIdParam
@@ -228,7 +241,9 @@ export default function Profile() {
                 if (full) idToName.set(id, full)
               } catch {}
             }))
-            const mapped = posts.map(p => mapChatToPost(p, base.userID, base.name || 'Kullanıcı', idToName))
+            // Reaction kontrolü için mevcut kullanıcının userID'sini kullan (me?.userID ?? me?.userId)
+            const currentUserId = me?.userID ?? me?.userId
+            const mapped = posts.map(p => mapChatToPost(p, currentUserId, base.name || 'Kullanıcı', idToName))
             setPosts(mapped)
           } finally {
             if (mounted) setPostsLoading(false)
@@ -243,7 +258,7 @@ export default function Profile() {
     }
     load()
     return () => { mounted = false }
-  }, [token, userIdParam])
+  }, [token, userIdParam, me?.userId, me?.userID])
 
   const isDoctor = profileData?.role === 'doctor'
   const isUser = profileData?.role === 'user'
@@ -263,7 +278,7 @@ export default function Profile() {
       await deleteChat(token, postID)
       setPosts(prev => prev.filter(p => p.id !== postId))
     } catch (err) {
-      alert(err?.message || 'Silme işlemi başarısız.')
+      showError(err?.message || 'Silme işlemi başarısız.')
     } finally {
       setDeletingId(null)
     }
@@ -419,7 +434,7 @@ export default function Profile() {
     // Post objesini bul
     const post = posts.find(p => p.id === postId)
     if (!post) {
-      alert('Gönderi bulunamadı.')
+      showError('Gönderi bulunamadı.')
       return
     }
 
@@ -429,7 +444,7 @@ export default function Profile() {
       // Yoruma yorum ekleniyor
       const targetComment = findCommentInNested(post.comments, commentId)
       if (!targetComment || !targetComment.postID) {
-        alert('Yorum bulunamadı.')
+        showError('Yorum bulunamadı.')
         return
       }
       parentsID = targetComment.postID
@@ -441,7 +456,7 @@ export default function Profile() {
         : Number(postId)
       
       if (!Number.isFinite(postIdNum) || postIdNum <= 0) {
-        alert(`Geçersiz post ID: ${postId}`)
+        showError(`Geçersiz post ID: ${postId}`)
         return
       }
       parentsID = postIdNum
@@ -490,7 +505,7 @@ export default function Profile() {
         })
       )
     } catch (err) {
-      alert(err.message || 'Yorum eklenemedi.')
+      showError(err.message || 'Yorum eklenemedi.')
       // Rollback
       setPosts(prev =>
         prev.map(p => {
@@ -677,7 +692,7 @@ export default function Profile() {
     try {
       await apiDeleteComment(token, commentId) // endpoint paramı: commnetsID
     } catch (err) {
-      alert(err.message || 'Yorum silinemedi.')
+      showError(err.message || 'Yorum silinemedi.')
       // geri al
       setPosts(prevSnapshot)
     }

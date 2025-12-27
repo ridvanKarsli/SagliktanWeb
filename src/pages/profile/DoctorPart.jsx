@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import {
-  Box, Stack, Typography, TextField, Button, Alert,
+  Box, Stack, Typography, TextField, Button,
   CircularProgress, Paper, IconButton, Menu, MenuItem
 } from '@mui/material'
 import {
@@ -8,6 +8,7 @@ import {
   Add as AddIcon, DeleteOutline as DeleteIcon, Edit, MoreVert
 } from '@mui/icons-material'
 import { useAuth } from '../../context/AuthContext.jsx'
+import { useNotification } from '../../context/NotificationContext.jsx'
 import {
   addSpecialization, deleteSpecialization,
   addWorkAddress, deleteWorkAddress,
@@ -19,20 +20,19 @@ import { Section, SubRow, SectionList, prettyDate } from './ProfileShared.jsx'
 /* ---------- FORM: Uzmanlık Ekle ---------- */
 function AddSpecializationForm({ onAdded, onClose }) {
   const { token } = useAuth()
+  const { showError, showSuccess } = useNotification()
   const [name, setName] = useState('')
   const [exp, setExp] = useState('') // number as string
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
 
   const canSubmit = useMemo(() => name.trim().length > 0 && String(exp).trim() !== '', [name, exp])
 
   async function handleSubmit(e) {
     e.preventDefault()
-    if (!token) { setError('Oturum bulunamadı. Lütfen tekrar giriş yapın.'); return }
+    if (!token) { showError('Oturum bulunamadı. Lütfen tekrar giriş yapın.'); return }
     if (!canSubmit) return
 
-    setLoading(true); setError(''); setSuccess('')
+    setLoading(true)
     try {
       const years = Number(exp)
       const payload = { nameOfSpecialization: name.trim(), specializationExperience: isNaN(years) ? 0 : years }
@@ -43,10 +43,10 @@ function AddSpecializationForm({ onAdded, onClose }) {
         nameOfSpecialization: payload.nameOfSpecialization,
         specializationExperience: payload.specializationExperience,
       })
-      setSuccess('Uzmanlık eklendi.')
+      showSuccess('Uzmanlık eklendi.')
       setTimeout(() => { onClose?.() }, 900)
     } catch (err) {
-      setError(err?.message || 'Kayıt sırasında bir hata oluştu.')
+      showError(err?.message || 'Kayıt sırasında bir hata oluştu.')
     } finally {
       setLoading(false)
     }
@@ -117,8 +117,6 @@ function AddSpecializationForm({ onAdded, onClose }) {
         </Button>
       </Stack>
 
-      {error && <Alert sx={{ mt: 1.5 }} severity="error" variant="filled">{error}</Alert>}
-      {success && <Alert sx={{ mt: 1.5 }} severity="success" variant="filled">{success}</Alert>}
     </Paper>
   )
 }
@@ -126,20 +124,19 @@ function AddSpecializationForm({ onAdded, onClose }) {
 /* ---------- FORM: Adres Ekle ---------- */
 function AddAddressForm({ onAdded, onClose }) {
   const { token } = useAuth()
+  const { showError, showSuccess } = useNotification()
   const [form, setForm] = useState({ workPlaceName: '', street: '', city: '', county: '', country: '' })
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
 
   const canSubmit = useMemo(() => form.workPlaceName.trim().length > 0, [form.workPlaceName])
   function updateField(key) { return (e) => setForm((prev) => ({ ...prev, [key]: e.target.value })) }
 
   async function handleSubmit(e) {
     e.preventDefault()
-    if (!token) { setError('Oturum bulunamadı. Lütfen tekrar giriş yapın.'); return }
+    if (!token) { showError('Oturum bulunamadı. Lütfen tekrar giriş yapın.'); return }
     if (!canSubmit) return
 
-    setLoading(true); setError(''); setSuccess('')
+    setLoading(true)
     try {
       const payload = {
         workPlaceName: form.workPlaceName.trim(),
@@ -147,9 +144,9 @@ function AddAddressForm({ onAdded, onClose }) {
       }
       const created = await addWorkAddress(token, payload)
       onAdded?.({ addressID: created?.addressID ?? created?.adressID ?? Math.random().toString(36).slice(2), ...payload })
-      setSuccess('Adres eklendi.')
+      showSuccess('Adres eklendi.')
       setTimeout(() => { onClose?.() }, 900)
-    } catch (err) { setError(err?.message || 'Kayıt sırasında bir hata oluştu.') }
+    } catch (err) { showError(err?.message || 'Kayıt sırasında bir hata oluştu.') }
     finally { setLoading(false) }
   }
 
@@ -259,8 +256,6 @@ function AddAddressForm({ onAdded, onClose }) {
         Kaydet
       </Button>
 
-      {error && <Alert sx={{ mt: 1.5 }} severity="error" variant="filled">{error}</Alert>}
-      {success && <Alert sx={{ mt: 1.5 }} severity="success" variant="filled">{success}</Alert>}
     </Paper>
   )
 }
@@ -268,26 +263,25 @@ function AddAddressForm({ onAdded, onClose }) {
 /* ---------- FORM: İletişim Ekle ---------- */
 function AddContactForm({ onAdded, onClose }) {
   const { token } = useAuth()
+  const { showError, showSuccess } = useNotification()
   const [form, setForm] = useState({ email: '', phoneNumber: '' })
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
 
   const canSubmit = useMemo(() => form.email.trim().length > 0 && form.phoneNumber.trim().length > 0, [form])
   function updateField(key) { return (e) => setForm((prev) => ({ ...prev, [key]: e.target.value })) }
 
   async function handleSubmit(e) {
     e.preventDefault()
-    if (!token) { setError('Oturum bulunamadı. Lütfen tekrar giriş yapın.'); return }
+    if (!token) { showError('Oturum bulunamadı. Lütfen tekrar giriş yapın.'); return }
     if (!canSubmit) return
-    setLoading(true); setError(''); setSuccess('')
+    setLoading(true)
     try {
       const payload = { email: form.email.trim(), phoneNumber: form.phoneNumber.trim() }
       const created = await addContactInfor(token, payload)
       onAdded?.({ contactID: created?.contactID ?? Math.random().toString(36).slice(2), ...payload })
-      setSuccess('İletişim eklendi.')
+      showSuccess('İletişim eklendi.')
       setTimeout(() => { onClose?.() }, 900)
-    } catch (err) { setError(err?.message || 'Kayıt sırasında bir hata oluştu.') }
+    } catch (err) { showError(err?.message || 'Kayıt sırasında bir hata oluştu.') }
     finally { setLoading(false) }
   }
 
@@ -356,8 +350,6 @@ function AddContactForm({ onAdded, onClose }) {
         </Button>
       </Stack>
 
-      {error && <Alert sx={{ mt: 1.5 }} severity="error" variant="filled">{error}</Alert>}
-      {success && <Alert sx={{ mt: 1.5 }} severity="success" variant="filled">{success}</Alert>}
     </Paper>
   )
 }
@@ -365,10 +357,9 @@ function AddContactForm({ onAdded, onClose }) {
 /* ---------- FORM: Duyuru Ekle ---------- */
 function AddAnnouncementForm({ onAdded, onClose }) {
   const { token } = useAuth()
+  const { showError, showSuccess } = useNotification()
   const [form, setForm] = useState({ title: '', content: '', uploadDate: '' }) // YYYY-MM-DD
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
 
   const canSubmit = useMemo(
     () => form.title.trim().length > 0 && form.content.trim().length > 0 && form.uploadDate.trim().length > 0,
@@ -378,9 +369,9 @@ function AddAnnouncementForm({ onAdded, onClose }) {
 
   async function handleSubmit(e) {
     e.preventDefault()
-    if (!token) { setError('Oturum bulunamadı. Lütfen tekrar giriş yapın.'); return }
+    if (!token) { showError('Oturum bulunamadı. Lütfen tekrar giriş yapın.'); return }
     if (!canSubmit) return
-    setLoading(true); setError(''); setSuccess('')
+    setLoading(true)
     try {
       const payload = {
         title: form.title.trim(),
@@ -392,9 +383,9 @@ function AddAnnouncementForm({ onAdded, onClose }) {
         announcementID: created?.announcementID ?? Math.random().toString(36).slice(2),
         ...payload
       })
-      setSuccess('Duyuru eklendi.')
+      showSuccess('Duyuru eklendi.')
       setTimeout(() => { onClose?.() }, 900)
-    } catch (err) { setError(err?.message || 'Kayıt sırasında bir hata oluştu.') }
+    } catch (err) { showError(err?.message || 'Kayıt sırasında bir hata oluştu.') }
     finally { setLoading(false) }
   }
 
@@ -480,8 +471,6 @@ function AddAnnouncementForm({ onAdded, onClose }) {
         </Stack>
       </Stack>
 
-      {error && <Alert sx={{ mt: 1.5 }} severity="error" variant="filled">{error}</Alert>}
-      {success && <Alert sx={{ mt: 1.5 }} severity="success" variant="filled">{success}</Alert>}
     </Paper>
   )
 }
@@ -489,6 +478,7 @@ function AddAnnouncementForm({ onAdded, onClose }) {
 /* ---------- Ana Bileşen ---------- */
 export default function DoctorPart({ doctorData, sectionKey, canEdit = true }) {
   const { token } = useAuth()
+  const { showError } = useNotification()
   if (!doctorData) return null
 
   // Local state: ekleme/silme sonrası UI anında güncellensin
@@ -496,28 +486,24 @@ export default function DoctorPart({ doctorData, sectionKey, canEdit = true }) {
     Array.isArray(doctorData?.specialization) ? doctorData.specialization : []
   )
   const [openSpecForm, setOpenSpecForm] = useState(false)
-  const [delSpecErr, setDelSpecErr] = useState('')
   const [delSpecLoadingId, setDelSpecLoadingId] = useState(null)
 
   const [addrItems, setAddrItems] = useState(
     Array.isArray(doctorData?.worksAddress) ? doctorData.worksAddress : []
   )
   const [openAddrForm, setOpenAddrForm] = useState(false)
-  const [delAddrErr, setDelAddrErr] = useState('')
   const [delAddrLoadingId, setDelAddrLoadingId] = useState(null)
 
   const [contactItems, setContactItems] = useState(
     Array.isArray(doctorData?.contactInfor) ? doctorData.contactInfor : []
   )
   const [openContactForm, setOpenContactForm] = useState(false)
-  const [delContactErr, setDelContactErr] = useState('')
   const [delContactLoadingId, setDelContactLoadingId] = useState(null)
 
   const [annItems, setAnnItems] = useState(
     Array.isArray(doctorData?.announcement) ? doctorData.announcement : []
   )
   const [openAnnForm, setOpenAnnForm] = useState(false)
-  const [delAnnErr, setDelAnnErr] = useState('')
   const [delAnnLoadingId, setDelAnnLoadingId] = useState(null)
 
   // Menü anchor state'leri
@@ -528,54 +514,50 @@ export default function DoctorPart({ doctorData, sectionKey, canEdit = true }) {
 
   // --- DELETE handlers ---
   async function deleteSpecById(item) {
-    setDelSpecErr('')
     const id = item?.specializationID
-    if (!id) { setDelSpecErr('Silinecek kaydın kimliği bulunamadı.'); return }
+    if (!id) { showError('Silinecek kaydın kimliği bulunamadı.'); return }
     if (!window.confirm(`"${item?.nameOfSpecialization ?? 'Uzmanlık'}" silinsin mi?`)) return
     try {
       setDelSpecLoadingId(id)
       await deleteSpecialization(token, id)
       setSpecItems(prev => prev.filter(x => (x?.specializationID ?? x?.id) !== id))
-    } catch (e) { setDelSpecErr(e?.message || 'Silme işlemi başarısız.') }
+    } catch (e) { showError(e?.message || 'Silme işlemi başarısız.') }
     finally { setDelSpecLoadingId(null) }
   }
 
   async function deleteAddrById(item) {
-    setDelAddrErr('')
     const id = item?.addressID ?? item?.adressID
-    if (!id) { setDelAddrErr('Silinecek kaydın kimliği bulunamadı.'); return }
+    if (!id) { showError('Silinecek kaydın kimliği bulunamadı.'); return }
     if (!window.confirm(`"${item?.workPlaceName ?? 'Adres'}" silinsin mi?`)) return
     try {
       setDelAddrLoadingId(id)
       await deleteWorkAddress(token, id)
       setAddrItems(prev => prev.filter(x => (x?.addressID ?? x?.adressID) !== id))
-    } catch (e) { setDelAddrErr(e?.message || 'Silme işlemi başarısız.') }
+    } catch (e) { showError(e?.message || 'Silme işlemi başarısız.') }
     finally { setDelAddrLoadingId(null) }
   }
 
   async function deleteContactById(item) {
-    setDelContactErr('')
     const id = item?.contactID
-    if (!id) { setDelContactErr('Silinecek kaydın kimliği bulunamadı.'); return }
+    if (!id) { showError('Silinecek kaydın kimliği bulunamadı.'); return }
     if (!window.confirm(`"${item?.email ?? item?.phoneNumber ?? 'İletişim'}" silinsin mi?`)) return
     try {
       setDelContactLoadingId(id)
       await deleteContact(token, id)
       setContactItems(prev => prev.filter(x => x?.contactID !== id))
-    } catch (e) { setDelContactErr(e?.message || 'Silme işlemi başarısız.') }
+    } catch (e) { showError(e?.message || 'Silme işlemi başarısız.') }
     finally { setDelContactLoadingId(null) }
   }
 
   async function deleteAnnById(item) {
-    setDelAnnErr('')
     const id = item?.announcementID
-    if (!id) { setDelAnnErr('Silinecek kaydın kimliği bulunamadı.'); return }
+    if (!id) { showError('Silinecek kaydın kimliği bulunamadı.'); return }
     if (!window.confirm(`"${item?.title ?? 'Duyuru'}" silinsin mi?`)) return
     try {
       setDelAnnLoadingId(id)
       await deleteAnnouncement(token, id)
       setAnnItems(prev => prev.filter(x => x?.announcementID !== id))
-    } catch (e) { setDelAnnErr(e?.message || 'Silme işlemi başarısız.') }
+    } catch (e) { showError(e?.message || 'Silme işlemi başarısız.') }
     finally { setDelAnnLoadingId(null) }
   }
 
@@ -605,7 +587,6 @@ export default function DoctorPart({ doctorData, sectionKey, canEdit = true }) {
         ) : null}
         onActionClick={canEdit ? () => setOpenSpecForm(true) : undefined}
       >
-        {delSpecErr && <Alert sx={{ mb: 1 }} severity="error" variant="filled">{delSpecErr}</Alert>}
 
         <SectionList
           items={specItems}
@@ -760,7 +741,6 @@ export default function DoctorPart({ doctorData, sectionKey, canEdit = true }) {
         ) : null}
         onActionClick={canEdit ? () => setOpenAddrForm(true) : undefined}
       >
-        {delAddrErr && <Alert sx={{ mb: 1 }} severity="error" variant="filled">{delAddrErr}</Alert>}
 
         <SectionList
           items={addrItems}
@@ -906,7 +886,6 @@ export default function DoctorPart({ doctorData, sectionKey, canEdit = true }) {
         ) : null}
         onActionClick={canEdit ? () => setOpenContactForm(true) : undefined}
       >
-        {delContactErr && <Alert sx={{ mb: 1 }} severity="error" variant="filled">{delContactErr}</Alert>}
 
         <SectionList
           items={contactItems}
@@ -1051,7 +1030,6 @@ export default function DoctorPart({ doctorData, sectionKey, canEdit = true }) {
         ) : null}
         onActionClick={canEdit ? () => setOpenAnnForm(true) : undefined}
       >
-        {delAnnErr && <Alert sx={{ mb: 1 }} severity="error" variant="filled">{delAnnErr}</Alert>}
 
         <SectionList
           items={annItems}

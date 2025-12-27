@@ -9,6 +9,7 @@ import { ArrowBack } from '@mui/icons-material'
 import PostCard from '../components/PostCard.jsx'
 
 import { useAuth } from '../context/AuthContext.jsx'
+import { useNotification } from '../context/NotificationContext.jsx'
 import { getPostWithId, getUserByID, addComment } from '../services/api.js'
 import {
   addPostReaction,
@@ -35,8 +36,9 @@ function dedupUsers(arr) {
 
 function myVoteFor(currentUserId, likedUsers, dislikedUsers) {
   if (!currentUserId) return 0
-  const liked = likedUsers.some(u => (u?.userID ?? u?.userId) === currentUserId)
-  const disliked = dislikedUsers.some(u => (u?.userID ?? u?.userId) === currentUserId)
+  const currentIdNum = Number(currentUserId)
+  const liked = likedUsers.some(u => Number(u?.userID ?? u?.userId) === currentIdNum)
+  const disliked = dislikedUsers.some(u => Number(u?.userID ?? u?.userId) === currentIdNum)
   if (liked) return 1
   if (disliked) return -1
   return 0
@@ -133,6 +135,7 @@ export default function PostDetail() {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
   const { user, token } = useAuth()
+  const { showError } = useNotification()
   
   const [post, setPost] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -205,7 +208,9 @@ export default function PostDetail() {
     const updatedNameMap = await loadUserNames(userIds, idToName)
     setIdToName(updatedNameMap)
     // PostDetail'de sadece direkt alt yorumları göster (nested comments gösterme)
-    const updatedModel = toPostModel(updated, user?.userID, updatedNameMap, false)
+    // currentUserId'yi doğru geç (user?.userID ?? user?.userId)
+    const currentUserId = user?.userID ?? user?.userId
+    const updatedModel = toPostModel(updated, currentUserId, updatedNameMap, false)
     setPost(updatedModel)
     return updatedModel
   }
@@ -227,7 +232,9 @@ export default function PostDetail() {
         const nameMap = await loadUserNames(userIds, new Map())
         setIdToName(nameMap)
         // PostDetail'de sadece direkt alt yorumları göster (nested comments gösterme)
-        const postModel = toPostModel(data, user?.userID, nameMap, false)
+        // currentUserId'yi doğru geç (user?.userID ?? user?.userId)
+        const currentUserId = user?.userID ?? user?.userId
+        const postModel = toPostModel(data, currentUserId, nameMap, false)
         setPost(postModel)
       })
       .catch((err) => {
@@ -312,7 +319,7 @@ export default function PostDetail() {
         likes: prevLikes,
         dislikes: prevDislikes
       }))
-      alert(err?.message || 'İşlem başarısız oldu.')
+      showError(err?.message || 'İşlem başarısız oldu.')
     }
   }
 
@@ -350,11 +357,11 @@ export default function PostDetail() {
     // İptal işlemleri için reaction ID kontrolü
     if (prevVote === delta) {
       if (delta === 1 && !likeReactionId) {
-        alert('Like reaction ID bulunamadı. Lütfen sayfayı yenileyin.')
+        showError('Like reaction ID bulunamadı. Lütfen sayfayı yenileyin.')
         return
       }
       if (delta === -1 && !dislikeReactionId) {
-        alert('Dislike reaction ID bulunamadı. Lütfen sayfayı yenileyin.')
+        showError('Dislike reaction ID bulunamadı. Lütfen sayfayı yenileyin.')
         return
       }
     }
@@ -435,7 +442,7 @@ export default function PostDetail() {
         })
       }
       setPost(p => ({ ...p, comments: rollbackComment(p.comments) }))
-      alert(err?.message || 'İşlem başarısız oldu.')
+      showError(err?.message || 'İşlem başarısız oldu.')
     }
   }
 

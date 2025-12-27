@@ -1,11 +1,12 @@
 import { useMemo, useState, useEffect } from 'react'
 import {
   Box, Button, Avatar, Grid, TextField, Stack, Typography, Divider,
-  Alert, CircularProgress, Chip, IconButton, Tooltip, Paper, Tabs, Tab
+  CircularProgress, Chip, IconButton, Tooltip, Paper, Tabs, Tab
 } from '@mui/material'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Close as CloseIcon, LocalHospital as DoctorIcon, People as UserIcon } from '@mui/icons-material'
 import { useAuth } from '../context/AuthContext.jsx'
+import { useNotification } from '../context/NotificationContext.jsx'
 import { getAllDoctors, getAllPublicUsers } from '../services/api.js'
 
 const RECENT_KEY_DOCTORS = 'recent_doctors_v1'
@@ -65,6 +66,7 @@ function pickRandom(arr, n) {
 
 export default function Search() {
   const { token } = useAuth()
+  const { showError } = useNotification()
   const loc = useLocation()
   const nav = useNavigate()
   const params = new URLSearchParams(loc.search)
@@ -75,7 +77,6 @@ export default function Search() {
   const [activeTab, setActiveTab] = useState(initialTab === 'user' ? 1 : 0)
   const [loadingDoctors, setLoadingDoctors] = useState(false)
   const [loadingUsers, setLoadingUsers] = useState(false)
-  const [error, setError] = useState('')
   const [doctors, setDoctors] = useState([])
   const [users, setUsers] = useState([])
   const [recents, setRecents] = useState(loadRecents(initialTab === 'user' ? 'user' : 'doctor'))
@@ -107,7 +108,7 @@ export default function Search() {
         }
         return
       }
-      setLoadingDoctors(true); setError('')
+      setLoadingDoctors(true)
       try {
         const list = await getAllDoctors(token, { signal: controller.signal })
         if (!mounted) return
@@ -123,7 +124,7 @@ export default function Search() {
         }
       } catch (e) {
         if (!mounted) return
-        setError(e?.message || 'Doktorlar alınamadı.')
+        showError(e?.message || 'Doktorlar alınamadı.')
       } finally {
         if (mounted) setLoadingDoctors(false)
       }
@@ -146,7 +147,7 @@ export default function Search() {
         }
         return
       }
-      setLoadingUsers(true); setError('')
+      setLoadingUsers(true)
       try {
         const list = await getAllPublicUsers(token, { signal: controller.signal })
         if (!mounted) return
@@ -162,7 +163,7 @@ export default function Search() {
         }
       } catch (e) {
         if (!mounted) return
-        setError(e?.message || 'Kullanıcılar alınamadı.')
+        showError(e?.message || 'Kullanıcılar alınamadı.')
       } finally {
         if (mounted) setLoadingUsers(false)
       }
@@ -373,14 +374,13 @@ export default function Search() {
         </Box>
       </Stack>
 
-      {error && <Alert severity="error" variant="filled" sx={{ mb: 1, mx: { xs: 1.5, md: 3 } }}>{error}</Alert>}
       {loading && (
         <Box sx={{ display: 'grid', placeItems: 'center', py: 3 }}>
           <CircularProgress size={22} />
         </Box>
       )}
 
-      {!loading && !error && (
+      {!loading && (
         <Box sx={{ px: { xs: 1.5, md: 3 } }}>
           {q.trim() ? (
             <Stack spacing={2}>
