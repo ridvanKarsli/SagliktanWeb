@@ -11,14 +11,8 @@ import PostCard from '../components/PostCard.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { getPostWithId, getUserByID, addComment } from '../services/api.js'
 import {
-  likeChatReaction,
-  dislikeChatReaction,
-  cancelLikeChatReaction,
-  cancelDislikeChatReaction,
-  likeCommentReaction,
-  dislikeCommentReaction,
-  cancelLikeCommentReaction,
-  cancelDislikeCommentReaction
+  addPostReaction,
+  cancelPostReaction
 } from '../services/api.js'
 
 /* ---------------- Utils ---------------- */
@@ -296,39 +290,16 @@ export default function PostDetail() {
 
     try {
       if (prevVote === delta) {
-        // Aynı oya tekrar basıldı - İptal et
-        if (delta === 1) {
-          if (!likeReactionID) {
-            throw new Error('Like reaction ID bulunamadı. Lütfen sayfayı yenileyin.')
-          }
-          await cancelLikeChatReaction(token, numericId, currentUserId, likeReactionID)
-        } else {
-          if (!dislikeReactionID) {
-            throw new Error('Dislike reaction ID bulunamadı. Lütfen sayfayı yenileyin.')
-          }
-          await cancelDislikeChatReaction(token, numericId, currentUserId, dislikeReactionID)
+        // Aynı oya tekrar basıldı - İptal et (yeni iptal endpoint'i kullan)
+        const reactionID = delta === 1 ? likeReactionID : dislikeReactionID
+        if (!reactionID) {
+          throw new Error('Reaction ID bulunamadı. Lütfen sayfayı yenileyin.')
         }
-      } else if (prevVote === 1 && delta === -1) {
-        // Like varken dislike basıldı - Önce like'ı iptal et, sonra dislike ekle
-        if (!likeReactionID) {
-          throw new Error('Like reaction ID bulunamadı. Lütfen sayfayı yenileyin.')
-        }
-        await cancelLikeChatReaction(token, numericId, currentUserId, likeReactionID)
-        await dislikeChatReaction(token, numericId)
-      } else if (prevVote === -1 && delta === 1) {
-        // Dislike varken like basıldı - Önce dislike'ı iptal et, sonra like ekle
-        if (!dislikeReactionID) {
-          throw new Error('Dislike reaction ID bulunamadı. Lütfen sayfayı yenileyin.')
-        }
-        await cancelDislikeChatReaction(token, numericId, currentUserId, dislikeReactionID)
-        await likeChatReaction(token, numericId)
+        await cancelPostReaction(token, reactionID)
       } else {
-        // Yeni oy ver (prevVote === 0)
-        if (delta === 1) {
-          await likeChatReaction(token, numericId)
-        } else if (delta === -1) {
-          await dislikeChatReaction(token, numericId)
-        }
+        // Yeni oy ver veya değiştir (addReaction API kullan)
+        const isLike = delta === 1
+        await addPostReaction(token, numericId, isLike)
       }
       
       // API başarılı - Reload post to get accurate state
@@ -431,27 +402,16 @@ export default function PostDetail() {
 
     try {
       if (prevVote === delta) {
-        // Aynı oya tekrar basıldı - İptal et
-        if (delta === 1) {
-          await cancelLikeCommentReaction(token, numericCommentId, currentUserId, likeReactionId)
-        } else {
-          await cancelDislikeCommentReaction(token, numericCommentId, currentUserId, dislikeReactionId)
+        // Aynı oya tekrar basıldı - İptal et (yeni iptal endpoint'i kullan)
+        const reactionID = delta === 1 ? likeReactionId : dislikeReactionId
+        if (!reactionID) {
+          throw new Error('Reaction ID bulunamadı. Lütfen sayfayı yenileyin.')
         }
-      } else if (prevVote === 1 && delta === -1) {
-        // Like varken dislike basıldı - Önce like'ı iptal et, sonra dislike ekle
-        await cancelLikeCommentReaction(token, numericCommentId, currentUserId, likeReactionId)
-        await dislikeCommentReaction(token, numericCommentId)
-      } else if (prevVote === -1 && delta === 1) {
-        // Dislike varken like basıldı - Önce dislike'ı iptal et, sonra like ekle
-        await cancelDislikeCommentReaction(token, numericCommentId, currentUserId, dislikeReactionId)
-        await likeCommentReaction(token, numericCommentId)
+        await cancelPostReaction(token, reactionID)
       } else {
-        // Yeni oy ver (prevVote === 0)
-        if (delta === 1) {
-          await likeCommentReaction(token, numericCommentId)
-        } else if (delta === -1) {
-          await dislikeCommentReaction(token, numericCommentId)
-        }
+        // Yeni oy ver veya değiştir (addReaction API kullan)
+        const isLike = delta === 1
+        await addPostReaction(token, numericCommentId, isLike)
       }
       
       // Reload post

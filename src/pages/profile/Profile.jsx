@@ -18,14 +18,8 @@ import {
 } from '../../services/api.js'
 import { getLikedCommentPeople, getDislikedCommentPeople, getAllChats } from '../../services/api.js'
 import {
-  likeChatReaction,
-  dislikeChatReaction,
-  cancelLikeChatReaction,
-  cancelDislikeChatReaction,
-  likeCommentReaction,
-  dislikeCommentReaction,
-  cancelLikeCommentReaction,
-  cancelDislikeCommentReaction
+  addPostReaction,
+  cancelPostReaction,
 } from '../../services/api.js'
 import DoctorPart from './DoctorPart.jsx'
 import UserPart from './UserPart.jsx'
@@ -276,17 +270,23 @@ export default function Profile() {
   }
 
   const handleVote = async (postId, delta) => {
-    const postID = Number(String(postId).replace(/^p_/, ''))
     const post = posts.find(p => p.id === postId)
     if (!post) {
       setError('Gönderi bulunamadı.')
       return
     }
 
+    // Post ID'yi post objesinden al (daha güvenli)
+    const postID = post.postID || Number(String(postId).replace(/^p_/, ''))
+    if (!postID) {
+      setError('Post ID bulunamadı.')
+      return
+    }
+
     const currentUserId = me?.userId ?? me?.userID
     if (!currentUserId || !token) return
 
-    // Reaction ID'leri zaten state'te var, direkt kullan (API çağrısı yok!)
+    // Reaction ID'leri state'teki likedUsers/dislikedUsers array'lerinden al
     const likedEntry = post.likedUsers?.find(u => Number(u.userID) === Number(currentUserId))
     const dislikedEntry = post.dislikedUsers?.find(u => Number(u.userID) === Number(currentUserId))
     const likeReactionID = likedEntry?.chatReactionsID ?? likedEntry?.postReactionID ?? likedEntry?.reactionID ?? likedEntry?.id
@@ -330,39 +330,16 @@ export default function Profile() {
     // API çağrısı
     try {
       if (prevVote === delta) {
-        // Aynı oya tekrar basıldı - İptal et
-        if (delta === 1) {
-          if (!likeReactionID) {
-            throw new Error('Like reaction ID bulunamadı. Lütfen sayfayı yenileyin.')
-          }
-          await cancelLikeChatReaction(token, postID, currentUserId, likeReactionID)
-        } else {
-          if (!dislikeReactionID) {
-            throw new Error('Dislike reaction ID bulunamadı. Lütfen sayfayı yenileyin.')
-          }
-          await cancelDislikeChatReaction(token, postID, currentUserId, dislikeReactionID)
+        // Aynı oya tekrar basıldı - İptal et (yeni iptal endpoint'i kullan)
+        const reactionID = delta === 1 ? likeReactionID : dislikeReactionID
+        if (!reactionID) {
+          throw new Error('Reaction ID bulunamadı. Lütfen sayfayı yenileyin.')
         }
-      } else if (prevVote === 1 && delta === -1) {
-        // Like varken dislike basıldı - Önce like'ı iptal et, sonra dislike ekle
-        if (!likeReactionID) {
-          throw new Error('Like reaction ID bulunamadı. Lütfen sayfayı yenileyin.')
-        }
-        await cancelLikeChatReaction(token, postID, currentUserId, likeReactionID)
-        await dislikeChatReaction(token, postID)
-      } else if (prevVote === -1 && delta === 1) {
-        // Dislike varken like basıldı - Önce dislike'ı iptal et, sonra like ekle
-        if (!dislikeReactionID) {
-          throw new Error('Dislike reaction ID bulunamadı. Lütfen sayfayı yenileyin.')
-        }
-        await cancelDislikeChatReaction(token, postID, currentUserId, dislikeReactionID)
-        await likeChatReaction(token, postID)
+        await cancelPostReaction(token, reactionID)
       } else {
-        // Yeni oy ver (prevVote === 0)
-        if (delta === 1) {
-          await likeChatReaction(token, postID)
-      } else if (delta === -1) {
-          await dislikeChatReaction(token, postID)
-        }
+        // Yeni oy ver veya değiştir (addReaction API kullan)
+        const isLike = delta === 1
+        await addPostReaction(token, postID, isLike)
       }
       // API başarılı - UI zaten güncellendi, hiçbir şey yapma
     } catch (e) {
@@ -636,36 +613,19 @@ export default function Profile() {
       })
     })
 
-    // API çağrısı - BAŞARISIZ OLURSA KESINLIKLE ROLLBACK YAP
+    // API çağrısı - Yorumlar için de aynı addPostReaction API'si kullanılıyor
     try {
       if (prevVote === delta) {
-        // Aynı oya tekrar basıldı - İptal et
-        if (delta === 1) {
-          await cancelLikeCommentReaction(token, likeReactionId)
-        } else {
-          await cancelDislikeCommentReaction(token, dislikeReactionId)
+        // Aynı oya tekrar basıldı - İptal et (yeni iptal endpoint'i kullan)
+        const reactionID = delta === 1 ? likeReactionId : dislikeReactionId
+        if (!reactionID) {
+          throw new Error('Reaction ID bulunamadı. Lütfen sayfayı yenileyin.')
         }
-      } else if (prevVote === 1 && delta === -1) {
-        // Like varken dislike basıldı - Önce like'ı iptal et, sonra dislike ekle
-        if (!likeReactionId) {
-          throw new Error('Like reaction ID bulunamadı. Lütfen sayfayı yenileyin.')
-        }
-        await cancelLikeCommentReaction(token, likeReactionId)
-        await dislikeCommentReaction(token, realCommentId)
-      } else if (prevVote === -1 && delta === 1) {
-        // Dislike varken like basıldı - Önce dislike'ı iptal et, sonra like ekle
-        if (!dislikeReactionId) {
-          throw new Error('Dislike reaction ID bulunamadı. Lütfen sayfayı yenileyin.')
-        }
-        await cancelDislikeCommentReaction(token, dislikeReactionId)
-        await likeCommentReaction(token, realCommentId)
+        await cancelPostReaction(token, reactionID)
       } else {
-        // Yeni oy ver (prevVote === 0)
-        if (delta === 1) {
-        await likeCommentReaction(token, realCommentId)
-      } else if (delta === -1) {
-        await dislikeCommentReaction(token, realCommentId)
-        }
+        // Yeni oy ver veya değiştir (addReaction API kullan)
+        const isLike = delta === 1
+        await addPostReaction(token, realCommentId, isLike)
       }
       // API başarılı - UI zaten güncellendi, hiçbir şey yapma
     } catch (e) {

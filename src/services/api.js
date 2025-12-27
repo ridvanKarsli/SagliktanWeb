@@ -26,6 +26,10 @@ const ADD_POST_PATH = import.meta.env.VITE_ADD_POST_PATH?.trim() || '/post/addPo
 const GET_USER_POSTS_PATH = import.meta.env.VITE_GET_USER_POSTS_PATH?.trim() || '/post/getUserPosts';
 const DELETE_POST_PATH = import.meta.env.VITE_DELETE_POST_PATH?.trim() || '/post/deletePost';
 const GET_POSTS_WITH_FILTER_PATH = import.meta.env.VITE_GET_POSTS_WITH_FILTER_PATH?.trim() || '/post/getPostsWithFiltre';
+// Yeni tek API endpoint'i
+const ADD_REACTION_PATH = import.meta.env.VITE_ADD_REACTION_PATH?.trim() || '/postReaction/addReaction';
+const CANCEL_REACTION_PATH = import.meta.env.VITE_CANCEL_REACTION_PATH?.trim() || '/postReaction/cancelReactionPost';
+// Eski endpoint'ler (geriye dönük uyumluluk için tutuluyor, kullanılmıyor)
 const LIKE_POST_PATH = import.meta.env.VITE_LIKE_POST_PATH?.trim() || '/postReaction/likePost';
 const DISLIKE_POST_PATH = import.meta.env.VITE_DISLIKE_POST_PATH?.trim() || '/postReaction/dislikePost';
 const CANCEL_LIKE_POST_PATH = import.meta.env.VITE_CANCEL_LIKE_POST_PATH?.trim() || '/postReaction/cancelLikePost';
@@ -559,83 +563,59 @@ export async function deleteComment(token, commnetsID) {
 }
 
 /* --- Reactions (Post) --- */
+// Yeni tek API: Hem like hem dislike için, hem de iptal için kullanılıyor
+export async function addPostReaction(token, postID, isLike) {
+  // Yeni API: post reaction endpoint'i (like/dislike/iptal için tek endpoint)
+  // isLike: true = like, false = dislike
+  // Aynı reaksiyonu tekrar göndermek iptal ediyor
+  if (!token) throw new Error('Token gerekli')
+  if (!postID) throw new Error('postID gerekli')
+  if (typeof isLike !== 'boolean') throw new Error('isLike boolean olmalı')
+  
+  const url = `${API_BASE}${ADD_REACTION_PATH}?postID=${encodeURIComponent(postID)}&isLike=${isLike}`
+  return fetchJson(url, {
+    method: 'POST',
+    headers: { ...authHeaders(token) }
+  })
+}
+
+// Eski fonksiyonlar (geriye dönük uyumluluk için - yeni API'yi kullanıyor)
 export async function likeChatReaction(token, postID) {
-  // Yeni API: post like endpoint'i kullanıyor (POST metodu)
-  if (!token) throw new Error('Token gerekli')
-  if (!postID) throw new Error('postID gerekli')
-  const url = `${API_BASE}${LIKE_POST_PATH}?postID=${encodeURIComponent(postID)}`
-  return fetchJson(url, {
-    method: 'POST',
-    headers: { ...authHeaders(token) }
-  })
+  return addPostReaction(token, postID, true)
 }
+
 export async function dislikeChatReaction(token, postID) {
-  // Yeni API: post dislike endpoint'i kullanıyor (POST metodu)
+  return addPostReaction(token, postID, false)
+}
+
+// İptal işlemleri için yeni ayrı endpoint
+export async function cancelPostReaction(token, postReactionID) {
+  // Yeni API: reaction iptal endpoint'i (DELETE metodu)
   if (!token) throw new Error('Token gerekli')
-  if (!postID) throw new Error('postID gerekli')
-  const url = `${API_BASE}${DISLIKE_POST_PATH}?postID=${encodeURIComponent(postID)}`
+  if (!postReactionID) throw new Error('postReactionID gerekli')
+  
+  const url = `${API_BASE}${CANCEL_REACTION_PATH}?postReactionID=${encodeURIComponent(postReactionID)}`
   return fetchJson(url, {
-    method: 'POST',
+    method: 'DELETE',
     headers: { ...authHeaders(token) }
   })
 }
+
+// Eski fonksiyonlar (geriye dönük uyumluluk için - yeni API'yi kullanıyor)
 export async function cancelLikeChatReaction(token, postID, userID, postReactionID = null) {
-  // Yeni API: post like iptal endpoint'i kullanıyor
-  if (!token) throw new Error('Token gerekli')
-  if (!postID) throw new Error('postID gerekli')
-  
-  // postReactionID direkt verilmişse kullan, yoksa userID'den bulmaya çalış
-  let reactionId = postReactionID
-  
-  if (!reactionId && userID) {
-    // Yeni yöntem: liked people listesinden bul (fallback)
-    try {
-      const people = await getLikedPostPeople(token, postID)
-      const mine = Array.isArray(people) ? people.find(p => (p?.userID === Number(userID))) : null
-      reactionId = mine?.chatReactionsID ?? mine?.postReactionID ?? mine?.reactionID ?? mine?.id
-    } catch (e) {
-      // Fallback başarısız olursa hata fırlat
-    }
+  // İptal için: postReactionID gerekli
+  if (!postReactionID) {
+    throw new Error('İptal edilecek like reaction ID bulunamadı. postReactionID gerekli.')
   }
-  
-  if (!reactionId) {
-    throw new Error('İptal edilecek like kaydı bulunamadı. postReactionID gerekli.')
-  }
-  
-  const url = `${API_BASE}${CANCEL_LIKE_POST_PATH}?postReactionID=${encodeURIComponent(reactionId)}`
-  return fetchJson(url, {
-    method: 'DELETE',
-    headers: { ...authHeaders(token) }
-  })
+  return cancelPostReaction(token, postReactionID)
 }
+
 export async function cancelDislikeChatReaction(token, postID, userID, postReactionID = null) {
-  // Yeni API: post dislike iptal endpoint'i kullanıyor
-  if (!token) throw new Error('Token gerekli')
-  if (!postID) throw new Error('postID gerekli')
-  
-  // postReactionID direkt verilmişse kullan, yoksa userID'den bulmaya çalış
-  let reactionId = postReactionID
-  
-  if (!reactionId && userID) {
-    // Yeni yöntem: disliked people listesinden bul (fallback)
-    try {
-      const people = await getDislikedPostPeople(token, postID)
-      const mine = Array.isArray(people) ? people.find(p => (p?.userID === Number(userID))) : null
-      reactionId = mine?.chatReactionsID ?? mine?.postReactionID ?? mine?.reactionID ?? mine?.id
-    } catch (e) {
-      // Fallback başarısız olursa hata fırlat
-    }
+  // İptal için: postReactionID gerekli
+  if (!postReactionID) {
+    throw new Error('İptal edilecek dislike reaction ID bulunamadı. postReactionID gerekli.')
   }
-  
-  if (!reactionId) {
-    throw new Error('İptal edilecek dislike kaydı bulunamadı. postReactionID gerekli.')
-  }
-  
-  const url = `${API_BASE}${CANCEL_DISLIKE_POST_PATH}?postReactionID=${encodeURIComponent(reactionId)}`
-  return fetchJson(url, {
-    method: 'DELETE',
-    headers: { ...authHeaders(token) }
-  })
+  return cancelPostReaction(token, postReactionID)
 }
 
 /* --- Post Reaction People --- */

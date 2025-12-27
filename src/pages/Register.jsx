@@ -5,6 +5,7 @@ import {
 import { useAuth } from '../context/AuthContext.jsx'
 import { useNavigate, Link as RouterLink } from 'react-router-dom'
 import AnimatedLogo from '../components/AnimatedLogo.jsx'
+import WelcomeScreen from '../components/WelcomeScreen.jsx'
 
 const ALLOWED_ROLES = ['doctor', 'user']
 
@@ -22,7 +23,7 @@ export default function Register() {
     confirmPassword: ''
   })
   const [error, setError] = useState('')
-  const [ok, setOk] = useState(false)
+  const [showWelcome, setShowWelcome] = useState(false)
   const [loading, setLoading] = useState(false)
 
   const onSubmit = async (e) => {
@@ -57,13 +58,19 @@ export default function Register() {
         email: form.email.trim(),
         password: form.password
       })
-      setOk(true)
-      setTimeout(() => navigate('/posts', { replace: true }), 800)
+      // Kayıt başarılı, hoş geldin ekranını göster
+      setShowWelcome(true)
     } catch (err) {
-      setError((err && err.message) ? err.message : String(err) || 'Kayıt başarısız.')
+      const errorMessage = (err && err.message) ? err.message : String(err) || 'Kayıt başarısız.'
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
+  }
+
+  // Hoş geldin ekranını göster
+  if (showWelcome) {
+    return <WelcomeScreen onContinue={() => navigate('/', { replace: true })} />
   }
 
   return (
@@ -223,9 +230,6 @@ export default function Register() {
 
       <Snackbar open={!!error} autoHideDuration={4000} onClose={() => setError('')}>
         <Alert severity="error" variant="filled" onClose={() => setError('')}>{error}</Alert>
-      </Snackbar>
-      <Snackbar open={ok} autoHideDuration={1800} onClose={() => setOk(false)}>
-        <Alert severity="success" variant="filled" onClose={() => setOk(false)}>Kayıt başarılı! Yönlendiriliyorsunuz…</Alert>
       </Snackbar>
     </Box>
   )

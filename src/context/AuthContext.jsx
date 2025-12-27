@@ -188,9 +188,10 @@ export function AuthProvider({ children }) {
   async function register({ name, surname, dateOfBirth, role, email, password }) {
     const res = await registerUser({ name, surname, dateOfBirth, role, email, password })
 
-    // 1) API accessToken döndürürse direkt giriş
+    // 1) API accessToken döndürürse direkt giriş yap
     const accessToken = res?.accessToken || res?.token
-    if (accessToken) {
+    // null kontrolü: null veya undefined değilse ve boş string değilse
+    if (accessToken && accessToken !== null && accessToken !== 'null') {
       if (isTokenExpired(accessToken)) throw new Error('Oturum süresi geçmiş bir token döndü.')
       const p = parseJwt(accessToken)
       const profile = {
@@ -208,8 +209,8 @@ export function AuthProvider({ children }) {
       return true
     }
 
-    // 2) Token yoksa email+password ile login dene
-    await login(email, password)
+    // 2) Token null ise (API'den token gelmediyse) kayıt başarılı, login sayfasına yönlendirilecek
+    // Otomatik login denemiyoruz, kullanıcı manuel olarak giriş yapacak
     return true
   }
 
