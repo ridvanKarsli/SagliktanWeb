@@ -8,6 +8,7 @@ import Search from './pages/Search.jsx'
 import Profile from './pages/profile/Profile.jsx'
 import ProtectedRoute from './components/ProtectedRoute.jsx'
 import ResponsiveShell from './components/ResponsiveShell.jsx'
+import WelcomeScreen from './components/WelcomeScreen.jsx'
 
 function ProtectedLayout() {
   return (
@@ -22,7 +23,8 @@ function ProtectedLayout() {
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<Login />} />
+      <Route path="/" element={<WelcomeScreen />} />
+      <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route element={<ProtectedLayout />}>
         <Route path="/posts" element={<Posts />} />
@@ -31,7 +33,7 @@ export default function App() {
         <Route path="/search" element={<Search />} />
         <Route path="/profile" element={<Profile />} />
       </Route>
-      <Route path="*" element={<Login />} />
+      <Route path="*" element={<WelcomeScreen />} />
     </Routes>
   )
 }
