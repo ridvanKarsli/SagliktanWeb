@@ -1,24 +1,24 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import {
-  BottomNavigation, BottomNavigationAction, Box, IconButton,
-  Typography, Menu, MenuItem
+  BottomNavigation, BottomNavigationAction, Box, 
+  Typography, Avatar
 } from '@mui/material'
 import useMediaQuery from '@mui/material/useMediaQuery'
 import { useTheme } from '@mui/material/styles'
 import {
-  Home, SmartToy, Search, Person, Logout
+  HomeRounded, SmartToyRounded, SearchRounded, PersonRounded, LogoutRounded
 } from '@mui/icons-material'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 
-const SIDEBAR_WIDTH = 220
-const MOBILE_NAV_HEIGHT = 56
+const SIDEBAR_WIDTH = 240
+const MOBILE_NAV_HEIGHT = 64
 
 const navItems = [
-  { label: 'Ana Sayfa', icon: <Home />, to: '/posts' },
-  { label: 'AI', icon: <SmartToy />, to: '/ai-chat' },
-  { label: 'Ara', icon: <Search />, to: '/search' },
-  { label: 'Profil', icon: <Person />, to: '/profile' }
+  { label: 'Ana Sayfa', icon: <HomeRounded />, to: '/posts' },
+  { label: 'Lumo AI', icon: <SmartToyRounded />, to: '/ai-chat' },
+  { label: 'Ara', icon: <SearchRounded />, to: '/search' },
+  { label: 'Profil', icon: <PersonRounded />, to: '/profile' }
 ]
 
 export default function ResponsiveShell({ children }) {
@@ -51,7 +51,7 @@ export default function ResponsiveShell({ children }) {
             display: 'flex',
             flexDirection: 'column',
             py: 3,
-            px: 2
+            px: 2.5
           }}
         >
           {/* Logo */}
@@ -59,26 +59,37 @@ export default function ResponsiveShell({ children }) {
             sx={{ 
               display: 'flex', 
               alignItems: 'center', 
-              gap: 1.5, 
-              px: 1,
-              mb: 4,
+              gap: 2, 
+              px: 1.5,
+              mb: 5,
               cursor: 'pointer'
             }}
             onClick={() => navigate('/posts')}
           >
-            <Box
-              component="img"
+            <Avatar
               src="/sagliktanLogo.png"
               alt="Sağlıktan"
-              sx={{ width: 28, height: 28, borderRadius: '50%' }}
+              sx={{ 
+                width: 40, 
+                height: 40, 
+                borderRadius: '12px',
+                boxShadow: '0 2px 8px rgba(11, 58, 78, 0.1)'
+              }}
             />
-            <Typography sx={{ fontWeight: 600, fontSize: '1rem', color: 'text.primary' }}>
+            <Typography 
+              sx={{ 
+                fontWeight: 700, 
+                fontSize: '1.125rem', 
+                color: 'primary.main',
+                letterSpacing: '-0.01em'
+              }}
+            >
               Sağlıktan
             </Typography>
           </Box>
 
           {/* Nav Links */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             {navItems.map(item => {
               const active = location.pathname.startsWith(item.to)
               return (
@@ -88,23 +99,33 @@ export default function ResponsiveShell({ children }) {
                   sx={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 1.5,
-                    px: 1.5,
-                    py: 1,
-                    borderRadius: 2,
+                    gap: 2,
+                    px: 2,
+                    py: 1.5,
+                    borderRadius: 2.5,
                     cursor: 'pointer',
                     color: active ? 'primary.main' : 'text.secondary',
-                    bgcolor: active ? 'rgba(59,130,246,0.1)' : 'transparent',
-                    transition: 'all 0.15s ease',
+                    bgcolor: active ? 'rgba(11, 58, 78, 0.06)' : 'transparent',
+                    fontWeight: active ? 600 : 500,
+                    transition: 'all 0.2s ease',
                     '&:hover': {
-                      bgcolor: active ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.04)'
+                      bgcolor: active ? 'rgba(11, 58, 78, 0.08)' : 'rgba(11, 58, 78, 0.04)',
+                      color: 'primary.main'
                     }
                   }}
                 >
-                  <Box sx={{ display: 'flex', '& svg': { fontSize: 20 } }}>
+                  <Box 
+                    sx={{ 
+                      display: 'flex', 
+                      '& svg': { 
+                        fontSize: 22,
+                        color: active ? 'secondary.main' : 'inherit'
+                      } 
+                    }}
+                  >
                     {item.icon}
                   </Box>
-                  <Typography sx={{ fontWeight: active ? 500 : 400, fontSize: '0.875rem' }}>
+                  <Typography sx={{ fontWeight: 'inherit', fontSize: '0.9375rem' }}>
                     {item.label}
                   </Typography>
                 </Box>
@@ -120,18 +141,21 @@ export default function ResponsiveShell({ children }) {
             sx={{
               display: 'flex',
               alignItems: 'center',
-              gap: 1.5,
-              px: 1.5,
-              py: 1,
-              borderRadius: 2,
+              gap: 2,
+              px: 2,
+              py: 1.5,
+              borderRadius: 2.5,
               cursor: 'pointer',
               color: 'text.secondary',
-              transition: 'all 0.15s ease',
-              '&:hover': { bgcolor: 'rgba(255,255,255,0.04)', color: 'text.primary' }
+              transition: 'all 0.2s ease',
+              '&:hover': { 
+                bgcolor: 'rgba(220, 53, 69, 0.06)', 
+                color: '#DC3545' 
+              }
             }}
           >
-            <Logout sx={{ fontSize: 20 }} />
-            <Typography sx={{ fontSize: '0.875rem' }}>Çıkış</Typography>
+            <LogoutRounded sx={{ fontSize: 22 }} />
+            <Typography sx={{ fontSize: '0.9375rem', fontWeight: 500 }}>Çıkış Yap</Typography>
           </Box>
         </Box>
       )}
@@ -141,15 +165,16 @@ export default function ResponsiveShell({ children }) {
         sx={{ 
           flexGrow: 1, 
           ml: { md: `${SIDEBAR_WIDTH}px` },
-          pb: { xs: `calc(${MOBILE_NAV_HEIGHT}px + env(safe-area-inset-bottom))`, md: 0 }
+          pb: { xs: `calc(${MOBILE_NAV_HEIGHT}px + env(safe-area-inset-bottom) + 8px)`, md: 0 },
+          minHeight: '100vh'
         }}
       >
-        <Box sx={{ maxWidth: 680, mx: 'auto', width: '100%' }}>
+        <Box sx={{ maxWidth: 720, mx: 'auto', width: '100%', px: { xs: 2, sm: 3 } }}>
           {children}
         </Box>
       </Box>
 
-      {/* Mobile Nav */}
+      {/* Mobile Bottom Navigation */}
       {!isMdUp && (
         <Box
           sx={{
@@ -160,29 +185,49 @@ export default function ResponsiveShell({ children }) {
             bgcolor: 'background.paper',
             borderTop: '1px solid',
             borderColor: 'divider',
-            zIndex: theme.zIndex.appBar + 1
+            zIndex: theme.zIndex.appBar + 1,
+            boxShadow: '0 -4px 20px rgba(11, 58, 78, 0.08)'
           }}
         >
           <BottomNavigation
             value={current}
             onChange={(_, value) => navigate(navItems[value].to)}
-            showLabels={false}
+            showLabels
             sx={{
               height: MOBILE_NAV_HEIGHT,
               bgcolor: 'transparent',
               '& .MuiBottomNavigationAction-root': {
                 color: 'text.secondary',
                 minWidth: 0,
-                '& .MuiSvgIcon-root': { fontSize: 22 },
-                '&.Mui-selected': { color: 'primary.main' }
+                padding: '8px 12px',
+                gap: 0.5,
+                '& .MuiSvgIcon-root': { fontSize: 24 },
+                '& .MuiBottomNavigationAction-label': {
+                  fontSize: '0.6875rem',
+                  fontWeight: 500,
+                  marginTop: '2px',
+                  '&.Mui-selected': {
+                    fontSize: '0.6875rem'
+                  }
+                },
+                '&.Mui-selected': { 
+                  color: 'primary.main',
+                  '& .MuiSvgIcon-root': {
+                    color: 'secondary.main'
+                  }
+                }
               }
             }}
           >
             {navItems.map(item => (
-              <BottomNavigationAction key={item.to} icon={item.icon} />
+              <BottomNavigationAction 
+                key={item.to} 
+                icon={item.icon} 
+                label={item.label}
+              />
             ))}
           </BottomNavigation>
-          <Box sx={{ height: 'env(safe-area-inset-bottom)' }} />
+          <Box sx={{ height: 'env(safe-area-inset-bottom)', bgcolor: 'background.paper' }} />
         </Box>
       )}
     </Box>

@@ -1,5 +1,6 @@
-import { useState } from 'react'
-import { Box, Button, Stack, TextField, Typography, Avatar, CircularProgress } from '@mui/material'
+import { useState, useRef, useEffect } from 'react'
+import { Box, Button, Stack, TextField, Typography, Avatar, CircularProgress, IconButton } from '@mui/material'
+import { SendRounded } from '@mui/icons-material'
 import { delay } from '../utils/fakeApi.js'
 import { mockAiAnswer } from '../data/fakeData.js'
 import { useAuth } from '../context/AuthContext.jsx'
@@ -7,11 +8,20 @@ import SagliktaAiControllerApi from '../services/generated/src/api/SagliktaAiCon
 
 export default function AIChat() {
   const { token } = useAuth()
+  const messagesEndRef = useRef(null)
   const [messages, setMessages] = useState([
-    { role: 'ai', text: 'Merhaba! Ben Lumo, Sağlıktan\'ın sağlıklı yaşam asistanıyım. Nasıl yardımcı olabilirim? 🌊' }
+    { role: 'ai', text: 'Merhaba! Ben Lumo, Sağlıktan\'ın sağlık asistanıyım. 👋\n\nSize nasıl yardımcı olabilirim?' }
   ])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  useEffect(() => {
+    scrollToBottom()
+  }, [messages])
 
   const send = async (e) => {
     e.preventDefault()
@@ -38,17 +48,23 @@ export default function AIChat() {
   }
 
   return (
-    <Box sx={{ py: { xs: 1, md: 0 }, px: { xs: 0, sm: 0 }, height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <Stack 
-        direction="row" 
-        spacing={{ xs: 1.25, md: 2 }} 
-        alignItems="center" 
+    <Box sx={{ 
+      py: { xs: 0, md: 2 }, 
+      height: '100%', 
+      display: 'flex', 
+      flexDirection: 'column',
+      maxHeight: { xs: 'calc(100vh - 120px)', md: 'calc(100vh - 40px)' }
+    }}>
+      {/* Header */}
+      <Box 
         sx={{ 
-          mb: { xs: 2, md: 3 },
-          p: { xs: 1.25, md: 2.5 },
-          px: { xs: 1.5, md: 3 },
+          p: { xs: 2, md: 3 },
           borderBottom: '1px solid',
-          borderColor: 'divider'
+          borderColor: 'divider',
+          bgcolor: 'background.paper',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 2
         }}
       >
         <Box
@@ -56,135 +72,167 @@ export default function AIChat() {
           src="/Lumo.png"
           alt="Lumo"
           sx={{ 
-            width: { xs: 64, md: 96 }, 
-            height: { xs: 64, md: 96 }, 
+            width: { xs: 48, md: 64 }, 
+            height: { xs: 48, md: 64 }, 
             objectFit: 'contain',
-            display: 'block',
-            filter: 'drop-shadow(0 4px 12px rgba(52,195,161,0.3))',
+            filter: 'drop-shadow(0 4px 12px rgba(52,195,161,0.25))',
             flexShrink: 0
           }}
         />
-        <Box sx={{ minWidth: 0, flex: 1 }}>
-          <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5, fontSize: { xs: '20px', md: '24px' } }}>
-            Lumo ile Sohbet
+        <Box>
+          <Typography variant="h5" sx={{ fontWeight: 700, color: 'primary.main' }}>
+            Lumo
           </Typography>
-          <Typography variant="body2" sx={{ color: 'text.secondary', opacity: 0.8, fontSize: { xs: '13px', md: '14px' } }}>
-            Sağlıklı yaşam asistanınız
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+            Sağlık Asistanınız
           </Typography>
         </Box>
-      </Stack>
+      </Box>
 
-      <Stack spacing={{ xs: 1.25, md: 1.5 }} sx={{ minHeight: { xs: 300, md: 360 }, flex: 1, px: { xs: 1.5, md: 3 } }}>
-        <Box sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: { xs: 1, md: 0.75 },
-          maxHeight: { xs: 'calc(100vh - 280px)', md: 'calc(100vh - 200px)' },
-          overflowY: 'auto',
-          pr: { xs: 0.25, md: 0.5 }
-        }}>
-          {messages.map((m, i) => {
-            const isUser = m.role === 'user'
-            return (
-              <Stack
-                key={i}
-                direction={isUser ? 'row-reverse' : 'row'}
-                spacing={1.5}
-                alignItems="flex-start"
-              >
-                {isUser ? (
-                  <Avatar sx={{ bgcolor: 'primary.main', width: { xs: 40, md: 44 }, height: { xs: 40, md: 44 } }}>
-                    U
-                  </Avatar>
-                ) : (
-                  <Box
-                    component="img"
-                    src="/Lumo.png"
-                    alt="Lumo - Sağlıktan Asistanı"
-                    sx={{
-                      width: { xs: 48, md: 56 },
-                      height: { xs: 48, md: 56 },
-                      objectFit: 'contain',
-                      flexShrink: 0
-                    }}
-                  />
-                )}
-                <Box
-                  sx={{
-                    p: 1.5,
-                    maxWidth: { xs: '100%', md: '70%' },
-                    borderRadius: 2,
-                    backgroundColor: isUser ? 'rgba(52,195,161,0.12)' : 'transparent',
-                    wordBreak: 'break-word',
-                    overflowWrap: 'anywhere'
+      {/* Messages */}
+      <Box sx={{
+        flex: 1,
+        overflowY: 'auto',
+        p: { xs: 2, md: 3 },
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 2
+      }}>
+        {messages.map((m, i) => {
+          const isUser = m.role === 'user'
+          return (
+            <Stack
+              key={i}
+              direction={isUser ? 'row-reverse' : 'row'}
+              spacing={1.5}
+              alignItems="flex-start"
+              sx={{ maxWidth: '100%' }}
+            >
+              {isUser ? (
+                <Avatar 
+                  sx={{ 
+                    bgcolor: 'primary.main', 
+                    width: { xs: 36, md: 40 }, 
+                    height: { xs: 36, md: 40 },
+                    fontSize: '0.875rem',
+                    fontWeight: 600
                   }}
                 >
-                  <Typography variant="body2" sx={{ lineHeight: 1.7, whiteSpace: 'pre-wrap', color: 'text.primary', fontSize: { xs: '14px', md: '15px' } }}>{m.text}</Typography>
-                </Box>
-              </Stack>
-            )
-          })}
-          {loading && (
-            <Stack direction="row" spacing={1.5} alignItems="flex-start">
+                  S
+                </Avatar>
+              ) : (
+                <Box
+                  component="img"
+                  src="/Lumo.png"
+                  alt="Lumo"
+                  sx={{
+                    width: { xs: 36, md: 44 },
+                    height: { xs: 36, md: 44 },
+                    objectFit: 'contain',
+                    flexShrink: 0
+                  }}
+                />
+              )}
               <Box
-                component="img"
-                src="/Lumo.png"
-                alt="Lumo"
                 sx={{
-                  width: { xs: 48, md: 56 },
-                  height: { xs: 48, md: 56 },
-                  objectFit: 'contain',
-                  flexShrink: 0,
-                  opacity: 0.7
+                  p: { xs: 1.5, md: 2 },
+                  maxWidth: { xs: '85%', md: '75%' },
+                  borderRadius: 3,
+                  bgcolor: isUser ? 'primary.main' : 'rgba(11, 58, 78, 0.04)',
+                  color: isUser ? 'white' : 'text.primary',
+                  wordBreak: 'break-word',
+                  boxShadow: isUser ? '0 2px 8px rgba(11, 58, 78, 0.15)' : 'none'
                 }}
-              />
-              <Box sx={{ p: 1.5 }}>
-                <CircularProgress size={20} sx={{ color: 'text.secondary' }} />
+              >
+                <Typography 
+                  variant="body1" 
+                  sx={{ 
+                    lineHeight: 1.7, 
+                    whiteSpace: 'pre-wrap',
+                    fontSize: { xs: '0.9375rem', md: '1rem' }
+                  }}
+                >
+                  {m.text}
+                </Typography>
               </Box>
             </Stack>
-          )}
-        </Box>
+          )
+        })}
+        {loading && (
+          <Stack direction="row" spacing={1.5} alignItems="flex-start">
+            <Box
+              component="img"
+              src="/Lumo.png"
+              alt="Lumo"
+              sx={{
+                width: { xs: 36, md: 44 },
+                height: { xs: 36, md: 44 },
+                objectFit: 'contain',
+                flexShrink: 0,
+                opacity: 0.7
+              }}
+            />
+            <Box 
+              sx={{ 
+                p: 2, 
+                borderRadius: 3,
+                bgcolor: 'rgba(11, 58, 78, 0.04)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1
+              }}
+            >
+              <CircularProgress size={16} sx={{ color: 'secondary.main' }} />
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                Lumo düşünüyor...
+              </Typography>
+            </Box>
+          </Stack>
+        )}
+        <div ref={messagesEndRef} />
+      </Box>
 
-        <Box 
-          component="form" 
-          onSubmit={send} 
-          sx={{ 
-            display: 'flex', 
-            gap: { xs: 0.75, md: 1 }, 
-            pt: { xs: 0.75, md: 1 },
-            px: { xs: 2, md: 3 },
-            pb: { xs: 2, md: 3 },
-            borderTop: '1px solid',
-            borderColor: 'divider'
-          }}
-        >
+      {/* Input */}
+      <Box 
+        component="form" 
+        onSubmit={send} 
+        sx={{ 
+          p: { xs: 2, md: 3 },
+          borderTop: '1px solid',
+          borderColor: 'divider',
+          bgcolor: 'background.paper'
+        }}
+      >
+        <Stack direction="row" spacing={1.5} alignItems="flex-end">
           <TextField
             fullWidth
-            placeholder="Mesaj yaz…"
+            placeholder="Lumo'ya bir şey sorun..."
             value={input}
             onChange={e => setInput(e.target.value)}
-            aria-label="AI mesaj girişi"
+            multiline
+            maxRows={4}
             sx={{
-              '& .MuiInputBase-root': {
-                fontSize: { xs: '16px', sm: '16px' },
-                minHeight: { xs: 48, md: 40 }
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 3,
+                bgcolor: 'background.default'
               }
             }}
           />
           <Button 
             type="submit" 
-            disabled={loading}
+            variant="contained"
+            disabled={loading || !input.trim()}
             sx={{
-              minHeight: { xs: 48, md: 40 },
-              minWidth: { xs: 80, md: 100 },
-              fontSize: { xs: '14px', md: '15px' },
-              fontWeight: 600
+              minWidth: { xs: 48, md: 56 },
+              height: { xs: 48, md: 56 },
+              borderRadius: 3,
+              p: 0
             }}
           >
-            Gönder
+            <SendRounded />
           </Button>
-        </Box>
-      </Stack>
+        </Stack>
+      </Box>
     </Box>
   )
 }
