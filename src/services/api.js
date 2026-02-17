@@ -14,8 +14,11 @@ import ChatReactionsControllerApi from './generated/src/api/ChatReactionsControl
 import ApiClient from './generated/src/ApiClient'
 import { setAuthToken } from './generated/configureClient'
 import { attemptTokenRefresh } from '../context/AuthContext.jsx'
+
+// Development'ta proxy kullan, production'da direkt Heroku URL'sini kullan
+const isDev = import.meta.env.DEV
 const API_BASE = import.meta.env.VITE_API_BASE?.trim() ||
-  'https://saglikta-7d7a2dbc0cf4.herokuapp.com';
+  (isDev ? '/api' : 'https://saglikta-7d7a2dbc0cf4.herokuapp.com');
 
 const LOGIN_PATH = import.meta.env.VITE_LOGIN_PATH?.trim() || '/logUser/loginUser';
 const REGISTER_PATH = import.meta.env.VITE_REGISTER_PATH?.trim() || '/logUser/signupUser';

@@ -55,7 +55,7 @@ export default function WelcomeScreen() {
           top: 0,
           left: 0,
           right: 0,
-          bgcolor: 'rgba(255,255,255,0.95)',
+          bgcolor: 'rgba(10, 15, 20, 0.95)',
           backdropFilter: 'blur(8px)',
           zIndex: 1000,
           borderBottom: '1px solid',
@@ -105,7 +105,7 @@ export default function WelcomeScreen() {
         sx={{ 
           pt: { xs: 14, md: 18 },
           pb: { xs: 8, md: 12 },
-          background: 'linear-gradient(180deg, #FAF9F6 0%, #FFFFFF 100%)'
+          background: 'linear-gradient(180deg, #0A0F14 0%, #131A22 100%)'
         }}
       >
         <Container maxWidth="lg">
@@ -259,7 +259,7 @@ export default function WelcomeScreen() {
       </Box>
 
       {/* Features Section */}
-      <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: 'white' }}>
+      <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: 'background.paper' }}>
         <Container maxWidth="lg">
           <Box sx={{ textAlign: 'center', mb: { xs: 6, md: 8 } }}>
             <Typography variant="h2" sx={{ color: 'primary.main', mb: 2 }}>
@@ -287,12 +287,13 @@ export default function WelcomeScreen() {
                     borderRadius: 3,
                     bgcolor: 'background.default',
                     transition: 'all 0.3s ease',
-                    border: '1px solid transparent',
+                    border: '1px solid',
+                    borderColor: 'divider',
                     '&:hover': {
-                      bgcolor: 'white',
-                      borderColor: 'divider',
+                      bgcolor: 'background.paper',
+                      borderColor: 'rgba(52, 195, 161, 0.3)',
                       transform: 'translateY(-4px)',
-                      boxShadow: '0 12px 32px rgba(11, 58, 78, 0.08)'
+                      boxShadow: '0 12px 32px rgba(0, 0, 0, 0.3)'
                     }
                   }}
                 >
@@ -364,7 +365,7 @@ export default function WelcomeScreen() {
       </Box>
 
       {/* Lumo AI Section */}
-      <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: 'white' }}>
+      <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: 'background.paper' }}>
         <Container maxWidth="lg">
           <Grid container spacing={6} alignItems="center">
             <Grid item xs={12} md={6} order={{ xs: 2, md: 1 }}>
@@ -426,7 +427,7 @@ export default function WelcomeScreen() {
       <Box 
         sx={{ 
           py: { xs: 8, md: 10 },
-          background: 'linear-gradient(135deg, #0B3A4E 0%, #1B7A85 100%)'
+          background: 'linear-gradient(135deg, #1B7A85 0%, #34C3A1 100%)'
         }}
       >
         <Container maxWidth="md">
@@ -474,8 +475,10 @@ export default function WelcomeScreen() {
         component="footer" 
         sx={{ 
           py: 4, 
-          bgcolor: 'primary.main',
-          color: 'white'
+          bgcolor: '#0A0F14',
+          color: 'text.primary',
+          borderTop: '1px solid',
+          borderColor: 'divider'
         }}
       >
         <Container maxWidth="lg">

@@ -9,5 +9,13 @@ export default defineConfig({
     host: 'localhost',
     open: true,
     strictPort: false,
+    proxy: {
+      '/api': {
+        target: 'https://saglikta-7d7a2dbc0cf4.herokuapp.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
+        secure: false,
+      },
+    },
   },
 });

@@ -47,7 +47,7 @@ export default function Login() {
         <Box 
           sx={{ 
             flex: 1,
-            background: 'linear-gradient(135deg, #0B3A4E 0%, #1B7A85 100%)',
+            background: 'linear-gradient(135deg, #1B7A85 0%, #34C3A1 100%)',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'center',
