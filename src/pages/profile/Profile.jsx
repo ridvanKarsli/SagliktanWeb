@@ -129,7 +129,7 @@ function mapChatToPost(post, meId, authorName, idToName) {
 /* ---------------- Page ---------------- */
 export default function Profile() {
   const { token, user: me, logout } = useAuth()
-  const { showError } = useNotification()
+  const { showError, showSuccess } = useNotification()
   const navigate = useNavigate()
   const location = useLocation()
   const searchParams = new URLSearchParams(location.search)
@@ -362,6 +362,7 @@ export default function Profile() {
         : Number(postId)
       await deleteChat(token, postID)
       setPosts(prev => prev.filter(p => p.id !== postId))
+      showSuccess('Gönderi silindi.')
     } catch (err) {
       showError(err?.message || 'Silme işlemi başarısız.')
     } finally {

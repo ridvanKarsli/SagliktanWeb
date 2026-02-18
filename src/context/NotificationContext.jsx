@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useCallback } from 'react'
 import LumoNotification from '../components/LumoNotification.jsx'
-import { Box } from '@mui/material'
+import { Box, Stack } from '@mui/material'
 
 const NotificationContext = createContext(null)
 
@@ -9,15 +9,13 @@ export function NotificationProvider({ children }) {
 
   const showNotification = useCallback((message, type = 'info', duration = 4000) => {
     const id = Date.now() + Math.random()
-    setNotifications(prev => [...prev, { id, message, type, duration }])
-    
-    // Otomatik kaldırma
-    if (duration > 0) {
-      setTimeout(() => {
-        setNotifications(prev => prev.filter(n => n.id !== id))
-      }, duration + 300) // Animation için ekstra süre
-    }
-    
+    setNotifications(prev => {
+      // Aynı mesajı tekrar gösterme (spam önleme)
+      if (prev.some(n => n.message === message && n.type === type)) return prev
+      // En fazla 3 bildirim göster
+      const next = [...prev, { id, message, type, duration }]
+      return next.length > 3 ? next.slice(-3) : next
+    })
     return id
   }, [])
 
@@ -25,11 +23,11 @@ export function NotificationProvider({ children }) {
     setNotifications(prev => prev.filter(n => n.id !== id))
   }, [])
 
-  const showError = useCallback((message, duration = 4000) => {
+  const showError = useCallback((message, duration = 5000) => {
     return showNotification(message, 'error', duration)
   }, [showNotification])
 
-  const showSuccess = useCallback((message, duration = 4000) => {
+  const showSuccess = useCallback((message, duration = 3000) => {
     return showNotification(message, 'success', duration)
   }, [showNotification])
 
@@ -48,33 +46,30 @@ export function NotificationProvider({ children }) {
       <Box
         sx={{
           position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
+          top: { xs: 12, sm: 20 },
+          right: { xs: 0, sm: 20 },
+          left: { xs: 0, sm: 'auto' },
           zIndex: 9999,
-          pointerEvents: 'none'
+          pointerEvents: 'none',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: { xs: 'center', sm: 'flex-end' },
         }}
       >
-        {notifications.map((notification, index) => (
-          <Box
-            key={notification.id}
-            sx={{
-              position: 'absolute',
-              bottom: index * 200, // Her bildirim üst üste
-              left: '50%',
-              transform: 'translateX(-50%)',
-              width: '100%',
-              pointerEvents: 'auto'
-            }}
-          >
+        <Stack
+          spacing={1}
+          sx={{ width: { xs: '100%', sm: 420 }, pointerEvents: 'auto' }}
+        >
+          {notifications.map((notification) => (
             <LumoNotification
+              key={notification.id}
               message={notification.message}
               type={notification.type}
               duration={notification.duration}
               onClose={() => removeNotification(notification.id)}
             />
-          </Box>
-        ))}
+          ))}
+        </Stack>
       </Box>
     </NotificationContext.Provider>
   )

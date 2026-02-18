@@ -26,6 +26,7 @@ function AddDiseaseForm({ onAdded, onClose }) {
 
   const [selectedName, setSelectedName] = useState(null)
   const [date, setDate] = useState('') // YYYY-MM-DD
+  const [fetchErr, setFetchErr] = useState('')
 
   const [loading, setLoading] = useState(false)
 
@@ -39,7 +40,10 @@ function AddDiseaseForm({ onAdded, onClose }) {
         const names = await getDiseaseNames(token, { signal: controller.signal })
         if (mounted) setDiseaseNames(names ?? [])
       } catch (e) {
-        if (mounted) showError(e?.message || 'Hastalık listesi alınamadı.')
+        if (mounted) {
+          setFetchErr(e?.message || 'Hastalık listesi alınamadı.')
+          showError(e?.message || 'Hastalık listesi alınamadı.')
+        }
       } finally {
         if (mounted) setFetching(false)
       }
@@ -97,7 +101,6 @@ function AddDiseaseForm({ onAdded, onClose }) {
           freeSolo={false}
           disableClearable
           blurOnSelect
-          disablePortal
           isOptionEqualToValue={(opt, val) => String(opt) === String(val)}
           getOptionLabel={(opt) => (typeof opt === 'string' ? opt : '')}
           slotProps={{

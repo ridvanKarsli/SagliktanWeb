@@ -10,7 +10,7 @@ export default function AIChat() {
   const { token } = useAuth()
   const messagesEndRef = useRef(null)
   const [messages, setMessages] = useState([
-    { role: 'ai', text: 'Merhaba! Ben Lumo, Sağlıktan\'ın sağlık asistanıyım. 👋\n\nSize nasıl yardımcı olabilirim?' }
+    { role: 'ai', text: 'Merhaba! Ben Lumo, Sağlıktan\'ın sağlık asistanıyım.\n\nSize nasıl yardımcı olabilirim?' }
   ])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)

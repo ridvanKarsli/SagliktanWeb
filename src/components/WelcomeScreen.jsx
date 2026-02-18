@@ -8,7 +8,8 @@ import {
   ArrowForward,
   CheckCircleOutline,
   LocalHospital,
-  Security
+  Security,
+  WavingHand
 } from "@mui/icons-material"
 
 const features = [
@@ -174,8 +175,8 @@ export default function WelcomeScreen() {
                   }}
                 >
                   {[
-                    { icon: Groups, text: "10K+ Kullanıcı" },
-                    { icon: LocalHospital, text: "500+ Doktor" }
+                    { icon: Groups, text: "Aktif Topluluk" },
+                    { icon: LocalHospital, text: "Uzman Doktorlar" }
                   ].map((item, i) => (
                     <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <item.icon sx={{ color: 'secondary.main', fontSize: 20 }} />
@@ -374,14 +375,14 @@ export default function WelcomeScreen() {
               </Typography>
               <Typography variant="body1" sx={{ color: 'text.secondary', mb: 4, lineHeight: 1.8 }}>
                 Yapay zeka destekli sağlık asistanımız Lumo, sorularınıza 7/24 yanıt vermek 
-                için burada. Semptomlarınızı anlatın, genel sağlık bilgisi alın veya doğru 
-                uzmana yönlendirilmek için Lumo'ya danışın.
+                için burada. Semptomlarınızı anlatın, genel sağlık bilgisi alın ve 
+                sağlığınız hakkında bilgi edinin.
               </Typography>
               <Stack spacing={2}>
                 {[
-                  "Anlık sağlık sorularına cevap",
-                  "Kişiselleştirilmiş öneriler",
-                  "Doktor randevusu yönlendirmesi"
+                  "Anlık sağlık sorularına yanıt",
+                  "Genel sağlık bilgisi ve rehberlik",
+                  "7/24 erişilebilir yapay zeka desteği"
                 ].map((item, i) => (
                   <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                     <CheckCircleOutline sx={{ color: 'secondary.main', fontSize: 22 }} />
@@ -411,8 +412,8 @@ export default function WelcomeScreen() {
                     boxShadow: '0 16px 48px rgba(11, 58, 78, 0.12)'
                   }} 
                 />
-                <Typography variant="h4" sx={{ color: 'primary.main', mb: 1 }}>
-                  Merhaba, ben Lumo! 👋
+                <Typography variant="h4" sx={{ color: 'primary.main', mb: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+                  Merhaba, ben Lumo! <WavingHand sx={{ fontSize: 'inherit', color: '#F59E0B' }} />
                 </Typography>
                 <Typography variant="body1" sx={{ color: 'text.secondary' }}>
                   Sağlık sorularınızda size yardımcı olmak için buradayım.
