@@ -15,10 +15,11 @@ import ApiClient from './generated/src/ApiClient'
 import { setAuthToken } from './generated/configureClient'
 import { attemptTokenRefresh } from '../context/AuthContext.jsx'
 
-// Development'ta proxy kullan, production'da direkt Heroku URL'sini kullan
+// Güvenlik için hem development hem production'da aynı-origin /api proxy kullan.
+// Gerekirse VITE_API_BASE ile override edilebilir.
 const isDev = import.meta.env.DEV
 const API_BASE = import.meta.env.VITE_API_BASE?.trim() ||
-  (isDev ? '/api' : 'https://saglikta-7d7a2dbc0cf4.herokuapp.com');
+  '/api';
 
 const LOGIN_PATH = import.meta.env.VITE_LOGIN_PATH?.trim() || '/logUser/loginUser';
 const REGISTER_PATH = import.meta.env.VITE_REGISTER_PATH?.trim() || '/logUser/signupUser';
