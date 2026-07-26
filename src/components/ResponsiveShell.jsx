@@ -6,7 +6,7 @@ import {
 import useMediaQuery from '@mui/material/useMediaQuery'
 import { useTheme } from '@mui/material/styles'
 import {
-  HomeRounded, SmartToyRounded, SearchRounded, PersonRounded, LogoutRounded
+  HomeRounded, SearchRounded, PersonRounded, LogoutRounded
 } from '@mui/icons-material'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
@@ -15,8 +15,7 @@ const SIDEBAR_WIDTH = 240
 const MOBILE_NAV_HEIGHT = 64
 
 const navItems = [
-  { label: 'Ana Sayfa', icon: <HomeRounded />, to: '/posts' },
-  { label: 'Lumo AI', icon: <SmartToyRounded />, to: '/ai-chat' },
+  { label: 'Gruplar', icon: <HomeRounded />, to: '/groups' },
   { label: 'Ara', icon: <SearchRounded />, to: '/search' },
   { label: 'Profil', icon: <PersonRounded />, to: '/profile' }
 ]

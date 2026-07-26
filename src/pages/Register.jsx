@@ -1,15 +1,12 @@
 import { useState, useEffect } from 'react'
 import {
-  Box, Button, Stack, TextField, Typography, Link, MenuItem, CircularProgress,
+  Box, Button, Stack, TextField, Typography, Link, CircularProgress,
   useMediaQuery, useTheme
 } from '@mui/material'
-import { ArrowBack, PersonOutline, LocalHospitalOutlined } from '@mui/icons-material'
+import { ArrowBack, MarkEmailReadOutlined } from '@mui/icons-material'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useNotification } from '../context/NotificationContext.jsx'
 import { useNavigate, Link as RouterLink } from 'react-router-dom'
-import WelcomeScreen from '../components/WelcomeScreen.jsx'
-
-const ALLOWED_ROLES = ['doctor', 'user']
 
 export default function Register() {
   const { register } = useAuth()
@@ -19,21 +16,19 @@ export default function Register() {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
 
   const [form, setForm] = useState({
-    name: '',
-    surname: '',
-    dateOfBirth: '',
-    role: 'user',
+    firstName: '',
+    lastName: '',
     email: '',
     password: '',
     confirmPassword: ''
   })
   const [error, setError] = useState('')
-  const [showWelcome, setShowWelcome] = useState(false)
+  const [registeredEmail, setRegisteredEmail] = useState('')
   const [loading, setLoading] = useState(false)
 
   const onSubmit = async (e) => {
     e.preventDefault()
-    if (!form.name?.trim() || !form.surname?.trim() || !form.email?.trim() || !form.password) {
+    if (!form.firstName?.trim() || !form.lastName?.trim() || !form.email?.trim() || !form.password) {
       setError('Lütfen zorunlu alanları doldurun.')
       return
     }
@@ -41,13 +36,8 @@ export default function Register() {
       setError('Şifreler uyuşmuyor.')
       return
     }
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(form.dateOfBirth)) {
-      setError('Doğum tarihi "YYYY-MM-DD" biçiminde olmalı.')
-      return
-    }
-    const normRole = String(form.role).toLowerCase()
-    if (!ALLOWED_ROLES.includes(normRole)) {
-      setError('Rol sadece "doctor" veya "user" olabilir.')
+    if (form.password.length < 8) {
+      setError('Şifre en az 8 karakter olmalı.')
       return
     }
 
@@ -55,14 +45,12 @@ export default function Register() {
     setLoading(true)
     try {
       await register({
-        name: form.name.trim(),
-        surname: form.surname.trim(),
-        dateOfBirth: form.dateOfBirth,
-        role: normRole,
+        firstName: form.firstName.trim(),
+        lastName: form.lastName.trim(),
         email: form.email.trim(),
         password: form.password
       })
-      setShowWelcome(true)
+      setRegisteredEmail(form.email.trim())
     } catch (err) {
       const errorMessage = (err && err.message) ? err.message : String(err) || 'Kayıt başarısız.'
       setError(errorMessage)
@@ -76,16 +64,34 @@ export default function Register() {
     if (error) showError(error)
   }, [error, showError])
 
-  if (showWelcome) {
-    return <WelcomeScreen onContinue={() => navigate('/', { replace: true })} />
+  // Kayıt başarılı: backend e-posta doğrulaması zorunlu tutuyor, otomatik giriş yok.
+  if (registeredEmail) {
+    return (
+      <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 3, bgcolor: 'background.default' }}>
+        <Box sx={{ maxWidth: 440, textAlign: 'center' }}>
+          <MarkEmailReadOutlined sx={{ fontSize: 64, color: 'secondary.main', mb: 2 }} />
+          <Typography variant="h2" sx={{ color: 'primary.main', mb: 2 }}>
+            E-postanı kontrol et
+          </Typography>
+          <Typography variant="body1" sx={{ color: 'text.secondary', mb: 4, lineHeight: 1.7 }}>
+            <strong>{registeredEmail}</strong> adresine bir doğrulama bağlantısı gönderdik.
+            Hesabınla giriş yapabilmek için önce e-postandaki bağlantıya tıklayarak
+            adresini doğrulaman gerekiyor.
+          </Typography>
+          <Button variant="contained" size="large" fullWidth onClick={() => navigate('/login', { replace: true })}>
+            Giriş sayfasına dön
+          </Button>
+        </Box>
+      </Box>
+    )
   }
 
   return (
     <Box sx={{ minHeight: '100vh', display: 'flex' }}>
       {/* Left side - Branding (hidden on mobile) */}
       {!isMobile && (
-        <Box 
-          sx={{ 
+        <Box
+          sx={{
             flex: 1,
             background: 'linear-gradient(135deg, #1B7A85 0%, #34C3A1 100%)',
             display: 'flex',
@@ -97,29 +103,23 @@ export default function Register() {
           }}
         >
           <Box sx={{ maxWidth: 400, textAlign: 'center' }}>
-            <Box 
+            <Box
               component="img"
               src="/sagliktanLogo.png"
               alt="Sağlıktan"
-              sx={{ 
-                width: 80, 
-                height: 80, 
+              sx={{
+                width: 80,
+                height: 80,
                 borderRadius: '20px',
                 mb: 4,
                 boxShadow: '0 16px 48px rgba(0,0,0,0.2)'
               }}
             />
-            <Typography 
-              variant="h2" 
-              sx={{ color: 'white', mb: 2, fontWeight: 700 }}
-            >
+            <Typography variant="h2" sx={{ color: 'white', mb: 2, fontWeight: 700 }}>
               Topluluğa
               <br />Katılın
             </Typography>
-            <Typography 
-              variant="body1" 
-              sx={{ color: 'rgba(255,255,255,0.9)', lineHeight: 1.8 }}
-            >
+            <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.9)', lineHeight: 1.8 }}>
               Binlerce kişi sağlık yolculuklarında birbirlerine destek oluyor.
             </Typography>
           </Box>
@@ -127,10 +127,10 @@ export default function Register() {
       )}
 
       {/* Right side - Form */}
-      <Box 
-        sx={{ 
-          flex: 1, 
-          display: 'flex', 
+      <Box
+        sx={{
+          flex: 1,
+          display: 'flex',
           flexDirection: 'column',
           bgcolor: 'background.default',
           overflowY: 'auto'
@@ -148,11 +148,11 @@ export default function Register() {
         </Box>
 
         {/* Form Container */}
-        <Box 
-          sx={{ 
-            flex: 1, 
-            display: 'flex', 
-            alignItems: 'center', 
+        <Box
+          sx={{
+            flex: 1,
+            display: 'flex',
+            alignItems: 'center',
             justifyContent: 'center',
             px: { xs: 3, sm: 4 },
             pb: 6
@@ -188,8 +188,8 @@ export default function Register() {
                   <TextField
                     label="İsim"
                     required
-                    value={form.name}
-                    onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                    value={form.firstName}
+                    onChange={e => setForm(f => ({ ...f, firstName: e.target.value }))}
                     autoComplete="given-name"
                     fullWidth
                     placeholder="Adınız"
@@ -197,90 +197,13 @@ export default function Register() {
                   <TextField
                     label="Soyisim"
                     required
-                    value={form.surname}
-                    onChange={e => setForm(f => ({ ...f, surname: e.target.value }))}
+                    value={form.lastName}
+                    onChange={e => setForm(f => ({ ...f, lastName: e.target.value }))}
                     autoComplete="family-name"
                     fullWidth
                     placeholder="Soyadınız"
                   />
                 </Stack>
-
-                <TextField
-                  label="Doğum Tarihi"
-                  type="date"
-                  required
-                  value={form.dateOfBirth}
-                  onChange={e => setForm(f => ({ ...f, dateOfBirth: e.target.value }))}
-                  InputLabelProps={{ shrink: true }}
-                  inputProps={{ min: '1900-01-01', max: new Date().toISOString().split('T')[0] }}
-                  autoComplete="bday"
-                  fullWidth
-                />
-
-                {/* Role Selection */}
-                <Box>
-                  <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.5, fontWeight: 500 }}>
-                    Hesap türü seçin
-                  </Typography>
-                  <Stack direction="row" spacing={2}>
-                    <Box 
-                      onClick={() => setForm(f => ({ ...f, role: 'user' }))}
-                      sx={{
-                        flex: 1,
-                        p: 2,
-                        border: '2px solid',
-                        borderColor: form.role === 'user' ? 'secondary.main' : 'divider',
-                        borderRadius: 2.5,
-                        cursor: 'pointer',
-                        bgcolor: form.role === 'user' ? 'rgba(52, 195, 161, 0.06)' : 'transparent',
-                        transition: 'all 0.2s ease',
-                        '&:hover': {
-                          borderColor: form.role === 'user' ? 'secondary.main' : 'text.secondary'
-                        }
-                      }}
-                    >
-                      <PersonOutline sx={{ 
-                        color: form.role === 'user' ? 'secondary.main' : 'text.secondary',
-                        fontSize: 28,
-                        mb: 1
-                      }} />
-                      <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.primary' }}>
-                        Kullanıcı
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                        Topluluktan destek alın
-                      </Typography>
-                    </Box>
-                    <Box 
-                      onClick={() => setForm(f => ({ ...f, role: 'doctor' }))}
-                      sx={{
-                        flex: 1,
-                        p: 2,
-                        border: '2px solid',
-                        borderColor: form.role === 'doctor' ? 'secondary.main' : 'divider',
-                        borderRadius: 2.5,
-                        cursor: 'pointer',
-                        bgcolor: form.role === 'doctor' ? 'rgba(52, 195, 161, 0.06)' : 'transparent',
-                        transition: 'all 0.2s ease',
-                        '&:hover': {
-                          borderColor: form.role === 'doctor' ? 'secondary.main' : 'text.secondary'
-                        }
-                      }}
-                    >
-                      <LocalHospitalOutlined sx={{ 
-                        color: form.role === 'doctor' ? 'secondary.main' : 'text.secondary',
-                        fontSize: 28,
-                        mb: 1
-                      }} />
-                      <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.primary' }}>
-                        Doktor
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                        Uzmanlığınızı paylaşın
-                      </Typography>
-                    </Box>
-                  </Stack>
-                </Box>
 
                 <TextField
                   label="E-posta adresi"
@@ -298,7 +221,8 @@ export default function Register() {
                     label="Şifre"
                     type="password"
                     required
-                    inputProps={{ minLength: 4 }}
+                    inputProps={{ minLength: 8 }}
+                    helperText="En az 8 karakter"
                     value={form.password}
                     onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
                     autoComplete="new-password"
@@ -318,11 +242,11 @@ export default function Register() {
                   />
                 </Stack>
 
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   variant="contained"
-                  disabled={loading} 
-                  fullWidth 
+                  disabled={loading}
+                  fullWidth
                   size="large"
                   sx={{ mt: 1 }}
                 >
@@ -340,11 +264,11 @@ export default function Register() {
             <Box sx={{ mt: 4, textAlign: 'center' }}>
               <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                 Hesabınız var mı?{' '}
-                <Link 
-                  component={RouterLink} 
-                  to="/login" 
-                  sx={{ 
-                    color: 'secondary.main', 
+                <Link
+                  component={RouterLink}
+                  to="/login"
+                  sx={{
+                    color: 'secondary.main',
                     fontWeight: 600,
                     '&:hover': { color: 'primary.main' }
                   }}

@@ -15,7 +15,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://saglikta-7d7a2dbc0cf4.herokuapp.com/$1"
+      "destination": "https://TODO-YENI-BACKEND-DOMAINI/api/$1"
     },
     { "source": "/(.*)", "destination": "/index.html" }
   ]

@@ -10,10 +10,11 @@ export default defineConfig({
     open: true,
     strictPort: false,
     proxy: {
+      // Yeni SagliktanApi backend'i (Spring Boot) - endpoint'ler zaten /api ile
+      // başlıyor, bu yüzden eski projeden farklı olarak path rewrite YOK.
       '/api': {
-        target: 'https://saglikta-7d7a2dbc0cf4.herokuapp.com',
+        target: 'http://localhost:8080',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ''),
         secure: false,
       },
     },
