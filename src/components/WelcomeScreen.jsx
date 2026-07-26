@@ -1,32 +1,29 @@
 import { Box, Button, Typography, Container, Grid, Stack, useMediaQuery, useTheme } from "@mui/material"
 import { useNavigate } from "react-router-dom"
-import { 
-  Forum, 
-  VerifiedUser, 
-  Psychology, 
-  Groups, 
+import {
+  Forum,
+  Groups2Rounded,
+  MedicalServicesOutlined,
+  Groups,
   ArrowForward,
-  CheckCircleOutline,
-  LocalHospital,
-  Security,
-  WavingHand
+  Security
 } from "@mui/icons-material"
 
 const features = [
+  {
+    icon: Groups2Rounded,
+    title: "Hastalık Grupları",
+    description: "İlgilendiğiniz hastalık gruplarına katılın, sizinle aynı yolu yürüyen kişileri bulun."
+  },
   {
     icon: Forum,
     title: "Topluluk Desteği",
     description: "Benzer deneyimleri yaşayan kişilerle bağlantı kurun ve deneyimlerinizi paylaşın."
   },
   {
-    icon: VerifiedUser,
-    title: "Uzman Doktorlar",
-    description: "Alanında uzman doktorlardan güvenilir sağlık bilgilerine erişin."
-  },
-  {
-    icon: Psychology,
-    title: "Yapay Zeka Asistanı",
-    description: "Lumo ile 7/24 sağlık sorularınıza anında yanıt alın."
+    icon: MedicalServicesOutlined,
+    title: "Gerçek Deneyimler",
+    description: "Alt gruplarda paylaşılan gönderi ve yorumlarla gerçek deneyimlerden faydalanın."
   },
   {
     icon: Security,
@@ -136,8 +133,8 @@ export default function WelcomeScreen() {
                     mx: { xs: 'auto', md: 0 }
                   }}
                 >
-                  Kronik hastalıklarla mücadele eden bireyler ve sağlık profesyonellerini 
-                  bir araya getiren Türkiye'nin en güvenilir sağlık platformu.
+                  Kronik ve nadir hastalıklarla mücadele eden bireyleri hastalık
+                  gruplarında bir araya getiren güvenilir bir topluluk platformu.
                 </Typography>
                 <Stack 
                   direction={{ xs: 'column', sm: 'row' }} 
@@ -176,7 +173,7 @@ export default function WelcomeScreen() {
                 >
                   {[
                     { icon: Groups, text: "Aktif Topluluk" },
-                    { icon: LocalHospital, text: "Uzman Doktorlar" }
+                    { icon: MedicalServicesOutlined, text: "Hastalık Grupları" }
                   ].map((item, i) => (
                     <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <item.icon sx={{ color: 'secondary.main', fontSize: 20 }} />
@@ -235,7 +232,7 @@ export default function WelcomeScreen() {
                     justifyContent: 'center',
                     boxShadow: '0 8px 24px rgba(52, 195, 161, 0.3)'
                   }}>
-                    <Psychology sx={{ color: 'white', fontSize: 28 }} />
+                    <Groups2Rounded sx={{ color: 'white', fontSize: 28 }} />
                   </Box>
                   <Box sx={{
                     position: 'absolute',
@@ -365,65 +362,6 @@ export default function WelcomeScreen() {
         </Container>
       </Box>
 
-      {/* Lumo AI Section */}
-      <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: 'background.paper' }}>
-        <Container maxWidth="lg">
-          <Grid container spacing={6} alignItems="center">
-            <Grid item xs={12} md={6} order={{ xs: 2, md: 1 }}>
-              <Typography variant="h2" sx={{ color: 'primary.main', mb: 3 }}>
-                Lumo ile Tanışın
-              </Typography>
-              <Typography variant="body1" sx={{ color: 'text.secondary', mb: 4, lineHeight: 1.8 }}>
-                Yapay zeka destekli sağlık asistanımız Lumo, sorularınıza 7/24 yanıt vermek 
-                için burada. Semptomlarınızı anlatın, genel sağlık bilgisi alın ve 
-                sağlığınız hakkında bilgi edinin.
-              </Typography>
-              <Stack spacing={2}>
-                {[
-                  "Anlık sağlık sorularına yanıt",
-                  "Genel sağlık bilgisi ve rehberlik",
-                  "7/24 erişilebilir yapay zeka desteği"
-                ].map((item, i) => (
-                  <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                    <CheckCircleOutline sx={{ color: 'secondary.main', fontSize: 22 }} />
-                    <Typography variant="body1">{item}</Typography>
-                  </Box>
-                ))}
-              </Stack>
-            </Grid>
-            <Grid item xs={12} md={6} order={{ xs: 1, md: 2 }}>
-              <Box 
-                sx={{ 
-                  bgcolor: 'background.default',
-                  borderRadius: 4,
-                  p: { xs: 3, md: 5 },
-                  textAlign: 'center'
-                }}
-              >
-                <Box 
-                  component="img" 
-                  src="/sagliktanLogo.png" 
-                  alt="Lumo AI Assistant" 
-                  sx={{ 
-                    width: { xs: 100, md: 140 }, 
-                    height: { xs: 100, md: 140 },
-                    borderRadius: '28px',
-                    mb: 3,
-                    boxShadow: '0 16px 48px rgba(11, 58, 78, 0.12)'
-                  }} 
-                />
-                <Typography variant="h4" sx={{ color: 'primary.main', mb: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
-                  Merhaba, ben Lumo! <WavingHand sx={{ fontSize: 'inherit', color: '#F59E0B' }} />
-                </Typography>
-                <Typography variant="body1" sx={{ color: 'text.secondary' }}>
-                  Sağlık sorularınızda size yardımcı olmak için buradayım.
-                </Typography>
-              </Box>
-            </Grid>
-          </Grid>
-        </Container>
-      </Box>
-
       {/* CTA Section */}
       <Box 
         sx={{ 
@@ -500,7 +438,7 @@ export default function WelcomeScreen() {
                 sx={{ width: 32, height: 32, borderRadius: '8px' }} 
               />
               <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                © 2024 Sağlıktan. Tüm hakları saklıdır.
+                © {new Date().getFullYear()} Sağlıktan. Tüm hakları saklıdır.
               </Typography>
             </Box>
             <Stack direction="row" spacing={3}>
