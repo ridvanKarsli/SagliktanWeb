@@ -15,7 +15,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://TODO-YENI-BACKEND-DOMAINI/api/$1"
+      "destination": "https://sagliktan-api-production.up.railway.app/api/$1"
     },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
