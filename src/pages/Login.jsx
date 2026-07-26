@@ -26,7 +26,7 @@ export default function Login() {
     setLoading(true)
     try {
       await login(form.email.trim(), form.pw, rememberMe)
-      navigate('/posts', { replace: true })
+      navigate('/groups', { replace: true })
     } catch (err) {
       const errorMessage = (err && err.message) ? err.message : String(err) || 'Giriş başarısız.'
       setError(errorMessage)

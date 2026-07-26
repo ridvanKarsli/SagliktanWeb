@@ -63,7 +63,7 @@ export default function ResponsiveShell({ children }) {
               mb: 5,
               cursor: 'pointer'
             }}
-            onClick={() => navigate('/posts')}
+            onClick={() => navigate('/groups')}
           >
             <Avatar
               src="/sagliktanLogo.png"
