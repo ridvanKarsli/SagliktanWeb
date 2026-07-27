@@ -155,8 +155,8 @@ export function getDiseaseGroup(token, id) {
   return request(`/disease-groups/${id}`, { token });
 }
 
-export function listDiseaseGroupMembers(token, id) {
-  return request(`/disease-groups/${id}/members`, { token });
+export function listDiseaseGroupMembers(token, id, { page = 0, size, signal } = {}) {
+  return request(`/disease-groups/${id}/members`, { token, params: { page, size }, signal });
 }
 
 export function joinDiseaseGroup(token, id) {

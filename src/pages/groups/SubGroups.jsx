@@ -31,9 +31,15 @@ export default function SubGroups() {
   const [error, setError] = useState('')
 
   // Gruba kayıtlı üyelerin listesi - "Üyeleri Gör" tıklanınca yükleniyor.
+  // Kalabalık gruplarda (1000+ kullanıcı hedefi) tek seferde tüm üyeleri
+  // çekmemek için backend sayfalı dönüyor, burada "Daha Fazla Yükle" ile
+  // sayfa sayfa ekleniyor.
   const [membersOpen, setMembersOpen] = useState(false)
   const [members, setMembers] = useState([])
   const [membersLoading, setMembersLoading] = useState(false)
+  const [membersLoadingMore, setMembersLoadingMore] = useState(false)
+  const [membersPage, setMembersPage] = useState(0)
+  const [membersLast, setMembersLast] = useState(true)
 
   useEffect(() => {
     let mounted = true
@@ -71,12 +77,29 @@ export default function SubGroups() {
     if (members.length > 0) return
     setMembersLoading(true)
     try {
-      const data = await listDiseaseGroupMembers(token, groupId)
-      setMembers(Array.isArray(data) ? data : [])
+      const res = await listDiseaseGroupMembers(token, groupId, { page: 0 })
+      setMembers(Array.isArray(res?.content) ? res.content : [])
+      setMembersPage(0)
+      setMembersLast(res?.last ?? true)
     } catch (err) {
       showError(err.message || 'Üyeler alınamadı.')
     } finally {
       setMembersLoading(false)
+    }
+  }
+
+  const loadMoreMembers = async () => {
+    const nextPage = membersPage + 1
+    setMembersLoadingMore(true)
+    try {
+      const res = await listDiseaseGroupMembers(token, groupId, { page: nextPage })
+      setMembers(prev => [...prev, ...(Array.isArray(res?.content) ? res.content : [])])
+      setMembersPage(nextPage)
+      setMembersLast(res?.last ?? true)
+    } catch (err) {
+      showError(err.message || 'Üyeler alınamadı.')
+    } finally {
+      setMembersLoadingMore(false)
     }
   }
 
@@ -227,6 +250,13 @@ export default function SubGroups() {
                 )
               })}
             </Stack>
+          )}
+          {!membersLoading && !membersLast && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 1.5 }}>
+              <Button size="small" onClick={loadMoreMembers} disabled={membersLoadingMore}>
+                {membersLoadingMore ? <CircularProgress size={16} color="inherit" /> : 'Daha Fazla Yükle'}
+              </Button>
+            </Box>
           )}
         </DialogContent>
       </Dialog>
