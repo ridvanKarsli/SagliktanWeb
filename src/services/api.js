@@ -78,10 +78,10 @@ async function request(path, { method = 'GET', token, body, params, signal, _ret
 
 // --- Auth ---
 
-export function registerUser({ email, password, firstName, lastName }) {
+export function registerUser({ email, password, firstName, lastName, kvkkConsent }) {
   return request('/auth/register', {
     method: 'POST',
-    body: { email, password, firstName, lastName },
+    body: { email, password, firstName, lastName, kvkkConsent },
   });
 }
 
@@ -199,8 +199,12 @@ export function listComments(token, postId, { page = 0, size, signal } = {}) {
   return request(`/posts/${postId}/comments`, { token, params: { page, size }, signal });
 }
 
-export function createComment(token, postId, content) {
-  return request(`/posts/${postId}/comments`, { method: 'POST', token, body: { content } });
+export function createComment(token, postId, content, parentCommentId) {
+  return request(`/posts/${postId}/comments`, {
+    method: 'POST',
+    token,
+    body: { content, parentCommentId: parentCommentId ?? null },
+  });
 }
 
 export function updateComment(token, id, content) {
@@ -209,6 +213,16 @@ export function updateComment(token, id, content) {
 
 export function deleteComment(token, id) {
   return request(`/comments/${id}`, { method: 'DELETE', token });
+}
+
+// --- Şikayet ---
+
+export function reportPost(token, postId, reason) {
+  return request(`/posts/${postId}/report`, { method: 'POST', token, body: { reason: reason || null } });
+}
+
+export function reportComment(token, commentId, reason) {
+  return request(`/comments/${commentId}/report`, { method: 'POST', token, body: { reason: reason || null } });
 }
 
 export { ApiError, API_BASE };

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import {
   Box, Button, Stack, TextField, Typography, Link, CircularProgress,
-  useMediaQuery, useTheme
+  useMediaQuery, useTheme, Checkbox, FormControlLabel
 } from '@mui/material'
 import { ArrowBack, MarkEmailReadOutlined } from '@mui/icons-material'
 import { useAuth } from '../context/AuthContext.jsx'
@@ -20,7 +20,8 @@ export default function Register() {
     lastName: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    kvkkConsent: false
   })
   const [error, setError] = useState('')
   const [registeredEmail, setRegisteredEmail] = useState('')
@@ -40,6 +41,10 @@ export default function Register() {
       setError('Şifre en az 8 karakter olmalı.')
       return
     }
+    if (!form.kvkkConsent) {
+      setError('Kayıt olmak için KVKK Aydınlatma Metni\'ni onaylamanız gerekiyor.')
+      return
+    }
 
     setError('')
     setLoading(true)
@@ -48,7 +53,8 @@ export default function Register() {
         firstName: form.firstName.trim(),
         lastName: form.lastName.trim(),
         email: form.email.trim(),
-        password: form.password
+        password: form.password,
+        kvkkConsent: form.kvkkConsent
       })
       setRegisteredEmail(form.email.trim())
     } catch (err) {
@@ -93,7 +99,7 @@ export default function Register() {
         <Box
           sx={{
             flex: 1,
-            background: 'linear-gradient(135deg, #1B7A85 0%, #34C3A1 100%)',
+            background: 'linear-gradient(135deg, #2C7562 0%, #3F9C87 100%)',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'center',
@@ -112,15 +118,15 @@ export default function Register() {
                 height: 80,
                 borderRadius: '20px',
                 mb: 4,
-                boxShadow: '0 16px 48px rgba(0,0,0,0.2)'
+                boxShadow: '0 16px 48px rgba(44, 117, 98, 0.3)'
               }}
             />
             <Typography variant="h2" sx={{ color: 'white', mb: 2, fontWeight: 700 }}>
-              Topluluğa
-              <br />Katılın
+              Sizi Anlayan
+              <br />Bir Topluluk
             </Typography>
             <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.9)', lineHeight: 1.8 }}>
-              Binlerce kişi sağlık yolculuklarında birbirlerine destek oluyor.
+              Aynı yolu yürüyen insanlarla tanışın, deneyimlerinizi güvenle paylaşın.
             </Typography>
           </Box>
         </Box>
@@ -241,6 +247,31 @@ export default function Register() {
                     placeholder="••••••••"
                   />
                 </Stack>
+
+                <FormControlLabel
+                  sx={{ alignItems: 'flex-start', ml: 0, mt: 0.5 }}
+                  control={
+                    <Checkbox
+                      checked={form.kvkkConsent}
+                      onChange={e => setForm(f => ({ ...f, kvkkConsent: e.target.checked }))}
+                      sx={{ pt: 0.25 }}
+                    />
+                  }
+                  label={
+                    <Typography variant="body2" sx={{ color: 'text.secondary', lineHeight: 1.6 }}>
+                      <Link
+                        component={RouterLink}
+                        to="/gizlilik-politikasi"
+                        target="_blank"
+                        rel="noopener"
+                        sx={{ color: 'secondary.main', fontWeight: 600 }}
+                      >
+                        KVKK Aydınlatma Metni ve Gizlilik Politikası
+                      </Link>
+                      'nı okudum, kişisel verilerimin belirtilen kapsamda işlenmesini kabul ediyorum.
+                    </Typography>
+                  }
+                />
 
                 <Button
                   type="submit"

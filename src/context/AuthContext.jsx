@@ -145,8 +145,10 @@ export function AuthProvider({ children }) {
 
   // Backend e-posta doğrulaması zorunlu kılıyor: register token döndürmez.
   // Kayıt sonrası kullanıcı e-postasındaki linke tıklayıp login sayfasına gelmeli.
-  async function register({ email, password, firstName, lastName }) {
-    const created = await registerUser({ email, password, firstName, lastName })
+  // kvkkConsent: backend @AssertTrue ile zorunlu kılıyor, kayıt formundaki
+  // onay kutusu işaretlenmeden bu istek 400 ile reddedilir.
+  async function register({ email, password, firstName, lastName, kvkkConsent }) {
+    const created = await registerUser({ email, password, firstName, lastName, kvkkConsent })
     return mapUser(created)
   }
 

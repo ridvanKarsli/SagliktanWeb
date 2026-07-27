@@ -105,7 +105,7 @@ export default function SubGroups() {
                   sx={{
                     width: 40, height: 40, borderRadius: 2, flexShrink: 0,
                     display: 'grid', placeItems: 'center',
-                    bgcolor: 'rgba(27,122,133,0.15)', color: 'secondary.main'
+                    bgcolor: 'rgba(217,119,87,0.15)', color: 'secondary.main'
                   }}
                 >
                   <ForumRounded />

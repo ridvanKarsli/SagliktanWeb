@@ -321,7 +321,7 @@ export default function Profile() {
 
         {/* Hesabı deaktive et */}
         <Box sx={{ px: { xs: 0.5, md: 0 } }}>
-          <Box sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'error.main', bgcolor: 'rgba(239,68,68,0.06)' }}>
+          <Box sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'error.main', bgcolor: 'rgba(196,85,74,0.06)' }}>
             <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1.5 }}>
               <WarningAmberRounded sx={{ color: 'error.main' }} />
               <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>

@@ -131,7 +131,7 @@ export default function DiseaseGroups() {
                     sx={{
                       width: 44, height: 44, borderRadius: 2, flexShrink: 0,
                       display: 'grid', placeItems: 'center',
-                      bgcolor: 'rgba(52,195,161,0.12)', color: 'primary.main'
+                      bgcolor: 'rgba(63,156,135,0.12)', color: 'primary.main'
                     }}
                   >
                     <GroupsRounded />

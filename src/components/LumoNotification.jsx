@@ -39,33 +39,28 @@ export default function LumoNotification({ message, type = 'info', onClose, dura
   const cfg = {
     success: {
       icon: <SuccessIcon sx={{ fontSize: 22 }} />,
-      accent: '#34C3A1',
-      bg: 'rgba(52, 195, 161, 0.12)',
-      border: 'rgba(52, 195, 161, 0.30)',
+      accent: '#3F9C87',
+      border: 'rgba(63, 156, 135, 0.35)',
     },
     error: {
       icon: <ErrorIcon sx={{ fontSize: 22 }} />,
-      accent: '#EF4444',
-      bg: 'rgba(239, 68, 68, 0.12)',
-      border: 'rgba(239, 68, 68, 0.30)',
+      accent: '#C4554A',
+      border: 'rgba(196, 85, 74, 0.35)',
     },
     warning: {
       icon: <WarningIcon sx={{ fontSize: 22 }} />,
-      accent: '#F59E0B',
-      bg: 'rgba(245, 158, 11, 0.12)',
-      border: 'rgba(245, 158, 11, 0.30)',
+      accent: '#C98A3E',
+      border: 'rgba(201, 138, 62, 0.35)',
     },
     info: {
       icon: <InfoIcon sx={{ fontSize: 22 }} />,
-      accent: '#1B7A85',
-      bg: 'rgba(27, 122, 133, 0.12)',
-      border: 'rgba(27, 122, 133, 0.30)',
+      accent: '#5B8FA3',
+      border: 'rgba(91, 143, 163, 0.35)',
     },
   }[type] || {
     icon: <InfoIcon sx={{ fontSize: 22 }} />,
-    accent: '#1B7A85',
-    bg: 'rgba(27, 122, 133, 0.12)',
-    border: 'rgba(27, 122, 133, 0.30)',
+    accent: '#5B8FA3',
+    border: 'rgba(91, 143, 163, 0.35)',
   }
 
   const entering = phase === 'enter'
@@ -83,10 +78,10 @@ export default function LumoNotification({ message, type = 'info', onClose, dura
         mx: 'auto',
         borderRadius: 2.5,
         overflow: 'hidden',
-        bgcolor: cfg.bg,
-        backdropFilter: 'blur(16px) saturate(1.4)',
+        bgcolor: '#FFFFFF',
+        backdropFilter: 'blur(16px) saturate(1.2)',
         border: `1px solid ${cfg.border}`,
-        boxShadow: `0 4px 24px rgba(0,0,0,0.35), 0 0 0 1px ${cfg.border}`,
+        boxShadow: `0 8px 28px rgba(51, 47, 42, 0.16), 0 0 0 1px ${cfg.border}`,
         opacity: entering || exiting ? 0 : 1,
         transform: entering || exiting ? 'translateY(16px) scale(0.97)' : 'translateY(0) scale(1)',
         transition: 'opacity 0.3s cubic-bezier(.4,0,.2,1), transform 0.3s cubic-bezier(.4,0,.2,1)',
@@ -118,7 +113,7 @@ export default function LumoNotification({ message, type = 'info', onClose, dura
             fontSize: { xs: '0.82rem', sm: '0.88rem' },
             fontWeight: 500,
             lineHeight: 1.5,
-            color: '#F5F7FA',
+            color: '#332F2A',
             wordBreak: 'break-word',
           }}
         >
@@ -133,10 +128,10 @@ export default function LumoNotification({ message, type = 'info', onClose, dura
           onClick={triggerExit}
           aria-label="Bildirimi kapat"
           sx={{
-            color: 'rgba(255,255,255,0.45)',
+            color: 'rgba(51,47,42,0.4)',
             width: 28,
             height: 28,
-            '&:hover': { color: 'rgba(255,255,255,0.8)', bgcolor: 'rgba(255,255,255,0.08)' },
+            '&:hover': { color: 'rgba(51,47,42,0.8)', bgcolor: 'rgba(51,47,42,0.06)' },
           }}
         >
           <CloseIcon sx={{ fontSize: 16 }} />

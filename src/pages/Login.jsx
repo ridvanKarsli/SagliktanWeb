@@ -44,10 +44,10 @@ export default function Login() {
     <Box sx={{ minHeight: '100vh', display: 'flex' }}>
       {/* Left side - Branding (hidden on mobile) */}
       {!isMobile && (
-        <Box 
-          sx={{ 
+        <Box
+          sx={{
             flex: 1,
-            background: 'linear-gradient(135deg, #1B7A85 0%, #34C3A1 100%)',
+            background: 'linear-gradient(135deg, #2C7562 0%, #3F9C87 100%)',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'center',
@@ -57,30 +57,29 @@ export default function Login() {
           }}
         >
           <Box sx={{ maxWidth: 400, textAlign: 'center' }}>
-            <Box 
+            <Box
               component="img"
               src="/sagliktanLogo.png"
               alt="Sağlıktan"
-              sx={{ 
-                width: 80, 
-                height: 80, 
+              sx={{
+                width: 80,
+                height: 80,
                 borderRadius: '20px',
                 mb: 4,
-                boxShadow: '0 16px 48px rgba(0,0,0,0.2)'
+                boxShadow: '0 16px 48px rgba(44, 117, 98, 0.3)'
               }}
             />
-            <Typography 
-              variant="h2" 
+            <Typography
+              variant="h2"
               sx={{ color: 'white', mb: 2, fontWeight: 700 }}
             >
-              Sağlıktan'a
-              <br />Hoş Geldiniz
+              Tekrar Hoş Geldiniz
             </Typography>
-            <Typography 
-              variant="body1" 
-              sx={{ color: 'rgba(255,255,255,0.8)', lineHeight: 1.8 }}
+            <Typography
+              variant="body1"
+              sx={{ color: 'rgba(255,255,255,0.85)', lineHeight: 1.8 }}
             >
-              Sağlık yolculuğunuzda size eşlik eden güvenilir topluluk platformu.
+              Sizi anlayan bir topluluk sizi bekliyor. Devam etmek için giriş yapın.
             </Typography>
           </Box>
         </Box>

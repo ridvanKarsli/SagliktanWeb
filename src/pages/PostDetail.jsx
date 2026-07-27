@@ -1,13 +1,17 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
-  Alert, Avatar, Box, Button, CircularProgress, IconButton, Stack, TextField, Typography
+  Alert, Avatar, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent,
+  DialogContentText, DialogTitle, IconButton, Stack, TextField, Typography
 } from '@mui/material'
-import { ArrowBack, DeleteOutline, EditOutlined } from '@mui/icons-material'
+import {
+  ArrowBack, DeleteOutline, EditOutlined, FlagOutlined, InfoOutlined, ReplyOutlined
+} from '@mui/icons-material'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useNotification } from '../context/NotificationContext.jsx'
 import {
-  createComment, deleteComment, deletePost, getPost, listComments, updateComment, updatePost
+  createComment, deleteComment, deletePost, getPost, listComments, reportComment, reportPost,
+  updateComment, updatePost
 } from '../services/api.js'
 
 function initialsFrom(name = '') {
@@ -25,12 +29,88 @@ function canManage(user, authorId) {
   return user.id === authorId || user.role === 'ADMIN'
 }
 
-function CommentRow({ comment, user, token, onUpdated, onDeleted, showError, showSuccess }) {
+// --- Yorum ağacı yardımcıları ---
+// listByPost sadece üst-seviye yorumları döndürür, her birinin yanıtları
+// kendi `replies` alanında gömülü gelir (bkz. backend CommentController).
+
+function updateCommentInTree(comments, updated) {
+  return comments.map(c => {
+    if (c.id === updated.id) return { ...c, ...updated }
+    if (c.replies?.some(r => r.id === updated.id)) {
+      return { ...c, replies: c.replies.map(r => (r.id === updated.id ? { ...r, ...updated } : r)) }
+    }
+    return c
+  })
+}
+
+function removeCommentFromTree(comments, id) {
+  return comments
+    .filter(c => c.id !== id)
+    .map(c => ({ ...c, replies: (c.replies || []).filter(r => r.id !== id) }))
+}
+
+// Backend, yanıta-yanıtı otomatik olarak en üstteki yoruma bağlar; bu yüzden
+// yeni yanıtı eklerken hangi yoruma tıklandığına değil, sunucunun döndürdüğü
+// gerçek parentCommentId'ye güveniyoruz.
+function addReplyToTree(comments, reply) {
+  const parentId = reply.parentCommentId
+  return comments.map(c => (c.id === parentId ? { ...c, replies: [...(c.replies || []), reply] } : c))
+}
+
+// Şikayet için ortak dialog: post ya da yorum, tek bir bileşenle karşılanıyor.
+function ReportDialog({ open, onClose, onSubmit, submitting }) {
+  const [reason, setReason] = useState('')
+
+  const handleClose = () => {
+    if (submitting) return
+    setReason('')
+    onClose()
+  }
+
+  const handleSubmit = async () => {
+    await onSubmit(reason.trim() || null)
+    setReason('')
+  }
+
+  return (
+    <Dialog open={open} onClose={handleClose} maxWidth="xs" fullWidth>
+      <DialogTitle>İçeriği Şikayet Et</DialogTitle>
+      <DialogContent>
+        <DialogContentText sx={{ mb: 2 }}>
+          Bu içeriği neden şikayet ettiğinizi kısaca belirtebilirsiniz (opsiyonel).
+        </DialogContentText>
+        <TextField
+          value={reason}
+          onChange={e => setReason(e.target.value)}
+          placeholder="Örn. uygunsuz içerik, yanlış bilgi..."
+          multiline
+          minRows={2}
+          fullWidth
+          inputProps={{ maxLength: 500 }}
+        />
+      </DialogContent>
+      <DialogActions sx={{ px: 3, pb: 2 }}>
+        <Button onClick={handleClose} disabled={submitting}>Vazgeç</Button>
+        <Button variant="contained" color="error" onClick={handleSubmit} disabled={submitting}>
+          {submitting ? <CircularProgress size={16} color="inherit" /> : 'Şikayet Et'}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  )
+}
+
+function CommentRow({
+  comment, user, token, isReply = false, onUpdated, onDeleted, onReplySubmitted, onReport, showError, showSuccess
+}) {
   const [editing, setEditing] = useState(false)
   const [text, setText] = useState(comment.content)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [replyOpen, setReplyOpen] = useState(false)
+  const [replyText, setReplyText] = useState('')
+  const [replySubmitting, setReplySubmitting] = useState(false)
   const manageable = canManage(user, comment.authorId)
+  const isOwnComment = user?.id === comment.authorId
 
   const saveEdit = async () => {
     if (!text.trim()) { showError('Yorum boş olamaz.'); return }
@@ -60,8 +140,32 @@ function CommentRow({ comment, user, token, onUpdated, onDeleted, showError, sho
     }
   }
 
+  const submitReply = async () => {
+    if (!replyText.trim()) { showError('Yanıt boş olamaz.'); return }
+    setReplySubmitting(true)
+    try {
+      await onReplySubmitted(comment.id, replyText.trim())
+      setReplyText('')
+      setReplyOpen(false)
+      showSuccess('Yanıt eklendi.')
+    } catch (err) {
+      showError(err.message || 'Yanıt eklenemedi.')
+    } finally {
+      setReplySubmitting(false)
+    }
+  }
+
   return (
-    <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
+    <Box
+      sx={{
+        p: 2,
+        borderRadius: 2,
+        bgcolor: 'background.paper',
+        border: '1px solid',
+        borderColor: 'divider',
+        ...(isReply ? { ml: { xs: 2, sm: 4 }, borderColor: 'divider', bgcolor: 'action.hover' } : {})
+      }}
+    >
       <Stack direction="row" spacing={1.5}>
         <Avatar sx={{ width: 32, height: 32, fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
           {initialsFrom(comment.authorName || '')}
@@ -76,14 +180,23 @@ function CommentRow({ comment, user, token, onUpdated, onDeleted, showError, sho
                 {comment.createdAt ? new Date(comment.createdAt).toLocaleDateString('tr-TR') : ''}
               </Typography>
             </Box>
-            {manageable && !editing && (
+            {!editing && (
               <Stack direction="row" spacing={0.5}>
-                <IconButton size="small" onClick={() => { setText(comment.content); setEditing(true) }}>
-                  <EditOutlined fontSize="small" />
-                </IconButton>
-                <IconButton size="small" onClick={remove} disabled={deleting}>
-                  {deleting ? <CircularProgress size={16} /> : <DeleteOutline fontSize="small" />}
-                </IconButton>
+                {manageable && (
+                  <>
+                    <IconButton size="small" onClick={() => { setText(comment.content); setEditing(true) }}>
+                      <EditOutlined fontSize="small" />
+                    </IconButton>
+                    <IconButton size="small" onClick={remove} disabled={deleting}>
+                      {deleting ? <CircularProgress size={16} /> : <DeleteOutline fontSize="small" />}
+                    </IconButton>
+                  </>
+                )}
+                {!isOwnComment && (
+                  <IconButton size="small" onClick={() => onReport(comment.id)} title="Şikayet Et">
+                    <FlagOutlined fontSize="small" />
+                  </IconButton>
+                )}
               </Stack>
             )}
           </Stack>
@@ -106,12 +219,65 @@ function CommentRow({ comment, user, token, onUpdated, onDeleted, showError, sho
               </Stack>
             </Stack>
           ) : (
-            <Typography variant="body2" sx={{ mt: 0.5, whiteSpace: 'pre-line', wordBreak: 'break-word' }}>
-              {comment.content}
-            </Typography>
+            <>
+              <Typography variant="body2" sx={{ mt: 0.5, whiteSpace: 'pre-line', wordBreak: 'break-word' }}>
+                {comment.content}
+              </Typography>
+              {!isReply && (
+                <Button
+                  size="small"
+                  startIcon={<ReplyOutlined fontSize="small" />}
+                  onClick={() => setReplyOpen(o => !o)}
+                  sx={{ mt: 0.5, ml: -1, color: 'text.secondary' }}
+                >
+                  Yanıtla
+                </Button>
+              )}
+            </>
+          )}
+
+          {replyOpen && (
+            <Stack spacing={1} sx={{ mt: 1.5 }}>
+              <TextField
+                value={replyText}
+                onChange={e => setReplyText(e.target.value)}
+                placeholder={`${comment.authorName || 'Kullanıcı'} kişisine yanıt yaz...`}
+                multiline
+                minRows={2}
+                fullWidth
+                size="small"
+                autoFocus
+              />
+              <Stack direction="row" spacing={1}>
+                <Button size="small" variant="contained" onClick={submitReply} disabled={replySubmitting}>
+                  {replySubmitting ? <CircularProgress size={14} color="inherit" /> : 'Yanıtla'}
+                </Button>
+                <Button size="small" onClick={() => setReplyOpen(false)} disabled={replySubmitting}>İptal</Button>
+              </Stack>
+            </Stack>
           )}
         </Box>
       </Stack>
+
+      {!isReply && comment.replies?.length > 0 && (
+        <Stack spacing={1.5} sx={{ mt: 1.5 }}>
+          {comment.replies.map(reply => (
+            <CommentRow
+              key={reply.id}
+              comment={reply}
+              user={user}
+              token={token}
+              isReply
+              onUpdated={onUpdated}
+              onDeleted={onDeleted}
+              onReplySubmitted={onReplySubmitted}
+              onReport={onReport}
+              showError={showError}
+              showSuccess={showSuccess}
+            />
+          ))}
+        </Stack>
+      )}
     </Box>
   )
 }
@@ -140,6 +306,10 @@ export default function PostDetail() {
   const [editContent, setEditContent] = useState('')
   const [savingPost, setSavingPost] = useState(false)
   const [deletingPost, setDeletingPost] = useState(false)
+
+  // { open, type: 'post' | 'comment', targetId }
+  const [reportTarget, setReportTarget] = useState({ open: false, type: null, targetId: null })
+  const [reportSubmitting, setReportSubmitting] = useState(false)
 
   const loadPost = useCallback(() => {
     if (!token || !postId) return
@@ -188,11 +358,36 @@ export default function PostDetail() {
     }
   }
 
+  const submitReply = async (parentCommentId, content) => {
+    const reply = await createComment(token, postId, content, parentCommentId)
+    setComments(prev => addReplyToTree(prev, reply))
+  }
+
   const saveCommentUpdate = (updated) => {
-    setComments(prev => prev.map(c => (c.id === updated.id ? updated : c)))
+    setComments(prev => updateCommentInTree(prev, updated))
   }
   const removeComment = (id) => {
-    setComments(prev => prev.filter(c => c.id !== id))
+    setComments(prev => removeCommentFromTree(prev, id))
+  }
+
+  const openReportDialog = (type, targetId) => setReportTarget({ open: true, type, targetId })
+  const closeReportDialog = () => setReportTarget({ open: false, type: null, targetId: null })
+
+  const submitReport = async (reason) => {
+    setReportSubmitting(true)
+    try {
+      if (reportTarget.type === 'post') {
+        await reportPost(token, reportTarget.targetId, reason)
+      } else {
+        await reportComment(token, reportTarget.targetId, reason)
+      }
+      showSuccess('Şikayetiniz alındı, teşekkür ederiz.')
+      closeReportDialog()
+    } catch (err) {
+      showError(err.message || 'Şikayet gönderilemedi.')
+    } finally {
+      setReportSubmitting(false)
+    }
   }
 
   const savePostEdit = async () => {
@@ -244,6 +439,7 @@ export default function PostDetail() {
   }
 
   const manageable = canManage(user, post.authorId)
+  const isOwnPost = user?.id === post.authorId
   const edited = !!(post.updatedAt && post.createdAt && post.updatedAt !== post.createdAt)
 
   return (
@@ -256,6 +452,11 @@ export default function PostDetail() {
           Alt Gruba Dön
         </Typography>
       </Stack>
+
+      <Alert severity="info" icon={<InfoOutlined fontSize="small" />} sx={{ mb: 2 }}>
+        Bu sayfadaki paylaşımlar kullanıcı deneyimlerine dayanır, tıbbi tavsiye niteliği taşımaz.
+        Sağlığınızla ilgili kararlar için mutlaka bir sağlık profesyoneline danışın.
+      </Alert>
 
       <Box
         sx={{
@@ -276,14 +477,23 @@ export default function PostDetail() {
               {edited ? ' · düzenlendi' : ''}
             </Typography>
           </Box>
-          {manageable && !editingPost && (
+          {!editingPost && (
             <Stack direction="row" spacing={0.5}>
-              <IconButton size="small" onClick={() => { setEditTitle(post.title); setEditContent(post.content); setEditingPost(true) }}>
-                <EditOutlined fontSize="small" />
-              </IconButton>
-              <IconButton size="small" onClick={removePost} disabled={deletingPost}>
-                {deletingPost ? <CircularProgress size={16} /> : <DeleteOutline fontSize="small" />}
-              </IconButton>
+              {manageable && (
+                <>
+                  <IconButton size="small" onClick={() => { setEditTitle(post.title); setEditContent(post.content); setEditingPost(true) }}>
+                    <EditOutlined fontSize="small" />
+                  </IconButton>
+                  <IconButton size="small" onClick={removePost} disabled={deletingPost}>
+                    {deletingPost ? <CircularProgress size={16} /> : <DeleteOutline fontSize="small" />}
+                  </IconButton>
+                </>
+              )}
+              {!isOwnPost && (
+                <IconButton size="small" onClick={() => openReportDialog('post', post.id)} title="Şikayet Et">
+                  <FlagOutlined fontSize="small" />
+                </IconButton>
+              )}
             </Stack>
           )}
         </Stack>
@@ -368,6 +578,8 @@ export default function PostDetail() {
                 token={token}
                 onUpdated={saveCommentUpdate}
                 onDeleted={removeComment}
+                onReplySubmitted={submitReply}
+                onReport={id => openReportDialog('comment', id)}
                 showError={showError}
                 showSuccess={showSuccess}
               />
@@ -399,6 +611,13 @@ export default function PostDetail() {
           )}
         </Stack>
       )}
+
+      <ReportDialog
+        open={reportTarget.open}
+        onClose={closeReportDialog}
+        onSubmit={submitReport}
+        submitting={reportSubmitting}
+      />
     </Box>
   )
 }

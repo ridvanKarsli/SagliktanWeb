@@ -72,7 +72,7 @@ export default function ResponsiveShell({ children }) {
                 width: 40, 
                 height: 40, 
                 borderRadius: '12px',
-                boxShadow: '0 2px 8px rgba(11, 58, 78, 0.1)'
+                boxShadow: '0 2px 8px rgba(44, 117, 98, 0.12)'
               }}
             />
             <Typography 
@@ -104,11 +104,11 @@ export default function ResponsiveShell({ children }) {
                     borderRadius: 2.5,
                     cursor: 'pointer',
                     color: active ? 'primary.main' : 'text.secondary',
-                    bgcolor: active ? 'rgba(11, 58, 78, 0.06)' : 'transparent',
+                    bgcolor: active ? 'rgba(63, 156, 135, 0.10)' : 'transparent',
                     fontWeight: active ? 600 : 500,
                     transition: 'all 0.2s ease',
                     '&:hover': {
-                      bgcolor: active ? 'rgba(11, 58, 78, 0.08)' : 'rgba(11, 58, 78, 0.04)',
+                      bgcolor: active ? 'rgba(63, 156, 135, 0.14)' : 'rgba(63, 156, 135, 0.06)',
                       color: 'primary.main'
                     }
                   }}
@@ -147,9 +147,9 @@ export default function ResponsiveShell({ children }) {
               cursor: 'pointer',
               color: 'text.secondary',
               transition: 'all 0.2s ease',
-              '&:hover': { 
-                bgcolor: 'rgba(220, 53, 69, 0.06)', 
-                color: '#DC3545' 
+              '&:hover': {
+                bgcolor: 'rgba(196, 85, 74, 0.08)',
+                color: '#C4554A'
               }
             }}
           >
@@ -185,7 +185,7 @@ export default function ResponsiveShell({ children }) {
             borderTop: '1px solid',
             borderColor: 'divider',
             zIndex: theme.zIndex.appBar + 1,
-            boxShadow: '0 -4px 20px rgba(11, 58, 78, 0.08)'
+            boxShadow: '0 -4px 20px rgba(44, 117, 98, 0.10)'
           }}
         >
           <BottomNavigation

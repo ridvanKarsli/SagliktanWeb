@@ -13,12 +13,12 @@ const features = [
   {
     icon: Groups2Rounded,
     title: "Hastalık Grupları",
-    description: "İlgilendiğiniz hastalık gruplarına katılın, sizinle aynı yolu yürüyen kişileri bulun."
+    description: "İlgilendiğiniz hastalık grubuna katılın, sizinle aynı yolu yürüyen kişilerle tanışın."
   },
   {
     icon: Forum,
     title: "Topluluk Desteği",
-    description: "Benzer deneyimleri yaşayan kişilerle bağlantı kurun ve deneyimlerinizi paylaşın."
+    description: "Benzer deneyimleri yaşayan kişilerle bağlantı kurun, birbirinize destek olun."
   },
   {
     icon: MedicalServicesOutlined,
@@ -27,33 +27,33 @@ const features = [
   },
   {
     icon: Security,
-    title: "Güvenli Platform",
-    description: "Verileriniz güvende. Gizlilik önceliğimizdir."
+    title: "Güvenli ve Gizli",
+    description: "Verileriniz güvende, paylaşımlarınız yalnızca üyesi olduğunuz grupla sınırlı."
   }
 ]
 
 const steps = [
-  { number: "01", title: "Hesap Oluşturun", description: "Hızlı ve kolay kayıt süreci" },
-  { number: "02", title: "Profilinizi Tamamlayın", description: "Sağlık geçmişinizi ekleyin" },
-  { number: "03", title: "Topluluğa Katılın", description: "Paylaşın ve öğrenin" }
+  { number: "01", title: "Hesap Oluşturun", description: "Bir dakikadan kısa sürede, ücretsiz" },
+  { number: "02", title: "Grubunuzu Bulun", description: "İlgilendiğiniz hastalık grubuna katılın" },
+  { number: "03", title: "Paylaşın, Dinleyin", description: "Deneyiminizi anlatın, başkalarınınkinden öğrenin" }
 ]
 
 export default function WelcomeScreen() {
   const navigate = useNavigate()
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
-  
+
   return (
     <Box sx={{ bgcolor: "background.default", minHeight: "100vh" }}>
       {/* Header */}
-      <Box 
-        component="header" 
-        sx={{ 
+      <Box
+        component="header"
+        sx={{
           position: 'fixed',
           top: 0,
           left: 0,
           right: 0,
-          bgcolor: 'rgba(10, 15, 20, 0.95)',
+          bgcolor: 'rgba(251, 247, 241, 0.92)',
           backdropFilter: 'blur(8px)',
           zIndex: 1000,
           borderBottom: '1px solid',
@@ -61,33 +61,33 @@ export default function WelcomeScreen() {
         }}
       >
         <Container maxWidth="lg">
-          <Box sx={{ 
-            display: 'flex', 
-            alignItems: 'center', 
+          <Box sx={{
+            display: 'flex',
+            alignItems: 'center',
             justifyContent: 'space-between',
             py: 2
           }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-              <Box 
-                component="img" 
-                src="/sagliktanLogo.png" 
-                alt="Sağlıktan" 
-                sx={{ width: 40, height: 40, borderRadius: '10px' }} 
+              <Box
+                component="img"
+                src="/sagliktanLogo.png"
+                alt="Sağlıktan"
+                sx={{ width: 40, height: 40, borderRadius: '10px' }}
               />
               <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main' }}>
                 Sağlıktan
               </Typography>
             </Box>
             <Stack direction="row" spacing={1.5}>
-              <Button 
-                variant="text" 
+              <Button
+                variant="text"
                 onClick={() => navigate("/login")}
                 sx={{ display: { xs: 'none', sm: 'flex' } }}
               >
                 Giriş Yap
               </Button>
-              <Button 
-                variant="contained" 
+              <Button
+                variant="contained"
                 onClick={() => navigate("/register")}
                 size={isMobile ? "small" : "medium"}
               >
@@ -99,59 +99,59 @@ export default function WelcomeScreen() {
       </Box>
 
       {/* Hero Section */}
-      <Box 
-        sx={{ 
+      <Box
+        sx={{
           pt: { xs: 14, md: 18 },
           pb: { xs: 8, md: 12 },
-          background: 'linear-gradient(180deg, #0A0F14 0%, #131A22 100%)'
+          background: 'linear-gradient(180deg, #FBF7F1 0%, #F3ECE0 100%)'
         }}
       >
         <Container maxWidth="lg">
           <Grid container spacing={4} alignItems="center">
             <Grid item xs={12} md={6}>
               <Box sx={{ textAlign: { xs: 'center', md: 'left' } }}>
-                <Typography 
-                  variant="h1" 
-                  sx={{ 
+                <Typography
+                  variant="h1"
+                  sx={{
                     color: 'primary.main',
                     mb: 3,
                     fontSize: { xs: '2.25rem', sm: '2.75rem', md: '3.25rem' }
                   }}
                 >
-                  Sağlığınız İçin
+                  Bu Yolda
                   <Box component="span" sx={{ color: 'secondary.main', display: 'block' }}>
-                    Güvenilir Topluluk
+                    Yalnız Değilsiniz
                   </Box>
                 </Typography>
-                <Typography 
-                  variant="body1" 
-                  sx={{ 
-                    color: 'text.secondary', 
+                <Typography
+                  variant="body1"
+                  sx={{
+                    color: 'text.secondary',
                     mb: 4,
                     fontSize: { xs: '1rem', md: '1.125rem' },
                     maxWidth: 480,
                     mx: { xs: 'auto', md: 0 }
                   }}
                 >
-                  Kronik ve nadir hastalıklarla mücadele eden bireyleri hastalık
-                  gruplarında bir araya getiren güvenilir bir topluluk platformu.
+                  Kronik ve nadir hastalıklarla yaşayan bireyleri ve yakınlarını, birbirini
+                  gerçekten anlayan bir toplulukta bir araya getiriyoruz.
                 </Typography>
-                <Stack 
-                  direction={{ xs: 'column', sm: 'row' }} 
+                <Stack
+                  direction={{ xs: 'column', sm: 'row' }}
                   spacing={2}
                   justifyContent={{ xs: 'center', md: 'flex-start' }}
                 >
-                  <Button 
-                    variant="contained" 
+                  <Button
+                    variant="contained"
                     size="large"
                     onClick={() => navigate("/register")}
                     endIcon={<ArrowForward />}
                     sx={{ minWidth: 180 }}
                   >
-                    Hemen Başla
+                    Topluluğa Katıl
                   </Button>
-                  <Button 
-                    variant="outlined" 
+                  <Button
+                    variant="outlined"
                     size="large"
                     onClick={() => navigate("/login")}
                     sx={{ minWidth: 180 }}
@@ -159,12 +159,12 @@ export default function WelcomeScreen() {
                     Giriş Yap
                   </Button>
                 </Stack>
-                
+
                 {/* Trust indicators */}
-                <Stack 
-                  direction="row" 
-                  spacing={3} 
-                  sx={{ 
+                <Stack
+                  direction="row"
+                  spacing={3}
+                  sx={{
                     mt: 5,
                     justifyContent: { xs: 'center', md: 'flex-start' },
                     flexWrap: 'wrap',
@@ -172,8 +172,8 @@ export default function WelcomeScreen() {
                   }}
                 >
                   {[
-                    { icon: Groups, text: "Aktif Topluluk" },
-                    { icon: MedicalServicesOutlined, text: "Hastalık Grupları" }
+                    { icon: Groups, text: "Hastalık Grupları" },
+                    { icon: Security, text: "Gizlilik Odaklı" }
                   ].map((item, i) => (
                     <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <item.icon sx={{ color: 'secondary.main', fontSize: 20 }} />
@@ -186,39 +186,39 @@ export default function WelcomeScreen() {
               </Box>
             </Grid>
             <Grid item xs={12} md={6}>
-              <Box 
-                sx={{ 
+              <Box
+                sx={{
                   display: 'flex',
                   justifyContent: 'center',
                   alignItems: 'center',
                   position: 'relative'
                 }}
               >
-                {/* Lumo Mascot Illustration Area */}
+                {/* Logo illüstrasyon alanı */}
                 <Box
                   sx={{
                     width: { xs: 280, md: 400 },
                     height: { xs: 280, md: 400 },
                     borderRadius: '50%',
-                    background: 'linear-gradient(135deg, rgba(52, 195, 161, 0.1) 0%, rgba(27, 122, 133, 0.1) 100%)',
+                    background: 'linear-gradient(135deg, rgba(63, 156, 135, 0.14) 0%, rgba(217, 119, 87, 0.10) 100%)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     position: 'relative'
                   }}
                 >
-                  <Box 
-                    component="img" 
-                    src="/sagliktanLogo.png" 
-                    alt="Lumo" 
-                    sx={{ 
-                      width: { xs: 120, md: 160 }, 
+                  <Box
+                    component="img"
+                    src="/sagliktanLogo.png"
+                    alt="Sağlıktan"
+                    sx={{
+                      width: { xs: 120, md: 160 },
                       height: { xs: 120, md: 160 },
                       borderRadius: '24px',
-                      boxShadow: '0 16px 48px rgba(11, 58, 78, 0.15)'
-                    }} 
+                      boxShadow: '0 16px 48px rgba(44, 117, 98, 0.18)'
+                    }}
                   />
-                  {/* Floating elements */}
+                  {/* Yüzen ikon rozetleri */}
                   <Box sx={{
                     position: 'absolute',
                     top: '10%',
@@ -230,7 +230,7 @@ export default function WelcomeScreen() {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    boxShadow: '0 8px 24px rgba(52, 195, 161, 0.3)'
+                    boxShadow: '0 8px 24px rgba(217, 119, 87, 0.3)'
                   }}>
                     <Groups2Rounded sx={{ color: 'white', fontSize: 28 }} />
                   </Box>
@@ -245,7 +245,7 @@ export default function WelcomeScreen() {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    boxShadow: '0 8px 24px rgba(11, 58, 78, 0.2)'
+                    boxShadow: '0 8px 24px rgba(63, 156, 135, 0.25)'
                   }}>
                     <Forum sx={{ color: 'white', fontSize: 24 }} />
                   </Box>
@@ -263,9 +263,9 @@ export default function WelcomeScreen() {
             <Typography variant="h2" sx={{ color: 'primary.main', mb: 2 }}>
               Neden Sağlıktan?
             </Typography>
-            <Typography 
-              variant="body1" 
-              sx={{ 
+            <Typography
+              variant="body1"
+              sx={{
                 color: 'text.secondary',
                 maxWidth: 600,
                 mx: 'auto'
@@ -274,12 +274,12 @@ export default function WelcomeScreen() {
               Sağlık yolculuğunuzda yanınızda olmak için tasarlandı
             </Typography>
           </Box>
-          
+
           <Grid container spacing={3}>
             {features.map((feature, index) => (
               <Grid item xs={12} sm={6} md={3} key={index}>
-                <Box 
-                  sx={{ 
+                <Box
+                  sx={{
                     p: 3,
                     height: '100%',
                     borderRadius: 3,
@@ -289,18 +289,18 @@ export default function WelcomeScreen() {
                     borderColor: 'divider',
                     '&:hover': {
                       bgcolor: 'background.paper',
-                      borderColor: 'rgba(52, 195, 161, 0.3)',
+                      borderColor: 'rgba(63, 156, 135, 0.35)',
                       transform: 'translateY(-4px)',
-                      boxShadow: '0 12px 32px rgba(0, 0, 0, 0.3)'
+                      boxShadow: '0 12px 32px rgba(51, 47, 42, 0.10)'
                     }
                   }}
                 >
-                  <Box 
-                    sx={{ 
+                  <Box
+                    sx={{
                       width: 56,
                       height: 56,
                       borderRadius: 2,
-                      bgcolor: 'rgba(52, 195, 161, 0.1)',
+                      bgcolor: 'rgba(63, 156, 135, 0.12)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -333,16 +333,16 @@ export default function WelcomeScreen() {
               Üç basit adımda topluluğa katılın
             </Typography>
           </Box>
-          
+
           <Grid container spacing={4} justifyContent="center">
             {steps.map((step, index) => (
               <Grid item xs={12} sm={4} key={index}>
                 <Box sx={{ textAlign: 'center' }}>
-                  <Typography 
-                    sx={{ 
+                  <Typography
+                    sx={{
                       fontSize: '3.5rem',
                       fontWeight: 800,
-                      color: 'rgba(52, 195, 161, 0.2)',
+                      color: 'rgba(63, 156, 135, 0.22)',
                       lineHeight: 1,
                       mb: 2
                     }}
@@ -363,10 +363,10 @@ export default function WelcomeScreen() {
       </Box>
 
       {/* CTA Section */}
-      <Box 
-        sx={{ 
+      <Box
+        sx={{
           py: { xs: 8, md: 10 },
-          background: 'linear-gradient(135deg, #1B7A85 0%, #34C3A1 100%)'
+          background: 'linear-gradient(135deg, #2C7562 0%, #3F9C87 100%)'
         }}
       >
         <Container maxWidth="md">
@@ -374,32 +374,32 @@ export default function WelcomeScreen() {
             <Typography variant="h2" sx={{ color: 'white', mb: 2 }}>
               Sağlık Topluluğuna Katılın
             </Typography>
-            <Typography 
-              variant="body1" 
-              sx={{ 
-                color: 'rgba(255,255,255,0.8)', 
+            <Typography
+              variant="body1"
+              sx={{
+                color: 'rgba(255,255,255,0.85)',
                 mb: 4,
                 maxWidth: 500,
                 mx: 'auto'
               }}
             >
-              Binlerce kişi sağlık yolculuklarında birbirlerine destek oluyor. 
-              Siz de aramıza katılın.
+              Sağlık yolculuğunuzda yalnız değilsiniz. Aramıza katılın, sizi anlayan
+              bir topluluğun parçası olun.
             </Typography>
-            <Stack 
-              direction={{ xs: 'column', sm: 'row' }} 
+            <Stack
+              direction={{ xs: 'column', sm: 'row' }}
               spacing={2}
               justifyContent="center"
             >
-              <Button 
-                variant="contained" 
+              <Button
+                variant="contained"
                 size="large"
                 onClick={() => navigate("/register")}
-                sx={{ 
+                sx={{
                   bgcolor: 'secondary.main',
                   color: 'white',
                   minWidth: 200,
-                  '&:hover': { bgcolor: '#2A9E82' }
+                  '&:hover': { bgcolor: '#B85C3D' }
                 }}
               >
                 Ücretsiz Kayıt Ol
@@ -410,19 +410,19 @@ export default function WelcomeScreen() {
       </Box>
 
       {/* Footer */}
-      <Box 
-        component="footer" 
-        sx={{ 
-          py: 4, 
-          bgcolor: '#0A0F14',
-          color: 'text.primary',
+      <Box
+        component="footer"
+        sx={{
+          py: 4,
+          bgcolor: '#2C7562',
+          color: 'white',
           borderTop: '1px solid',
-          borderColor: 'divider'
+          borderColor: 'rgba(255,255,255,0.1)'
         }}
       >
         <Container maxWidth="lg">
-          <Box 
-            sx={{ 
+          <Box
+            sx={{
               display: 'flex',
               flexDirection: { xs: 'column', sm: 'row' },
               justifyContent: 'space-between',
@@ -431,36 +431,27 @@ export default function WelcomeScreen() {
             }}
           >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-              <Box 
-                component="img" 
-                src="/sagliktanLogo.png" 
-                alt="Sağlıktan" 
-                sx={{ width: 32, height: 32, borderRadius: '8px' }} 
+              <Box
+                component="img"
+                src="/sagliktanLogo.png"
+                alt="Sağlıktan"
+                sx={{ width: 32, height: 32, borderRadius: '8px' }}
               />
               <Typography variant="body2" sx={{ opacity: 0.9 }}>
                 © {new Date().getFullYear()} Sağlıktan. Tüm hakları saklıdır.
               </Typography>
             </Box>
             <Stack direction="row" spacing={3}>
-              <Typography 
-                variant="body2" 
-                sx={{ 
-                  opacity: 0.8, 
+              <Typography
+                variant="body2"
+                onClick={() => navigate('/gizlilik-politikasi')}
+                sx={{
+                  opacity: 0.85,
                   cursor: 'pointer',
                   '&:hover': { opacity: 1 }
                 }}
               >
                 Gizlilik Politikası
-              </Typography>
-              <Typography 
-                variant="body2" 
-                sx={{ 
-                  opacity: 0.8, 
-                  cursor: 'pointer',
-                  '&:hover': { opacity: 1 }
-                }}
-              >
-                Kullanım Koşulları
               </Typography>
             </Stack>
           </Box>

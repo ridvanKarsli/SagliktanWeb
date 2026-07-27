@@ -15,10 +15,10 @@ export default function ProtectedRoute({ children }) {
           justifyContent: 'center',
           alignItems: 'center',
           minHeight: '100vh',
-          backgroundColor: '#0a0e27'
+          backgroundColor: '#FBF7F1'
         }}
       >
-        <CircularProgress sx={{ color: '#34c3a1' }} />
+        <CircularProgress sx={{ color: '#3F9C87' }} />
       </Box>
     )
   }

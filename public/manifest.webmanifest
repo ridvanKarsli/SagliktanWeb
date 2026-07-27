@@ -5,9 +5,9 @@
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#071E28",
-  "theme_color": "#0ea5e9",
-  "description": "Sağlık odaklı sosyal paylaşım ve uzmanlarla etkileşim uygulaması.",
+  "background_color": "#FBF7F1",
+  "theme_color": "#3F9C87",
+  "description": "Hastalık gruplarında deneyim paylaşımı ve topluluk desteği uygulaması.",
   "icons": [
     {
       "src": "/sagliktanLogo.png",
