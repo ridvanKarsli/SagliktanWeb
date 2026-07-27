@@ -10,6 +10,7 @@ import PostDetail from './pages/PostDetail.jsx'
 import Search from './pages/Search.jsx'
 import Profile from './pages/profile/Profile.jsx'
 import ProtectedRoute from './components/ProtectedRoute.jsx'
+import PublicOnlyRoute from './components/PublicOnlyRoute.jsx'
 import ResponsiveShell from './components/ResponsiveShell.jsx'
 import WelcomeScreen from './components/WelcomeScreen.jsx'
 
@@ -28,10 +29,15 @@ function ProtectedLayout() {
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<WelcomeScreen />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
+      {/* "/" ve auth sayfaları: oturumu zaten açık bir kullanıcı buraya
+          gelirse (örn. sekmeyi kapatıp siteyi tekrar açtığında) doğrudan
+          /groups'a yönlendirilir - PublicOnlyRoute bunu sağlıyor. Aksi
+          halde geçerli bir oturum olsa bile her seferinde karşılama/giriş
+          sayfası görünüp kullanıcı yeniden giriş yapması gerektiğini sanır. */}
+      <Route path="/" element={<PublicOnlyRoute><WelcomeScreen /></PublicOnlyRoute>} />
+      <Route path="/login" element={<PublicOnlyRoute><Login /></PublicOnlyRoute>} />
+      <Route path="/register" element={<PublicOnlyRoute><Register /></PublicOnlyRoute>} />
+      <Route path="/forgot-password" element={<PublicOnlyRoute><ForgotPassword /></PublicOnlyRoute>} />
       <Route path="/gizlilik-politikasi" element={<PrivacyPolicy />} />
       <Route element={<ProtectedLayout />}>
         <Route path="/groups" element={<DiseaseGroups />} />
