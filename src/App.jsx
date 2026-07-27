@@ -9,6 +9,7 @@ import Posts from './pages/Posts.jsx'
 import PostDetail from './pages/PostDetail.jsx'
 import Search from './pages/Search.jsx'
 import Profile from './pages/profile/Profile.jsx'
+import UserProfile from './pages/profile/UserProfile.jsx'
 import ProtectedRoute from './components/ProtectedRoute.jsx'
 import PublicOnlyRoute from './components/PublicOnlyRoute.jsx'
 import ResponsiveShell from './components/ResponsiveShell.jsx'
@@ -46,6 +47,7 @@ export default function App() {
         <Route path="/post/:postId" element={<PostDetail />} />
         <Route path="/search" element={<Search />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/users/:userId" element={<UserProfile />} />
       </Route>
       <Route path="*" element={<WelcomeScreen />} />
     </Routes>

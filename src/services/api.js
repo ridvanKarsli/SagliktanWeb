@@ -135,6 +135,16 @@ export function getMyPosts(token, { page = 0, size, signal } = {}) {
   return request('/users/me/posts', { token, params: { page, size }, signal });
 }
 
+// --- Başka bir kullanıcının herkese açık profili ---
+
+export function getUserPublicProfile(token, id) {
+  return request(`/users/${id}`, { token });
+}
+
+export function getUserPosts(token, id, { page = 0, size, signal } = {}) {
+  return request(`/users/${id}/posts`, { token, params: { page, size }, signal });
+}
+
 // --- Hastalık grupları ---
 
 export function listDiseaseGroups(token, { signal } = {}) {

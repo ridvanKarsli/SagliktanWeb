@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   Alert, Box, Button, Chip, CircularProgress, Stack, Typography
 } from '@mui/material'
-import { GroupsRounded } from '@mui/icons-material'
+import { GroupsRounded, PeopleAltRounded } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
@@ -145,6 +145,12 @@ export default function DiseaseGroups() {
                       {joined && (
                         <Chip label="Katıldın" size="small" color="primary" variant="filled" sx={{ height: 20 }} />
                       )}
+                    </Stack>
+                    <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mb: 0.25 }}>
+                      <PeopleAltRounded sx={{ fontSize: 15, color: 'text.secondary' }} />
+                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                        {group.memberCount ?? 0} üye
+                      </Typography>
                     </Stack>
                     {group.description && (
                       <Typography

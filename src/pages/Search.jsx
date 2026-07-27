@@ -32,7 +32,7 @@ function truncate(text = '', max = 140) {
   return `${clean.slice(0, max).trimEnd()}…`
 }
 
-function CommentResultCard({ comment, onClick }) {
+function CommentResultCard({ comment, onClick, onAuthorClick }) {
   return (
     <Box
       onClick={onClick}
@@ -51,7 +51,11 @@ function CommentResultCard({ comment, onClick }) {
     >
       <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
         <ChatBubbleOutlineRounded sx={{ fontSize: 15, color: 'text.secondary' }} />
-        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+        <Typography
+          variant="caption"
+          onClick={(e) => { e.stopPropagation(); onAuthorClick?.(comment.authorId) }}
+          sx={{ color: 'text.secondary', fontWeight: 600, cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}
+        >
           {comment.authorName || 'Kullanıcı'}
         </Typography>
         <Typography variant="caption" sx={{ color: 'text.secondary' }}>
@@ -65,17 +69,22 @@ function CommentResultCard({ comment, onClick }) {
   )
 }
 
-function PersonResultCard({ person }) {
+function PersonResultCard({ person, onClick }) {
   const fullName = `${person.firstName || ''} ${person.lastName || ''}`.trim()
   return (
     <Box
+      onClick={onClick}
+      className="tap-scale"
       sx={{
         p: { xs: 2, md: 2.5 },
         mb: 1.5,
         borderRadius: 2,
         bgcolor: 'background.paper',
         border: '1px solid',
-        borderColor: 'divider'
+        borderColor: 'divider',
+        cursor: 'pointer',
+        transition: 'background-color 0.2s ease, border-color 0.2s ease',
+        '&:hover': { bgcolor: 'action.hover', borderColor: 'primary.main' }
       }}
     >
       <Stack direction="row" spacing={1.5} alignItems="center">
@@ -103,7 +112,7 @@ const emptyTabState = {
 }
 
 export default function Search() {
-  const { token } = useAuth()
+  const { token, user: currentUser } = useAuth()
   const { showError } = useNotification()
   const loc = useLocation()
   const navigate = useNavigate()
@@ -203,6 +212,15 @@ export default function Search() {
   const goToPost = (postId) => {
     setSuggestOpen(false)
     navigate(`/post/${postId}`)
+  }
+
+  const goToProfile = (userId) => {
+    setSuggestOpen(false)
+    if (currentUser && String(currentUser.id) === String(userId)) {
+      navigate('/profile')
+    } else {
+      navigate(`/users/${userId}`)
+    }
   }
 
   const hasAnySuggestions = suggestions && (
@@ -307,7 +325,8 @@ export default function Search() {
                     <Stack
                       key={u.id}
                       direction="row" spacing={1.25} alignItems="center"
-                      sx={{ p: 1, borderRadius: 1.5 }}
+                      onClick={() => goToProfile(u.id)}
+                      sx={{ p: 1, borderRadius: 1.5, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
                     >
                       <Avatar sx={{ width: 28, height: 28, fontSize: 12, fontWeight: 700 }}>
                         {initialsFrom(`${u.firstName || ''} ${u.lastName || ''}`)}
@@ -373,10 +392,15 @@ export default function Search() {
                 <PostCard key={post.id} post={post} onClick={() => navigate(`/post/${post.id}`)} />
               ))}
               {activeTab.key === 'comments' && activeState.results.map(c => (
-                <CommentResultCard key={c.id} comment={c} onClick={() => goToPost(c.postId)} />
+                <CommentResultCard
+                  key={c.id}
+                  comment={c}
+                  onClick={() => goToPost(c.postId)}
+                  onAuthorClick={goToProfile}
+                />
               ))}
               {activeTab.key === 'people' && activeState.results.map(p => (
-                <PersonResultCard key={p.id} person={p} />
+                <PersonResultCard key={p.id} person={p} onClick={() => goToProfile(p.id)} />
               ))}
 
               {activeState.totalPages > 1 && (

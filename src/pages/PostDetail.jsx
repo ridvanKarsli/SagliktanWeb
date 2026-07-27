@@ -10,9 +10,22 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useNotification } from '../context/NotificationContext.jsx'
 import {
-  createComment, deleteComment, deletePost, getPost, listComments, reportComment, reportPost,
-  updateComment, updatePost
+  createComment, deleteComment, deletePost, getMyDiseaseGroups, getPost, listComments,
+  reportComment, reportPost, updateComment, updatePost
 } from '../services/api.js'
+
+// Bir kullanıcının profiline git - kendi profilinse (App.jsx'te UserProfile
+// zaten /profile'a yönlendiriyor ama burada da direkt /profile'a göndermek
+// gereksiz bir ara sayfa atlamasını önler) tam yetkili /profile'a, başkası
+// için herkese açık /users/:id sayfasına.
+function goToUserProfile(navigate, currentUser, targetUserId) {
+  if (!targetUserId) return
+  if (currentUser && String(currentUser.id) === String(targetUserId)) {
+    navigate('/profile')
+  } else {
+    navigate(`/users/${targetUserId}`)
+  }
+}
 
 function initialsFrom(name = '') {
   const parts = name.trim().split(/\s+/).filter(Boolean)
@@ -105,7 +118,8 @@ function ReportDialog({ open, onClose, onSubmit, submitting }) {
 }
 
 function CommentRow({
-  comment, depth = 0, user, token, onUpdated, onReplySubmitted, onReport, showError, showSuccess
+  comment, depth = 0, user, token, canReply, onUpdated, onReplySubmitted, onReport, onAuthorClick,
+  showError, showSuccess
 }) {
   const [editing, setEditing] = useState(false)
   const [text, setText] = useState(comment.content)
@@ -188,16 +202,30 @@ function CommentRow({
       }}
     >
       <Stack direction="row" spacing={1.5}>
-        <Avatar sx={{ width: 32, height: 32, fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
+        <Avatar
+          onClick={!isDeleted ? () => onAuthorClick(comment.authorId) : undefined}
+          sx={{
+            width: 32, height: 32, fontSize: 13, fontWeight: 700, flexShrink: 0,
+            cursor: isDeleted ? 'default' : 'pointer'
+          }}
+        >
           {initialsFrom(comment.authorName || '')}
         </Avatar>
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
             <Box>
-              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+              <Typography
+                variant="subtitle2"
+                onClick={!isDeleted ? () => onAuthorClick(comment.authorId) : undefined}
+                sx={{
+                  fontWeight: 600, display: 'inline-block',
+                  cursor: isDeleted ? 'default' : 'pointer',
+                  '&:hover': isDeleted ? {} : { textDecoration: 'underline' }
+                }}
+              >
                 {comment.authorName || 'Kullanıcı'}
               </Typography>
-              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+              <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
                 {comment.createdAt ? new Date(comment.createdAt).toLocaleDateString('tr-TR') : ''}
               </Typography>
             </Box>
@@ -250,14 +278,16 @@ function CommentRow({
               >
                 {comment.content}
               </Typography>
-              <Button
-                size="small"
-                startIcon={<ReplyOutlined fontSize="small" />}
-                onClick={() => setReplyOpen(o => !o)}
-                sx={{ mt: 0.5, ml: -1, color: 'text.secondary' }}
-              >
-                Yanıtla
-              </Button>
+              {canReply && (
+                <Button
+                  size="small"
+                  startIcon={<ReplyOutlined fontSize="small" />}
+                  onClick={() => setReplyOpen(o => !o)}
+                  sx={{ mt: 0.5, ml: -1, color: 'text.secondary' }}
+                >
+                  Yanıtla
+                </Button>
+              )}
             </>
           )}
 
@@ -293,9 +323,11 @@ function CommentRow({
               depth={depth + 1}
               user={user}
               token={token}
+              canReply={canReply}
               onUpdated={onUpdated}
               onReplySubmitted={onReplySubmitted}
               onReport={onReport}
+              onAuthorClick={onAuthorClick}
               showError={showError}
               showSuccess={showSuccess}
             />
@@ -334,6 +366,23 @@ export default function PostDetail() {
   // { open, type: 'post' | 'comment', targetId }
   const [reportTarget, setReportTarget] = useState({ open: false, type: null, targetId: null })
   const [reportSubmitting, setReportSubmitting] = useState(false)
+
+  // Backend, bir hastalık grubuna üye olmayan kullanıcının o gruba ait
+  // postlara yorum yapmasını reddediyor (bkz. CommentServiceImpl.
+  // assertMemberOfGroup). Bunu önceden bilmeden yorum kutusunu göstermek,
+  // kullanıcının yazıp gönder deyince "yetkin yok" hatası almasına yol
+  // açıyordu - şimdi üyelik önceden kontrol edilip kutu hiç gösterilmiyor.
+  const [myGroupIds, setMyGroupIds] = useState(null) // null = henüz bilinmiyor
+  useEffect(() => {
+    if (!token) return
+    let mounted = true
+    getMyDiseaseGroups(token)
+      .then(groups => { if (mounted) setMyGroupIds(new Set((Array.isArray(groups) ? groups : []).map(g => g.id))) })
+      .catch(() => { if (mounted) setMyGroupIds(new Set()) })
+    return () => { mounted = false }
+  }, [token])
+
+  const goToProfile = useCallback((authorId) => goToUserProfile(navigate, user, authorId), [navigate, user])
 
   const loadPost = useCallback(() => {
     if (!token || !postId) return
@@ -462,6 +511,9 @@ export default function PostDetail() {
   const manageable = canManage(user, post.authorId)
   const isOwnPost = user?.id === post.authorId
   const edited = !!(post.updatedAt && post.createdAt && post.updatedAt !== post.createdAt)
+  // Üyelik henüz yükleniyorsa (myGroupIds === null) yorum kutusunu
+  // gösterip sonra "yetkin yok" hatası almasın diye şimdilik gizli tutuyoruz.
+  const isMember = myGroupIds != null && myGroupIds.has(post.diseaseGroupId)
 
   return (
     <Box sx={{ py: { xs: 2, md: 4 } }}>
@@ -486,14 +538,21 @@ export default function PostDetail() {
         }}
       >
         <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2 }}>
-          <Avatar sx={{ width: 40, height: 40, fontWeight: 700 }}>
+          <Avatar
+            onClick={() => goToProfile(post.authorId)}
+            sx={{ width: 40, height: 40, fontWeight: 700, cursor: 'pointer' }}
+          >
             {initialsFrom(post.authorName || '')}
           </Avatar>
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+            <Typography
+              variant="subtitle2"
+              onClick={() => goToProfile(post.authorId)}
+              sx={{ fontWeight: 600, display: 'inline-block', cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}
+            >
               {post.authorName || 'Kullanıcı'}
             </Typography>
-            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
               {post.createdAt ? new Date(post.createdAt).toLocaleDateString('tr-TR') : ''}
               {edited ? ' · düzenlendi' : ''}
             </Typography>
@@ -559,26 +618,41 @@ export default function PostDetail() {
         Yorumlar
       </Typography>
 
-      <Box component="form" onSubmit={submitComment} sx={{ mb: 3 }}>
-        <Stack spacing={1.5}>
-          <TextField
-            placeholder="Yorumunu yaz..."
-            value={newComment}
-            onChange={e => setNewComment(e.target.value)}
-            multiline
-            minRows={2}
-            fullWidth
-          />
-          <Button
-            type="submit"
-            variant="contained"
-            disabled={postingComment}
-            sx={{ alignSelf: 'flex-end' }}
-          >
-            {postingComment ? <CircularProgress size={16} color="inherit" /> : 'Yorum Yap'}
-          </Button>
-        </Stack>
-      </Box>
+      {myGroupIds != null && !isMember ? (
+        <Alert
+          severity="info"
+          sx={{ mb: 3 }}
+          action={
+            <Button color="inherit" size="small" onClick={() => navigate(`/groups/${post.diseaseGroupId}`)}>
+              Gruba Git
+            </Button>
+          }
+        >
+          Yorum yapabilmek için bu hastalık grubuna üye olmalısın.
+        </Alert>
+      ) : (
+        <Box component="form" onSubmit={submitComment} sx={{ mb: 3 }}>
+          <Stack spacing={1.5}>
+            <TextField
+              placeholder="Yorumunu yaz..."
+              value={newComment}
+              onChange={e => setNewComment(e.target.value)}
+              multiline
+              minRows={2}
+              fullWidth
+              disabled={!isMember}
+            />
+            <Button
+              type="submit"
+              variant="contained"
+              disabled={postingComment || !isMember}
+              sx={{ alignSelf: 'flex-end' }}
+            >
+              {postingComment ? <CircularProgress size={16} color="inherit" /> : 'Yorum Yap'}
+            </Button>
+          </Stack>
+        </Box>
+      )}
 
       {commentsLoading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
@@ -598,9 +672,11 @@ export default function PostDetail() {
                 depth={0}
                 user={user}
                 token={token}
+                canReply={isMember}
                 onUpdated={saveCommentUpdate}
                 onReplySubmitted={submitReply}
                 onReport={id => openReportDialog('comment', id)}
+                onAuthorClick={goToProfile}
                 showError={showError}
                 showSuccess={showSuccess}
               />
