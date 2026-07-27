@@ -15,17 +15,17 @@ html {
 
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  background-color: #FBF7F1;
-  color: #332F2A;
+  background-color: #1E1A16;
+  color: #F2EDE6;
 }
 
 ::selection {
-  background-color: #3F9C87;
-  color: #FFFFFF;
+  background-color: #4CB89F;
+  color: #1E1A16;
 }
 
 :focus-visible {
-  outline: 2px solid #3F9C87;
+  outline: 2px solid #4CB89F;
   outline-offset: 2px;
 }
 
@@ -34,24 +34,24 @@ body {
   box-sizing: border-box;
 }
 
-/* Scrollbar Styling - Light/Warm Mode */
+/* Scrollbar Styling - Sıcak Dark Mode */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #F3ECE0;
+  background: #2A241F;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #D8CFC0;
+  background: #453C33;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #C4B9A6;
+  background: #574C40;
 }
 
 /* Mobile Optimizations */

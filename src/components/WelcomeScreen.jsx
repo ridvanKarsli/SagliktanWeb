@@ -53,7 +53,7 @@ export default function WelcomeScreen() {
           top: 0,
           left: 0,
           right: 0,
-          bgcolor: 'rgba(251, 247, 241, 0.92)',
+          bgcolor: 'rgba(30, 26, 22, 0.92)',
           backdropFilter: 'blur(8px)',
           zIndex: 1000,
           borderBottom: '1px solid',
@@ -103,7 +103,7 @@ export default function WelcomeScreen() {
         sx={{
           pt: { xs: 14, md: 18 },
           pb: { xs: 8, md: 12 },
-          background: 'linear-gradient(180deg, #FBF7F1 0%, #F3ECE0 100%)'
+          background: 'linear-gradient(180deg, #1E1A16 0%, #2A241F 100%)'
         }}
       >
         <Container maxWidth="lg">
@@ -289,9 +289,9 @@ export default function WelcomeScreen() {
                     borderColor: 'divider',
                     '&:hover': {
                       bgcolor: 'background.paper',
-                      borderColor: 'rgba(63, 156, 135, 0.35)',
+                      borderColor: 'rgba(76, 184, 159, 0.35)',
                       transform: 'translateY(-4px)',
-                      boxShadow: '0 12px 32px rgba(51, 47, 42, 0.10)'
+                      boxShadow: '0 12px 32px rgba(0, 0, 0, 0.32)'
                     }
                   }}
                 >

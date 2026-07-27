@@ -8,7 +8,7 @@ html, body, #root {
 }
 
 body {
-  background: #FBF7F1; /* Sıcak krem zemin */
+  background: #1E1A16; /* Sıcak espresso zemin */
   margin: 0;
   position: relative;
 }
@@ -16,7 +16,7 @@ body {
 :root { --safe-bottom: env(safe-area-inset-bottom, 0px); }
 
 :focus-visible {
-  outline: 2px solid rgba(63,156,135,0.9);
+  outline: 2px solid rgba(76,184,159,0.9);
   outline-offset: 2px;
   border-radius: 8px;
 }

@@ -78,10 +78,10 @@ export default function LumoNotification({ message, type = 'info', onClose, dura
         mx: 'auto',
         borderRadius: 2.5,
         overflow: 'hidden',
-        bgcolor: '#FFFFFF',
+        bgcolor: '#2A241F',
         backdropFilter: 'blur(16px) saturate(1.2)',
         border: `1px solid ${cfg.border}`,
-        boxShadow: `0 8px 28px rgba(51, 47, 42, 0.16), 0 0 0 1px ${cfg.border}`,
+        boxShadow: `0 8px 28px rgba(0, 0, 0, 0.4), 0 0 0 1px ${cfg.border}`,
         opacity: entering || exiting ? 0 : 1,
         transform: entering || exiting ? 'translateY(16px) scale(0.97)' : 'translateY(0) scale(1)',
         transition: 'opacity 0.3s cubic-bezier(.4,0,.2,1), transform 0.3s cubic-bezier(.4,0,.2,1)',
@@ -113,7 +113,7 @@ export default function LumoNotification({ message, type = 'info', onClose, dura
             fontSize: { xs: '0.82rem', sm: '0.88rem' },
             fontWeight: 500,
             lineHeight: 1.5,
-            color: '#332F2A',
+            color: '#F2EDE6',
             wordBreak: 'break-word',
           }}
         >
@@ -128,10 +128,10 @@ export default function LumoNotification({ message, type = 'info', onClose, dura
           onClick={triggerExit}
           aria-label="Bildirimi kapat"
           sx={{
-            color: 'rgba(51,47,42,0.4)',
+            color: 'rgba(242,237,230,0.45)',
             width: 28,
             height: 28,
-            '&:hover': { color: 'rgba(51,47,42,0.8)', bgcolor: 'rgba(51,47,42,0.06)' },
+            '&:hover': { color: 'rgba(242,237,230,0.85)', bgcolor: 'rgba(242,237,230,0.08)' },
           }}
         >
           <CloseIcon sx={{ fontSize: 16 }} />

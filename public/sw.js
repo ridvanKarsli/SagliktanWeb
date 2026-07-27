@@ -1,12 +1,17 @@
-const CACHE_NAME = 'sagliktan-pwa-v2';
+// v3: eski Heroku backend'ine göre yazılmış API_ORIGIN kontrolü artık geçersizdi
+// (frontend artık /api/* isteklerini vercel.json rewrite ile SAME-ORIGIN olarak
+// atıyor, ayrı bir origin'e değil). Bu yüzden API istekleri hiçbir zaman
+// "farklı origin" dalına düşmüyor, "aynı origin statik dosya" dalına düşüp
+// cache-first ile SONSUZA KADAR eski veri döndürüyordu - gruba katılma/gönderi
+// paylaşma gibi işlemler DB'de başarılı oluyor ama arayüz güncellenmiyordu.
+// Düzeltme: API isteklerini origin yerine /api/ path'ine göre tanı.
+const CACHE_NAME = 'sagliktan-pwa-v3';
 const ASSETS = [
   '/',
   '/index.html',
   '/manifest.webmanifest',
   '/sagliktanLogo.png'
 ];
-
-const API_ORIGIN = 'https://saglikta-7d7a2dbc0cf4.herokuapp.com';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -29,8 +34,9 @@ self.addEventListener('fetch', (event) => {
   // POST ve diğer yazan istekleri hiç ele alma
   if (request.method !== 'GET') return;
 
-  // API isteklerini cache'leme (her zaman ağdan çek)
-  if (url.origin === API_ORIGIN) {
+  // API isteklerini cache'leme (her zaman ağdan çek). Same-origin proxy
+  // (vercel.json rewrite) kullanıldığı için origin değil, path kontrol edilir.
+  if (url.pathname.startsWith('/api/')) {
     event.respondWith(
       fetch(request).catch(() => caches.match(request))
     );

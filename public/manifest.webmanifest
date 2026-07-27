@@ -5,8 +5,8 @@
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#FBF7F1",
-  "theme_color": "#3F9C87",
+  "background_color": "#1E1A16",
+  "theme_color": "#1E1A16",
   "description": "Hastalık gruplarında deneyim paylaşımı ve topluluk desteği uygulaması.",
   "icons": [
     {
