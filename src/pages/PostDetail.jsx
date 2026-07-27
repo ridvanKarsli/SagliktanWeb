@@ -30,32 +30,37 @@ function canManage(user, authorId) {
 }
 
 // --- Yorum ağacı yardımcıları ---
-// listByPost sadece üst-seviye yorumları döndürür, her birinin yanıtları
-// kendi `replies` alanında gömülü gelir (bkz. backend CommentController).
+// listByPost sadece üst-seviye yorumları sayfalar; her yorumun (ve onun
+// yanıtlarının, sınırsız derinlikte) tamamı kendi `replies` alanında gömülü
+// gelir (bkz. backend CommentResponse.buildTree). Bu yüzden ağaç üzerinde
+// güncelleme/ekleme yaparken de recursive gezinmemiz gerekiyor.
 
 function updateCommentInTree(comments, updated) {
   return comments.map(c => {
     if (c.id === updated.id) return { ...c, ...updated }
-    if (c.replies?.some(r => r.id === updated.id)) {
-      return { ...c, replies: c.replies.map(r => (r.id === updated.id ? { ...r, ...updated } : r)) }
-    }
+    if (c.replies?.length) return { ...c, replies: updateCommentInTree(c.replies, updated) }
     return c
   })
 }
 
-function removeCommentFromTree(comments, id) {
-  return comments
-    .filter(c => c.id !== id)
-    .map(c => ({ ...c, replies: (c.replies || []).filter(r => r.id !== id) }))
-}
+// Not: yorum silme artık backend'de soft delete (bkz. CommentServiceImpl.delete) -
+// satır kaybolmuyor, "[Bu yorum silindi]" placeholder'ına dönüşüyor ki altındaki
+// yanıt zinciri kopmasın. Bu yüzden burada bir "ağaçtan çıkar" fonksiyonuna
+// gerek yok, silme de updateCommentInTree ile işleniyor.
 
-// Backend, yanıta-yanıtı otomatik olarak en üstteki yoruma bağlar; bu yüzden
-// yeni yanıtı eklerken hangi yoruma tıklandığına değil, sunucunun döndürdüğü
-// gerçek parentCommentId'ye güveniyoruz.
 function addReplyToTree(comments, reply) {
   const parentId = reply.parentCommentId
-  return comments.map(c => (c.id === parentId ? { ...c, replies: [...(c.replies || []), reply] } : c))
+  return comments.map(c => {
+    if (c.id === parentId) return { ...c, replies: [...(c.replies || []), reply] }
+    if (c.replies?.length) return { ...c, replies: addReplyToTree(c.replies, reply) }
+    return c
+  })
 }
+
+// Reddit/Twitter tarzı: bir noktadan sonra girinti artmasın diye (mobilde
+// yatay taşmayı önlemek için) görsel derinlik sınırlanıyor - yapısal
+// derinlik (backend'de) sınırsız kalmaya devam ediyor.
+const MAX_VISUAL_INDENT_DEPTH = 4
 
 // Şikayet için ortak dialog: post ya da yorum, tek bir bileşenle karşılanıyor.
 function ReportDialog({ open, onClose, onSubmit, submitting }) {
@@ -100,7 +105,7 @@ function ReportDialog({ open, onClose, onSubmit, submitting }) {
 }
 
 function CommentRow({
-  comment, user, token, isReply = false, onUpdated, onDeleted, onReplySubmitted, onReport, showError, showSuccess
+  comment, depth = 0, user, token, onUpdated, onReplySubmitted, onReport, showError, showSuccess
 }) {
   const [editing, setEditing] = useState(false)
   const [text, setText] = useState(comment.content)
@@ -109,8 +114,14 @@ function CommentRow({
   const [replyOpen, setReplyOpen] = useState(false)
   const [replyText, setReplyText] = useState('')
   const [replySubmitting, setReplySubmitting] = useState(false)
-  const manageable = canManage(user, comment.authorId)
+
+  const isDeleted = !!comment.deleted
+  const manageable = !isDeleted && canManage(user, comment.authorId)
   const isOwnComment = user?.id === comment.authorId
+  const isReply = depth > 0
+  // Belli bir seviyeden sonra girinti artmasın diye (mobilde yatay taşma
+  // olmasın) - yapısal derinlik sınırsız, sadece görsel girinti sınırlı.
+  const indented = depth > 0 && depth <= MAX_VISUAL_INDENT_DEPTH
 
   const saveEdit = async () => {
     if (!text.trim()) { showError('Yorum boş olamaz.'); return }
@@ -132,10 +143,14 @@ function CommentRow({
     setDeleting(true)
     try {
       await deleteComment(token, comment.id)
-      onDeleted(comment.id)
+      // Backend soft delete yapıyor (satır kalıyor, içerik placeholder'a
+      // dönüyor) ki altındaki yanıt zinciri kopmasın - aynısını burada da
+      // uyguluyoruz, ağaçtan çıkarmıyoruz.
+      onUpdated({ ...comment, deleted: true, content: '[Bu yorum silindi]' })
       showSuccess('Yorum silindi.')
     } catch (err) {
       showError(err.message || 'Yorum silinemedi.')
+    } finally {
       setDeleting(false)
     }
   }
@@ -160,10 +175,16 @@ function CommentRow({
       sx={{
         p: 2,
         borderRadius: 2,
-        bgcolor: 'background.paper',
+        bgcolor: isReply ? 'action.hover' : 'background.paper',
         border: '1px solid',
         borderColor: 'divider',
-        ...(isReply ? { ml: { xs: 2, sm: 4 }, borderColor: 'divider', bgcolor: 'action.hover' } : {})
+        ...(isReply
+          ? {
+              ml: indented ? { xs: 2, sm: 3.5 } : 0,
+              borderLeft: '2px solid',
+              borderLeftColor: 'primary.main'
+            }
+          : {})
       }}
     >
       <Stack direction="row" spacing={1.5}>
@@ -180,7 +201,7 @@ function CommentRow({
                 {comment.createdAt ? new Date(comment.createdAt).toLocaleDateString('tr-TR') : ''}
               </Typography>
             </Box>
-            {!editing && (
+            {!editing && !isDeleted && (
               <Stack direction="row" spacing={0.5}>
                 {manageable && (
                   <>
@@ -220,19 +241,23 @@ function CommentRow({
             </Stack>
           ) : (
             <>
-              <Typography variant="body2" sx={{ mt: 0.5, whiteSpace: 'pre-line', wordBreak: 'break-word' }}>
+              <Typography
+                variant="body2"
+                sx={{
+                  mt: 0.5, whiteSpace: 'pre-line', wordBreak: 'break-word',
+                  ...(isDeleted ? { fontStyle: 'italic', color: 'text.secondary' } : {})
+                }}
+              >
                 {comment.content}
               </Typography>
-              {!isReply && (
-                <Button
-                  size="small"
-                  startIcon={<ReplyOutlined fontSize="small" />}
-                  onClick={() => setReplyOpen(o => !o)}
-                  sx={{ mt: 0.5, ml: -1, color: 'text.secondary' }}
-                >
-                  Yanıtla
-                </Button>
-              )}
+              <Button
+                size="small"
+                startIcon={<ReplyOutlined fontSize="small" />}
+                onClick={() => setReplyOpen(o => !o)}
+                sx={{ mt: 0.5, ml: -1, color: 'text.secondary' }}
+              >
+                Yanıtla
+              </Button>
             </>
           )}
 
@@ -259,17 +284,16 @@ function CommentRow({
         </Box>
       </Stack>
 
-      {!isReply && comment.replies?.length > 0 && (
+      {comment.replies?.length > 0 && (
         <Stack spacing={1.5} sx={{ mt: 1.5 }}>
           {comment.replies.map(reply => (
             <CommentRow
               key={reply.id}
               comment={reply}
+              depth={depth + 1}
               user={user}
               token={token}
-              isReply
               onUpdated={onUpdated}
-              onDeleted={onDeleted}
               onReplySubmitted={onReplySubmitted}
               onReport={onReport}
               showError={showError}
@@ -365,9 +389,6 @@ export default function PostDetail() {
 
   const saveCommentUpdate = (updated) => {
     setComments(prev => updateCommentInTree(prev, updated))
-  }
-  const removeComment = (id) => {
-    setComments(prev => removeCommentFromTree(prev, id))
   }
 
   const openReportDialog = (type, targetId) => setReportTarget({ open: true, type, targetId })
@@ -574,10 +595,10 @@ export default function PostDetail() {
               <CommentRow
                 key={c.id}
                 comment={c}
+                depth={0}
                 user={user}
                 token={token}
                 onUpdated={saveCommentUpdate}
-                onDeleted={removeComment}
                 onReplySubmitted={submitReply}
                 onReport={id => openReportDialog('comment', id)}
                 showError={showError}

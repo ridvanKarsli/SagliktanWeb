@@ -181,6 +181,20 @@ export function searchPosts(token, q, { page = 0, size, signal } = {}) {
   return request('/posts/search', { token, params: { q, page, size }, signal });
 }
 
+export function searchComments(token, q, { page = 0, size, signal } = {}) {
+  return request('/comments/search', { token, params: { q, page, size }, signal });
+}
+
+export function searchUsers(token, q, { page = 0, size, signal } = {}) {
+  return request('/users/search', { token, params: { q, page, size }, signal });
+}
+
+// Twitter tarzı birleşik "hızlı arama": tek istekte post/yorum/kişiden en
+// alakalı ilk birkaçını bir arada döner - yazarken öneri (dropdown) için.
+export function quickSearch(token, q, { signal } = {}) {
+  return request('/search', { token, params: { q }, signal });
+}
+
 export function getPost(token, id) {
   return request(`/posts/${id}`, { token });
 }

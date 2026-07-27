@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react'
 import {
-  Alert, Avatar, Box, Button, Chip, CircularProgress, Collapse, IconButton,
+  Alert, Avatar, Box, Button, Chip, CircularProgress, Collapse, Divider, IconButton,
   Stack, TextField, Typography
 } from '@mui/material'
-import { EditOutlined, GroupsRounded, LockOutlined, WarningAmberRounded } from '@mui/icons-material'
+import {
+  ChevronRightRounded, EditOutlined, GroupsRounded, LockOutlined, LogoutRounded,
+  PrivacyTipOutlined, WarningAmberRounded
+} from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
@@ -21,6 +24,36 @@ function initialsFrom(name = '') {
     return ((s[0] || '') + (s[1] || '')).toUpperCase()
   }
   return '?'
+}
+
+// Ayarlar sekmesindeki her satır (şifre, gizlilik, çıkış, hesap silme) için
+// ortak tıklanabilir satır bileşeni.
+function SettingsRow({ icon, label, onClick, danger, open }) {
+  return (
+    <Box
+      onClick={onClick}
+      sx={{
+        display: 'flex', alignItems: 'center', gap: 1.5,
+        px: 1.5, py: 1.25, borderRadius: 1.5, cursor: 'pointer',
+        color: danger ? 'error.main' : 'text.primary',
+        '&:hover': { bgcolor: danger ? 'rgba(196,85,74,0.08)' : 'action.hover' }
+      }}
+    >
+      <Box sx={{ display: 'flex', color: danger ? 'error.main' : 'text.secondary' }}>
+        {icon}
+      </Box>
+      <Typography variant="body2" sx={{ flex: 1, fontWeight: 500 }}>
+        {label}
+      </Typography>
+      <ChevronRightRounded
+        sx={{
+          fontSize: 20, color: 'text.secondary',
+          transform: open ? 'rotate(90deg)' : 'none',
+          transition: 'transform 0.15s ease'
+        }}
+      />
+    </Box>
+  )
 }
 
 export default function Profile() {
@@ -140,6 +173,12 @@ export default function Profile() {
     }
   }
 
+  /* ---- Ayarlar: çıkış yap ---- */
+  const handleLogout = async () => {
+    await logout()
+    navigate('/')
+  }
+
   if (!user) {
     return (
       <Box sx={{ display: 'grid', placeItems: 'center', minHeight: 300, py: 6 }}>
@@ -204,41 +243,6 @@ export default function Profile() {
             </Box>
           </Box>
         </Collapse>
-
-        {/* Şifre değiştirme */}
-        <Section
-          title="Güvenlik"
-          actionIcon={<LockOutlined sx={{ fontSize: 20 }} />}
-          onActionClick={() => setPwOpen(o => !o)}
-        >
-          <Collapse in={pwOpen} unmountOnExit>
-            <Box component="form" onSubmit={savePassword} sx={{ p: 2.5, borderRadius: 2, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>Şifre Değiştir</Typography>
-              <Stack spacing={2}>
-                <TextField
-                  label="Mevcut Şifre" type="password" value={currentPassword}
-                  onChange={e => setCurrentPassword(e.target.value)} fullWidth required
-                />
-                <TextField
-                  label="Yeni Şifre" type="password" value={newPassword}
-                  onChange={e => setNewPassword(e.target.value)} fullWidth required
-                  helperText="En az 8 karakter"
-                />
-                <Stack direction="row" spacing={1}>
-                  <Button type="submit" variant="contained" disabled={savingPassword}>
-                    {savingPassword ? <CircularProgress size={16} color="inherit" /> : 'Şifreyi Değiştir'}
-                  </Button>
-                  <Button onClick={() => setPwOpen(false)} disabled={savingPassword}>İptal</Button>
-                </Stack>
-              </Stack>
-            </Box>
-          </Collapse>
-          {!pwOpen && (
-            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-              Şifreni değiştirmek için kilit simgesine dokun.
-            </Typography>
-          )}
-        </Section>
 
         {/* Hastalık gruplarım */}
         <Section title="Hastalık Gruplarım">
@@ -319,44 +323,87 @@ export default function Profile() {
           )}
         </Box>
 
-        {/* Hesabı deaktive et */}
-        <Box sx={{ px: { xs: 0.5, md: 0 } }}>
-          <Box sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'error.main', bgcolor: 'rgba(196,85,74,0.06)' }}>
-            <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1.5 }}>
-              <WarningAmberRounded sx={{ color: 'error.main' }} />
-              <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                Tehlikeli Bölge
-              </Typography>
+        {/* Ayarlar: şifre, gizlilik, çıkış, hesap silme - hepsi tek yerde */}
+        <Section title="Ayarlar">
+          <Box sx={{ borderRadius: 2, border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
+            <Stack divider={<Divider />}>
+              <Box>
+                <SettingsRow
+                  icon={<LockOutlined sx={{ fontSize: 20 }} />}
+                  label="Şifre Değiştir"
+                  open={pwOpen}
+                  onClick={() => setPwOpen(o => !o)}
+                />
+                <Collapse in={pwOpen} unmountOnExit>
+                  <Box component="form" onSubmit={savePassword} sx={{ p: 2.5, pt: 0.5 }}>
+                    <Stack spacing={2}>
+                      <TextField
+                        label="Mevcut Şifre" type="password" value={currentPassword}
+                        onChange={e => setCurrentPassword(e.target.value)} fullWidth required size="small"
+                      />
+                      <TextField
+                        label="Yeni Şifre" type="password" value={newPassword}
+                        onChange={e => setNewPassword(e.target.value)} fullWidth required size="small"
+                        helperText="En az 8 karakter"
+                      />
+                      <Stack direction="row" spacing={1}>
+                        <Button type="submit" variant="contained" size="small" disabled={savingPassword}>
+                          {savingPassword ? <CircularProgress size={16} color="inherit" /> : 'Şifreyi Değiştir'}
+                        </Button>
+                        <Button size="small" onClick={() => setPwOpen(false)} disabled={savingPassword}>İptal</Button>
+                      </Stack>
+                    </Stack>
+                  </Box>
+                </Collapse>
+              </Box>
+
+              <SettingsRow
+                icon={<PrivacyTipOutlined sx={{ fontSize: 20 }} />}
+                label="Gizlilik Politikası"
+                onClick={() => navigate('/gizlilik-politikasi')}
+              />
+
+              <SettingsRow
+                icon={<LogoutRounded sx={{ fontSize: 20 }} />}
+                label="Çıkış Yap"
+                onClick={handleLogout}
+              />
+
+              <Box>
+                <SettingsRow
+                  icon={<WarningAmberRounded sx={{ fontSize: 20 }} />}
+                  label="Hesabımı Deaktive Et"
+                  danger
+                  open={deactivateConfirm}
+                  onClick={() => setDeactivateConfirm(o => !o)}
+                />
+                <Collapse in={deactivateConfirm} unmountOnExit>
+                  <Box sx={{ p: 2.5, pt: 0.5 }}>
+                    <Alert severity="warning" sx={{ mb: 0 }}>
+                      <Stack spacing={1.5}>
+                        <Typography variant="body2">
+                          Hesabını deaktive edersen oturumun kapatılır ve tekrar giriş yapamazsın.
+                          Bu işlem geri alınamaz.
+                        </Typography>
+                        <Stack direction="row" spacing={1}>
+                          <Button
+                            variant="contained" color="error" size="small"
+                            onClick={doDeactivate} disabled={deactivating}
+                          >
+                            {deactivating ? <CircularProgress size={14} color="inherit" /> : 'Evet, Deaktive Et'}
+                          </Button>
+                          <Button size="small" onClick={() => setDeactivateConfirm(false)} disabled={deactivating}>
+                            Vazgeç
+                          </Button>
+                        </Stack>
+                      </Stack>
+                    </Alert>
+                  </Box>
+                </Collapse>
+              </Box>
             </Stack>
-            <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
-              Hesabını deaktive edersen oturumun kapatılır ve hesabına tekrar giriş yapamazsın.
-            </Typography>
-            {!deactivateConfirm ? (
-              <Button variant="outlined" color="error" onClick={() => setDeactivateConfirm(true)}>
-                Hesabımı Deaktive Et
-              </Button>
-            ) : (
-              <Alert severity="warning" sx={{ mb: 0 }}>
-                <Stack spacing={1.5}>
-                  <Typography variant="body2">
-                    Bu işlem geri alınamaz. Emin misin?
-                  </Typography>
-                  <Stack direction="row" spacing={1}>
-                    <Button
-                      variant="contained" color="error" size="small"
-                      onClick={doDeactivate} disabled={deactivating}
-                    >
-                      {deactivating ? <CircularProgress size={14} color="inherit" /> : 'Evet, Deaktive Et'}
-                    </Button>
-                    <Button size="small" onClick={() => setDeactivateConfirm(false)} disabled={deactivating}>
-                      Vazgeç
-                    </Button>
-                  </Stack>
-                </Stack>
-              </Alert>
-            )}
           </Box>
-        </Box>
+        </Section>
       </Stack>
     </Box>
   )

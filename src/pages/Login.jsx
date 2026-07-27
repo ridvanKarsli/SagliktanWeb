@@ -165,9 +165,9 @@ export default function Login() {
                   placeholder="••••••••"
                 />
 
-                <Box sx={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between', 
+                <Box sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
                   alignItems: 'center',
                   flexWrap: 'wrap',
                   gap: 1
@@ -178,21 +178,28 @@ export default function Login() {
                         checked={rememberMe}
                         onChange={(e) => setRememberMe(e.target.checked)}
                         size="small"
-                        sx={{ 
+                        sx={{
                           color: 'text.secondary',
                           '&.Mui-checked': { color: 'secondary.main' }
                         }}
                       />
                     }
                     label="Beni hatırla"
-                    sx={{ 
+                    sx={{
                       m: 0,
-                      '& .MuiFormControlLabel-label': { 
-                        fontSize: '0.875rem', 
-                        color: 'text.secondary' 
-                      } 
+                      '& .MuiFormControlLabel-label': {
+                        fontSize: '0.875rem',
+                        color: 'text.secondary'
+                      }
                     }}
                   />
+                  <Link
+                    component={RouterLink}
+                    to="/forgot-password"
+                    sx={{ fontSize: '0.875rem', color: 'secondary.main', fontWeight: 600, '&:hover': { color: 'primary.main' } }}
+                  >
+                    Şifremi Unuttum
+                  </Link>
                 </Box>
 
                 <Button 

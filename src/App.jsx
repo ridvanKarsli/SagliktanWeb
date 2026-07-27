@@ -1,6 +1,7 @@
 import { Routes, Route, Outlet } from 'react-router-dom'
 import Login from './pages/Login.jsx'
 import Register from './pages/Register.jsx'
+import ForgotPassword from './pages/ForgotPassword.jsx'
 import PrivacyPolicy from './pages/PrivacyPolicy.jsx'
 import DiseaseGroups from './pages/groups/DiseaseGroups.jsx'
 import SubGroups from './pages/groups/SubGroups.jsx'
@@ -30,6 +31,7 @@ export default function App() {
       <Route path="/" element={<WelcomeScreen />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/gizlilik-politikasi" element={<PrivacyPolicy />} />
       <Route element={<ProtectedLayout />}>
         <Route path="/groups" element={<DiseaseGroups />} />
