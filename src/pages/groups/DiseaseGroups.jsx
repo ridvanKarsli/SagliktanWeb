@@ -115,6 +115,7 @@ export default function DiseaseGroups() {
               <Box
                 key={group.id}
                 onClick={() => navigate(`/groups/${group.id}`)}
+                className="tap-scale"
                 sx={{
                   p: { xs: 2, md: 2.5 },
                   borderRadius: 2,

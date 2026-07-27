@@ -36,6 +36,7 @@ function CommentResultCard({ comment, onClick }) {
   return (
     <Box
       onClick={onClick}
+      className="tap-scale"
       sx={{
         p: { xs: 2, md: 2.5 },
         mb: 1.5,

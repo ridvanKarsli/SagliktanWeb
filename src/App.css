@@ -59,8 +59,37 @@ body {
   html {
     font-size: 16px;
   }
-  
+
   body {
     -webkit-text-size-adjust: 100%;
+  }
+}
+
+/* Sayfa geçişi: her route değişiminde içerik yumuşakça belirsin - native
+   app'lerdeki gibi ani "flaş" yerine tatlı bir giriş hissi versin. */
+@keyframes page-fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.page-transition {
+  animation: page-fade-in 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Tıklanabilir kartlarda/butonlarda hafif "basılma" hissi - dokunmatik
+   ekranda gerçek bir uygulama düğmesine bastığın hissini verir. */
+@media (hover: none) {
+  .tap-scale {
+    transition: transform 0.12s ease;
+  }
+  .tap-scale:active {
+    transform: scale(0.97);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-transition,
+  .tap-scale {
+    animation: none !important;
+    transition: none !important;
   }
 }

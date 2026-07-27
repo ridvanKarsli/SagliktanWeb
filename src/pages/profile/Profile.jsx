@@ -32,6 +32,7 @@ function SettingsRow({ icon, label, onClick, danger, open }) {
   return (
     <Box
       onClick={onClick}
+      className="tap-scale"
       sx={{
         display: 'flex', alignItems: 'center', gap: 1.5,
         px: 1.5, py: 1.25, borderRadius: 1.5, cursor: 'pointer',

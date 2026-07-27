@@ -46,7 +46,9 @@ export function NotificationProvider({ children }) {
       <Box
         sx={{
           position: 'fixed',
-          top: { xs: 12, sm: 20 },
+          // Ana ekrana eklenip tam ekran açıldığında bildirim çentik/durum
+          // çubuğunun altında kalmasın diye safe-area payı ekleniyor.
+          top: { xs: 'calc(12px + env(safe-area-inset-top))', sm: 'calc(20px + env(safe-area-inset-top))' },
           right: { xs: 0, sm: 20 },
           left: { xs: 0, sm: 'auto' },
           zIndex: 9999,

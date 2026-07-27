@@ -161,15 +161,57 @@ export default function ResponsiveShell({ children }) {
       )}
 
       {/* Content */}
-      <Box 
-        sx={{ 
-          flexGrow: 1, 
+      <Box
+        sx={{
+          flexGrow: 1,
           ml: { md: `${SIDEBAR_WIDTH}px` },
           pb: { xs: `calc(${MOBILE_NAV_HEIGHT}px + env(safe-area-inset-bottom) + 8px)`, md: 0 },
           minHeight: '100vh'
         }}
       >
-        <Box sx={{ maxWidth: 720, mx: 'auto', width: '100%', px: { xs: 2, sm: 3 } }}>
+        {/* Mobil üst bar - sabit, logo + marka adı. Native app'lerdeki üst
+            bar + alt sekme çubuğu ikilisini taklit ediyor. Ana ekrana
+            eklenip tam ekran açıldığında çentik/durum çubuğu alanını da
+            bu bar karşılıyor (safe-area-inset-top); normal tarayıcı
+            sekmesinde bu değer 0 olduğu için görünüm değişmiyor. */}
+        {!isMdUp && (
+          <Box
+            component="header"
+            onClick={() => navigate('/groups')}
+            sx={{
+              position: 'sticky',
+              top: 0,
+              zIndex: theme.zIndex.appBar,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1.25,
+              px: 2,
+              pt: 'calc(10px + env(safe-area-inset-top))',
+              pb: 1.25,
+              bgcolor: 'background.paper',
+              borderBottom: '1px solid',
+              borderColor: 'divider',
+              cursor: 'pointer'
+            }}
+          >
+            <Avatar
+              src="/sagliktanLogo.png"
+              alt="Sağlıktan"
+              sx={{ width: 28, height: 28, borderRadius: '8px' }}
+            />
+            <Typography
+              sx={{ fontWeight: 700, fontSize: '0.9375rem', color: 'primary.main', letterSpacing: '-0.01em' }}
+            >
+              Sağlıktan
+            </Typography>
+          </Box>
+        )}
+
+        <Box
+          key={location.pathname}
+          className="page-transition"
+          sx={{ maxWidth: 720, mx: 'auto', width: '100%', px: { xs: 2, sm: 3 } }}
+        >
           {children}
         </Box>
       </Box>

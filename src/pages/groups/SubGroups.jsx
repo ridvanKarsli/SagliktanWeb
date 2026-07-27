@@ -89,6 +89,7 @@ export default function SubGroups() {
             <Box
               key={sub.id}
               onClick={() => navigate(`/sub-groups/${sub.id}`)}
+              className="tap-scale"
               sx={{
                 p: { xs: 2, md: 2.5 },
                 borderRadius: 2,

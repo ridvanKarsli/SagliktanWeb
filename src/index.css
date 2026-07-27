@@ -13,7 +13,17 @@ body {
   position: relative;
 }
 
-:root { --safe-bottom: env(safe-area-inset-bottom, 0px); }
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Ana ekrana eklenip tam ekran (standalone) çalışırken tarayıcının kendi
+   "geri kaydırınca sayfayı yenile" / lastik gibi zıplama efekti olmasın -
+   native app hissini bozan en büyük detaylardan biri budur. */
+html, body {
+  overscroll-behavior-y: contain;
+}
 
 :focus-visible {
   outline: 2px solid rgba(76,184,159,0.9);
