@@ -10,6 +10,7 @@ import {
 } from '@mui/icons-material'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
+import InstallPrompt from './InstallPrompt.jsx'
 
 const SIDEBAR_WIDTH = 240
 const MOBILE_NAV_HEIGHT = 64
@@ -229,6 +230,8 @@ export default function ResponsiveShell({ children }) {
           <Box sx={{ height: 'env(safe-area-inset-bottom)', bgcolor: 'background.paper' }} />
         </Box>
       )}
+
+      <InstallPrompt />
     </Box>
   )
 }

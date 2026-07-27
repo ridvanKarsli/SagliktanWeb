@@ -114,7 +114,14 @@ export function AuthProvider({ children }) {
         setUser(mapUser(profile))
       } catch (err) {
         console.warn('[AuthContext] oturum geri yüklenemedi:', err)
-        removeAuthStorage()
+        // Sadece gerçek bir auth hatasında (401/403 - token geçersiz ya da
+        // süresi gerçekten dolmuş) storage'ı temizle. Ağ hatası, zaman aşımı
+        // ya da geçici bir sunucu hatasında (örn. mobil veride kısa kesinti)
+        // kullanıcıyı gereksiz yere çıkışa zorlamayalım - refresh token
+        // localStorage'da kalsın, bir sonraki ziyarette tekrar denensin.
+        if (err?.status === 401 || err?.status === 403) {
+          removeAuthStorage()
+        }
       } finally {
         if (mounted) setLoading(false)
       }

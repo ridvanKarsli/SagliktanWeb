@@ -338,6 +338,9 @@ export default function Search() {
         <Tabs
           value={tabIndex}
           onChange={(_, v) => setTabIndex(v)}
+          variant="scrollable"
+          scrollButtons="auto"
+          allowScrollButtonsMobile
           sx={{ mb: 2, borderBottom: '1px solid', borderColor: 'divider' }}
         >
           {TABS.map(t => (
