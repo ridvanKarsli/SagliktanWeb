@@ -26,4 +26,13 @@ export default defineConfig([
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
     },
   },
+  {
+    // Playwright config + E2E test dosyaları tarayıcıda değil Node'da
+    // çalışıyor (page/browser API'leri Playwright test runner'ından gelir,
+    // process.env de config'te ortam değişkeni okumak için kullanılıyor).
+    files: ['playwright.config.js', 'e2e/**/*.js'],
+    languageOptions: {
+      globals: { ...globals.node },
+    },
+  },
 ])
