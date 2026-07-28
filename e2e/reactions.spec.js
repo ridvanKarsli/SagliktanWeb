@@ -97,7 +97,15 @@ test.describe('Reaksiyonlar (Faydalı / Faydalı Değil)', () => {
 
     // Yorumun kendi reaksiyon satırı en sonda (.last()) - gönderinin
     // sayacını etkilememeli.
-    await page.getByRole('button', { name: 'Faydalı', exact: true }).last().click()
+    // GEÇİCİ TEŞHİS: yorum metni görünür olsa bile CommentRow'un kendi
+    // ReactionButtons'ı (yorumun "Faydalı" butonu) henüz DOM'a
+    // eklenmemiş/stabilize olmamış olabilir - explicit count bekleyerek
+    // hem olası bir race'i tolere ediyoruz hem de eğer gerçek bir render
+    // sorunuysa (buton hiç 2'ye çıkmıyorsa) net bir timeout hatasıyla
+    // görünür kılıyoruz.
+    const faydaliButtons = page.getByRole('button', { name: 'Faydalı', exact: true })
+    await expect(faydaliButtons).toHaveCount(2, { timeout: 10000 })
+    await faydaliButtons.last().click()
     await expect(page.getByTestId('reaction-helpful-count').last()).toHaveText('1')
     await expect(page.getByTestId('reaction-helpful-count').first()).toHaveText('1') // gönderi değişmedi
   })
