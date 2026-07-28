@@ -21,9 +21,17 @@ test.describe('Gelişmiş arama', () => {
     await page.getByPlaceholder('Ara...').press('Enter')
 
     await expect(page.getByRole('tab', { name: 'Gönderiler' })).toBeVisible()
-    await expect(page.getByText(`${uniqueWord} başlığı`)).toBeVisible()
+    // NOT: getByText yerine getByRole('heading', ...) kullanıyoruz. Enter'a
+    // basınca hızlı arama (quick search) öneri kutusu suggestOpen=false ile
+    // kapanıyor ama MUI'nin <Fade> bileşeni unmountOnExit olmadan sadece
+    // opacity'yi 0'a indiriyor - eleman DOM'da (ve Playwright'a göre hâlâ
+    // "visible") kalmaya devam ediyor. Öneri kutusundaki post başlığı body2
+    // (<p>) iken asıl sonuç kartındaki başlık subtitle1 (<h6>) - heading
+    // rolüyle hedefleyince bu görünmez-ama-DOM'da-duran kopya sorunu ortadan
+    // kalkıyor (bkz. E2E #8).
+    await expect(page.getByRole('heading', { name: `${uniqueWord} başlığı` })).toBeVisible()
 
-    await page.getByText(`${uniqueWord} başlığı`).click()
+    await page.getByRole('heading', { name: `${uniqueWord} başlığı` }).click()
     await expect(page).toHaveURL(/\/post\/\d+$/)
   })
 
@@ -36,9 +44,11 @@ test.describe('Gelişmiş arama', () => {
     await page.getByPlaceholder('Ara...').press('Enter')
 
     await page.getByRole('tab', { name: 'Kişiler' }).click()
-    await expect(page.getByText(`${user.firstName} ${user.lastName}`)).toBeVisible()
+    // NOT: aynı Fade/quick-search kopya sorunu kişi sonucu için de geçerli
+    // (bkz. yukarıdaki test'teki not) - heading rolüyle kesinleştiriyoruz.
+    await expect(page.getByRole('heading', { name: `${user.firstName} ${user.lastName}` })).toBeVisible()
 
-    await page.getByText(`${user.firstName} ${user.lastName}`).click()
+    await page.getByRole('heading', { name: `${user.firstName} ${user.lastName}` }).click()
     await expect(page).toHaveURL(/\/profile$/)
   })
 
