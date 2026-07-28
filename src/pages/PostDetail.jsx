@@ -262,7 +262,7 @@ function CommentRow({
                 fullWidth
                 size="small"
               />
-              <Stack direction="row" spacing={1}>
+              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                 <Button size="small" variant="contained" onClick={saveEdit} disabled={saving}>
                   {saving ? <CircularProgress size={14} color="inherit" /> : 'Kaydet'}
                 </Button>
@@ -314,7 +314,7 @@ function CommentRow({
                 size="small"
                 autoFocus
               />
-              <Stack direction="row" spacing={1}>
+              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                 <Button size="small" variant="contained" onClick={submitReply} disabled={replySubmitting}>
                   {replySubmitting ? <CircularProgress size={14} color="inherit" /> : 'Yanıtla'}
                 </Button>
@@ -606,7 +606,7 @@ export default function PostDetail() {
               multiline
               minRows={4}
             />
-            <Stack direction="row" spacing={1}>
+            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
               <Button variant="contained" onClick={savePostEdit} disabled={savingPost}>
                 {savingPost ? <CircularProgress size={16} color="inherit" /> : 'Kaydet'}
               </Button>

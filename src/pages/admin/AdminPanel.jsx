@@ -3,8 +3,9 @@ import {
   Accordion, AccordionDetails, AccordionSummary, Box, Button, Chip, CircularProgress, Dialog,
   DialogActions, DialogContent, DialogTitle, FormControlLabel, IconButton, MenuItem, Stack, Switch,
   Tab, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tabs, TextField,
-  ToggleButton, ToggleButtonGroup, Typography
+  ToggleButton, ToggleButtonGroup, Typography, useMediaQuery
 } from '@mui/material'
+import { useTheme } from '@mui/material/styles'
 import { DeleteOutline, EditOutlined, ExpandMoreRounded } from '@mui/icons-material'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
@@ -57,7 +58,50 @@ function DashboardTab({ token }) {
   )
 }
 
+function ReportActions({ r, actingId, act, deleteContent }) {
+  if (r.status !== 'PENDING') return null
+  return (
+    <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+      <Button size="small" disabled={actingId === r.id} onClick={() => act(r.id, 'REVIEWED')}>
+        İncelendi
+      </Button>
+      <Button size="small" color="inherit" disabled={actingId === r.id} onClick={() => act(r.id, 'REJECTED')}>
+        Reddet
+      </Button>
+      <Button size="small" color="error" disabled={actingId === r.id} onClick={() => deleteContent(r)}>
+        İçeriği Sil
+      </Button>
+    </Stack>
+  )
+}
+
+function ReportCard({ r, actingId, act, deleteContent }) {
+  return (
+    <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
+      <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1} sx={{ mb: 1 }}>
+        <Chip size="small" label={r.targetType === 'POST' ? 'Gönderi' : 'Yorum'} />
+        <Chip size="small" label={REPORT_STATUS_LABEL[r.status] || r.status} color={REPORT_STATUS_COLOR[r.status] || 'default'} />
+      </Stack>
+      <Typography variant="body2" sx={{ mb: 1, wordBreak: 'break-word' }}>{r.targetPreview}</Typography>
+      <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
+        Sahibi: {r.targetOwnerName || '—'}
+      </Typography>
+      <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', mb: r.reason ? 0.5 : 1.5 }}>
+        Şikayet Eden: {r.reporterName}
+      </Typography>
+      {r.reason && (
+        <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', mb: 1.5, wordBreak: 'break-word' }}>
+          Sebep: {r.reason}
+        </Typography>
+      )}
+      <ReportActions r={r} actingId={actingId} act={act} deleteContent={deleteContent} />
+    </Box>
+  )
+}
+
 function ReportsTab({ token }) {
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
   const [status, setStatus] = useState('PENDING')
   const [reports, setReports] = useState([])
   const [loading, setLoading] = useState(true)
@@ -108,6 +152,15 @@ function ReportsTab({ token }) {
 
       {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress size={22} /></Box>
+      ) : isMobile ? (
+        <Stack spacing={1.5}>
+          {reports.length === 0 && (
+            <Typography variant="body2" sx={{ color: 'text.secondary', textAlign: 'center', py: 4 }}>Kayıt yok.</Typography>
+          )}
+          {reports.map(r => (
+            <ReportCard key={r.id} r={r} actingId={actingId} act={act} deleteContent={deleteContent} />
+          ))}
+        </Stack>
       ) : (
         <TableContainer sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
           <Table size="small">
@@ -137,19 +190,9 @@ function ReportsTab({ token }) {
                     <Chip size="small" label={REPORT_STATUS_LABEL[r.status] || r.status} color={REPORT_STATUS_COLOR[r.status] || 'default'} />
                   </TableCell>
                   <TableCell align="right">
-                    {r.status === 'PENDING' && (
-                      <Stack direction="row" spacing={1} justifyContent="flex-end">
-                        <Button size="small" disabled={actingId === r.id} onClick={() => act(r.id, 'REVIEWED')}>
-                          İncelendi
-                        </Button>
-                        <Button size="small" color="inherit" disabled={actingId === r.id} onClick={() => act(r.id, 'REJECTED')}>
-                          Reddet
-                        </Button>
-                        <Button size="small" color="error" disabled={actingId === r.id} onClick={() => deleteContent(r)}>
-                          İçeriği Sil
-                        </Button>
-                      </Stack>
-                    )}
+                    <Stack direction="row" spacing={1} justifyContent="flex-end">
+                      <ReportActions r={r} actingId={actingId} act={act} deleteContent={deleteContent} />
+                    </Stack>
                   </TableCell>
                 </TableRow>
               ))}
@@ -217,7 +260,28 @@ function EditUserDialog({ user, onClose, onSaved, token }) {
   )
 }
 
+function UserCard({ u, onEdit }) {
+  return (
+    <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
+      <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
+        <Box sx={{ minWidth: 0 }}>
+          <Typography variant="body2" sx={{ fontWeight: 600 }}>{u.firstName} {u.lastName}</Typography>
+          <Typography variant="caption" sx={{ color: 'text.secondary', wordBreak: 'break-word' }}>{u.email}</Typography>
+        </Box>
+        <Button size="small" onClick={() => onEdit(u)} sx={{ flexShrink: 0 }}>Düzenle</Button>
+      </Stack>
+      <Stack direction="row" spacing={1} sx={{ mt: 1.5 }} flexWrap="wrap" useFlexGap>
+        <Chip size="small" label={u.role} color={u.role === 'ADMIN' ? 'primary' : 'default'} />
+        <Chip size="small" label={u.active ? 'Aktif' : 'Pasif'} color={u.active ? 'success' : 'default'} />
+        <Chip size="small" variant="outlined" label={u.emailVerified ? 'Doğrulanmış' : 'Doğrulanmamış'} />
+      </Stack>
+    </Box>
+  )
+}
+
 function UsersTab({ token }) {
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
   const [q, setQ] = useState('')
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
@@ -244,6 +308,15 @@ function UsersTab({ token }) {
 
       {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress size={22} /></Box>
+      ) : isMobile ? (
+        <Stack spacing={1.5}>
+          {users.length === 0 && (
+            <Typography variant="body2" sx={{ color: 'text.secondary', textAlign: 'center', py: 4 }}>Kayıt yok.</Typography>
+          )}
+          {users.map(u => (
+            <UserCard key={u.id} u={u} onEdit={setEditing} />
+          ))}
+        </Stack>
       ) : (
         <TableContainer sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
           <Table size="small">
@@ -295,7 +368,38 @@ function UsersTab({ token }) {
   )
 }
 
+function ContentCard({ item, type, deletingId, remove }) {
+  return (
+    <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
+      {type === 'posts' && (
+        <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5, wordBreak: 'break-word' }}>{item.title}</Typography>
+      )}
+      <Typography variant="body2" sx={{ mb: 1, wordBreak: 'break-word', color: type === 'posts' ? 'text.secondary' : 'text.primary' }}>
+        {item.content}
+      </Typography>
+      <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1}>
+        <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+          <Typography variant="caption" sx={{ color: 'text.secondary' }}>{item.authorName}</Typography>
+          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+            {item.createdAt ? new Date(item.createdAt).toLocaleDateString('tr-TR') : ''}
+          </Typography>
+          {type === 'comments' && (
+            <Chip size="small" label={item.deleted ? 'Silinmiş' : 'Aktif'} color={item.deleted ? 'default' : 'success'} />
+          )}
+        </Stack>
+        {!(type === 'comments' && item.deleted) && (
+          <Button size="small" color="error" disabled={deletingId === item.id} onClick={() => remove(item)}>
+            Sil
+          </Button>
+        )}
+      </Stack>
+    </Box>
+  )
+}
+
 function ContentTab({ token }) {
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
   const [type, setType] = useState('posts') // 'posts' | 'comments'
   const [q, setQ] = useState('')
   const [items, setItems] = useState([])
@@ -346,6 +450,15 @@ function ContentTab({ token }) {
 
       {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress size={22} /></Box>
+      ) : isMobile ? (
+        <Stack spacing={1.5}>
+          {items.length === 0 && (
+            <Typography variant="body2" sx={{ color: 'text.secondary', textAlign: 'center', py: 4 }}>Kayıt yok.</Typography>
+          )}
+          {items.map(item => (
+            <ContentCard key={item.id} item={item} type={type} deletingId={deletingId} remove={remove} />
+          ))}
+        </Stack>
       ) : (
         <TableContainer sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
           <Table size="small">
@@ -620,7 +733,14 @@ export default function AdminPanel() {
   return (
     <Box sx={{ py: { xs: 2, md: 4 } }}>
       <Typography variant="h4" sx={{ fontWeight: 700, mb: 2 }}>Admin Paneli</Typography>
-      <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ borderBottom: '1px solid', borderColor: 'divider', mb: 1 }}>
+      <Tabs
+        value={tab}
+        onChange={(_, v) => setTab(v)}
+        variant="scrollable"
+        scrollButtons="auto"
+        allowScrollButtonsMobile
+        sx={{ borderBottom: '1px solid', borderColor: 'divider', mb: 1 }}
+      >
         <Tab value="dashboard" label="Genel Bakış" />
         <Tab value="reports" label="Şikayetler" />
         <Tab value="content" label="İçerik" />

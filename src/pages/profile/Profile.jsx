@@ -347,7 +347,7 @@ export default function Profile() {
                         onChange={e => setNewPassword(e.target.value)} fullWidth required size="small"
                         helperText="En az 8 karakter"
                       />
-                      <Stack direction="row" spacing={1}>
+                      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                         <Button type="submit" variant="contained" size="small" disabled={savingPassword}>
                           {savingPassword ? <CircularProgress size={16} color="inherit" /> : 'Şifreyi Değiştir'}
                         </Button>
@@ -386,7 +386,7 @@ export default function Profile() {
                           Hesabını deaktive edersen oturumun kapatılır ve tekrar giriş yapamazsın.
                           Bu işlem geri alınamaz.
                         </Typography>
-                        <Stack direction="row" spacing={1}>
+                        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                           <Button
                             variant="contained" color="error" size="small"
                             onClick={doDeactivate} disabled={deactivating}

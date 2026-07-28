@@ -121,6 +121,16 @@ jobs:
         working-directory: frontend
         env:
           CI: true
+          # KRİTİK: playwright.config.js'in webServer'ı burada "vite build &&
+          # vite preview" çalıştırıyor - yani PROD build. notificationSocket.js
+          # WS URL'ini import.meta.env.DEV'e göre seçiyor ve DEV=false olduğu
+          # için (build-time flag, "vite preview" runtime'ıyla ilgisi yok) bu
+          # değişken olmadan gerçek production'a (wss://api.sagliktan.com/ws)
+          # bağlanmaya çalışırdı - CI'daki local backend'e değil. Sonuç: bildirim
+          # WS push'ları hiç bu tarayıcıya ulaşmıyordu, badge hep "0" kalıp
+          # notifications.spec.js testleri 10s timeout'ta başarısız oluyordu
+          # (bkz. 2026-07-28 playwright-report + backend log analizi).
+          VITE_WS_BASE: "ws://localhost:8080/ws"
         run: npx playwright test
 
       - name: Playwright raporunu yükle

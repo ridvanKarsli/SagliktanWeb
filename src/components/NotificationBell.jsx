@@ -39,7 +39,7 @@ export default function NotificationBell() {
         onClose={handleClose}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-        slotProps={{ paper: { sx: { width: 340, maxHeight: 420 } } }}
+        slotProps={{ paper: { sx: { width: { xs: 'calc(100vw - 32px)', sm: 340 }, maxWidth: 400, maxHeight: 420 } } }}
       >
         <Box sx={{ px: 2, py: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
