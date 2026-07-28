@@ -60,7 +60,11 @@ export default function ReactionButtons({
       } else {
         await onReact(value)
       }
-    } catch {
+    } catch (err) {
+      // Sessizce yutmak yerine logla - aksi halde optimistic UI eski
+      // haline dönüyor ama neden başarısız olduğu (401/403/500/network)
+      // hiçbir yerde görünmüyor, teşhis imkansız hale geliyor.
+      console.error('Reaksiyon isteği başarısız:', err)
       // Başarısızsa eski haline geri al.
       setLocal({ helpfulCount: wasHelpful, notHelpfulCount: wasNotHelpful, myReaction: current })
     } finally {

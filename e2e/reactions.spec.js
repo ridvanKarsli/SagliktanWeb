@@ -1,6 +1,22 @@
 import { test, expect } from '@playwright/test'
 import { registerAndLogin, uniqueUser, joinSeedGroup, SEED_GROUP, SEED_SUB_GROUP } from './helpers.js'
 
+// GEÇİCİ TEŞHİS: reaksiyon isteklerinin gerçek HTTP durumunu/gövdesini
+// GitHub Actions'ın "E2E testlerini çalıştır" step log'una yazdırır.
+// ReactionButtons optimistic UI kullanıyor ve hata durumunda sessizce eski
+// haline dönüyordu (konsola bile düşmüyordu) - bu yüzden testin kendisi
+// "1'de takılı kaldı" gibi dolaylı bir belirti veriyor, asıl neden (401/
+// 403/500/vs.) görünmüyordu. Kök neden bulunup fix doğrulanınca kaldırılmalı
+// (bkz. 2026-07-28 bildirim WS teşhisinde aynı yöntem).
+function logReactionResponses(page) {
+  page.on('response', async (res) => {
+    if (!res.url().includes('/reactions')) return
+    let body = ''
+    try { body = await res.text() } catch { /* ignore */ }
+    console.log(`[reaction ${res.request().method()} ${res.status()}] ${res.url()} -> ${body}`)
+  })
+}
+
 // NOT: ReactionButtons.jsx sayaçları data-testid ile işaretliyor
 // ("reaction-helpful-count" / "reaction-not-helpful-count") - MUI
 // Typography'nin erişilebilir bir adı olmadığı için (bkz. report.spec.js'te
@@ -10,6 +26,7 @@ import { registerAndLogin, uniqueUser, joinSeedGroup, SEED_GROUP, SEED_SUB_GROUP
 // eklenen yoruma karşılık gelir (bkz. report.spec.js'teki aynı .last() deseni).
 test.describe('Reaksiyonlar (Faydalı / Faydalı Değil)', () => {
   test('bir gönderiye Faydalı / Faydalı Değil verilip kaldırılabilir', async ({ page }) => {
+    logReactionResponses(page)
     const user = uniqueUser('reaction')
     await registerAndLogin(page, user)
     await joinSeedGroup(page)
@@ -54,6 +71,7 @@ test.describe('Reaksiyonlar (Faydalı / Faydalı Değil)', () => {
   })
 
   test('bir yoruma Faydalı verilebilir ve gönderinin reaksiyonundan bağımsızdır', async ({ page }) => {
+    logReactionResponses(page)
     const user = uniqueUser('reactioncomment')
     await registerAndLogin(page, user)
     await joinSeedGroup(page)
