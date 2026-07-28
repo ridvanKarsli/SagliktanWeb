@@ -2,14 +2,23 @@ import { defineConfig, devices } from '@playwright/test'
 
 // Uçtan uca (E2E) testler gerçek bir tarayıcıda, gerçek backend + Postgres'e
 // karşı çalışır - bu yüzden çalıştırmadan önce backend'in (SagliktanApi) ve
-// veritabanının ayakta olması gerekir. Bu config sadece frontend dev server'ı
-// (Vite) kendisi başlatır; backend'i başlatmak CI'da ayrı bir adım
-// (bkz. .github/workflows/e2e.yml), lokalde ise elle yapılmalı:
+// veritabanının ayakta olması gerekir. Bu config sadece frontend'i (bu repo)
+// kendisi başlatır; backend'i başlatmak CI'da ayrı bir adım (bkz.
+// .github/workflows/e2e.yml), lokalde ise elle yapılmalı:
 //
 //   1. Backend'i çalıştır: cd ../SagliktanApi && ./mvnw spring-boot:run
 //      (application-secrets.properties dolu ve app.testing.auto-verify-email=true olmalı,
 //      yoksa kayıt testleri e-posta doğrulama kodunu bekleyip takılır kalır)
 //   2. cd SagliktanWeb && npx playwright test
+//
+// "vite dev" değil, kasıtlı olarak "vite build && vite preview" kullanıyoruz:
+// dev server soğuk bir ortamda (özellikle CI) ilk açılışta bağımlılıkları
+// arka planda pre-bundle ederken sayfa render'ı 30+ saniye gecikip test
+// timeout'larını tetikleyebiliyor (canlıda tam olarak bu yaşandı - bkz. E2E
+// #2 run'ı, tüm testler getByLabel('İsim') beklerken 30s'de timeout oldu).
+// preview modu zaten derlenmiş, optimize edilmiş paketi anında sunuyor.
+// preview.proxy da vite.config.js'te ayrıca tanımlı - server.proxy preview
+// modunda otomatik uygulanmıyor.
 //
 // PLAYWRIGHT_BASE_URL verilmezse http://localhost:3000 (vite.config.js'teki
 // port) kullanılır.
@@ -37,12 +46,13 @@ export default defineConfig({
   ],
 
   // CI'da backend zaten ayrı bir adımda ayağa kaldırılıyor (bkz. e2e.yml);
-  // burada sadece Vite dev server'ı başlatıyoruz. Lokalde de PLAYWRIGHT_BASE_URL
-  // vermeden çalıştırırsan aynı şekilde otomatik başlar.
+  // burada sadece frontend'i build edip preview ile sunuyoruz. Lokalde de
+  // PLAYWRIGHT_BASE_URL vermeden çalıştırırsan aynı şekilde otomatik başlar.
+  // Build adımı dahil olduğu için timeout'u cömert tuttuk.
   webServer: process.env.PLAYWRIGHT_SKIP_WEBSERVER ? undefined : {
-    command: 'npm run dev',
+    command: 'npm run build && npm run preview',
     url: baseURL,
     reuseExistingServer: !process.env.CI,
-    timeout: 60_000,
+    timeout: 120_000,
   },
 })

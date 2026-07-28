@@ -19,4 +19,21 @@ export default defineConfig({
       },
     },
   },
+  // "vite preview" (derlenmiş dist/ paketini sunar) - Playwright E2E testleri
+  // CI'da bunu kullanıyor (bkz. playwright.config.js), çünkü "vite dev"
+  // soğuk bir CI ortamında ilk açılışta bağımlılıkları arka planda
+  // pre-bundle ederken sayfa render'ı 30+ saniye gecikebiliyor. server.proxy
+  // burada otomatik uygulanmıyor, bu yüzden aynı /api proxy'sini elle
+  // tekrarlıyoruz - yoksa preview modunda tüm API çağrıları 404 döner.
+  preview: {
+    port: 3000,
+    strictPort: true,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
+  },
 });
