@@ -249,4 +249,62 @@ export function reportComment(token, commentId, reason) {
   return request(`/comments/${commentId}/report`, { method: 'POST', token, body: { reason: reason || null } });
 }
 
+// --- Reaksiyonlar (beğeni yerine: Faydalı / Faydalı Değil) ---
+
+export function reactToPost(token, postId, value) {
+  return request(`/posts/${postId}/reactions`, { method: 'PUT', token, body: { value } });
+}
+
+export function removePostReaction(token, postId) {
+  return request(`/posts/${postId}/reactions`, { method: 'DELETE', token });
+}
+
+export function reactToComment(token, commentId, value) {
+  return request(`/comments/${commentId}/reactions`, { method: 'PUT', token, body: { value } });
+}
+
+export function removeCommentReaction(token, commentId) {
+  return request(`/comments/${commentId}/reactions`, { method: 'DELETE', token });
+}
+
+// --- Bildirimler (WebSocket bağlantısı için bkz. services/notificationSocket.js) ---
+
+export function listNotifications(token, { page = 0, size, signal } = {}) {
+  return request('/notifications', { token, params: { page, size }, signal });
+}
+
+export function getUnreadNotificationCount(token, { signal } = {}) {
+  return request('/notifications/unread-count', { token, signal });
+}
+
+export function markNotificationRead(token, id) {
+  return request(`/notifications/${id}/read`, { method: 'PUT', token });
+}
+
+export function markAllNotificationsRead(token) {
+  return request('/notifications/read-all', { method: 'PUT', token });
+}
+
+// --- Admin paneli ---
+
+export function getAdminStats(token) {
+  return request('/admin/stats', { token });
+}
+
+export function listAdminUsers(token, { q, active, role, page = 0, size, signal } = {}) {
+  return request('/admin/users', { token, params: { q, active, role, page, size }, signal });
+}
+
+export function updateAdminUser(token, id, { firstName, lastName, bio, role, active }) {
+  return request(`/admin/users/${id}`, { method: 'PUT', token, body: { firstName, lastName, bio, role, active } });
+}
+
+export function listAdminReports(token, { status, page = 0, size, signal } = {}) {
+  return request('/admin/reports', { token, params: { status, page, size }, signal });
+}
+
+export function resolveAdminReport(token, id, status) {
+  return request(`/admin/reports/${id}`, { method: 'PUT', token, body: { status } });
+}
+
 export { ApiError, API_BASE };

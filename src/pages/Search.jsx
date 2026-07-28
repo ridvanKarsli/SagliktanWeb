@@ -389,7 +389,7 @@ export default function Search() {
           ) : (
             <>
               {activeTab.key === 'posts' && activeState.results.map(post => (
-                <PostCard key={post.id} post={post} onClick={() => navigate(`/post/${post.id}`)} />
+                <PostCard key={post.id} post={post} token={token} onClick={() => navigate(`/post/${post.id}`)} />
               ))}
               {activeTab.key === 'comments' && activeState.results.map(c => (
                 <CommentResultCard

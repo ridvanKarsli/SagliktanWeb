@@ -6,31 +6,39 @@ import {
 import useMediaQuery from '@mui/material/useMediaQuery'
 import { useTheme } from '@mui/material/styles'
 import {
-  HomeRounded, SearchRounded, PersonRounded, LogoutRounded
+  HomeRounded, SearchRounded, PersonRounded, LogoutRounded, AdminPanelSettingsRounded
 } from '@mui/icons-material'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import InstallPrompt from './InstallPrompt.jsx'
+import NotificationBell from './NotificationBell.jsx'
 
 const SIDEBAR_WIDTH = 240
 const MOBILE_NAV_HEIGHT = 64
 
-const navItems = [
+const BASE_NAV_ITEMS = [
   { label: 'Gruplar', icon: <HomeRounded />, to: '/groups' },
   { label: 'Ara', icon: <SearchRounded />, to: '/search' },
   { label: 'Profil', icon: <PersonRounded />, to: '/profile' }
 ]
+
+const ADMIN_NAV_ITEM = { label: 'Admin', icon: <AdminPanelSettingsRounded />, to: '/admin' }
 
 export default function ResponsiveShell({ children }) {
   const theme = useTheme()
   const isMdUp = useMediaQuery(theme.breakpoints.up('md'))
   const location = useLocation()
   const navigate = useNavigate()
-  const { logout } = useAuth()
+  const { logout, user } = useAuth()
+
+  const navItems = useMemo(
+    () => (user?.role === 'ADMIN' ? [...BASE_NAV_ITEMS, ADMIN_NAV_ITEM] : BASE_NAV_ITEMS),
+    [user?.role]
+  )
 
   const current = useMemo(
     () => Math.max(0, navItems.findIndex(n => location.pathname.startsWith(n.to))),
-    [location.pathname]
+    [location.pathname, navItems]
   )
 
   return (
@@ -55,37 +63,41 @@ export default function ResponsiveShell({ children }) {
           }}
         >
           {/* Logo */}
-          <Box 
-            sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 2, 
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
               px: 1.5,
-              mb: 5,
-              cursor: 'pointer'
+              mb: 5
             }}
-            onClick={() => navigate('/groups')}
           >
-            <Avatar
-              src="/sagliktanLogo.png"
-              alt="Sağlıktan"
-              sx={{ 
-                width: 40, 
-                height: 40, 
-                borderRadius: '12px',
-                boxShadow: '0 2px 8px rgba(44, 117, 98, 0.12)'
-              }}
-            />
-            <Typography 
-              sx={{ 
-                fontWeight: 700, 
-                fontSize: '1.125rem', 
-                color: 'primary.main',
-                letterSpacing: '-0.01em'
-              }}
+            <Box
+              sx={{ display: 'flex', alignItems: 'center', gap: 2, cursor: 'pointer' }}
+              onClick={() => navigate('/groups')}
             >
-              Sağlıktan
-            </Typography>
+              <Avatar
+                src="/sagliktanLogo.png"
+                alt="Sağlıktan"
+                sx={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: '12px',
+                  boxShadow: '0 2px 8px rgba(44, 117, 98, 0.12)'
+                }}
+              />
+              <Typography
+                sx={{
+                  fontWeight: 700,
+                  fontSize: '1.125rem',
+                  color: 'primary.main',
+                  letterSpacing: '-0.01em'
+                }}
+              >
+                Sağlıktan
+              </Typography>
+            </Box>
+            <NotificationBell />
           </Box>
 
           {/* Nav Links */}
@@ -177,33 +189,38 @@ export default function ResponsiveShell({ children }) {
         {!isMdUp && (
           <Box
             component="header"
-            onClick={() => navigate('/groups')}
             sx={{
               position: 'sticky',
               top: 0,
               zIndex: theme.zIndex.appBar,
               display: 'flex',
               alignItems: 'center',
+              justifyContent: 'space-between',
               gap: 1.25,
               px: 2,
               pt: 'calc(10px + env(safe-area-inset-top))',
               pb: 1.25,
               bgcolor: 'background.paper',
               borderBottom: '1px solid',
-              borderColor: 'divider',
-              cursor: 'pointer'
+              borderColor: 'divider'
             }}
           >
-            <Avatar
-              src="/sagliktanLogo.png"
-              alt="Sağlıktan"
-              sx={{ width: 28, height: 28, borderRadius: '8px' }}
-            />
-            <Typography
-              sx={{ fontWeight: 700, fontSize: '0.9375rem', color: 'primary.main', letterSpacing: '-0.01em' }}
+            <Box
+              onClick={() => navigate('/groups')}
+              sx={{ display: 'flex', alignItems: 'center', gap: 1.25, cursor: 'pointer' }}
             >
-              Sağlıktan
-            </Typography>
+              <Avatar
+                src="/sagliktanLogo.png"
+                alt="Sağlıktan"
+                sx={{ width: 28, height: 28, borderRadius: '8px' }}
+              />
+              <Typography
+                sx={{ fontWeight: 700, fontSize: '0.9375rem', color: 'primary.main', letterSpacing: '-0.01em' }}
+              >
+                Sağlıktan
+              </Typography>
+            </Box>
+            <NotificationBell />
           </Box>
         )}
 

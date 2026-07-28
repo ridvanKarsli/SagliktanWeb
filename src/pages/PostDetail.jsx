@@ -9,8 +9,10 @@ import {
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useNotification } from '../context/NotificationContext.jsx'
+import ReactionButtons from '../components/ReactionButtons.jsx'
 import {
   createComment, deleteComment, deletePost, getMyDiseaseGroups, getPost, listComments,
+  reactToComment, reactToPost, removeCommentReaction, removePostReaction,
   reportComment, reportPost, updateComment, updatePost
 } from '../services/api.js'
 
@@ -278,16 +280,25 @@ function CommentRow({
               >
                 {comment.content}
               </Typography>
-              {canReply && (
-                <Button
-                  size="small"
-                  startIcon={<ReplyOutlined fontSize="small" />}
-                  onClick={() => setReplyOpen(o => !o)}
-                  sx={{ mt: 0.5, ml: -1, color: 'text.secondary' }}
-                >
-                  Yanıtla
-                </Button>
-              )}
+              <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.5 }}>
+                <ReactionButtons
+                  helpfulCount={comment.helpfulCount}
+                  notHelpfulCount={comment.notHelpfulCount}
+                  myReaction={comment.myReaction}
+                  onReact={(value) => reactToComment(token, comment.id, value)}
+                  onRemove={() => removeCommentReaction(token, comment.id)}
+                />
+                {canReply && (
+                  <Button
+                    size="small"
+                    startIcon={<ReplyOutlined fontSize="small" />}
+                    onClick={() => setReplyOpen(o => !o)}
+                    sx={{ color: 'text.secondary' }}
+                  >
+                    Yanıtla
+                  </Button>
+                )}
+              </Stack>
             </>
           )}
 
@@ -610,6 +621,15 @@ export default function PostDetail() {
             <Typography variant="body1" sx={{ whiteSpace: 'pre-line', wordBreak: 'break-word', color: 'text.primary' }}>
               {post.content}
             </Typography>
+            <Box sx={{ mt: 1.5 }}>
+              <ReactionButtons
+                helpfulCount={post.helpfulCount}
+                notHelpfulCount={post.notHelpfulCount}
+                myReaction={post.myReaction}
+                onReact={(value) => reactToPost(token, post.id, value)}
+                onRemove={() => removePostReaction(token, post.id)}
+              />
+            </Box>
           </>
         )}
       </Box>

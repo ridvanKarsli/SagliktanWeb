@@ -299,7 +299,7 @@ export default function Profile() {
           ) : (
             <>
               {myPosts.map(p => (
-                <PostCard key={p.id} post={p} onClick={() => navigate(`/post/${p.id}`)} />
+                <PostCard key={p.id} post={p} token={token} onClick={() => navigate(`/post/${p.id}`)} />
               ))}
               {postsTotalPages > 1 && (
                 <Stack direction="row" spacing={2} justifyContent="center" alignItems="center" sx={{ py: 2 }}>

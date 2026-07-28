@@ -1,4 +1,6 @@
 import { Avatar, Box, Stack, Typography } from '@mui/material'
+import ReactionButtons from './ReactionButtons.jsx'
+import { reactToPost, removePostReaction } from '../services/api.js'
 
 function initialsFrom(name = '') {
   const parts = name.trim().split(/\s+/).filter(Boolean)
@@ -17,12 +19,12 @@ function truncate(text = '', max = 180) {
 }
 
 /**
- * Sade gönderi kartı: yazar, tarih, başlık ve kısaltılmış içerik.
- * Backend'de reaksiyon (beğeni/beğenmeme) desteği olmadığı için hiçbir oy UI'ı içermez.
+ * Sade gönderi kartı: yazar, tarih, başlık, kısaltılmış içerik ve
+ * Faydalı/Faydalı Değil reaksiyon butonları.
  */
-export default function PostCard({ post, onClick }) {
+export default function PostCard({ post, onClick, token }) {
   if (!post) return null
-  const { authorName, title, content, createdAt, updatedAt } = post
+  const { id, authorName, title, content, createdAt, updatedAt, helpfulCount, notHelpfulCount, myReaction } = post
 
   const dateLabel = createdAt ? new Date(createdAt).toLocaleDateString('tr-TR') : ''
   const edited = !!(updatedAt && createdAt && updatedAt !== createdAt)
@@ -70,6 +72,18 @@ export default function PostCard({ post, onClick }) {
       >
         {truncate(content, 180)}
       </Typography>
+
+      {token && (
+        <Box sx={{ mt: 1 }}>
+          <ReactionButtons
+            helpfulCount={helpfulCount}
+            notHelpfulCount={notHelpfulCount}
+            myReaction={myReaction}
+            onReact={(value) => reactToPost(token, id, value)}
+            onRemove={() => removePostReaction(token, id)}
+          />
+        </Box>
+      )}
     </Box>
   )
 }

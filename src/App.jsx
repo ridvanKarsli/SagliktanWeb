@@ -10,8 +10,10 @@ import PostDetail from './pages/PostDetail.jsx'
 import Search from './pages/Search.jsx'
 import Profile from './pages/profile/Profile.jsx'
 import UserProfile from './pages/profile/UserProfile.jsx'
+import AdminPanel from './pages/admin/AdminPanel.jsx'
 import ProtectedRoute from './components/ProtectedRoute.jsx'
 import PublicOnlyRoute from './components/PublicOnlyRoute.jsx'
+import AdminRoute from './components/AdminRoute.jsx'
 import ResponsiveShell from './components/ResponsiveShell.jsx'
 import WelcomeScreen from './components/WelcomeScreen.jsx'
 
@@ -48,6 +50,7 @@ export default function App() {
         <Route path="/search" element={<Search />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/users/:userId" element={<UserProfile />} />
+        <Route path="/admin" element={<AdminRoute><AdminPanel /></AdminRoute>} />
       </Route>
       <Route path="*" element={<WelcomeScreen />} />
     </Routes>

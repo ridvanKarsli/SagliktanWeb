@@ -6,6 +6,7 @@ import App from './App.jsx'
 import theme from './theme.js'
 import { AuthProvider } from './context/AuthContext.jsx'
 import { NotificationProvider } from './context/NotificationContext.jsx'
+import { NotificationsFeedProvider } from './context/NotificationsFeedContext.jsx'
 // Inter fontu artık Google Fonts'tan değil, yerelden (bkz. index.html'deki not).
 import '@fontsource/inter/400.css'
 import '@fontsource/inter/500.css'
@@ -21,7 +22,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       <BrowserRouter>
         <AuthProvider>
           <NotificationProvider>
-            <App />
+            <NotificationsFeedProvider>
+              <App />
+            </NotificationsFeedProvider>
           </NotificationProvider>
         </AuthProvider>
       </BrowserRouter>
