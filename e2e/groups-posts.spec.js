@@ -13,7 +13,7 @@ test.describe('Gruplar, üyelik ve gönderi/yorum akışı', () => {
     await expect(page.getByRole('button', { name: 'Ayrıl' })).toBeVisible()
 
     // Grup detayına gir, üye listesinde kendi adını gör.
-    await page.getByText(SEED_GROUP).click()
+    await page.getByRole('heading', { name: SEED_GROUP }).click()
     await expect(page).toHaveURL(/\/groups\/\d+$/)
     await page.getByRole('button', { name: /Üyeleri Gör/ }).click()
     await expect(page.getByText(`${user.firstName} ${user.lastName}`)).toBeVisible()
@@ -32,8 +32,8 @@ test.describe('Gruplar, üyelik ve gönderi/yorum akışı', () => {
 
     await registerAndLogin(page, member)
     await joinSeedGroup(page)
-    await page.getByText(SEED_GROUP).click()
-    await page.getByText(SEED_SUB_GROUP).click()
+    await page.getByRole('heading', { name: SEED_GROUP }).click()
+    await page.getByRole('heading', { name: SEED_SUB_GROUP }).click()
     await expect(page).toHaveURL(/\/sub-groups\/\d+$/)
 
     const postTitle = `E2E test gönderisi ${Date.now()}`
@@ -82,11 +82,11 @@ test.describe('Gruplar, üyelik ve gönderi/yorum akışı', () => {
     const user = uniqueUser('subcount')
     await registerAndLogin(page, user)
     await joinSeedGroup(page)
-    await page.getByText(SEED_GROUP).click()
+    await page.getByRole('heading', { name: SEED_GROUP }).click()
     await expect(page).toHaveURL(/\/groups\/\d+$/)
     const groupUrl = page.url()
 
-    await page.getByText(SEED_SUB_GROUP).click()
+    await page.getByRole('heading', { name: SEED_SUB_GROUP }).click()
     await expect(page).toHaveURL(/\/sub-groups\/\d+$/)
 
     await page.getByRole('button', { name: 'Yeni gönderi' }).click()

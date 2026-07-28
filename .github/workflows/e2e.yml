@@ -79,6 +79,13 @@ jobs:
           # Bkz. AuthServiceImpl.autoVerifyEmail. Prod/staging'de bu değişken
           # asla tanımlanmamalı.
           APP_TESTING_AUTO_VERIFY_EMAIL: "true"
+          # SADECE burada - tek bir CI job'ında art arda çok sayıda test
+          # kullanıcısı kayıt/login olduğu için IP bazlı rate limiter (bkz.
+          # RateLimitFilter) gerçek bir saldırı sanıp "Çok fazla istek
+          # gönderildi" ile testleri düşürüyordu. Limitleri kaldırmak yerine
+          # 1000x'e katlıyoruz - üretimdeki güvenlik davranışı bu değişken
+          # tanımlanmadığı sürece (yani her zaman, prod dahil) birebir aynı.
+          APP_TESTING_RATE_LIMIT_MULTIPLIER: "1000"
         run: |
           nohup java -jar target/*.jar > backend.log 2>&1 &
           echo "Backend başlatıldı, health check bekleniyor..."

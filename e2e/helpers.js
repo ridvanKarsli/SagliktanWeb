@@ -68,7 +68,11 @@ export const SEED_SUB_GROUP = 'Sohbet & Sosyalleşme'
 // bu yüzden kart bazlı karmaşık bir seçiciye gerek yok.
 export async function joinSeedGroup(page) {
   await page.goto('/groups')
-  await expect(page.getByText(SEED_GROUP)).toBeVisible()
+  // NOT: getByText(SEED_GROUP) grup kartındaki başlığa VE açıklama
+  // paragrafına ("Retinitis pigmentosa hastaları ve yakınları için...")
+  // birden eşleşip strict-mode violation'a düşüyordu (bkz. E2E #6).
+  // getByRole('heading', ...) sadece başlığı hedefleyerek kesinleştiriyor.
+  await expect(page.getByRole('heading', { name: SEED_GROUP })).toBeVisible()
   const joinButton = page.getByRole('button', { name: 'Katıl' })
   if (await joinButton.isVisible().catch(() => false)) {
     await joinButton.click()

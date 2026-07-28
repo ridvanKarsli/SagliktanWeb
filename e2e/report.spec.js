@@ -6,8 +6,8 @@ test.describe('Şikayet (rapor etme)', () => {
     const user = uniqueUser('report')
     await registerAndLogin(page, user)
     await joinSeedGroup(page)
-    await page.getByText(SEED_GROUP).click()
-    await page.getByText(SEED_SUB_GROUP).click()
+    await page.getByRole('heading', { name: SEED_GROUP }).click()
+    await page.getByRole('heading', { name: SEED_SUB_GROUP }).click()
 
     const postTitle = `Şikayet test gönderisi ${Date.now()}`
     await page.getByRole('button', { name: 'Yeni gönderi' }).click()
@@ -29,8 +29,8 @@ test.describe('Şikayet (rapor etme)', () => {
     const user = uniqueUser('reportcomment')
     await registerAndLogin(page, user)
     await joinSeedGroup(page)
-    await page.getByText(SEED_GROUP).click()
-    await page.getByText(SEED_SUB_GROUP).click()
+    await page.getByRole('heading', { name: SEED_GROUP }).click()
+    await page.getByRole('heading', { name: SEED_SUB_GROUP }).click()
 
     const postTitle = `Yorum şikayet testi ${Date.now()}`
     await page.getByRole('button', { name: 'Yeni gönderi' }).click()

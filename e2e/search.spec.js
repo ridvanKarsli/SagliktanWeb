@@ -6,8 +6,8 @@ test.describe('Gelişmiş arama', () => {
     const user = uniqueUser('search')
     await registerAndLogin(page, user)
     await joinSeedGroup(page)
-    await page.getByText(SEED_GROUP).click()
-    await page.getByText(SEED_SUB_GROUP).click()
+    await page.getByRole('heading', { name: SEED_GROUP }).click()
+    await page.getByRole('heading', { name: SEED_SUB_GROUP }).click()
 
     const uniqueWord = `AramaTest${Date.now()}`
     await page.getByRole('button', { name: 'Yeni gönderi' }).click()
