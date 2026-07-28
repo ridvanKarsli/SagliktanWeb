@@ -17,13 +17,15 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Sağlıktan" />
-    <!-- Inter: kurumsal, net tipografi -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
-      rel="stylesheet"
-    >
+    <!-- Inter fontu artık Google'ın sunucusundan değil, @fontsource/inter ile
+         yerelden (self-hosted) yükleniyor - bkz. src/main.jsx. İki sebep:
+         1) KVKK/GDPR: Google Fonts'u doğrudan Google'dan çekmek, kullanıcının
+            IP adresini rızası olmadan Google'a göndermek anlamına geliyor
+            (Almanya'da bunun GDPR ihlali sayıldığı emsal kararlar var).
+         2) Güvenilirlik: bu render-blocking harici istek, E2E testlerinde
+            (GitHub Actions) sayfanın ilk boyanmasını 30s'yi aşacak kadar
+            geciktirip Playwright testlerinin deterministik biçimde
+            timeout'a düşmesine sebep oluyordu (bkz. E2E #4 teşhis raporu). -->
   </head>
   <body>
     <div id="root"></div>

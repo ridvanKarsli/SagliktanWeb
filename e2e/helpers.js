@@ -22,8 +22,36 @@ export function uniqueUser(prefix = 'e2e') {
 // "E-posta adresi doğrulanmamış" hatasıyla patlar - bu durumda backend'i
 // app.testing.auto-verify-email=true ile başlattığından emin ol.
 export async function registerAndLogin(page, user) {
+  // TEŞHİS: getByLabel('İsim') CI'da deterministik olarak 30s timeout'a
+  // takılıyor (bkz. E2E #4). Kök nedeni görmek için burada erken ve kısa
+  // süreli (8s) bir deneme yapıp başarısız olursa konsol/sayfa hatalarını,
+  // spinner durumunu ve body metnini hata mesajına gömüyoruz - böylece
+  // artifact indirmeden, sadece GitHub Actions annotation'ından teşhis
+  // koyabiliyoruz. Kalıcı değil, kök neden bulununca kaldırılacak.
+  const consoleErrors = []
+  const pageErrors = []
+  page.on('console', msg => { if (msg.type() === 'error') consoleErrors.push(msg.text()) })
+  page.on('pageerror', err => { pageErrors.push(err.stack || err.message) })
+  page.on('requestfailed', req => { consoleErrors.push(`REQUEST FAILED: ${req.method()} ${req.url()} - ${req.failure()?.errorText}`) })
+
   await page.goto('/register')
-  await page.getByLabel('İsim', { exact: true }).fill(user.firstName)
+  try {
+    await page.getByLabel('İsim', { exact: true }).fill(user.firstName, { timeout: 8000 })
+  } catch (e) {
+    const spinnerVisible = await page.locator('.MuiCircularProgress-root').isVisible().catch(() => 'bilinmiyor')
+    const bodyText = await page.locator('body').innerText().catch(() => '(okunamadı)')
+    const title = await page.title().catch(() => '(okunamadı)')
+    throw new Error(
+      `TEŞHİS BİLGİSİ ---\n` +
+      `URL: ${page.url()}\n` +
+      `Başlık: ${title}\n` +
+      `Spinner görünür mü: ${spinnerVisible}\n` +
+      `Console hataları (${consoleErrors.length}): ${JSON.stringify(consoleErrors).slice(0, 1500)}\n` +
+      `Sayfa (JS) hataları (${pageErrors.length}): ${JSON.stringify(pageErrors).slice(0, 1500)}\n` +
+      `Body metni ilk 400 karakter: ${JSON.stringify(bodyText.slice(0, 400))}\n` +
+      `--- orijinal hata: ${e.message}`
+    )
+  }
   await page.getByLabel('Soyisim', { exact: true }).fill(user.lastName)
   await page.getByLabel('E-posta adresi', { exact: true }).fill(user.email)
   await page.getByLabel('Şifre', { exact: true }).fill(user.password)
