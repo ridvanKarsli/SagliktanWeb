@@ -28,7 +28,13 @@ export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  // GEÇİCİ TEŞHİS MODU: tüm denemeler aynı noktada (register formunun ilk
+  // alanı) aynı şekilde takılıyor - bu "soğuk başlangıç" değil, kalıcı bir
+  // render sorunu olduğunu gösteriyor (ısınmış sunucuya rağmen retry'lar da
+  // aynı şekilde patlıyor). Gerçek bir ekran görüntüsü/rapor elde edip kök
+  // nedeni görebilmek için retries=0, tek proje, ilk hatada dur.
+  retries: 0,
+  maxFailures: process.env.CI ? 3 : undefined,
   workers: process.env.CI ? 1 : undefined,
   reporter: process.env.CI ? [['html', { open: 'never' }], ['github']] : 'html',
   timeout: 30_000,
@@ -42,7 +48,8 @@ export default defineConfig({
 
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-    { name: 'mobile-safari', use: { ...devices['iPhone 13'] } },
+    // Kök neden bulunana kadar geçici olarak kapalı - teşhis süresini yarıya indiriyor.
+    // { name: 'mobile-safari', use: { ...devices['iPhone 13'] } },
   ],
 
   // CI'da backend zaten ayrı bir adımda ayağa kaldırılıyor (bkz. e2e.yml);
