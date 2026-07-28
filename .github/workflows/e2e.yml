@@ -79,6 +79,11 @@ jobs:
           # Bkz. AuthServiceImpl.autoVerifyEmail. Prod/staging'de bu değişken
           # asla tanımlanmamalı.
           APP_TESTING_AUTO_VERIFY_EMAIL: "true"
+          # SADECE burada - bu önekle başlayan e-postayla kayıt olan test
+          # kullanıcısı otomatik ADMIN rolüyle oluşturulur (bkz.
+          # AuthServiceImpl.register). helpers.js#uniqueAdminUser bu öneki
+          # kullanıyor. Prod/staging'de bu değişken asla tanımlanmamalı.
+          APP_TESTING_AUTO_ADMIN_EMAIL_PREFIX: "e2e-admin."
           # SADECE burada - tek bir CI job'ında art arda çok sayıda test
           # kullanıcısı kayıt/login olduğu için IP bazlı rate limiter (bkz.
           # RateLimitFilter) gerçek bir saldırı sanıp "Çok fazla istek

@@ -87,7 +87,11 @@ export default function ReactionButtons({
           </IconButton>
         </span>
       </Tooltip>
-      <Typography variant="caption" sx={{ minWidth: 14, textAlign: 'center', color: 'text.secondary' }}>
+      <Typography
+        data-testid="reaction-helpful-count"
+        variant="caption"
+        sx={{ minWidth: 14, textAlign: 'center', color: 'text.secondary' }}
+      >
         {shownHelpful}
       </Typography>
       <Tooltip title="Faydalı Değil">
@@ -103,7 +107,11 @@ export default function ReactionButtons({
           </IconButton>
         </span>
       </Tooltip>
-      <Typography variant="caption" sx={{ minWidth: 14, textAlign: 'center', color: 'text.secondary' }}>
+      <Typography
+        data-testid="reaction-not-helpful-count"
+        variant="caption"
+        sx={{ minWidth: 14, textAlign: 'center', color: 'text.secondary' }}
+      >
         {shownNotHelpful}
       </Typography>
     </Stack>

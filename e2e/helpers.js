@@ -15,6 +15,17 @@ export function uniqueUser(prefix = 'e2e') {
   }
 }
 
+// E-postası "e2e-admin." ile başlıyor - backend'de SADECE
+// APP_TESTING_AUTO_ADMIN_EMAIL_PREFIX seçiliyken (yalnızca CI'da) bu önekle
+// kayıt olan kullanıcı otomatik ADMIN rolüyle oluşturulur (bkz.
+// AuthServiceImpl.register). Lokalde bu bayrak kapalıysa admin testleri
+// normal USER olarak login olur ve /admin'e AdminRoute tarafından
+// yönlendirilmeden erişemez - bu durumda testler kendi hata mesajıyla
+// (görünür "Admin" nav öğesi yok) anlaşılır biçimde başarısız olur.
+export function uniqueAdminUser() {
+  return uniqueUser('e2e-admin')
+}
+
 // Kayıt ol -> backend'in SADECE test ortamında açık olan
 // app.testing.auto-verify-email bayrağı sayesinde e-posta zaten otomatik
 // doğrulanmış oluyor -> giriş yap. Bu bayrak kapalıyken (ör. lokalde elle

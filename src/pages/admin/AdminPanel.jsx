@@ -193,7 +193,10 @@ function EditUserDialog({ user, onClose, onSaved, token }) {
         <Stack spacing={2} sx={{ mt: 1 }}>
           <TextField label="Ad" value={firstName} onChange={e => setFirstName(e.target.value)} fullWidth />
           <TextField label="Soyad" value={lastName} onChange={e => setLastName(e.target.value)} fullWidth />
-          <TextField label="Biyografi" value={bio} onChange={e => setBio(e.target.value)} fullWidth multiline minRows={2} />
+          <TextField
+            label="Biyografi" value={bio} onChange={e => setBio(e.target.value)}
+            fullWidth multiline minRows={2} slotProps={{ htmlInput: { 'data-testid': 'edit-user-bio' } }}
+          />
           <TextField select label="Rol" value={role} onChange={e => setRole(e.target.value)} fullWidth>
             <MenuItem value="USER">USER</MenuItem>
             <MenuItem value="ADMIN">ADMIN</MenuItem>
@@ -415,7 +418,10 @@ function GroupNameDialog({ title, initial, onClose, onSave }) {
       <DialogTitle>{title}</DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ mt: 1 }}>
-          <TextField label="Ad" value={name} onChange={e => setName(e.target.value)} fullWidth autoFocus />
+          <TextField
+            label="Ad" value={name} onChange={e => setName(e.target.value)} fullWidth autoFocus
+            slotProps={{ htmlInput: { 'data-testid': 'group-name' } }}
+          />
           <TextField
             label="Açıklama" value={description} onChange={e => setDescription(e.target.value)}
             fullWidth multiline minRows={2}
@@ -457,8 +463,8 @@ function SubGroupRow({ subGroup, token, onChanged }) {
         <Typography variant="caption" sx={{ color: 'text.secondary' }}>{subGroup.postCount} sohbet</Typography>
       </Box>
       <Stack direction="row" spacing={0.5}>
-        <IconButton size="small" onClick={() => setDialog('edit')}><EditOutlined fontSize="small" /></IconButton>
-        <IconButton size="small" onClick={remove}><DeleteOutline fontSize="small" /></IconButton>
+        <IconButton size="small" aria-label="Alt Grubu Düzenle" onClick={() => setDialog('edit')}><EditOutlined fontSize="small" /></IconButton>
+        <IconButton size="small" aria-label="Alt Grubu Sil" onClick={remove}><DeleteOutline fontSize="small" /></IconButton>
       </Stack>
       {dialog === 'edit' && (
         <GroupNameDialog
@@ -507,8 +513,8 @@ function DiseaseGroupAccordion({ group, token, onChanged }) {
             <Typography variant="caption" sx={{ color: 'text.secondary' }}>{group.memberCount} üye</Typography>
           </Box>
           <Stack direction="row" spacing={0.5} onClick={e => e.stopPropagation()}>
-            <IconButton size="small" onClick={() => setDialog('edit')}><EditOutlined fontSize="small" /></IconButton>
-            <IconButton size="small" onClick={remove}><DeleteOutline fontSize="small" /></IconButton>
+            <IconButton size="small" aria-label="Grubu Düzenle" onClick={() => setDialog('edit')}><EditOutlined fontSize="small" /></IconButton>
+            <IconButton size="small" aria-label="Grubu Sil" onClick={remove}><DeleteOutline fontSize="small" /></IconButton>
           </Stack>
         </Stack>
       </AccordionSummary>
