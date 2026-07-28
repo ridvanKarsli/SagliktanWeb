@@ -26,10 +26,10 @@ export function connectNotificationSocket(token, { onNotification, onConnectionC
     connectHeaders: { Authorization: `Bearer ${token}` },
     reconnectDelay: 5000,
     onStompError: (frame) => {
-      console.error('Bildirim WebSocket hatası:', frame.headers?.message)
+      console.error('Bildirim WebSocket hatası:', frame.headers?.message, frame.body)
     },
     onWebSocketError: (event) => {
-      console.error('Bildirim WebSocket bağlantı hatası:', event)
+      console.error('Bildirim WebSocket bağlantı hatası:', event?.type, event?.code, event?.reason)
     },
     // Abonelik gerçekten kurulmadan bildirim yayını yapılırsa (broker
     // "connected" ama henüz SUBSCRIBE frame'i gönderilmemişse) mesaj
@@ -38,7 +38,10 @@ export function connectNotificationSocket(token, { onNotification, onConnectionC
     // Gerçek kullanıcılar bunu görmez, sadece E2E'nin subscribe tamamlanmadan
     // bildirim tetikleyen aksiyona geçmesini engellemek için var.
     onDisconnect: () => onConnectionChange?.(false),
-    onWebSocketClose: () => onConnectionChange?.(false),
+    onWebSocketClose: (event) => {
+      console.warn('Bildirim WebSocket kapandı:', event?.code, event?.reason)
+      onConnectionChange?.(false)
+    },
   })
 
   client.onConnect = () => {

@@ -105,3 +105,21 @@ export async function joinSeedGroup(page) {
 export async function waitForNotificationSocket(page) {
   await page.waitForSelector('[aria-label="Bildirimler"][data-ws-connected="true"]', { timeout: 15000 })
 }
+
+// Backend loglarına (nohup ile ayrı bir dosyaya yönlendirildiği ve CI
+// artifact indirme süreci defalarca yanlış/eski dosya vermesi yüzünden
+// pratikte ulaşılamaz olduğu için, bkz. 2026-07-28 teşhis geçmişi) alternatif
+// bir teşhis kanalı: tarayıcı konsolunu doğrudan Node stdout'una yönlendirir.
+// notificationSocket.js'teki onStompError/onWebSocketError zaten
+// console.error çağırıyor - bu fonksiyon çağrılan her sayfada varsa bu
+// hataları (ve genel olarak yakalanmamış exception'ları) [label] etiketiyle
+// GitHub Actions'ın "E2E testlerini çalıştır" step logunda görünür kılar -
+// backend.log'a hiç ihtiyaç kalmadan.
+export function logBrowserConsole(page, label) {
+  page.on('console', msg => {
+    console.log(`[${label} console:${msg.type()}] ${msg.text()}`)
+  })
+  page.on('pageerror', err => {
+    console.log(`[${label} pageerror] ${err.message}`)
+  })
+}
