@@ -10,7 +10,7 @@ const TYPE_LABEL = {
 }
 
 export default function NotificationBell() {
-  const { items, unreadCount, markRead, markAllRead } = useNotificationsFeed()
+  const { items, unreadCount, markRead, markAllRead, wsConnected } = useNotificationsFeed()
   const [anchorEl, setAnchorEl] = useState(null)
   const navigate = useNavigate()
 
@@ -28,7 +28,20 @@ export default function NotificationBell() {
 
   return (
     <>
-      <IconButton onClick={handleOpen} aria-label="Bildirimler" size="small">
+      {/*
+        data-ws-connected: sadece E2E testleri için - STOMP aboneliği gerçekten
+        kurulana kadar "true" olmuyor (bkz. NotificationsFeedContext,
+        notificationSocket.js). notifications.spec.js bu bayrağı bekleyerek
+        yorum/yanıt tetiklemeden önce bağlantının hazır olduğunu garanti ediyor -
+        aksi halde subscribe tamamlanmadan gelen bir bildirim sessizce kaybolup
+        testi flaky hale getiriyordu. Kullanıcı arayüzünde görünmez etkisi yok.
+      */}
+      <IconButton
+        onClick={handleOpen}
+        aria-label="Bildirimler"
+        size="small"
+        data-ws-connected={wsConnected ? 'true' : 'false'}
+      >
         <Badge badgeContent={unreadCount} color="error" max={99}>
           <NotificationsNoneRounded />
         </Badge>

@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test'
-import { registerAndLogin, uniqueUser, joinSeedGroup, SEED_GROUP, SEED_SUB_GROUP } from './helpers.js'
+import {
+  registerAndLogin, uniqueUser, joinSeedGroup, waitForNotificationSocket, SEED_GROUP, SEED_SUB_GROUP
+} from './helpers.js'
 
 // NOT: Bildirimler gerçek zamanlı WebSocket (STOMP) üzerinden geliyor ve
 // çapraz kullanıcı bir olay - tek bir page/context ile test edilemez. İki
@@ -34,6 +36,10 @@ test.describe('Bildirimler (WebSocket)', () => {
 
     // Bildirim geldiğinde henüz okunmadı rozeti 0 olmalı.
     await expect(authorPage.getByLabel('Bildirimler')).toBeVisible()
+    // STOMP aboneliği kurulana kadar bekle - aksi halde ikinci kullanıcının
+    // yorumu abonelik tamamlanmadan backend'e ulaşabilir ve bildirim mesajı
+    // sessizce kaybolur (bkz. helpers.js#waitForNotificationSocket).
+    await waitForNotificationSocket(authorPage)
 
     // İkinci kullanıcı ayrı bir context'te (ayrı oturum) aynı posta gidip yorum yapar.
     const commenterContext = await browser.newContext()
@@ -98,6 +104,8 @@ test.describe('Bildirimler (WebSocket)', () => {
     await authorPage.getByPlaceholder('Yorumunu yaz...').fill(commentText)
     await authorPage.getByRole('button', { name: 'Yorum Yap' }).click()
     await expect(authorPage.getByText(commentText)).toBeVisible()
+    // STOMP aboneliği kurulana kadar bekle - bkz. yukarıdaki testteki aynı not.
+    await waitForNotificationSocket(authorPage)
 
     const replierContext = await browser.newContext()
     const replierPage = await replierContext.newPage()

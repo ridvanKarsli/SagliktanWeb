@@ -16,6 +16,11 @@ export function NotificationsFeedProvider({ children }) {
   const { token } = useAuth()
   const [items, setItems] = useState([])
   const [unreadCount, setUnreadCount] = useState(0)
+  // Sadece E2E testleri için: STOMP aboneliği gerçekten kurulana kadar
+  // "bağlı" sayılmıyor - bkz. notificationSocket.js#connectNotificationSocket.
+  // Gerçek kullanıcı arayüzünde bu bilgi görünmez, sadece NotificationBell'de
+  // gizli bir test marker'ı olarak render ediliyor.
+  const [wsConnected, setWsConnected] = useState(false)
   const clientRef = useRef(null)
 
   const refresh = useCallback(() => {
@@ -32,6 +37,7 @@ export function NotificationsFeedProvider({ children }) {
     if (!token) {
       setItems([])
       setUnreadCount(0)
+      setWsConnected(false)
       clientRef.current?.deactivate()
       clientRef.current = null
       return undefined
@@ -43,11 +49,13 @@ export function NotificationsFeedProvider({ children }) {
       onNotification: (notification) => {
         setItems(prev => [notification, ...prev].slice(0, FEED_PAGE_SIZE))
         setUnreadCount(prev => prev + 1)
-      }
+      },
+      onConnectionChange: setWsConnected
     })
     clientRef.current = client
 
     return () => {
+      setWsConnected(false)
       client.deactivate()
       if (clientRef.current === client) clientRef.current = null
     }
@@ -74,7 +82,7 @@ export function NotificationsFeedProvider({ children }) {
   }, [token, refresh])
 
   return (
-    <NotificationsFeedContext.Provider value={{ items, unreadCount, markRead, markAllRead, refresh }}>
+    <NotificationsFeedContext.Provider value={{ items, unreadCount, markRead, markAllRead, refresh, wsConnected }}>
       {children}
     </NotificationsFeedContext.Provider>
   )

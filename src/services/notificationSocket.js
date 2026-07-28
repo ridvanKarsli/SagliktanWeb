@@ -16,7 +16,7 @@ const WS_BASE =
  * Bağlantıyı açar ve aktive eder. Döndürülen client, ihtiyaç kalmadığında
  * (ör. logout, unmount) `.deactivate()` ile kapatılmalı.
  */
-export function connectNotificationSocket(token, { onNotification } = {}) {
+export function connectNotificationSocket(token, { onNotification, onConnectionChange } = {}) {
   const client = new Client({
     brokerURL: WS_BASE,
     // JWT burada, STOMP CONNECT frame'inin native header'ı olarak taşınır -
@@ -30,7 +30,15 @@ export function connectNotificationSocket(token, { onNotification } = {}) {
     },
     onWebSocketError: (event) => {
       console.error('Bildirim WebSocket bağlantı hatası:', event)
-    }
+    },
+    // Abonelik gerçekten kurulmadan bildirim yayını yapılırsa (broker
+    // "connected" ama henüz SUBSCRIBE frame'i gönderilmemişse) mesaj
+    // sessizce kaybolur - bu yüzden bağlı/kopuk durumunu dışarı bildiriyoruz
+    // (bkz. NotificationsFeedContext, NotificationBell'deki test marker'ı).
+    // Gerçek kullanıcılar bunu görmez, sadece E2E'nin subscribe tamamlanmadan
+    // bildirim tetikleyen aksiyona geçmesini engellemek için var.
+    onDisconnect: () => onConnectionChange?.(false),
+    onWebSocketClose: () => onConnectionChange?.(false),
   })
 
   client.onConnect = () => {
@@ -42,6 +50,10 @@ export function connectNotificationSocket(token, { onNotification } = {}) {
         // Ayrıştırılamayan mesaj sessizce yoksayılır.
       }
     })
+    // Abonelik frame'i gönderildikten SONRA "bağlı" say - onConnect
+    // sırasında subscribe senkron çağrıldığı için bu noktada abonelik
+    // backend'e iletilmiş oluyor.
+    onConnectionChange?.(true)
   }
 
   client.activate()

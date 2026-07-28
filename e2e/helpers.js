@@ -90,3 +90,18 @@ export async function joinSeedGroup(page) {
     await expect(page.getByText('Gruba katıldınız.')).toBeVisible()
   }
 }
+
+// Bildirim rozeti WebSocket üzerinden gerçek zamanlı güncelleniyor
+// (notificationSocket.js). STOMP CONNECT + SUBSCRIBE, sayfa login olduktan
+// hemen sonra ASENKRON olarak tamamlanıyor - eğer ikinci kullanıcının
+// yorum/yanıt aksiyonu bu abonelik kurulmadan ÖNCE backend'e ulaşırsa mesaj
+// broker tarafında sessizce kaybolur (alıcı o an "bağlı" değildir, kuyruğa
+// alınmaz) ve rozet asla "1" olmaz - bu, testin gerçek bir bug değil bir race
+// condition yüzünden flaky olmasına yol açıyordu (bkz. 2026-07-28 E2E #14
+// analizi). NotificationBell, abonelik tamamlandığında data-ws-connected
+// attribute'unu "true" yapıyor (sadece test amaçlı, kullanıcıya görünmez) -
+// bu fonksiyon ikinci kullanıcının aksiyonundan ÖNCE bunu bekleyerek race'i
+// kökten ortadan kaldırıyor.
+export async function waitForNotificationSocket(page) {
+  await page.waitForSelector('[aria-label="Bildirimler"][data-ws-connected="true"]', { timeout: 15000 })
+}
