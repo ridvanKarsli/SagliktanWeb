@@ -11,8 +11,8 @@ test.describe('Gelişmiş arama', () => {
 
     const uniqueWord = `AramaTest${Date.now()}`
     await page.getByRole('button', { name: 'Yeni gönderi' }).click()
-    await page.getByLabel('Başlık', { exact: true }).fill(`${uniqueWord} başlığı`)
-    await page.getByLabel('İçerik', { exact: true }).fill('Arama testi için oluşturulan gönderi içeriği.')
+    await page.getByTestId('post-title').fill(`${uniqueWord} başlığı`)
+    await page.getByTestId('post-content').fill('Arama testi için oluşturulan gönderi içeriği.')
     await page.getByRole('button', { name: 'Paylaş' }).click()
     await expect(page.getByText('Gönderi oluşturuldu.')).toBeVisible()
 

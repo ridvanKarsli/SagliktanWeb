@@ -199,6 +199,7 @@ export default function Register() {
                     autoComplete="given-name"
                     fullWidth
                     placeholder="Adınız"
+                    slotProps={{ htmlInput: { 'data-testid': 'register-firstName' } }}
                   />
                   <TextField
                     label="Soyisim"
@@ -208,6 +209,7 @@ export default function Register() {
                     autoComplete="family-name"
                     fullWidth
                     placeholder="Soyadınız"
+                    slotProps={{ htmlInput: { 'data-testid': 'register-lastName' } }}
                   />
                 </Stack>
 
@@ -220,6 +222,7 @@ export default function Register() {
                   autoComplete="email"
                   fullWidth
                   placeholder="ornek@email.com"
+                  slotProps={{ htmlInput: { 'data-testid': 'register-email' } }}
                 />
 
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
@@ -227,13 +230,13 @@ export default function Register() {
                     label="Şifre"
                     type="password"
                     required
-                    inputProps={{ minLength: 8 }}
                     helperText="En az 8 karakter"
                     value={form.password}
                     onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
                     autoComplete="new-password"
                     fullWidth
                     placeholder="••••••••"
+                    slotProps={{ htmlInput: { minLength: 8, 'data-testid': 'register-password' } }}
                   />
 
                   <TextField
@@ -245,6 +248,7 @@ export default function Register() {
                     autoComplete="new-password"
                     fullWidth
                     placeholder="••••••••"
+                    slotProps={{ htmlInput: { 'data-testid': 'register-confirmPassword' } }}
                   />
                 </Stack>
 

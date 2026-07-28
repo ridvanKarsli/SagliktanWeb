@@ -152,6 +152,7 @@ export default function Login() {
                   autoComplete="email"
                   fullWidth
                   placeholder="ornek@email.com"
+                  slotProps={{ htmlInput: { 'data-testid': 'login-email' } }}
                 />
 
                 <TextField
@@ -163,6 +164,7 @@ export default function Login() {
                   autoComplete="current-password"
                   fullWidth
                   placeholder="••••••••"
+                  slotProps={{ htmlInput: { 'data-testid': 'login-password' } }}
                 />
 
                 <Box sx={{

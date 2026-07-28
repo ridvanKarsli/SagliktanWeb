@@ -183,7 +183,7 @@ export default function Posts() {
                 onChange={e => setTitle(e.target.value)}
                 required
                 fullWidth
-                inputProps={{ maxLength: 255 }}
+                slotProps={{ htmlInput: { maxLength: 255, 'data-testid': 'post-title' } }}
                 autoFocus
               />
               <TextField
@@ -194,6 +194,7 @@ export default function Posts() {
                 fullWidth
                 multiline
                 minRows={5}
+                slotProps={{ htmlInput: { 'data-testid': 'post-content' } }}
               />
             </Stack>
           </DialogContent>

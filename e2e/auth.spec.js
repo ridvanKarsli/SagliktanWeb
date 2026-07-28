@@ -19,8 +19,8 @@ test.describe('Kayıt ve giriş', () => {
     await page.evaluate(() => { localStorage.clear(); sessionStorage.clear() })
     await page.goto('/login')
 
-    await page.getByLabel('E-posta adresi', { exact: true }).fill(user.email)
-    await page.getByLabel('Şifre', { exact: true }).fill('yanlis-sifre-123')
+    await page.getByTestId('login-email').fill(user.email)
+    await page.getByTestId('login-password').fill('yanlis-sifre-123')
     await page.getByRole('button', { name: 'Giriş Yap' }).click()
 
     await expect(page.getByText(/E-posta veya şifre hatalı/)).toBeVisible()

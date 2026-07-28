@@ -38,8 +38,8 @@ test.describe('Gruplar, üyelik ve gönderi/yorum akışı', () => {
 
     const postTitle = `E2E test gönderisi ${Date.now()}`
     await page.getByRole('button', { name: 'Yeni gönderi' }).click()
-    await page.getByLabel('Başlık', { exact: true }).fill(postTitle)
-    await page.getByLabel('İçerik', { exact: true }).fill('Playwright tarafından oluşturulan test içeriği.')
+    await page.getByTestId('post-title').fill(postTitle)
+    await page.getByTestId('post-content').fill('Playwright tarafından oluşturulan test içeriği.')
     await page.getByRole('button', { name: 'Paylaş' }).click()
     await expect(page.getByText('Gönderi oluşturuldu.')).toBeVisible()
 
@@ -90,8 +90,8 @@ test.describe('Gruplar, üyelik ve gönderi/yorum akışı', () => {
     await expect(page).toHaveURL(/\/sub-groups\/\d+$/)
 
     await page.getByRole('button', { name: 'Yeni gönderi' }).click()
-    await page.getByLabel('Başlık', { exact: true }).fill(`Sayaç testi ${Date.now()}`)
-    await page.getByLabel('İçerik', { exact: true }).fill('Sohbet sayacını artırmak için oluşturuldu.')
+    await page.getByTestId('post-title').fill(`Sayaç testi ${Date.now()}`)
+    await page.getByTestId('post-content').fill('Sohbet sayacını artırmak için oluşturuldu.')
     await page.getByRole('button', { name: 'Paylaş' }).click()
     await expect(page.getByText('Gönderi oluşturuldu.')).toBeVisible()
 

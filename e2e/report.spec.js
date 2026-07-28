@@ -11,8 +11,8 @@ test.describe('Şikayet (rapor etme)', () => {
 
     const postTitle = `Şikayet test gönderisi ${Date.now()}`
     await page.getByRole('button', { name: 'Yeni gönderi' }).click()
-    await page.getByLabel('Başlık', { exact: true }).fill(postTitle)
-    await page.getByLabel('İçerik', { exact: true }).fill('Bu gönderi şikayet akışını test etmek için oluşturuldu.')
+    await page.getByTestId('post-title').fill(postTitle)
+    await page.getByTestId('post-content').fill('Bu gönderi şikayet akışını test etmek için oluşturuldu.')
     await page.getByRole('button', { name: 'Paylaş' }).click()
     await expect(page.getByText('Gönderi oluşturuldu.')).toBeVisible()
     await page.getByText(postTitle).click()
@@ -34,8 +34,8 @@ test.describe('Şikayet (rapor etme)', () => {
 
     const postTitle = `Yorum şikayet testi ${Date.now()}`
     await page.getByRole('button', { name: 'Yeni gönderi' }).click()
-    await page.getByLabel('Başlık', { exact: true }).fill(postTitle)
-    await page.getByLabel('İçerik', { exact: true }).fill('İçerik.')
+    await page.getByTestId('post-title').fill(postTitle)
+    await page.getByTestId('post-content').fill('İçerik.')
     await page.getByRole('button', { name: 'Paylaş' }).click()
     await expect(page.getByText('Gönderi oluşturuldu.')).toBeVisible()
     await page.getByText(postTitle).click()
