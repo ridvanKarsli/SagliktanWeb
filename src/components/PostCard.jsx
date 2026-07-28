@@ -1,5 +1,6 @@
 import { Avatar, Box, Stack, Typography } from '@mui/material'
 import ReactionButtons from './ReactionButtons.jsx'
+import HighlightText from './HighlightText.jsx'
 import { reactToPost, removePostReaction } from '../services/api.js'
 
 function initialsFrom(name = '') {
@@ -22,7 +23,7 @@ function truncate(text = '', max = 180) {
  * Sade gönderi kartı: yazar, tarih, başlık, kısaltılmış içerik ve
  * Faydalı/Faydalı Değil reaksiyon butonları.
  */
-export default function PostCard({ post, onClick, token }) {
+export default function PostCard({ post, onClick, token, highlightQuery }) {
   if (!post) return null
   const { id, authorName, title, content, createdAt, updatedAt, helpfulCount, notHelpfulCount, myReaction } = post
 
@@ -64,13 +65,15 @@ export default function PostCard({ post, onClick, token }) {
         variant="subtitle1"
         sx={{ fontWeight: 700, color: 'text.primary', mb: 0.5, wordBreak: 'break-word' }}
       >
-        {title}
+        {highlightQuery ? <HighlightText text={title} query={highlightQuery} /> : title}
       </Typography>
       <Typography
         variant="body2"
         sx={{ color: 'text.secondary', whiteSpace: 'pre-line', wordBreak: 'break-word' }}
       >
-        {truncate(content, 180)}
+        {highlightQuery
+          ? <HighlightText text={truncate(content, 180)} query={highlightQuery} />
+          : truncate(content, 180)}
       </Typography>
 
       {token && (

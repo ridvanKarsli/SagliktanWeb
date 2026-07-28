@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import {
-  Avatar, Box, Button, CircularProgress, ClickAwayListener, Fade, Paper,
+  Avatar, Box, Button, CircularProgress, ClickAwayListener, Fade, IconButton, Paper,
   Stack, Tab, Tabs, TextField, Typography
 } from '@mui/material'
-import { SearchRounded, ChatBubbleOutlineRounded } from '@mui/icons-material'
+import { SearchRounded, ChatBubbleOutlineRounded, CloseRounded } from '@mui/icons-material'
 import { useLocation, useNavigate } from 'react-router-dom'
 import PostCard from '../components/PostCard.jsx'
+import HighlightText from '../components/HighlightText.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useNotification } from '../context/NotificationContext.jsx'
 import { searchPosts, searchComments, searchUsers, quickSearch } from '../services/api.js'
@@ -32,7 +33,7 @@ function truncate(text = '', max = 140) {
   return `${clean.slice(0, max).trimEnd()}…`
 }
 
-function CommentResultCard({ comment, onClick, onAuthorClick }) {
+function CommentResultCard({ comment, onClick, onAuthorClick, query }) {
   return (
     <Box
       onClick={onClick}
@@ -62,14 +63,17 @@ function CommentResultCard({ comment, onClick, onAuthorClick }) {
           · {comment.createdAt ? new Date(comment.createdAt).toLocaleDateString('tr-TR') : ''}
         </Typography>
       </Stack>
-      <Typography variant="body2" sx={{ color: 'text.primary', whiteSpace: 'pre-line', wordBreak: 'break-word' }}>
-        {comment.content}
+      <Typography
+        variant="body2"
+        sx={{ color: 'text.primary', whiteSpace: 'pre-line', wordBreak: 'break-word' }}
+      >
+        {query ? <HighlightText text={comment.content} query={query} /> : comment.content}
       </Typography>
     </Box>
   )
 }
 
-function PersonResultCard({ person, onClick }) {
+function PersonResultCard({ person, onClick, query }) {
   const fullName = `${person.firstName || ''} ${person.lastName || ''}`.trim()
   return (
     <Box
@@ -93,7 +97,7 @@ function PersonResultCard({ person, onClick }) {
         </Avatar>
         <Box sx={{ minWidth: 0 }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.primary' }} noWrap>
-            {fullName || 'Kullanıcı'}
+            {query ? <HighlightText text={fullName || 'Kullanıcı'} query={query} /> : (fullName || 'Kullanıcı')}
           </Typography>
           {person.bio && (
             <Typography variant="caption" sx={{ color: 'text.secondary' }} noWrap>
@@ -128,7 +132,9 @@ export default function Search() {
   const [suggestions, setSuggestions] = useState(null)
   const [suggestOpen, setSuggestOpen] = useState(false)
   const [suggestLoading, setSuggestLoading] = useState(false)
+  const [activeIndex, setActiveIndex] = useState(-1) // klavye ile öneri gezinme
   const debounceRef = useRef(null)
+  const inputRef = useRef(null)
 
   const activeTab = TABS[tabIndex]
   const activeState = states[activeTab.key]
@@ -180,7 +186,7 @@ export default function Search() {
     setSuggestLoading(true)
     debounceRef.current = setTimeout(() => {
       quickSearch(token, term)
-        .then(res => setSuggestions(res))
+        .then(res => { setSuggestions(res); setActiveIndex(-1) })
         .catch(() => setSuggestions(null))
         .finally(() => setSuggestLoading(false))
     }, 300)
@@ -227,6 +233,43 @@ export default function Search() {
     suggestions.posts?.length || suggestions.comments?.length || suggestions.users?.length
   )
 
+  // Klavye ile gezinme (Yukarı/Aşağı ok, Enter, Escape) için tüm öneri
+  // gruplarını (gönderi/yorum/kişi) görüntülenme sırasıyla tek bir düz
+  // diziye topluyoruz - activeIndex bu diziye göre hesaplanır.
+  const flatSuggestions = suggestOpen && suggestions ? [
+    ...(suggestions.posts || []).map(p => ({ action: () => goToPost(p.id) })),
+    ...(suggestions.comments || []).map(c => ({ action: () => goToPost(c.postId) })),
+    ...(suggestions.users || []).map(u => ({ action: () => goToProfile(u.id) })),
+  ] : []
+  const postsCount = suggestions?.posts?.length || 0
+  const commentsCount = suggestions?.comments?.length || 0
+
+  const onInputKeyDown = (e) => {
+    if (e.key === 'Escape') {
+      setSuggestOpen(false)
+      setActiveIndex(-1)
+      return
+    }
+    if (!suggestOpen || flatSuggestions.length === 0) return
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setActiveIndex(i => (i + 1) % flatSuggestions.length)
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setActiveIndex(i => (i - 1 + flatSuggestions.length) % flatSuggestions.length)
+    } else if (e.key === 'Enter' && activeIndex >= 0) {
+      e.preventDefault()
+      flatSuggestions[activeIndex].action()
+    }
+  }
+
+  const clearQuery = () => {
+    setQ('')
+    setSuggestions(null)
+    setActiveIndex(-1)
+    inputRef.current?.focus()
+  }
+
   return (
     <Box sx={{ py: { xs: 2, md: 4 } }}>
       <Box sx={{ mb: 3 }}>
@@ -243,11 +286,20 @@ export default function Search() {
           <Box component="form" onSubmit={onSubmit}>
             <TextField
               fullWidth
+              inputRef={inputRef}
               placeholder="Ara..."
               value={q}
               onChange={e => { setQ(e.target.value); setSuggestOpen(true) }}
               onFocus={() => setSuggestOpen(true)}
-              InputProps={{ startAdornment: <SearchRounded sx={{ color: 'text.secondary', mr: 1 }} /> }}
+              onKeyDown={onInputKeyDown}
+              InputProps={{
+                startAdornment: <SearchRounded sx={{ color: 'text.secondary', mr: 1 }} />,
+                endAdornment: q ? (
+                  <IconButton size="small" aria-label="Aramayı temizle" onClick={clearQuery} edge="end">
+                    <CloseRounded fontSize="small" />
+                  </IconButton>
+                ) : null,
+              }}
             />
           </Box>
 
@@ -277,17 +329,21 @@ export default function Search() {
                   <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, px: 1 }}>
                     GÖNDERİLER
                   </Typography>
-                  {suggestions.posts.map(post => (
+                  {suggestions.posts.map((post, i) => (
                     <Box
                       key={post.id}
                       onClick={() => goToPost(post.id)}
-                      sx={{ p: 1, borderRadius: 1.5, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
+                      sx={{
+                        p: 1, borderRadius: 1.5, cursor: 'pointer',
+                        bgcolor: activeIndex === i ? 'action.selected' : undefined,
+                        '&:hover': { bgcolor: 'action.hover' }
+                      }}
                     >
                       <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }} noWrap>
-                        {post.title}
+                        <HighlightText text={post.title} query={q} />
                       </Typography>
                       <Typography variant="caption" sx={{ color: 'text.secondary' }} noWrap>
-                        {truncate(post.content, 90)}
+                        <HighlightText text={truncate(post.content, 90)} query={q} />
                       </Typography>
                     </Box>
                   ))}
@@ -299,14 +355,18 @@ export default function Search() {
                   <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, px: 1 }}>
                     YORUMLAR
                   </Typography>
-                  {suggestions.comments.map(c => (
+                  {suggestions.comments.map((c, i) => (
                     <Box
                       key={c.id}
                       onClick={() => goToPost(c.postId)}
-                      sx={{ p: 1, borderRadius: 1.5, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
+                      sx={{
+                        p: 1, borderRadius: 1.5, cursor: 'pointer',
+                        bgcolor: activeIndex === postsCount + i ? 'action.selected' : undefined,
+                        '&:hover': { bgcolor: 'action.hover' }
+                      }}
                     >
                       <Typography variant="body2" sx={{ color: 'text.primary' }} noWrap>
-                        {truncate(c.content, 90)}
+                        <HighlightText text={truncate(c.content, 90)} query={q} />
                       </Typography>
                       <Typography variant="caption" sx={{ color: 'text.secondary' }} noWrap>
                         {c.authorName}
@@ -321,18 +381,22 @@ export default function Search() {
                   <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, px: 1 }}>
                     KİŞİLER
                   </Typography>
-                  {suggestions.users.map(u => (
+                  {suggestions.users.map((u, i) => (
                     <Stack
                       key={u.id}
                       direction="row" spacing={1.25} alignItems="center"
                       onClick={() => goToProfile(u.id)}
-                      sx={{ p: 1, borderRadius: 1.5, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
+                      sx={{
+                        p: 1, borderRadius: 1.5, cursor: 'pointer',
+                        bgcolor: activeIndex === postsCount + commentsCount + i ? 'action.selected' : undefined,
+                        '&:hover': { bgcolor: 'action.hover' }
+                      }}
                     >
                       <Avatar sx={{ width: 28, height: 28, fontSize: 12, fontWeight: 700 }}>
                         {initialsFrom(`${u.firstName || ''} ${u.lastName || ''}`)}
                       </Avatar>
                       <Typography variant="body2" sx={{ color: 'text.primary' }} noWrap>
-                        {u.firstName} {u.lastName}
+                        <HighlightText text={`${u.firstName || ''} ${u.lastName || ''}`.trim()} query={q} />
                       </Typography>
                     </Stack>
                   ))}
@@ -389,7 +453,13 @@ export default function Search() {
           ) : (
             <>
               {activeTab.key === 'posts' && activeState.results.map(post => (
-                <PostCard key={post.id} post={post} token={token} onClick={() => navigate(`/post/${post.id}`)} />
+                <PostCard
+                  key={post.id}
+                  post={post}
+                  token={token}
+                  onClick={() => navigate(`/post/${post.id}`)}
+                  highlightQuery={activeQuery}
+                />
               ))}
               {activeTab.key === 'comments' && activeState.results.map(c => (
                 <CommentResultCard
@@ -397,10 +467,11 @@ export default function Search() {
                   comment={c}
                   onClick={() => goToPost(c.postId)}
                   onAuthorClick={goToProfile}
+                  query={activeQuery}
                 />
               ))}
               {activeTab.key === 'people' && activeState.results.map(p => (
-                <PersonResultCard key={p.id} person={p} onClick={() => goToProfile(p.id)} />
+                <PersonResultCard key={p.id} person={p} onClick={() => goToProfile(p.id)} query={activeQuery} />
               ))}
 
               {activeState.totalPages > 1 && (

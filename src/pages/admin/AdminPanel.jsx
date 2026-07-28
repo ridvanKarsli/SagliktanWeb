@@ -1,13 +1,18 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
-  Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle,
-  FormControlLabel, MenuItem, Stack, Switch, Tab, Table, TableBody, TableCell, TableContainer,
-  TableHead, TableRow, Tabs, TextField, Typography
+  Accordion, AccordionDetails, AccordionSummary, Box, Button, Chip, CircularProgress, Dialog,
+  DialogActions, DialogContent, DialogTitle, FormControlLabel, IconButton, MenuItem, Stack, Switch,
+  Tab, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tabs, TextField,
+  ToggleButton, ToggleButtonGroup, Typography
 } from '@mui/material'
+import { DeleteOutline, EditOutlined, ExpandMoreRounded } from '@mui/icons-material'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
 import {
-  getAdminStats, listAdminReports, listAdminUsers, resolveAdminReport, updateAdminUser
+  createDiseaseGroup, createSubGroup, deleteComment, deleteDiseaseGroup, deletePost, deleteSubGroup,
+  getAdminStats, listAdminComments, listAdminPosts, listAdminReports, listAdminUsers,
+  listDiseaseGroups, listSubGroups, resolveAdminReport, updateAdminUser, updateDiseaseGroup,
+  updateSubGroup
 } from '../../services/api.js'
 
 const REPORT_STATUS_LABEL = { PENDING: 'Bekliyor', REVIEWED: 'İncelendi', REJECTED: 'Reddedildi' }
@@ -69,17 +74,23 @@ function ReportsTab({ token }) {
 
   useEffect(() => { load() }, [load])
 
-  const act = async (id, newStatus) => {
+  const act = async (id, newStatus, deleteContent = false) => {
     setActingId(id)
     try {
-      await resolveAdminReport(token, id, newStatus)
-      showSuccess('Şikayet güncellendi.')
+      await resolveAdminReport(token, id, newStatus, deleteContent)
+      showSuccess(deleteContent ? 'İçerik silindi.' : 'Şikayet güncellendi.')
       load()
     } catch (err) {
       showError(err.message || 'Şikayet güncellenemedi.')
     } finally {
       setActingId(null)
     }
+  }
+
+  const deleteContent = (r) => {
+    const label = r.targetType === 'POST' ? 'gönderiyi' : 'yorumu'
+    if (!window.confirm(`Bu ${label} kalıcı olarak silmek istiyor musun? Bu işlem geri alınamaz.`)) return
+    act(r.id, 'REVIEWED', true)
   }
 
   return (
@@ -133,6 +144,9 @@ function ReportsTab({ token }) {
                         </Button>
                         <Button size="small" color="inherit" disabled={actingId === r.id} onClick={() => act(r.id, 'REJECTED')}>
                           Reddet
+                        </Button>
+                        <Button size="small" color="error" disabled={actingId === r.id} onClick={() => deleteContent(r)}>
+                          İçeriği Sil
                         </Button>
                       </Stack>
                     )}
@@ -278,6 +292,321 @@ function UsersTab({ token }) {
   )
 }
 
+function ContentTab({ token }) {
+  const [type, setType] = useState('posts') // 'posts' | 'comments'
+  const [q, setQ] = useState('')
+  const [items, setItems] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [deletingId, setDeletingId] = useState(null)
+  const { showError, showSuccess } = useNotification()
+
+  const load = useCallback(() => {
+    setLoading(true)
+    const fetcher = type === 'posts' ? listAdminPosts : listAdminComments
+    fetcher(token, { q: q || undefined, size: 50 })
+      .then(res => setItems(Array.isArray(res?.content) ? res.content : []))
+      .catch(err => showError(err.message || 'İçerik alınamadı.'))
+      .finally(() => setLoading(false))
+  }, [token, type, q, showError])
+
+  useEffect(() => { load() }, [load])
+
+  const remove = async (item) => {
+    const label = type === 'posts' ? 'gönderiyi' : 'yorumu'
+    if (!window.confirm(`Bu ${label} kalıcı olarak silmek istiyor musun? Bu işlem geri alınamaz.`)) return
+    setDeletingId(item.id)
+    try {
+      if (type === 'posts') await deletePost(token, item.id)
+      else await deleteComment(token, item.id)
+      showSuccess('Silindi.')
+      load()
+    } catch (err) {
+      showError(err.message || 'Silinemedi.')
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
+  return (
+    <Box sx={{ mt: 2 }}>
+      <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2, flexWrap: 'wrap', gap: 1 }}>
+        <ToggleButtonGroup size="small" value={type} exclusive onChange={(_, v) => v && setType(v)}>
+          <ToggleButton value="posts">Gönderiler</ToggleButton>
+          <ToggleButton value="comments">Yorumlar</ToggleButton>
+        </ToggleButtonGroup>
+        <TextField
+          size="small" placeholder="İçerikte ara..." value={q}
+          onChange={e => setQ(e.target.value)}
+          sx={{ width: 280 }}
+        />
+      </Stack>
+
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress size={22} /></Box>
+      ) : (
+        <TableContainer sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                {type === 'posts' && <TableCell>Başlık</TableCell>}
+                <TableCell>İçerik</TableCell>
+                <TableCell>Yazar</TableCell>
+                {type === 'comments' && <TableCell>Durum</TableCell>}
+                <TableCell>Tarih</TableCell>
+                <TableCell align="right">Aksiyon</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {items.length === 0 && (
+                <TableRow><TableCell colSpan={5} align="center">Kayıt yok.</TableCell></TableRow>
+              )}
+              {items.map(item => (
+                <TableRow key={item.id}>
+                  {type === 'posts' && (
+                    <TableCell sx={{ maxWidth: 160, whiteSpace: 'normal', wordBreak: 'break-word' }}>{item.title}</TableCell>
+                  )}
+                  <TableCell sx={{ maxWidth: 280, whiteSpace: 'normal', wordBreak: 'break-word' }}>
+                    {item.content}
+                  </TableCell>
+                  <TableCell>{item.authorName}</TableCell>
+                  {type === 'comments' && (
+                    <TableCell>
+                      <Chip size="small" label={item.deleted ? 'Silinmiş' : 'Aktif'} color={item.deleted ? 'default' : 'success'} />
+                    </TableCell>
+                  )}
+                  <TableCell>{item.createdAt ? new Date(item.createdAt).toLocaleDateString('tr-TR') : ''}</TableCell>
+                  <TableCell align="right">
+                    {!(type === 'comments' && item.deleted) && (
+                      <Button size="small" color="error" disabled={deletingId === item.id} onClick={() => remove(item)}>
+                        Sil
+                      </Button>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
+    </Box>
+  )
+}
+
+function GroupNameDialog({ title, initial, onClose, onSave }) {
+  const [name, setName] = useState(initial?.name || '')
+  const [description, setDescription] = useState(initial?.description || '')
+  const [saving, setSaving] = useState(false)
+  const { showError } = useNotification()
+
+  const save = async () => {
+    if (!name.trim()) { showError('Ad zorunludur.'); return }
+    setSaving(true)
+    try {
+      await onSave({ name: name.trim(), description: description.trim() })
+    } catch (err) {
+      showError(err.message || 'Kaydedilemedi.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Dialog open onClose={saving ? undefined : onClose} maxWidth="xs" fullWidth>
+      <DialogTitle>{title}</DialogTitle>
+      <DialogContent>
+        <Stack spacing={2} sx={{ mt: 1 }}>
+          <TextField label="Ad" value={name} onChange={e => setName(e.target.value)} fullWidth autoFocus />
+          <TextField
+            label="Açıklama" value={description} onChange={e => setDescription(e.target.value)}
+            fullWidth multiline minRows={2}
+          />
+        </Stack>
+      </DialogContent>
+      <DialogActions sx={{ px: 3, pb: 2 }}>
+        <Button onClick={onClose} disabled={saving}>Vazgeç</Button>
+        <Button variant="contained" onClick={save} disabled={saving}>
+          {saving ? <CircularProgress size={16} color="inherit" /> : 'Kaydet'}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  )
+}
+
+function SubGroupRow({ subGroup, token, onChanged }) {
+  const [dialog, setDialog] = useState(null) // null | 'edit'
+  const { showError, showSuccess } = useNotification()
+
+  const remove = async () => {
+    if (!window.confirm(`"${subGroup.name}" alt grubunu silmek istiyor musun? İçindeki tüm gönderiler de silinir.`)) return
+    try {
+      await deleteSubGroup(token, subGroup.id)
+      showSuccess('Alt grup silindi.')
+      onChanged()
+    } catch (err) {
+      showError(err.message || 'Alt grup silinemedi.')
+    }
+  }
+
+  return (
+    <Stack
+      direction="row" alignItems="center" justifyContent="space-between"
+      sx={{ py: 1, px: 2, borderTop: '1px solid', borderColor: 'divider' }}
+    >
+      <Box>
+        <Typography variant="body2" sx={{ fontWeight: 600 }}>{subGroup.name}</Typography>
+        <Typography variant="caption" sx={{ color: 'text.secondary' }}>{subGroup.postCount} sohbet</Typography>
+      </Box>
+      <Stack direction="row" spacing={0.5}>
+        <IconButton size="small" onClick={() => setDialog('edit')}><EditOutlined fontSize="small" /></IconButton>
+        <IconButton size="small" onClick={remove}><DeleteOutline fontSize="small" /></IconButton>
+      </Stack>
+      {dialog === 'edit' && (
+        <GroupNameDialog
+          title="Alt Grubu Düzenle"
+          initial={subGroup}
+          onClose={() => setDialog(null)}
+          onSave={async (data) => {
+            await updateSubGroup(token, subGroup.id, data)
+            showSuccess('Alt grup güncellendi.')
+            setDialog(null)
+            onChanged()
+          }}
+        />
+      )}
+    </Stack>
+  )
+}
+
+function DiseaseGroupAccordion({ group, token, onChanged }) {
+  const [subGroups, setSubGroups] = useState(null)
+  const [dialog, setDialog] = useState(null) // null | 'edit' | 'newSub'
+  const { showError, showSuccess } = useNotification()
+
+  const loadSubGroups = useCallback(() => {
+    listSubGroups(token, group.id).then(setSubGroups).catch(() => setSubGroups([]))
+  }, [token, group.id])
+
+  const remove = async (e) => {
+    e.stopPropagation()
+    if (!window.confirm(`"${group.name}" hastalık grubunu silmek istiyor musun? Tüm alt gruplar ve içerikler de silinir.`)) return
+    try {
+      await deleteDiseaseGroup(token, group.id)
+      showSuccess('Grup silindi.')
+      onChanged()
+    } catch (err) {
+      showError(err.message || 'Grup silinemedi.')
+    }
+  }
+
+  return (
+    <Accordion onChange={(_, expanded) => { if (expanded && subGroups === null) loadSubGroups() }}>
+      <AccordionSummary expandIcon={<ExpandMoreRounded />}>
+        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ width: '100%', pr: 1 }}>
+          <Box>
+            <Typography sx={{ fontWeight: 600 }}>{group.name}</Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>{group.memberCount} üye</Typography>
+          </Box>
+          <Stack direction="row" spacing={0.5} onClick={e => e.stopPropagation()}>
+            <IconButton size="small" onClick={() => setDialog('edit')}><EditOutlined fontSize="small" /></IconButton>
+            <IconButton size="small" onClick={remove}><DeleteOutline fontSize="small" /></IconButton>
+          </Stack>
+        </Stack>
+      </AccordionSummary>
+      <AccordionDetails sx={{ p: 0 }}>
+        {subGroups === null ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}><CircularProgress size={18} /></Box>
+        ) : (
+          <>
+            {subGroups.map(sg => (
+              <SubGroupRow key={sg.id} subGroup={sg} token={token} onChanged={loadSubGroups} />
+            ))}
+            <Box sx={{ p: 1.5 }}>
+              <Button size="small" onClick={() => setDialog('newSub')}>+ Alt Grup Ekle</Button>
+            </Box>
+          </>
+        )}
+      </AccordionDetails>
+
+      {dialog === 'edit' && (
+        <GroupNameDialog
+          title="Hastalık Grubunu Düzenle"
+          initial={group}
+          onClose={() => setDialog(null)}
+          onSave={async (data) => {
+            await updateDiseaseGroup(token, group.id, data)
+            showSuccess('Grup güncellendi.')
+            setDialog(null)
+            onChanged()
+          }}
+        />
+      )}
+      {dialog === 'newSub' && (
+        <GroupNameDialog
+          title="Yeni Alt Grup"
+          onClose={() => setDialog(null)}
+          onSave={async (data) => {
+            await createSubGroup(token, group.id, data)
+            showSuccess('Alt grup oluşturuldu.')
+            setDialog(null)
+            loadSubGroups()
+          }}
+        />
+      )}
+    </Accordion>
+  )
+}
+
+function GroupsTab({ token }) {
+  const [groups, setGroups] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [creating, setCreating] = useState(false)
+  const { showError, showSuccess } = useNotification()
+
+  const load = useCallback(() => {
+    setLoading(true)
+    listDiseaseGroups(token)
+      .then(res => setGroups(Array.isArray(res) ? res : []))
+      .catch(err => showError(err.message || 'Gruplar alınamadı.'))
+      .finally(() => setLoading(false))
+  }, [token, showError])
+
+  useEffect(() => { load() }, [load])
+
+  if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress size={22} /></Box>
+
+  return (
+    <Box sx={{ mt: 2 }}>
+      <Button variant="contained" size="small" sx={{ mb: 2 }} onClick={() => setCreating(true)}>
+        + Yeni Hastalık Grubu
+      </Button>
+
+      <Stack spacing={1}>
+        {groups.map(g => (
+          <DiseaseGroupAccordion key={g.id} group={g} token={token} onChanged={load} />
+        ))}
+        {groups.length === 0 && (
+          <Typography variant="body2" sx={{ color: 'text.secondary', textAlign: 'center', py: 4 }}>
+            Henüz hastalık grubu yok.
+          </Typography>
+        )}
+      </Stack>
+
+      {creating && (
+        <GroupNameDialog
+          title="Yeni Hastalık Grubu"
+          onClose={() => setCreating(false)}
+          onSave={async (data) => {
+            await createDiseaseGroup(token, data)
+            showSuccess('Grup oluşturuldu.')
+            setCreating(false)
+            load()
+          }}
+        />
+      )}
+    </Box>
+  )
+}
+
 export default function AdminPanel() {
   const { token } = useAuth()
   const [tab, setTab] = useState('dashboard')
@@ -288,11 +617,15 @@ export default function AdminPanel() {
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ borderBottom: '1px solid', borderColor: 'divider', mb: 1 }}>
         <Tab value="dashboard" label="Genel Bakış" />
         <Tab value="reports" label="Şikayetler" />
+        <Tab value="content" label="İçerik" />
         <Tab value="users" label="Kullanıcılar" />
+        <Tab value="groups" label="Gruplar" />
       </Tabs>
       {tab === 'dashboard' && <DashboardTab token={token} />}
       {tab === 'reports' && <ReportsTab token={token} />}
+      {tab === 'content' && <ContentTab token={token} />}
       {tab === 'users' && <UsersTab token={token} />}
+      {tab === 'groups' && <GroupsTab token={token} />}
     </Box>
   )
 }

@@ -303,8 +303,45 @@ export function listAdminReports(token, { status, page = 0, size, signal } = {})
   return request('/admin/reports', { token, params: { status, page, size }, signal });
 }
 
-export function resolveAdminReport(token, id, status) {
-  return request(`/admin/reports/${id}`, { method: 'PUT', token, body: { status } });
+export function resolveAdminReport(token, id, status, deleteContent = false) {
+  return request(`/admin/reports/${id}`, { method: 'PUT', token, body: { status, deleteContent } });
+}
+
+// Genel içerik moderasyonu: sadece şikayet edilenler değil tüm postlar/yorumlar.
+export function listAdminPosts(token, { q, page = 0, size, signal } = {}) {
+  return request('/admin/posts', { token, params: { q, page, size }, signal });
+}
+
+export function listAdminComments(token, { q, page = 0, size, signal } = {}) {
+  return request('/admin/comments', { token, params: { q, page, size }, signal });
+}
+
+// --- Hastalık grupları / alt gruplar (admin yönetimi) ---
+
+export function createDiseaseGroup(token, { name, description }) {
+  return request('/disease-groups', { method: 'POST', token, body: { name, description: description || null } });
+}
+
+export function updateDiseaseGroup(token, id, { name, description }) {
+  return request(`/disease-groups/${id}`, { method: 'PUT', token, body: { name, description: description || null } });
+}
+
+export function deleteDiseaseGroup(token, id) {
+  return request(`/disease-groups/${id}`, { method: 'DELETE', token });
+}
+
+export function createSubGroup(token, diseaseGroupId, { name, description }) {
+  return request(`/disease-groups/${diseaseGroupId}/sub-groups`, {
+    method: 'POST', token, body: { name, description: description || null }
+  });
+}
+
+export function updateSubGroup(token, id, { name, description }) {
+  return request(`/sub-groups/${id}`, { method: 'PUT', token, body: { name, description: description || null } });
+}
+
+export function deleteSubGroup(token, id) {
+  return request(`/sub-groups/${id}`, { method: 'DELETE', token });
 }
 
 export { ApiError, API_BASE };
