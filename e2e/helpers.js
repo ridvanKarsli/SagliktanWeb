@@ -123,3 +123,32 @@ export function logBrowserConsole(page, label) {
     console.log(`[${label} pageerror] ${err.message}`)
   })
 }
+
+// WS teslimatının kendisi mi başarısız oluyor, yoksa backend bildirimi HİÇ
+// üretmiyor mu ayrımını yapmak için: sayfanın kendi token'ıyla REST
+// (GET /api/notifications, GET /api/notifications/unread-count) uçlarını
+// doğrudan çağırıp ham yanıtı konsola (dolayısıyla logBrowserConsole
+// üzerinden Actions log'una) basar. Bildirim satırı burada da yoksa sorun
+// notifyNewComment/convertAndSendToUser değil, daha önceki bir adımdadır
+// (ör. controller'a hiç ulaşmamış olabilir) - varsa ama WS badge'e
+// yansımıyorsa sorun kesin olarak WS teslimatındadır. Sadece teşhis amaçlı,
+// kalıcı bir test değil.
+export async function debugPrintNotifications(page, label) {
+  const result = await page.evaluate(async () => {
+    const auth = JSON.parse(localStorage.getItem('auth') || sessionStorage.getItem('auth') || '{}')
+    const token = auth.accessToken
+    if (!token) return { error: 'no-token' }
+    const headers = { Authorization: `Bearer ${token}` }
+    const [listRes, countRes] = await Promise.all([
+      fetch('/api/notifications?size=5', { headers }),
+      fetch('/api/notifications/unread-count', { headers }),
+    ])
+    return {
+      listStatus: listRes.status,
+      list: await listRes.json().catch(() => null),
+      countStatus: countRes.status,
+      count: await countRes.json().catch(() => null),
+    }
+  })
+  console.log(`[${label} REST /api/notifications]`, JSON.stringify(result))
+}

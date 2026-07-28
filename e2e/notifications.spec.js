@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test'
 import {
-  registerAndLogin, uniqueUser, joinSeedGroup, waitForNotificationSocket, logBrowserConsole, SEED_GROUP, SEED_SUB_GROUP
+  registerAndLogin, uniqueUser, joinSeedGroup, waitForNotificationSocket, logBrowserConsole,
+  debugPrintNotifications, SEED_GROUP, SEED_SUB_GROUP
 } from './helpers.js'
 
 // NOT: Bildirimler gerçek zamanlı WebSocket (STOMP) üzerinden geliyor ve
@@ -56,6 +57,9 @@ test.describe('Bildirimler (WebSocket)', () => {
 
     // Yazarın sayfasında (herhangi bir sayfada olabilirdi - bildirim
     // sağlayıcısı global) rozet WebSocket üzerinden 1'e çıkmalı.
+    // Teşhis: WS teslimatı mı yoksa backend'in bildirimi hiç üretmemesi mi
+    // ayrımı için REST üzerinden ham durumu da logla (bkz. helpers.js#debugPrintNotifications).
+    await debugPrintNotifications(authorPage, 'author-before-badge-check')
     const bellBadge = authorPage.getByLabel('Bildirimler').locator('.MuiBadge-badge')
     await expect(bellBadge).toHaveText('1', { timeout: 10000 })
 
@@ -122,6 +126,7 @@ test.describe('Bildirimler (WebSocket)', () => {
     await replierPage.getByRole('button', { name: 'Yanıtla' }).last().click()
     await expect(replierPage.getByText(replyText)).toBeVisible()
 
+    await debugPrintNotifications(authorPage, 'author-before-badge-check')
     const bellBadge = authorPage.getByLabel('Bildirimler').locator('.MuiBadge-badge')
     await expect(bellBadge).toHaveText('1', { timeout: 10000 })
 
