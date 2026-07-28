@@ -73,18 +73,18 @@ export async function login(page, user) {
 export const SEED_GROUP = 'Retinitis Pigmentosa'
 export const SEED_SUB_GROUP = 'Sohbet & Sosyalleşme'
 
-// Not: V3 migration ile veritabanına tam olarak TEK bir hastalık grubu seed
-// ediliyor. E2E ortamı sadece migration'larla kurulduğu ve testler başka
-// admin grubu oluşturmadığı için "Katıl" butonu sayfada her zaman tekil -
-// bu yüzden kart bazlı karmaşık bir seçiciye gerek yok.
+// NOT: Artık sayfada TEK bir grup olduğu garanti değil - admin.spec.js'teki
+// grup CRUD testi kendi grubunu oluşturuyor (ve normalde temizliyor, ama
+// paralel çalışan/başarısız olan bir test geçici olarak ek grup bırakabilir,
+// bkz. E2E #9 teşhis raporu). Bu yüzden "Katıl" butonunu sayfa genelinde
+// değil, SEED_GROUP başlığını içeren KART içinde arıyoruz - .tap-scale,
+// DiseaseGroups.jsx'teki her grup kartının kök elemanına ait sabit bir
+// class, kart sınırını güvenilir şekilde belirliyor.
 export async function joinSeedGroup(page) {
   await page.goto('/groups')
-  // NOT: getByText(SEED_GROUP) grup kartındaki başlığa VE açıklama
-  // paragrafına ("Retinitis pigmentosa hastaları ve yakınları için...")
-  // birden eşleşip strict-mode violation'a düşüyordu (bkz. E2E #6).
-  // getByRole('heading', ...) sadece başlığı hedefleyerek kesinleştiriyor.
-  await expect(page.getByRole('heading', { name: SEED_GROUP })).toBeVisible()
-  const joinButton = page.getByRole('button', { name: 'Katıl' })
+  const card = page.locator('.tap-scale').filter({ has: page.getByRole('heading', { name: SEED_GROUP }) })
+  await expect(card).toBeVisible()
+  const joinButton = card.getByRole('button', { name: 'Katıl' })
   if (await joinButton.isVisible().catch(() => false)) {
     await joinButton.click()
     await expect(page.getByText('Gruba katıldınız.')).toBeVisible()

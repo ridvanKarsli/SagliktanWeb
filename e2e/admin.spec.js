@@ -140,7 +140,16 @@ test.describe('Admin paneli', () => {
 
     const contentRow = adminPage.getByRole('row').filter({ hasText: postTitle })
     await expect(contentRow).toBeVisible()
-    await contentRow.getByRole('button', { name: 'Sil' }).click()
+    // NOT: silme sonrası tablo, ContentTab'in kendi reload GET isteği
+    // tamamlanınca güncelleniyor - "Silindi." toast'ı bu isteği beklemeden
+    // hemen görünür olduğundan, satırın kaybolmasını doğrudan kontrol etmek
+    // yerine önce reload isteğinin bitmesini bekliyoruz (bkz. E2E #9 teşhis
+    // raporu - bu bekleme olmadan negatif assertion zaman zaman raced).
+    const [reloadResponse] = await Promise.all([
+      adminPage.waitForResponse(res => res.url().includes('/api/admin/posts') && res.request().method() === 'GET'),
+      contentRow.getByRole('button', { name: 'Sil' }).click(),
+    ])
+    await expect(reloadResponse.ok()).toBeTruthy()
     await expect(adminPage.getByText('Silindi.')).toBeVisible()
     await expect(contentRow).not.toBeVisible()
 
@@ -172,9 +181,17 @@ test.describe('Admin paneli', () => {
     await expect(page.getByText(subGroupName, { exact: true })).toBeVisible()
 
     // Temizlik: oluşturduğumuz grubu sil (cascade ile alt grup da gider) -
-    // test ortamını kirletmeden bırakmamak için.
+    // test ortamını kirletmeden bırakmamak için. NOT: { exact: true } şart -
+    // aksi halde "Grubu Sil" alt string'i hem AccordionSummary'nin tüm
+    // içeriği birleştiren erişilebilir adına ("... Grubu Düzenle Grubu Sil")
+    // hem de "Alt Grubu Sil" butonuna substring olarak eşleşip strict-mode
+    // violation'a düşüyor (bkz. E2E #9 teşhis raporu).
     const groupRow = page.locator('.MuiAccordion-root').filter({ hasText: groupName })
-    await groupRow.getByRole('button', { name: 'Grubu Sil' }).click()
+    const [reloadResponse] = await Promise.all([
+      page.waitForResponse(res => res.url().includes('/api/disease-groups') && res.request().method() === 'GET'),
+      groupRow.getByRole('button', { name: 'Grubu Sil', exact: true }).click(),
+    ])
+    await expect(reloadResponse.ok()).toBeTruthy()
     await expect(page.getByText('Grup silindi.')).toBeVisible()
     await expect(page.getByText(groupName, { exact: true })).not.toBeVisible()
   })
