@@ -9,7 +9,9 @@ test.describe('Gruplar, üyelik ve gönderi/yorum akışı', () => {
     await joinSeedGroup(page)
 
     // Sayfa "Katıldın" rozetini göstermeli, "Katıl" butonu "Ayrıl" olmalı.
-    await expect(page.getByText('Katıldın')).toBeVisible()
+    // NOT: exact:true olmadan "Gruba katıldınız." bildirim toast'ı ile de
+    // eşleşip strict-mode violation'a düşüyordu (bkz. E2E #7).
+    await expect(page.getByText('Katıldın', { exact: true })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Ayrıl' })).toBeVisible()
 
     // Grup detayına gir, üye listesinde kendi adını gör.
@@ -97,7 +99,10 @@ test.describe('Gruplar, üyelik ve gönderi/yorum akışı', () => {
 
     // Geri butonunun erişilebilir adı yok (sadece ikon) - grup detayına
     // URL üzerinden dönüp orada chip'i doğrudan doğruluyoruz.
+    // NOT: getByText(/\d+\s*sohbet/) sayfadaki DİĞER alt grupların "0
+    // sohbet" chip'leriyle de eşleşip strict-mode violation'a düşüyordu
+    // (bkz. E2E #7) - artık SEED_SUB_GROUP'a özel data-testid ile hedefliyoruz.
     await page.goto(groupUrl)
-    await expect(page.getByText(/\d+\s*sohbet/)).toBeVisible()
+    await expect(page.getByTestId(`subgroup-chat-count-${SEED_SUB_GROUP}`)).toHaveText(/[1-9]\d*\s*sohbet/)
   })
 })
