@@ -19,9 +19,9 @@ export default function Posts() {
   const [subGroup, setSubGroup] = useState(null)
   const [posts, setPosts] = useState([])
   const [page, setPage] = useState(0)
-  const [totalPages, setTotalPages] = useState(1)
   const [last, setLast] = useState(true)
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState('')
 
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -42,11 +42,11 @@ export default function Posts() {
     let mounted = true
     setLoading(true)
     setError('')
-    listPostsBySubGroup(token, subGroupId, { page })
+    setPage(0)
+    listPostsBySubGroup(token, subGroupId, { page: 0 })
       .then(res => {
         if (!mounted) return
         setPosts(Array.isArray(res?.content) ? res.content : [])
-        setTotalPages(res?.totalPages ?? 1)
         setLast(res?.last ?? true)
       })
       .catch(err => {
@@ -55,7 +55,25 @@ export default function Posts() {
       })
       .finally(() => { if (mounted) setLoading(false) })
     return () => { mounted = false }
-  }, [token, subGroupId, page])
+  }, [token, subGroupId])
+
+  // Sayfa numaralı "Önceki/Sonraki" yerine mobilde tek elle kullanımı daha
+  // kolay olan "Daha Fazla Yükle" - yeni sayfa mevcut listeye ekleniyor,
+  // kullanıcı yerini kaybetmiyor.
+  const loadMore = async () => {
+    const nextPage = page + 1
+    setLoadingMore(true)
+    try {
+      const res = await listPostsBySubGroup(token, subGroupId, { page: nextPage })
+      setPosts(prev => [...prev, ...(Array.isArray(res?.content) ? res.content : [])])
+      setLast(res?.last ?? true)
+      setPage(nextPage)
+    } catch (err) {
+      showError(err.message || 'Gönderiler alınamadı.')
+    } finally {
+      setLoadingMore(false)
+    }
+  }
 
   const openDialog = () => { setTitle(''); setContent(''); setDialogOpen(true) }
   const closeDialog = () => { if (!submitting) setDialogOpen(false) }
@@ -74,7 +92,6 @@ export default function Posts() {
       setPage(0)
       const res = await listPostsBySubGroup(token, subGroupId, { page: 0 })
       setPosts(Array.isArray(res?.content) ? res.content : [])
-      setTotalPages(res?.totalPages ?? 1)
       setLast(res?.last ?? true)
     } catch (err) {
       showError(err.message || 'Gönderi oluşturulamadı.')
@@ -132,28 +149,17 @@ export default function Posts() {
             </Box>
           )}
 
-          {totalPages > 1 && (
-            <Stack direction="row" spacing={2} justifyContent="center" alignItems="center" sx={{ py: 3 }}>
+          {!last && posts.length > 0 && (
+            <Box sx={{ textAlign: 'center', py: 3 }}>
               <Button
                 variant="outlined"
-                size="small"
-                disabled={page <= 0}
-                onClick={() => setPage(p => Math.max(0, p - 1))}
+                onClick={loadMore}
+                disabled={loadingMore}
+                sx={{ minWidth: 180, minHeight: 44 }}
               >
-                Önceki
+                {loadingMore ? <CircularProgress size={18} /> : 'Daha Fazla Yükle'}
               </Button>
-              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                Sayfa {page + 1} / {totalPages}
-              </Typography>
-              <Button
-                variant="outlined"
-                size="small"
-                disabled={last}
-                onClick={() => setPage(p => p + 1)}
-              >
-                Sonraki
-              </Button>
-            </Stack>
+            </Box>
           )}
         </Box>
       )}

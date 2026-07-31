@@ -371,8 +371,8 @@ export default function PostDetail() {
 
   const [comments, setComments] = useState([])
   const [commentsLoading, setCommentsLoading] = useState(true)
+  const [commentsLoadingMore, setCommentsLoadingMore] = useState(false)
   const [page, setPage] = useState(0)
-  const [totalPages, setTotalPages] = useState(1)
   const [last, setLast] = useState(true)
 
   const [newComment, setNewComment] = useState('')
@@ -422,15 +422,32 @@ export default function PostDetail() {
   const loadComments = useCallback(() => {
     if (!token || !postId) return
     setCommentsLoading(true)
-    listComments(token, postId, { page })
+    setPage(0)
+    listComments(token, postId, { page: 0 })
       .then(res => {
         setComments(Array.isArray(res?.content) ? res.content : [])
-        setTotalPages(res?.totalPages ?? 1)
         setLast(res?.last ?? true)
       })
       .catch(err => showError(err.message || 'Yorumlar alınamadı.'))
       .finally(() => setCommentsLoading(false))
-  }, [token, postId, page, showError])
+  }, [token, postId, showError])
+
+  // Sayfa numaralı gezinme yerine mevcut listeye ekleyen "Daha Fazla Yükle" -
+  // mobilde tek elle kullanım daha kolay, kullanıcı okuduğu yeri kaybetmiyor.
+  const loadMoreComments = async () => {
+    const nextPage = page + 1
+    setCommentsLoadingMore(true)
+    try {
+      const res = await listComments(token, postId, { page: nextPage })
+      setComments(prev => [...prev, ...(Array.isArray(res?.content) ? res.content : [])])
+      setLast(res?.last ?? true)
+      setPage(nextPage)
+    } catch (err) {
+      showError(err.message || 'Yorumlar alınamadı.')
+    } finally {
+      setCommentsLoadingMore(false)
+    }
+  }
 
   useEffect(() => { loadPost() }, [loadPost])
   useEffect(() => { loadComments() }, [loadComments])
@@ -443,8 +460,7 @@ export default function PostDetail() {
       await createComment(token, postId, newComment.trim())
       setNewComment('')
       showSuccess('Yorum eklendi.')
-      if (page === 0) loadComments()
-      else setPage(0)
+      loadComments()
     } catch (err) {
       showError(err.message || 'Yorum eklenemedi.')
     } finally {
@@ -713,28 +729,17 @@ export default function PostDetail() {
             ))
           )}
 
-          {totalPages > 1 && (
-            <Stack direction="row" spacing={2} justifyContent="center" alignItems="center" sx={{ py: 2 }}>
+          {!last && comments.length > 0 && (
+            <Box sx={{ textAlign: 'center', py: 2 }}>
               <Button
                 variant="outlined"
-                size="small"
-                disabled={page <= 0}
-                onClick={() => setPage(p => Math.max(0, p - 1))}
+                onClick={loadMoreComments}
+                disabled={commentsLoadingMore}
+                sx={{ minWidth: 180, minHeight: 44 }}
               >
-                Önceki
+                {commentsLoadingMore ? <CircularProgress size={18} /> : 'Daha Fazla Yükle'}
               </Button>
-              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                Sayfa {page + 1} / {totalPages}
-              </Typography>
-              <Button
-                variant="outlined"
-                size="small"
-                disabled={last}
-                onClick={() => setPage(p => p + 1)}
-              >
-                Sonraki
-              </Button>
-            </Stack>
+            </Box>
           )}
         </Stack>
       )}
