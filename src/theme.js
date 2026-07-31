@@ -428,24 +428,50 @@ const theme = createTheme({
     },
     MuiAlert: {
       styleOverrides: {
+        // Okunabilirlik notu: mesaj metni tam saturasyonlu vurgu rengiyle
+        // değil, kreme yakın yüksek kontrastlı bir tonla yazılıyor - renk
+        // sadece ikon ve kenarlıkta anlam taşıyor. Uzun metinlerde saf
+        // vurgu rengiyle yazı okumak gözü yoruyordu.
         root: {
           borderRadius: 12,
+          padding: '12px 16px',
+          alignItems: 'flex-start',
+        },
+        icon: {
+          fontSize: 22,
+          marginRight: 12,
+          paddingTop: 1,
+          opacity: 1,
+        },
+        message: {
+          padding: '2px 0',
+          fontSize: '0.9rem',
+          fontWeight: 500,
+          lineHeight: 1.6,
         },
         standardSuccess: {
-          backgroundColor: 'rgba(76, 184, 159, 0.16)',
-          color: colors.primary,
+          backgroundColor: 'rgba(76, 184, 159, 0.14)',
+          color: '#E4F3EE',
+          border: '1px solid rgba(76, 184, 159, 0.32)',
+          '& .MuiAlert-icon': { color: colors.primary },
         },
         standardError: {
-          backgroundColor: 'rgba(224, 128, 120, 0.16)',
-          color: '#E08078',
+          backgroundColor: 'rgba(224, 128, 120, 0.14)',
+          color: '#F8E2DF',
+          border: '1px solid rgba(224, 128, 120, 0.34)',
+          '& .MuiAlert-icon': { color: '#E08078' },
         },
         standardInfo: {
-          backgroundColor: 'rgba(127, 174, 189, 0.16)',
-          color: '#7FAEBD',
+          backgroundColor: 'rgba(127, 174, 189, 0.14)',
+          color: '#E3EDF0',
+          border: '1px solid rgba(127, 174, 189, 0.32)',
+          '& .MuiAlert-icon': { color: '#7FAEBD' },
         },
         standardWarning: {
-          backgroundColor: 'rgba(224, 168, 94, 0.16)',
-          color: '#E0A85E',
+          backgroundColor: 'rgba(224, 168, 94, 0.14)',
+          color: '#F8ECDA',
+          border: '1px solid rgba(224, 168, 94, 0.34)',
+          '& .MuiAlert-icon': { color: '#E0A85E' },
         },
       },
     },

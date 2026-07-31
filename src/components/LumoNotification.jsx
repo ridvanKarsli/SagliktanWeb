@@ -38,27 +38,27 @@ export default function LumoNotification({ message, type = 'info', onClose, dura
 
   const cfg = {
     success: {
-      icon: <SuccessIcon sx={{ fontSize: 22 }} />,
+      icon: <SuccessIcon sx={{ fontSize: 23 }} />,
       accent: '#3F9C87',
       border: 'rgba(63, 156, 135, 0.35)',
     },
     error: {
-      icon: <ErrorIcon sx={{ fontSize: 22 }} />,
+      icon: <ErrorIcon sx={{ fontSize: 23 }} />,
       accent: '#C4554A',
       border: 'rgba(196, 85, 74, 0.35)',
     },
     warning: {
-      icon: <WarningIcon sx={{ fontSize: 22 }} />,
+      icon: <WarningIcon sx={{ fontSize: 23 }} />,
       accent: '#C98A3E',
       border: 'rgba(201, 138, 62, 0.35)',
     },
     info: {
-      icon: <InfoIcon sx={{ fontSize: 22 }} />,
+      icon: <InfoIcon sx={{ fontSize: 23 }} />,
       accent: '#5B8FA3',
       border: 'rgba(91, 143, 163, 0.35)',
     },
   }[type] || {
-    icon: <InfoIcon sx={{ fontSize: 22 }} />,
+    icon: <InfoIcon sx={{ fontSize: 23 }} />,
     accent: '#5B8FA3',
     border: 'rgba(91, 143, 163, 0.35)',
   }
@@ -95,10 +95,11 @@ export default function LumoNotification({ message, type = 'info', onClose, dura
       <Box
         sx={{
           display: 'flex',
-          alignItems: 'center',
+          alignItems: 'flex-start',
           justifyContent: 'center',
-          px: 1.5,
-          py: 1.5,
+          pl: 1.75,
+          pr: 1.25,
+          py: 1.75,
           color: cfg.accent,
           flexShrink: 0,
         }}
@@ -110,10 +111,11 @@ export default function LumoNotification({ message, type = 'info', onClose, dura
       <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', py: 1.5, pr: 0.5, minWidth: 0 }}>
         <Typography
           sx={{
-            fontSize: { xs: '0.82rem', sm: '0.88rem' },
+            fontSize: { xs: '0.875rem', sm: '0.9rem' },
             fontWeight: 500,
-            lineHeight: 1.5,
-            color: '#F2EDE6',
+            lineHeight: 1.55,
+            letterSpacing: 0.1,
+            color: '#F8F5F0',
             wordBreak: 'break-word',
           }}
         >
