@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
   Alert, Avatar, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent,
-  DialogContentText, DialogTitle, IconButton, Skeleton, Stack, TextField, Typography
+  DialogContentText, DialogTitle, Drawer, IconButton, Skeleton, Stack, TextField, Typography,
+  useMediaQuery, useTheme
 } from '@mui/material'
 import {
   ArrowBack, DeleteOutline, EditOutlined, FlagOutlined, InfoOutlined, ReplyOutlined
@@ -149,6 +150,11 @@ function CommentRow({
   const [replyText, setReplyText] = useState('')
   const [replySubmitting, setReplySubmitting] = useState(false)
   const confirm = useConfirm()
+  const theme = useTheme()
+  // Mobilde satır içi yanıt kutusu, üstteki/alttaki yorumları aşağı itip
+  // parmakla ulaşması zor bir alana taşıyordu - alttan açılan bir Drawer,
+  // klavyeyle birlikte ekranın en erişilebilir bölgesinde kalıyor.
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
 
   const isDeleted = !!comment.deleted
   const manageable = !isDeleted && canManage(user, comment.authorId)
@@ -328,7 +334,7 @@ function CommentRow({
             </>
           )}
 
-          {replyOpen && (
+          {replyOpen && !isMobile && (
             <Stack spacing={1} sx={{ mt: 1.5 }}>
               <TextField
                 value={replyText}
@@ -350,6 +356,48 @@ function CommentRow({
           )}
         </Box>
       </Stack>
+
+      {isMobile && (
+        <Drawer
+          anchor="bottom"
+          open={replyOpen}
+          onClose={() => { if (!replySubmitting) setReplyOpen(false) }}
+          slotProps={{
+            paper: {
+              sx: {
+                borderTopLeftRadius: 16,
+                borderTopRightRadius: 16,
+                p: 2,
+                pb: 'calc(16px + env(safe-area-inset-bottom, 0px))'
+              }
+            }
+          }}
+        >
+          <Typography variant="subtitle2" sx={{ mb: 1.5 }}>
+            {comment.authorName || 'Kullanıcı'} kişisine yanıt yaz
+          </Typography>
+          <Stack spacing={1.5}>
+            <TextField
+              value={replyText}
+              onChange={e => setReplyText(e.target.value)}
+              placeholder="Yanıtını yaz..."
+              multiline
+              minRows={3}
+              fullWidth
+              size="small"
+              autoFocus={replyOpen}
+            />
+            <Stack direction="row" spacing={1}>
+              <Button fullWidth variant="contained" onClick={submitReply} disabled={replySubmitting} sx={{ minHeight: 44 }}>
+                {replySubmitting ? <CircularProgress size={16} color="inherit" /> : 'Yanıtla'}
+              </Button>
+              <Button fullWidth onClick={() => setReplyOpen(false)} disabled={replySubmitting} sx={{ minHeight: 44 }}>
+                İptal
+              </Button>
+            </Stack>
+          </Stack>
+        </Drawer>
+      )}
 
       {comment.replies?.length > 0 && (
         <Stack spacing={1.5} sx={{ mt: 1.5 }}>
