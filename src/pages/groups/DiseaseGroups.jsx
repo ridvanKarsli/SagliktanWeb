@@ -107,7 +107,13 @@ export default function DiseaseGroups() {
           </Typography>
         </Box>
       ) : (
-        <Stack spacing={1.5}>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' },
+            gap: 1.5
+          }}
+        >
           {groups.map(group => {
             const joined = joinedIds.has(group.id)
             const pending = pendingId === group.id
@@ -118,63 +124,67 @@ export default function DiseaseGroups() {
                 className="tap-scale"
                 sx={{
                   p: { xs: 2, md: 2.5 },
-                  borderRadius: 2,
+                  borderRadius: 3,
                   bgcolor: 'background.paper',
                   border: '1px solid',
-                  borderColor: 'divider',
+                  borderColor: joined ? 'primary.main' : 'divider',
                   cursor: 'pointer',
-                  transition: 'background-color 0.2s ease, border-color 0.2s ease',
-                  '&:hover': { bgcolor: 'action.hover', borderColor: 'primary.main' }
+                  position: 'relative',
+                  overflow: 'hidden',
+                  transition: 'background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease',
+                  '&:hover': { bgcolor: 'action.hover', borderColor: 'primary.main', boxShadow: '0 4px 16px rgba(0,0,0,0.10)' }
                 }}
               >
-                <Stack direction="row" spacing={2} alignItems="center">
+                <Stack direction="row" spacing={1.75} alignItems="flex-start">
                   <Box
                     sx={{
-                      width: 44, height: 44, borderRadius: 2, flexShrink: 0,
+                      width: 52, height: 52, borderRadius: 2.5, flexShrink: 0,
                       display: 'grid', placeItems: 'center',
-                      bgcolor: 'rgba(63,156,135,0.12)', color: 'primary.main'
+                      background: 'linear-gradient(135deg, rgba(63,156,135,0.20), rgba(63,156,135,0.08))',
+                      color: 'primary.main'
                     }}
                   >
-                    <GroupsRounded />
+                    <GroupsRounded sx={{ fontSize: 26 }} />
                   </Box>
                   <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.25 }}>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'text.primary' }} noWrap>
+                    <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap sx={{ mb: 0.25 }}>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'text.primary', wordBreak: 'break-word' }}>
                         {group.name}
                       </Typography>
                       {joined && (
                         <Chip label="Katıldın" size="small" color="primary" variant="filled" sx={{ height: 20 }} />
                       )}
                     </Stack>
-                    <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mb: 0.25 }}>
-                      <PeopleAltRounded sx={{ fontSize: 15, color: 'text.secondary' }} />
-                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                    <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mb: 0.75 }}>
+                      <PeopleAltRounded sx={{ fontSize: 14, color: 'text.secondary' }} />
+                      <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500 }}>
                         {group.memberCount ?? 0} üye
                       </Typography>
                     </Stack>
                     {group.description && (
                       <Typography
                         variant="body2"
-                        sx={{ color: 'text.secondary', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}
+                        sx={{ color: 'text.secondary', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', mb: 1.25 }}
                       >
                         {group.description}
                       </Typography>
                     )}
+                    <Button
+                      variant={joined ? 'outlined' : 'contained'}
+                      size="small"
+                      fullWidth
+                      disabled={pending}
+                      onClick={(e) => (joined ? handleLeave(e, group.id) : handleJoin(e, group.id))}
+                      sx={{ borderRadius: 5, minHeight: 36 }}
+                    >
+                      {pending ? <CircularProgress size={16} color="inherit" /> : (joined ? 'Ayrıl' : 'Katıl')}
+                    </Button>
                   </Box>
-                  <Button
-                    variant={joined ? 'outlined' : 'contained'}
-                    size="small"
-                    disabled={pending}
-                    onClick={(e) => (joined ? handleLeave(e, group.id) : handleJoin(e, group.id))}
-                    sx={{ flexShrink: 0, minWidth: { xs: 76, sm: 90 } }}
-                  >
-                    {pending ? <CircularProgress size={16} color="inherit" /> : (joined ? 'Ayrıl' : 'Katıl')}
-                  </Button>
                 </Stack>
               </Box>
             )
           })}
-        </Stack>
+        </Box>
       )}
     </Box>
   )

@@ -164,24 +164,25 @@ export default function SubGroups() {
               className="tap-scale"
               sx={{
                 p: { xs: 2, md: 2.5 },
-                borderRadius: 2,
+                borderRadius: 3,
                 bgcolor: 'background.paper',
                 border: '1px solid',
                 borderColor: 'divider',
                 cursor: 'pointer',
-                transition: 'background-color 0.2s ease, border-color 0.2s ease',
-                '&:hover': { bgcolor: 'action.hover', borderColor: 'primary.main' }
+                transition: 'background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease',
+                '&:hover': { bgcolor: 'action.hover', borderColor: 'primary.main', boxShadow: '0 4px 16px rgba(0,0,0,0.10)' }
               }}
             >
               <Stack direction="row" spacing={2} alignItems="center">
                 <Box
                   sx={{
-                    width: 40, height: 40, borderRadius: 2, flexShrink: 0,
+                    width: 44, height: 44, borderRadius: 2.5, flexShrink: 0,
                     display: 'grid', placeItems: 'center',
-                    bgcolor: 'rgba(217,119,87,0.15)', color: 'secondary.main'
+                    background: 'linear-gradient(135deg, rgba(217,119,87,0.22), rgba(217,119,87,0.08))',
+                    color: 'secondary.main'
                   }}
                 >
-                  <ForumRounded />
+                  <ForumRounded sx={{ fontSize: 22 }} />
                 </Box>
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                   <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'text.primary' }} noWrap>
@@ -202,7 +203,7 @@ export default function SubGroups() {
                   icon={<ChatBubbleOutlineRounded sx={{ fontSize: '15px !important' }} />}
                   label={`${sub.postCount ?? 0} sohbet`}
                   data-testid={`subgroup-chat-count-${sub.name}`}
-                  sx={{ flexShrink: 0, color: 'text.secondary', borderColor: 'divider' }}
+                  sx={{ flexShrink: 0, color: 'text.secondary', borderColor: 'divider', borderRadius: 5, fontWeight: 500 }}
                 />
               </Stack>
             </Box>

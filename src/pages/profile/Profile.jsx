@@ -137,6 +137,7 @@ export default function Profile() {
   const [myPosts, setMyPosts] = useState([])
   const [postsPage, setPostsPage] = useState(0)
   const [postsTotalPages, setPostsTotalPages] = useState(1)
+  const [postsTotalCount, setPostsTotalCount] = useState(0)
   const [postsLast, setPostsLast] = useState(true)
   const [postsLoading, setPostsLoading] = useState(true)
 
@@ -149,6 +150,9 @@ export default function Profile() {
         if (!mounted) return
         setMyPosts(Array.isArray(res?.content) ? res.content : [])
         setPostsTotalPages(res?.totalPages ?? 1)
+        // totalElements standart Spring Page yanıtında zaten mevcut - yeni
+        // bir backend alanı gerekmiyor, sadece bu sayıyı arayüzde gösteriyoruz.
+        setPostsTotalCount(res?.totalElements ?? 0)
         setPostsLast(res?.last ?? true)
       })
       .catch(err => showError(err.message || 'Postlarınız alınamadı.'))
@@ -192,34 +196,62 @@ export default function Profile() {
 
   return (
     <Box sx={{ width: '100%', maxWidth: 680, mx: 'auto', py: { xs: 2, md: 4 } }}>
-      {/* Profil başlığı */}
+      {/* Profil başlığı - Instagram tarzı: solda avatar, sağda isim + istatistik
+          satırı (gönderi/grup sayısı), altında bio. Önceden sadece isim+e-posta
+          vardı, hesabın ne kadar aktif olduğuna dair hiçbir sinyal yoktu. */}
       <Box sx={{ mb: 4, px: { xs: 0.5, md: 0 } }}>
-        <Stack direction="row" spacing={3} alignItems="center">
-          <Avatar sx={{ width: { xs: 72, md: 88 }, height: { xs: 72, md: 88 }, fontSize: { xs: 24, md: 30 }, fontWeight: 600 }}>
+        <Stack direction="row" spacing={{ xs: 2, md: 3 }} alignItems="center">
+          <Avatar
+            sx={{
+              width: { xs: 72, md: 96 }, height: { xs: 72, md: 96 },
+              fontSize: { xs: 24, md: 32 }, fontWeight: 600, flexShrink: 0,
+              border: '3px solid', borderColor: 'primary.main'
+            }}
+          >
             {initialsFrom(fullName)}
           </Avatar>
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography variant="h2" sx={{ fontWeight: 700, mb: 0.5 }}>
-              {fullName}
-            </Typography>
-            <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+            <Stack direction="row" alignItems="flex-start" spacing={1}>
+              <Typography variant="h2" sx={{ fontWeight: 700, mb: 0.5, wordBreak: 'break-word', flex: 1 }}>
+                {fullName}
+              </Typography>
+              <IconButton onClick={() => setEditOpen(o => !o)} sx={{ flexShrink: 0, mt: -0.5 }} aria-label="Profili düzenle">
+                <EditOutlined fontSize="small" />
+              </IconButton>
+            </Stack>
+            <Stack direction="row" spacing={{ xs: 2.5, md: 3.5 }} sx={{ mt: 0.5, mb: 0.5 }}>
+              <Box>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, lineHeight: 1.3 }}>
+                  {postsTotalCount}
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                  Gönderi
+                </Typography>
+              </Box>
+              <Box>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, lineHeight: 1.3 }}>
+                  {myGroups.length}
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                  Grup
+                </Typography>
+              </Box>
+            </Stack>
+            <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+              <Typography variant="body2" sx={{ color: 'text.secondary', wordBreak: 'break-word' }}>
                 {user.email}
               </Typography>
               {!user.emailVerified && (
                 <Chip label="doğrulanmadı" size="small" color="warning" variant="outlined" sx={{ height: 20 }} />
               )}
             </Stack>
-            {user.bio && (
-              <Typography variant="body2" sx={{ color: 'text.primary', mt: 1 }}>
-                {user.bio}
-              </Typography>
-            )}
           </Box>
-          <IconButton onClick={() => setEditOpen(o => !o)} sx={{ flexShrink: 0 }}>
-            <EditOutlined />
-          </IconButton>
         </Stack>
+        {user.bio && (
+          <Typography variant="body2" sx={{ color: 'text.primary', mt: 1.5 }}>
+            {user.bio}
+          </Typography>
+        )}
       </Box>
 
       <Stack spacing={4}>

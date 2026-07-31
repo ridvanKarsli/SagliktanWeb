@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import {
-  Alert, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent,
+  Alert, Avatar, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent,
   DialogTitle, Fab, IconButton, Stack, TextField, Typography
 } from '@mui/material'
 import { Add, ArrowBack } from '@mui/icons-material'
@@ -11,10 +11,20 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { useNotification } from '../context/NotificationContext.jsx'
 import { createPost, getSubGroup, listPostsBySubGroup } from '../services/api.js'
 
+function initialsFrom(name = '') {
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase()
+  if (parts.length === 1) {
+    const s = parts[0]
+    return ((s[0] || '') + (s[1] || '')).toUpperCase()
+  }
+  return '?'
+}
+
 export default function Posts() {
   const { subGroupId } = useParams()
   const navigate = useNavigate()
-  const { token } = useAuth()
+  const { token, user } = useAuth()
   const { showError, showSuccess } = useNotification()
 
   const [subGroup, setSubGroup] = useState(null)
@@ -125,6 +135,31 @@ export default function Posts() {
               {subGroup.description}
             </Typography>
           )}
+        </Box>
+      )}
+
+      {/* Facebook tarzı "Ne düşünüyorsun?" composer girişi - önceden gönderi
+          oluşturmanın tek yolu sağ altta gizli kalan bir FAB'dı, akışın en
+          üstünde görünür bir davet yoktu. FAB mobilde hızlı erişim için
+          duruyor. */}
+      {token && (
+        <Box
+          onClick={openDialog}
+          className="tap-scale"
+          sx={{
+            display: 'flex', alignItems: 'center', gap: 1.5,
+            p: { xs: 1.5, md: 2 }, mb: 2.5, borderRadius: 3,
+            bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider',
+            cursor: 'pointer', transition: 'border-color 0.2s ease, background-color 0.2s ease',
+            '&:hover': { borderColor: 'primary.main', bgcolor: 'action.hover' }
+          }}
+        >
+          <Avatar sx={{ width: 36, height: 36, fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
+            {initialsFrom([user?.firstName, user?.lastName].filter(Boolean).join(' '))}
+          </Avatar>
+          <Typography variant="body2" sx={{ color: 'text.secondary', flex: 1 }}>
+            Ne paylaşmak istersin?
+          </Typography>
         </Box>
       )}
 

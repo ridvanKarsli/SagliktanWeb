@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
   Alert, Avatar, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent,
-  DialogContentText, DialogTitle, Drawer, IconButton, Skeleton, Stack, TextField, Typography,
+  DialogContentText, DialogTitle, Divider, Drawer, IconButton, Skeleton, Stack, TextField, Typography,
   useMediaQuery, useTheme
 } from '@mui/material'
 import {
@@ -91,10 +91,15 @@ function addReplyToTree(comments, reply) {
   })
 }
 
-// Reddit/Twitter tarzı: bir noktadan sonra girinti artmasın diye (mobilde
-// yatay taşmayı önlemek için) görsel derinlik sınırlanıyor - yapısal
-// derinlik (backend'de) sınırsız kalmaya devam ediyor.
-const MAX_VISUAL_INDENT_DEPTH = 4
+// Yanıt zincirleri eskiden derinlik arttıkça kademeli olarak daha da
+// girintileniyordu (Reddit tarzı) - bu, mobilde 4-5 seviye sonra kartların
+// giderek daralıp "merdiven" gibi ekrandan taşmasına yol açıyordu. Bunun
+// yerine X/Twitter'ın kullandığı desene geçildi: 2. seviyeden itibaren
+// girinti ARTMIYOR, sabit kalıyor - bağlam kaybolmasın diye her yanıt kendi
+// üstünde küçük bir "↳ [isim] kişisine yanıt" etiketiyle kime yanıt
+// verildiğini gösteriyor. Yapısal derinlik (backend'de) sınırsız kalmaya
+// devam ediyor, sadece görsel girinti sabitlendi.
+const FLAT_REPLY_DEPTH = 2
 
 // Şikayet için ortak dialog: post ya da yorum, tek bir bileşenle karşılanıyor.
 function ReportDialog({ open, onClose, onSubmit, submitting }) {
@@ -139,7 +144,7 @@ function ReportDialog({ open, onClose, onSubmit, submitting }) {
 }
 
 function CommentRow({
-  comment, depth = 0, user, token, canReply, onUpdated, onReplySubmitted, onReport, onAuthorClick,
+  comment, depth = 0, parentAuthorName, user, token, canReply, onUpdated, onReplySubmitted, onReport, onAuthorClick,
   showError, showSuccess
 }) {
   const [editing, setEditing] = useState(false)
@@ -160,13 +165,9 @@ function CommentRow({
   const manageable = !isDeleted && canManage(user, comment.authorId)
   const isOwnComment = user?.id === comment.authorId
   const isReply = depth > 0
-  // Belli bir seviyeden sonra girinti artmasın diye (mobilde yatay taşma
-  // olmasın) - yapısal derinlik sınırsız, sadece görsel girinti sınırlı.
-  const indented = depth > 0 && depth <= MAX_VISUAL_INDENT_DEPTH
-  // 2. seviyeden itibaren mobilde dar ekranda içerik alanı çok daralıyor
-  // (girinti + avatar + padding üst üste biniyor) - derin yanıtlarda avatarı
-  // ve iç boşlukları küçültüp yatay alanı içeriğe geri kazandırıyoruz.
-  const deepOnMobile = depth >= 2
+  // FLAT_REPLY_DEPTH'ten itibaren "kime yanıt" etiketi gösteriliyor - bkz.
+  // yukarıdaki FLAT_REPLY_DEPTH açıklaması.
+  const showReplyContext = depth >= FLAT_REPLY_DEPTH && !!parentAuthorName
 
   const saveEdit = async () => {
     if (!text.trim()) { showError('Yorum boş olamaz.'); return }
@@ -218,27 +219,29 @@ function CommentRow({
   return (
     <Box
       sx={{
-        p: deepOnMobile ? { xs: 1.25, sm: 2 } : 2,
+        p: 2,
         borderRadius: 2,
         bgcolor: isReply ? 'action.hover' : 'background.paper',
         border: '1px solid',
         borderColor: 'divider',
         ...(isReply
-          ? {
-              ml: indented ? { xs: 1.25, sm: 3.5 } : 0,
-              borderLeft: '2px solid',
-              borderLeftColor: 'primary.main'
-            }
+          ? { ml: { xs: 2, sm: 3.5 }, borderLeft: '2px solid', borderLeftColor: 'primary.main' }
           : {})
       }}
     >
-      <Stack direction="row" spacing={deepOnMobile ? { xs: 1, sm: 1.5 } : 1.5}>
+      {showReplyContext && (
+        <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mb: 1, color: 'text.secondary' }}>
+          <ReplyOutlined sx={{ fontSize: 13, transform: 'scaleX(-1)' }} />
+          <Typography variant="caption" sx={{ fontWeight: 600 }}>
+            {parentAuthorName} kişisine yanıt
+          </Typography>
+        </Stack>
+      )}
+      <Stack direction="row" spacing={1.5}>
         <Avatar
           onClick={!isDeleted ? () => onAuthorClick(comment.authorId) : undefined}
           sx={{
-            width: deepOnMobile ? { xs: 26, sm: 32 } : 32,
-            height: deepOnMobile ? { xs: 26, sm: 32 } : 32,
-            fontSize: deepOnMobile ? { xs: 11, sm: 13 } : 13,
+            width: 32, height: 32, fontSize: 13,
             fontWeight: 700, flexShrink: 0,
             cursor: isDeleted ? 'default' : 'pointer'
           }}
@@ -409,6 +412,7 @@ function CommentRow({
               key={reply.id}
               comment={reply}
               depth={depth + 1}
+              parentAuthorName={comment.authorName || 'Kullanıcı'}
               user={user}
               token={token}
               canReply={canReply}
@@ -659,14 +663,18 @@ export default function PostDetail() {
 
       <Box
         sx={{
-          p: { xs: 2, md: 3 }, mb: 3, borderRadius: 2,
+          mb: 3, borderRadius: 3, overflow: 'hidden',
           bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider'
         }}
       >
+      <Box sx={{ p: { xs: 2, md: 3 } }}>
         <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2 }}>
           <Avatar
             onClick={() => goToProfile(post.authorId)}
-            sx={{ width: 40, height: 40, fontWeight: 700, cursor: 'pointer' }}
+            sx={{
+              width: 44, height: 44, fontWeight: 700, cursor: 'pointer',
+              border: '2px solid', borderColor: 'primary.main'
+            }}
           >
             {initialsFrom(post.authorName || '')}
           </Avatar>
@@ -736,17 +744,28 @@ export default function PostDetail() {
             <Typography variant="body1" sx={{ whiteSpace: 'pre-line', wordBreak: 'break-word', color: 'text.primary' }}>
               {post.content}
             </Typography>
-            <Box sx={{ mt: 1.5 }}>
-              <ReactionButtons
-                helpfulCount={post.helpfulCount}
-                notHelpfulCount={post.notHelpfulCount}
-                myReaction={post.myReaction}
-                onReact={(value) => reactToPost(token, post.id, value)}
-                onRemove={() => removePostReaction(token, post.id)}
-              />
-            </Box>
           </>
         )}
+      </Box>
+
+      {/* X/Facebook tarzı: aksiyon çubuğu içerikten bir bölücüyle ayrılıp
+          kartın tam genişliğine yayılıyor, salt "içeriğin altında duran bir
+          buton grubu" değil de belirgin bir aksiyon alanı hissi veriyor. */}
+      {!editingPost && (
+        <>
+          <Divider />
+          <Box sx={{ px: { xs: 1.5, md: 2.5 }, py: 1 }}>
+            <ReactionButtons
+              helpfulCount={post.helpfulCount}
+              notHelpfulCount={post.notHelpfulCount}
+              myReaction={post.myReaction}
+              onReact={(value) => reactToPost(token, post.id, value)}
+              onRemove={() => removePostReaction(token, post.id)}
+              size="medium"
+            />
+          </Box>
+        </>
+      )}
       </Box>
 
       <Typography variant="h4" sx={{ fontWeight: 600, mb: 2 }}>
