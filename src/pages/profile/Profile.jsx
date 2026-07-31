@@ -234,7 +234,7 @@ export default function Profile() {
                   <TextField label="Soyad" value={lastName} onChange={e => setLastName(e.target.value)} fullWidth required />
                 </Stack>
                 <TextField label="Hakkında" value={bio} onChange={e => setBio(e.target.value)} fullWidth multiline minRows={3} />
-                <Stack direction="row" spacing={1}>
+                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                   <Button type="submit" variant="contained" disabled={savingProfile}>
                     {savingProfile ? <CircularProgress size={16} color="inherit" /> : 'Kaydet'}
                   </Button>

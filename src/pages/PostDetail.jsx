@@ -246,7 +246,10 @@ function CommentRow({
           {initialsFrom(comment.authorName || '')}
         </Avatar>
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
+          <Stack
+            direction="row" spacing={1} alignItems="center" justifyContent="space-between"
+            flexWrap="wrap" useFlexGap
+          >
             <Box>
               <Typography
                 variant="subtitle2"
@@ -264,7 +267,7 @@ function CommentRow({
               </Typography>
             </Box>
             {!editing && !isDeleted && (
-              <Stack direction="row" spacing={0.5}>
+              <Stack direction="row" spacing={0.5} flexShrink={0}>
                 {manageable && (
                   <>
                     <IconButton size="small" onClick={() => { setText(comment.content); setEditing(true) }}>
@@ -312,7 +315,7 @@ function CommentRow({
               >
                 {comment.content}
               </Typography>
-              <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.5 }}>
+              <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap sx={{ mt: 0.5 }}>
                 <ReactionButtons
                   helpfulCount={comment.helpfulCount}
                   notHelpfulCount={comment.notHelpfulCount}
