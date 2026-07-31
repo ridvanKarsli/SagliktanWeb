@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
   Alert, Avatar, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent,
-  DialogContentText, DialogTitle, IconButton, Stack, TextField, Typography
+  DialogContentText, DialogTitle, IconButton, Skeleton, Stack, TextField, Typography
 } from '@mui/material'
 import {
   ArrowBack, DeleteOutline, EditOutlined, FlagOutlined, InfoOutlined, ReplyOutlined
@@ -38,6 +38,23 @@ function initialsFrom(name = '') {
     return ((s[0] || '') + (s[1] || '')).toUpperCase()
   }
   return '?'
+}
+
+// Yorum satırı yüklenirken gösterilen iskelet - CommentRow'un avatar+metin
+// yerleşimini taklit eder, boş ekran yerine sayfanın taslağını gösterir.
+function CommentRowSkeleton() {
+  return (
+    <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
+      <Stack direction="row" spacing={1.5}>
+        <Skeleton variant="circular" width={32} height={32} />
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Skeleton variant="text" width="30%" sx={{ fontSize: '0.875rem' }} />
+          <Skeleton variant="text" width="90%" sx={{ mt: 0.5 }} />
+          <Skeleton variant="text" width="60%" />
+        </Box>
+      </Stack>
+    </Box>
+  )
 }
 
 function canManage(user, authorId) {
@@ -528,8 +545,29 @@ export default function PostDetail() {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'grid', placeItems: 'center', minHeight: 300, py: 6 }}>
-        <CircularProgress size={28} />
+      <Box sx={{ py: { xs: 2, md: 4 } }}>
+        <Box
+          sx={{
+            p: { xs: 2, md: 3 }, mb: 3, borderRadius: 2,
+            bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider'
+          }}
+        >
+          <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2 }}>
+            <Skeleton variant="circular" width={40} height={40} />
+            <Box sx={{ flex: 1 }}>
+              <Skeleton variant="text" width="35%" sx={{ fontSize: '0.875rem' }} />
+              <Skeleton variant="text" width="20%" sx={{ fontSize: '0.75rem' }} />
+            </Box>
+          </Stack>
+          <Skeleton variant="text" width="55%" sx={{ fontSize: '1.5rem', mb: 1 }} />
+          <Skeleton variant="text" width="100%" />
+          <Skeleton variant="text" width="100%" />
+          <Skeleton variant="text" width="80%" />
+        </Box>
+        <Stack spacing={1.5}>
+          <CommentRowSkeleton />
+          <CommentRowSkeleton />
+        </Stack>
       </Box>
     )
   }
@@ -701,9 +739,11 @@ export default function PostDetail() {
       )}
 
       {commentsLoading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-          <CircularProgress size={22} />
-        </Box>
+        <Stack spacing={1.5}>
+          <CommentRowSkeleton />
+          <CommentRowSkeleton />
+          <CommentRowSkeleton />
+        </Stack>
       ) : (
         <Stack spacing={1.5}>
           {comments.length === 0 ? (

@@ -6,6 +6,7 @@ import {
 import { Add, ArrowBack } from '@mui/icons-material'
 import { useNavigate, useParams } from 'react-router-dom'
 import PostCard from '../components/PostCard.jsx'
+import PostCardSkeleton from '../components/PostCardSkeleton.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useNotification } from '../context/NotificationContext.jsx'
 import { createPost, getSubGroup, listPostsBySubGroup } from '../services/api.js'
@@ -130,8 +131,8 @@ export default function Posts() {
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-          <CircularProgress size={24} />
+        <Box>
+          {Array.from({ length: 4 }).map((_, i) => <PostCardSkeleton key={i} />)}
         </Box>
       ) : (
         <Box>
