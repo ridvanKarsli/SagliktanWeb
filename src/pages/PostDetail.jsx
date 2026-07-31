@@ -140,6 +140,10 @@ function CommentRow({
   // Belli bir seviyeden sonra girinti artmasın diye (mobilde yatay taşma
   // olmasın) - yapısal derinlik sınırsız, sadece görsel girinti sınırlı.
   const indented = depth > 0 && depth <= MAX_VISUAL_INDENT_DEPTH
+  // 2. seviyeden itibaren mobilde dar ekranda içerik alanı çok daralıyor
+  // (girinti + avatar + padding üst üste biniyor) - derin yanıtlarda avatarı
+  // ve iç boşlukları küçültüp yatay alanı içeriğe geri kazandırıyoruz.
+  const deepOnMobile = depth >= 2
 
   const saveEdit = async () => {
     if (!text.trim()) { showError('Yorum boş olamaz.'); return }
@@ -191,25 +195,28 @@ function CommentRow({
   return (
     <Box
       sx={{
-        p: 2,
+        p: deepOnMobile ? { xs: 1.25, sm: 2 } : 2,
         borderRadius: 2,
         bgcolor: isReply ? 'action.hover' : 'background.paper',
         border: '1px solid',
         borderColor: 'divider',
         ...(isReply
           ? {
-              ml: indented ? { xs: 2, sm: 3.5 } : 0,
+              ml: indented ? { xs: 1.25, sm: 3.5 } : 0,
               borderLeft: '2px solid',
               borderLeftColor: 'primary.main'
             }
           : {})
       }}
     >
-      <Stack direction="row" spacing={1.5}>
+      <Stack direction="row" spacing={deepOnMobile ? { xs: 1, sm: 1.5 } : 1.5}>
         <Avatar
           onClick={!isDeleted ? () => onAuthorClick(comment.authorId) : undefined}
           sx={{
-            width: 32, height: 32, fontSize: 13, fontWeight: 700, flexShrink: 0,
+            width: deepOnMobile ? { xs: 26, sm: 32 } : 32,
+            height: deepOnMobile ? { xs: 26, sm: 32 } : 32,
+            fontSize: deepOnMobile ? { xs: 11, sm: 13 } : 13,
+            fontWeight: 700, flexShrink: 0,
             cursor: isDeleted ? 'default' : 'pointer'
           }}
         >
