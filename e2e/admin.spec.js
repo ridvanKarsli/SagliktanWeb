@@ -3,9 +3,10 @@ import { registerAndLogin, uniqueUser, uniqueAdminUser, joinSeedGroup, SEED_GROU
 
 // NOT: Admin testleri sadece CI'da (APP_TESTING_AUTO_ADMIN_EMAIL_PREFIX
 // set edilmişken) gerçek ADMIN rolüyle çalışır - bkz. helpers.js#uniqueAdminUser.
-// Silme aksiyonları window.confirm() kullanıyor - Playwright bunu varsayılan
-// olarak REDDEDER (dismiss/false), bu yüzden bu akışları test eden her
-// testte page.on('dialog', d => d.accept()) ile onaylıyoruz.
+// Silme aksiyonları artık native window.confirm() değil, temalı bir MUI
+// Dialog (ConfirmContext/useConfirm - bkz. src/context/ConfirmContext.jsx)
+// kullanıyor. Bu yüzden page.on('dialog', ...) yerine, açılan dialog
+// içindeki "Sil" butonuna tıklayarak onaylıyoruz.
 test.describe('Admin paneli', () => {
   test('admin olmayan kullanıcı Admin sekmesini göremez ve /admin\'e girince sessizce yönlendirilir', async ({ page }) => {
     const user = uniqueUser('nonadmin')
@@ -63,7 +64,6 @@ test.describe('Admin paneli', () => {
 
     const adminContext = await browser.newContext()
     const adminPage = await adminContext.newPage()
-    adminPage.on('dialog', dialog => dialog.accept())
     await registerAndLogin(adminPage, admin)
     await adminPage.goto('/admin')
     await adminPage.getByRole('tab', { name: 'Şikayetler' }).click()
@@ -71,6 +71,7 @@ test.describe('Admin paneli', () => {
     const reportRow = adminPage.getByRole('row').filter({ hasText: reportReason })
     await expect(reportRow).toBeVisible()
     await reportRow.getByRole('button', { name: 'İçeriği Sil' }).click()
+    await adminPage.getByRole('dialog').getByRole('button', { name: 'Sil', exact: true }).click()
     await expect(adminPage.getByText('İçerik silindi.')).toBeVisible()
 
     // İçerik gerçekten silinmiş olmalı - yazar orijinal URL'ye gidince artık erişemiyor.
@@ -132,7 +133,6 @@ test.describe('Admin paneli', () => {
 
     const adminContext = await browser.newContext()
     const adminPage = await adminContext.newPage()
-    adminPage.on('dialog', dialog => dialog.accept())
     await registerAndLogin(adminPage, admin)
     await adminPage.goto('/admin')
     await adminPage.getByRole('tab', { name: 'İçerik' }).click()
@@ -140,6 +140,9 @@ test.describe('Admin paneli', () => {
 
     const contentRow = adminPage.getByRole('row').filter({ hasText: postTitle })
     await expect(contentRow).toBeVisible()
+    await contentRow.getByRole('button', { name: 'Sil' }).click()
+    const confirmDialog = adminPage.getByRole('dialog')
+    await expect(confirmDialog).toBeVisible()
     // NOT: silme sonrası tablo, ContentTab'in kendi reload GET isteği
     // tamamlanınca güncelleniyor - "Silindi." toast'ı bu isteği beklemeden
     // hemen görünür olduğundan, satırın kaybolmasını doğrudan kontrol etmek
@@ -147,7 +150,7 @@ test.describe('Admin paneli', () => {
     // raporu - bu bekleme olmadan negatif assertion zaman zaman raced).
     const [reloadResponse] = await Promise.all([
       adminPage.waitForResponse(res => res.url().includes('/api/admin/posts') && res.request().method() === 'GET'),
-      contentRow.getByRole('button', { name: 'Sil' }).click(),
+      confirmDialog.getByRole('button', { name: 'Sil', exact: true }).click(),
     ])
     await expect(reloadResponse.ok()).toBeTruthy()
     await expect(adminPage.getByText('Silindi.')).toBeVisible()
@@ -159,7 +162,6 @@ test.describe('Admin paneli', () => {
 
   test('gruplar sekmesinde admin hastalık grubu ve alt grup oluşturup silebilir', async ({ page }) => {
     const admin = uniqueAdminUser()
-    page.on('dialog', dialog => dialog.accept())
     await registerAndLogin(page, admin)
     await page.goto('/admin')
     await page.getByRole('tab', { name: 'Gruplar' }).click()
@@ -187,9 +189,12 @@ test.describe('Admin paneli', () => {
     // hem de "Alt Grubu Sil" butonuna substring olarak eşleşip strict-mode
     // violation'a düşüyor (bkz. E2E #9 teşhis raporu).
     const groupRow = page.locator('.MuiAccordion-root').filter({ hasText: groupName })
+    await groupRow.getByRole('button', { name: 'Grubu Sil', exact: true }).click()
+    const confirmDialog = page.getByRole('dialog')
+    await expect(confirmDialog).toBeVisible()
     const [reloadResponse] = await Promise.all([
       page.waitForResponse(res => res.url().includes('/api/disease-groups') && res.request().method() === 'GET'),
-      groupRow.getByRole('button', { name: 'Grubu Sil', exact: true }).click(),
+      confirmDialog.getByRole('button', { name: 'Sil', exact: true }).click(),
     ])
     await expect(reloadResponse.ok()).toBeTruthy()
     await expect(page.getByText('Grup silindi.')).toBeVisible()
