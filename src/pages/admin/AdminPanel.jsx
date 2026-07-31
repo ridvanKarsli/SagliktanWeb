@@ -9,6 +9,7 @@ import { useTheme } from '@mui/material/styles'
 import { DeleteOutline, EditOutlined, ExpandMoreRounded } from '@mui/icons-material'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
+import { useConfirm } from '../../context/ConfirmContext.jsx'
 import {
   createDiseaseGroup, createSubGroup, deleteComment, deleteDiseaseGroup, deletePost, deleteSubGroup,
   getAdminStats, listAdminComments, listAdminPosts, listAdminReports, listAdminUsers,
@@ -107,6 +108,7 @@ function ReportsTab({ token }) {
   const [loading, setLoading] = useState(true)
   const [actingId, setActingId] = useState(null)
   const { showError, showSuccess } = useNotification()
+  const confirm = useConfirm()
 
   const load = useCallback(() => {
     setLoading(true)
@@ -131,9 +133,10 @@ function ReportsTab({ token }) {
     }
   }
 
-  const deleteContent = (r) => {
+  const deleteContent = async (r) => {
     const label = r.targetType === 'POST' ? 'gönderiyi' : 'yorumu'
-    if (!window.confirm(`Bu ${label} kalıcı olarak silmek istiyor musun? Bu işlem geri alınamaz.`)) return
+    const ok = await confirm(`Bu ${label} kalıcı olarak silmek istiyor musun? Bu işlem geri alınamaz.`, { title: 'İçeriği sil' })
+    if (!ok) return
     act(r.id, 'REVIEWED', true)
   }
 
@@ -406,6 +409,7 @@ function ContentTab({ token }) {
   const [loading, setLoading] = useState(true)
   const [deletingId, setDeletingId] = useState(null)
   const { showError, showSuccess } = useNotification()
+  const confirm = useConfirm()
 
   const load = useCallback(() => {
     setLoading(true)
@@ -420,7 +424,8 @@ function ContentTab({ token }) {
 
   const remove = async (item) => {
     const label = type === 'posts' ? 'gönderiyi' : 'yorumu'
-    if (!window.confirm(`Bu ${label} kalıcı olarak silmek istiyor musun? Bu işlem geri alınamaz.`)) return
+    const ok = await confirm(`Bu ${label} kalıcı olarak silmek istiyor musun? Bu işlem geri alınamaz.`, { title: 'İçeriği sil' })
+    if (!ok) return
     setDeletingId(item.id)
     try {
       if (type === 'posts') await deletePost(token, item.id)
@@ -554,9 +559,11 @@ function GroupNameDialog({ title, initial, onClose, onSave }) {
 function SubGroupRow({ subGroup, token, onChanged }) {
   const [dialog, setDialog] = useState(null) // null | 'edit'
   const { showError, showSuccess } = useNotification()
+  const confirm = useConfirm()
 
   const remove = async () => {
-    if (!window.confirm(`"${subGroup.name}" alt grubunu silmek istiyor musun? İçindeki tüm gönderiler de silinir.`)) return
+    const ok = await confirm(`"${subGroup.name}" alt grubunu silmek istiyor musun? İçindeki tüm gönderiler de silinir.`, { title: 'Alt grubu sil' })
+    if (!ok) return
     try {
       await deleteSubGroup(token, subGroup.id)
       showSuccess('Alt grup silindi.')
@@ -600,6 +607,7 @@ function DiseaseGroupAccordion({ group, token, onChanged }) {
   const [subGroups, setSubGroups] = useState(null)
   const [dialog, setDialog] = useState(null) // null | 'edit' | 'newSub'
   const { showError, showSuccess } = useNotification()
+  const confirm = useConfirm()
 
   const loadSubGroups = useCallback(() => {
     listSubGroups(token, group.id).then(setSubGroups).catch(() => setSubGroups([]))
@@ -607,7 +615,8 @@ function DiseaseGroupAccordion({ group, token, onChanged }) {
 
   const remove = async (e) => {
     e.stopPropagation()
-    if (!window.confirm(`"${group.name}" hastalık grubunu silmek istiyor musun? Tüm alt gruplar ve içerikler de silinir.`)) return
+    const ok = await confirm(`"${group.name}" hastalık grubunu silmek istiyor musun? Tüm alt gruplar ve içerikler de silinir.`, { title: 'Hastalık grubunu sil' })
+    if (!ok) return
     try {
       await deleteDiseaseGroup(token, group.id)
       showSuccess('Grup silindi.')

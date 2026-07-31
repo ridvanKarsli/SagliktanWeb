@@ -395,6 +395,15 @@ const theme = createTheme({
             color: colors.primary,
           },
         },
+        // "small" varyantı MUI'de ~34px - mobilde önerilen minimum dokunma
+        // alanının (44px) altında kalıyor, parmakla isabet ettirmek
+        // zorlaşıyor. Görsel ikon boyutu aynı kalsın diye padding ile değil
+        // min-width/height ile büyütüyoruz (buton tıklama alanı büyür,
+        // ikonun kendisi büyümez).
+        sizeSmall: {
+          minWidth: 44,
+          minHeight: 44,
+        },
       },
     },
     MuiLink: {

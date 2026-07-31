@@ -9,6 +9,7 @@ import {
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useNotification } from '../context/NotificationContext.jsx'
+import { useConfirm } from '../context/ConfirmContext.jsx'
 import ReactionButtons from '../components/ReactionButtons.jsx'
 import {
   createComment, deleteComment, deletePost, getMyDiseaseGroups, getPost, listComments,
@@ -130,6 +131,7 @@ function CommentRow({
   const [replyOpen, setReplyOpen] = useState(false)
   const [replyText, setReplyText] = useState('')
   const [replySubmitting, setReplySubmitting] = useState(false)
+  const confirm = useConfirm()
 
   const isDeleted = !!comment.deleted
   const manageable = !isDeleted && canManage(user, comment.authorId)
@@ -155,7 +157,7 @@ function CommentRow({
   }
 
   const remove = async () => {
-    if (!window.confirm('Bu yorumu silmek istiyor musun?')) return
+    if (!(await confirm('Bu yorumu silmek istiyor musun?', { title: 'Yorumu sil' }))) return
     setDeleting(true)
     try {
       await deleteComment(token, comment.id)
@@ -354,6 +356,7 @@ export default function PostDetail() {
   const navigate = useNavigate()
   const { token, user } = useAuth()
   const { showError, showSuccess } = useNotification()
+  const confirm = useConfirm()
 
   const [post, setPost] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -488,7 +491,7 @@ export default function PostDetail() {
   }
 
   const removePost = async () => {
-    if (!window.confirm('Bu gönderiyi silmek istiyor musun?')) return
+    if (!(await confirm('Bu gönderiyi silmek istiyor musun?', { title: 'Gönderiyi sil' }))) return
     setDeletingPost(true)
     try {
       await deletePost(token, post.id)
