@@ -7,6 +7,7 @@ import { ArrowBack, MarkEmailReadOutlined } from '@mui/icons-material'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useNotification } from '../context/NotificationContext.jsx'
 import { useNavigate, Link as RouterLink } from 'react-router-dom'
+import { isValidName } from '../utils/validateName.js'
 
 export default function Register() {
   const { register } = useAuth()
@@ -31,6 +32,14 @@ export default function Register() {
     e.preventDefault()
     if (!form.firstName?.trim() || !form.lastName?.trim() || !form.email?.trim() || !form.password) {
       setError('Lütfen zorunlu alanları doldurun.')
+      return
+    }
+    if (!isValidName(form.firstName)) {
+      setError('Lütfen geçerli bir ad girin (sadece harf, en az 2 karakter).')
+      return
+    }
+    if (!isValidName(form.lastName)) {
+      setError('Lütfen geçerli bir soyad girin (sadece harf, en az 2 karakter).')
       return
     }
     if (form.password !== form.confirmPassword) {

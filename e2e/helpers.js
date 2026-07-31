@@ -1,15 +1,32 @@
 import { expect } from '@playwright/test'
 
+// Sadece harften oluşan (rakam yok) benzersiz bir soyisim eki üretir -
+// backend'deki ValidName kısıtı (bkz. SagliktanApi validation paketi) ad/
+// soyad alanlarında rakam/sembole izin vermiyor, bu yüzden benzersizlik için
+// artık base36 damga yerine bunu kullanıyoruz.
+function randomLetters(length) {
+  const alphabet = 'abcdefghijklmnopqrstuvwxyz'
+  let result = ''
+  for (let i = 0; i < length; i++) {
+    result += alphabet[Math.floor(Math.random() * alphabet.length)]
+  }
+  return result
+}
+
 // Her test kendi benzersiz kullanıcısını oluşturur ki testler birbirinin
 // verisiyle çakışmasın (paralel/aynı DB üzerinde çalışsalar bile). Soyisim de
 // benzersiz - aksi halde aynı ad-soyada sahip birden fazla test kullanıcısı
-// aynı ekranda (ör. grup üye listesi) görününce "Test Kullanıcı" metni
-// birden fazla elemanla eşleşir ve testler flaky/strict-mode-violation olur.
+// aynı ekranda (ör. grup üye listesi) görününce aynı metin birden fazla
+// elemanla eşleşir ve testler flaky/strict-mode-violation olur.
+// NOT: firstName sabit olarak "Test" idi ama backend artık bunu (ve rakam
+// içeren soyisim damgasını) ValidName kısıtıyla reddediyor - bkz. yukarıdaki
+// not. E-posta hâlâ base36 damga kullanıyor (orada kısıt yok, benzersizlik
+// için ideal).
 export function uniqueUser(prefix = 'e2e') {
   const stamp = Date.now().toString(36) + Math.random().toString(36).slice(2, 8)
   return {
-    firstName: 'Test',
-    lastName: `Kullanici${stamp.slice(-6)}`,
+    firstName: 'Deniz',
+    lastName: `Kullanici${randomLetters(6)}`,
     email: `${prefix}.${stamp}@example.com`,
     password: 'TestSifre123!',
   }
