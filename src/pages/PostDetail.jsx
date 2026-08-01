@@ -318,8 +318,10 @@ function CommentRow({
             </Stack>
           ) : (
             <>
+              {/* Yorumlar da okunacak asıl içerik - gövde ölçüsünde (body1),
+                  ikincil metin ölçüsünde değil. */}
               <Typography
-                variant="body2"
+                variant="body1"
                 sx={{
                   mt: 0.5, whiteSpace: 'pre-line', wordBreak: 'break-word',
                   ...(isDeleted ? { fontStyle: 'italic', color: 'text.secondary' } : {})

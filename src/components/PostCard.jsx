@@ -76,15 +76,19 @@ export default function PostCard({ post, onClick, token, highlightQuery }) {
         </Box>
       </Stack>
 
+      {/* Okunabilirlik: başlık ve gövde metni, akışta göz yormadan
+          okunabilsin diye belirgin biçimde büyük. Gövde artık ikincil gri
+          değil ana metin renginde - akışta okunacak asıl içerik bu, ikincil
+          bir detay değil. */}
       <Typography
-        variant="subtitle1"
-        sx={{ fontWeight: 700, color: 'text.primary', mb: 0.5, wordBreak: 'break-word', lineHeight: 1.35 }}
+        variant="h6"
+        sx={{ fontWeight: 700, color: 'text.primary', mb: 0.75, wordBreak: 'break-word', lineHeight: 1.4 }}
       >
         {highlightQuery ? <HighlightText text={title} query={highlightQuery} /> : title}
       </Typography>
       <Typography
-        variant="body2"
-        sx={{ color: 'text.secondary', whiteSpace: 'pre-line', wordBreak: 'break-word', lineHeight: 1.55, mb: token ? 1.5 : 0 }}
+        variant="body1"
+        sx={{ color: 'text.primary', whiteSpace: 'pre-line', wordBreak: 'break-word', mb: token ? 1.5 : 0 }}
       >
         {highlightQuery
           ? <HighlightText text={truncate(content, 180)} query={highlightQuery} />

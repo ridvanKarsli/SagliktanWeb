@@ -152,7 +152,7 @@ export default function DiseaseGroups() {
                         {group.name}
                       </Typography>
                       {joined && (
-                        <Chip label="Katıldın" size="small" color="primary" variant="filled" sx={{ height: 20 }} />
+                        <Chip label="Katıldın" size="small" color="primary" variant="filled" sx={{ height: 24 }} />
                       )}
                     </Stack>
                     <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mb: 0.75 }}>
@@ -175,7 +175,7 @@ export default function DiseaseGroups() {
                       fullWidth
                       disabled={pending}
                       onClick={(e) => (joined ? handleLeave(e, group.id) : handleJoin(e, group.id))}
-                      sx={{ borderRadius: 5, minHeight: 36 }}
+                      sx={{ borderRadius: 5, minHeight: 44 }}
                     >
                       {pending ? <CircularProgress size={16} color="inherit" /> : (joined ? 'Ayrıl' : 'Katıl')}
                     </Button>

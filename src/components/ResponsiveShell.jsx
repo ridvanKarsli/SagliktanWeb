@@ -295,11 +295,11 @@ export default function ResponsiveShell({ children }) {
                 gap: 0.5,
                 '& .MuiSvgIcon-root': { fontSize: 24 },
                 '& .MuiBottomNavigationAction-label': {
-                  fontSize: '0.6875rem',
+                  fontSize: '0.75rem',
                   fontWeight: 500,
                   marginTop: '2px',
                   '&.Mui-selected': {
-                    fontSize: '0.6875rem'
+                    fontSize: '0.75rem'
                   }
                 },
                 '&.Mui-selected': { 

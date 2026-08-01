@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import {
   Alert, Avatar, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent,
-  DialogTitle, Divider, Fab, IconButton, Stack, TextField, Typography
+  DialogTitle, Divider, Fab, IconButton, Stack, TextField, Typography,
+  useMediaQuery, useTheme
 } from '@mui/material'
 import { Add, ArrowBack } from '@mui/icons-material'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -26,6 +27,8 @@ export default function Posts() {
   const navigate = useNavigate()
   const { token, user } = useAuth()
   const { showError, showSuccess } = useNotification()
+  const theme = useTheme()
+  const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'))
 
   const [subGroup, setSubGroup] = useState(null)
   const [posts, setPosts] = useState([])
@@ -182,7 +185,7 @@ export default function Posts() {
               <Typography variant="body1" sx={{ color: 'text.secondary', mb: 1 }}>
                 Henüz gönderi yok
               </Typography>
-              <Typography variant="body2" sx={{ color: 'text.secondary', opacity: 0.7 }}>
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                 İlk gönderiyi sen yap!
               </Typography>
             </Box>
@@ -217,7 +220,11 @@ export default function Posts() {
         <Add />
       </Fab>
 
-      <Dialog open={dialogOpen} onClose={closeDialog} maxWidth="sm" fullWidth>
+      {/* Gönderi yazma kutusu mobilde tam ekran açılıyor: telefonda klavye
+          açıldığında ekranın yarısı kaybolduğu için, ortada yüzen küçük bir
+          diyalogda çok satırlı metin yazmak sıkışık ve rahatsız oluyordu.
+          Tam ekran, yazma alanına tüm yüksekliği veriyor. */}
+      <Dialog open={dialogOpen} onClose={closeDialog} maxWidth="sm" fullWidth fullScreen={isSmallScreen}>
         <DialogTitle>Yeni Gönderi</DialogTitle>
         <Box component="form" id="new-post-form" onSubmit={onSubmit}>
           <DialogContent>
@@ -238,7 +245,7 @@ export default function Posts() {
                 required
                 fullWidth
                 multiline
-                minRows={5}
+                minRows={isSmallScreen ? 10 : 5}
                 slotProps={{ htmlInput: { 'data-testid': 'post-content' } }}
               />
             </Stack>

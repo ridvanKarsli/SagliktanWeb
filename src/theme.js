@@ -15,7 +15,10 @@ const colors = {
   text: {
     primary: '#F2EDE6',    // Sıcak krem
     secondary: '#B3A99C',  // Sıcak gri
-    disabled: '#6B6255',
+    // Eski değer (#6B6255) zeminle 2.88:1 kontrast veriyordu - WCAG AA
+    // eşiği olan 4.5:1'in çok altında, pratikte okunamıyordu. Bu ton 5.09:1
+    // veriyor: hâlâ belirgin biçimde "pasif" görünüyor ama okunabiliyor.
+    disabled: '#948A7C',
   },
   border: 'rgba(242, 237, 230, 0.10)',
   divider: 'rgba(242, 237, 230, 0.08)',
@@ -92,43 +95,54 @@ const theme = createTheme({
       lineHeight: 1.4,
     },
     h4: {
-      fontSize: 'clamp(1.125rem, 2.5vw, 1.5rem)',
+      fontSize: 'clamp(1.25rem, 2.5vw, 1.625rem)',
       fontWeight: 600,
       lineHeight: 1.4,
     },
+    // h5/h6 gövde metninden (body1 = 1.0625rem) BÜYÜK kalmalı - aksi halde
+    // başlık kendi paragrafından küçük görünür. Gövde ölçeği büyütüldüğünde
+    // bunlar da birlikte büyütüldü.
     h5: {
-      fontSize: '1.125rem',
+      fontSize: '1.3125rem',
       fontWeight: 600,
       lineHeight: 1.5,
     },
     h6: {
-      fontSize: '1rem',
+      fontSize: '1.1875rem',
       fontWeight: 600,
       lineHeight: 1.5,
     },
+    // OKUNABİLİRLİK NOTU: bu platformun hedef kitlesi kronik/nadir
+    // hastalıklarla yaşayan bireyler ve yakınları - içlerinde yaşlılar,
+    // yorgunluk/görme sorunu yaşayanlar ve uzun metin okumakta zorlananlar
+    // var. Bu yüzden tipografi ölçeği bilinçli olarak "normal" bir sosyal
+    // uygulamadan bir tık büyük tutuluyor: gövde metni 17px (varsayılan
+    // 16px yerine), ikincil metin 15px (14px yerine), en küçük metin 13px
+    // (12px yerine). Satır aralıkları da uzun metinlerde göz takibini
+    // kolaylaştırmak için açık (1.7-1.75).
     subtitle1: {
-      fontSize: '1rem',
+      fontSize: '1.0625rem',
       fontWeight: 500,
       lineHeight: 1.6,
     },
     subtitle2: {
-      fontSize: '0.875rem',
+      fontSize: '0.9375rem',
       fontWeight: 500,
       lineHeight: 1.6,
     },
     body1: {
-      fontSize: '1rem',
-      lineHeight: 1.7,
+      fontSize: '1.0625rem',
+      lineHeight: 1.75,
       letterSpacing: '0.01em',
     },
     body2: {
-      fontSize: '0.875rem',
+      fontSize: '0.9375rem',
       lineHeight: 1.7,
       letterSpacing: '0.01em',
     },
     caption: {
-      fontSize: '0.75rem',
-      lineHeight: 1.5,
+      fontSize: '0.8125rem',
+      lineHeight: 1.55,
       color: colors.text.secondary,
     },
     button: {
@@ -253,7 +267,11 @@ const theme = createTheme({
           '& .MuiOutlinedInput-root': {
             borderRadius: 12,
             backgroundColor: colors.surfaceAlt,
-            fontSize: '1rem',
+            // 16px ALTINA İNMEMELİ: iOS Safari, 16px'ten küçük yazı tipi olan
+            // bir input'a odaklanıldığında sayfayı otomatik yakınlaştırıyor
+            // ve kullanıcı geri uzaklaştırmak zorunda kalıyor - mobil formlarda
+            // en can sıkıcı davranışlardan biri.
+            fontSize: '1.0625rem',
             '& fieldset': {
               borderColor: colors.border,
               borderWidth: 1.5,
@@ -374,11 +392,11 @@ const theme = createTheme({
             color: colors.primary,
           },
           '& .MuiBottomNavigationAction-label': {
-            fontSize: '0.6875rem',
+            fontSize: '0.75rem',
             fontWeight: 500,
             marginTop: 4,
             '&.Mui-selected': {
-              fontSize: '0.6875rem',
+              fontSize: '0.75rem',
             },
           },
         },

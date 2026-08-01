@@ -347,7 +347,7 @@ function UsersTab({ token }) {
       <TextField
         size="small" placeholder="Ad, soyad ya da e-posta ara..." value={q}
         onChange={e => setQ(e.target.value)}
-        sx={{ width: 320, mb: 2 }}
+        sx={{ width: { xs: '100%', sm: 320 }, mb: 2 }}
       />
 
       {loading ? (

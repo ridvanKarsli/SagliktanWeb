@@ -446,7 +446,7 @@ export default function Search() {
               <Typography variant="body1" sx={{ color: 'text.secondary', mb: 1 }}>
                 Sonuç bulunamadı
               </Typography>
-              <Typography variant="body2" sx={{ color: 'text.secondary', opacity: 0.7 }}>
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                 Farklı bir arama terimi deneyin
               </Typography>
             </Box>

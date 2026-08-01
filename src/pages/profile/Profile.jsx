@@ -309,7 +309,7 @@ export default function Profile() {
               </Box>
             </Stack>
             {!user.emailVerified && (
-              <Chip label="e-posta doğrulanmadı" size="small" color="warning" variant="outlined" sx={{ height: 20, mt: 0.5 }} />
+              <Chip label="e-posta doğrulanmadı" size="small" color="warning" variant="outlined" sx={{ height: 24, mt: 0.5 }} />
             )}
           </Box>
         </Stack>
