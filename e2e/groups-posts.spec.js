@@ -77,6 +77,10 @@ test.describe('Gruplar, üyelik ve gönderi/yorum akışı', () => {
     await expect(page.getByPlaceholder('Yorumunu yaz...')).toHaveCount(0)
     // Daha önce eklenen yorum/yanıt yine de herkese görünür olmalı (okuma serbest).
     await expect(page.getByText(commentText)).toBeVisible()
+    // Yanıtlar artık X/Twitter tarzı varsayılan olarak kapalı geliyor (bkz.
+    // PostDetail.jsx repliesOpen) - taze bir sayfa yüklemesinde görmek için
+    // önce "N yanıtı görüntüle" butonuna tıklamak gerekiyor.
+    await page.getByRole('button', { name: /yanıtı görüntüle/ }).click()
     await expect(page.getByText(replyText)).toBeVisible()
   })
 
