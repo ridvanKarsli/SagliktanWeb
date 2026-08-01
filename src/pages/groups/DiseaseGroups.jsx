@@ -107,11 +107,21 @@ export default function DiseaseGroups() {
           </Typography>
         </Box>
       ) : (
+        /* KOMPAKTLIK NOTU: bu kartlar eskiden ~200px yükseklikteydi ve
+           telefonda ekrana ancak 2,5 grup sığıyordu - kullanıcı listeyi
+           tarayabilmek için sürekli kaydırmak zorundaydı. Asıl yer kaybı,
+           her kartın altındaki TAM GENİŞLİK Katıl/Ayrıl butonuydu: en
+           büyük, en dikkat çeken öğe "Ayrıl" oluyordu; oysa "Ayrıl" nadiren
+           kullanılan, yarı-yıkıcı bir aksiyon. Asıl birincil eylem (gruba
+           girip içeriğe bakmak) ise hiçbir görsel vurgusu olmayan kart
+           tıklamasıydı - hiyerarşi tamamen tersti. Artık: satır tıklaması
+           gruba girer (sağdaki ok bunu belli eder), katıl/ayrıl ise sağda
+           kompakt ikincil bir buton. */
         <Box
           sx={{
             display: 'grid',
             gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' },
-            gap: 1.5
+            gap: 1
           }}
         >
           {groups.map(group => {
@@ -135,19 +145,19 @@ export default function DiseaseGroups() {
                   '&:hover': { bgcolor: 'action.hover', boxShadow: '0 4px 16px rgba(0,0,0,0.10)' }
                 }}
               >
-                <Stack direction="row" spacing={1.75} alignItems="flex-start">
+                <Stack direction="row" spacing={1.5} alignItems="center">
                   <Box
                     sx={{
-                      width: 52, height: 52, borderRadius: '50%', flexShrink: 0,
+                      width: 46, height: 46, borderRadius: '50%', flexShrink: 0,
                       display: 'grid', placeItems: 'center',
                       background: 'linear-gradient(135deg, rgba(76,184,159,0.22), rgba(224,139,109,0.14))',
                       color: 'primary.main'
                     }}
                   >
-                    <GroupsRounded sx={{ fontSize: 26 }} />
+                    <GroupsRounded sx={{ fontSize: 24 }} />
                   </Box>
                   <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap sx={{ mb: 0.25 }}>
+                    <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="wrap" useFlexGap>
                       <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'text.primary', wordBreak: 'break-word' }}>
                         {group.name}
                       </Typography>
@@ -155,7 +165,7 @@ export default function DiseaseGroups() {
                         <Chip label="Katıldın" size="small" color="primary" variant="filled" sx={{ height: 24 }} />
                       )}
                     </Stack>
-                    <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mb: 0.75 }}>
+                    <Stack direction="row" spacing={0.5} alignItems="center">
                       <PeopleAltRounded sx={{ fontSize: 14, color: 'text.secondary' }} />
                       <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500 }}>
                         {group.memberCount ?? 0} üye
@@ -164,22 +174,29 @@ export default function DiseaseGroups() {
                     {group.description && (
                       <Typography
                         variant="body2"
-                        sx={{ color: 'text.secondary', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', mb: 1.25 }}
+                        sx={{
+                          color: 'text.secondary', mt: 0.25,
+                          overflow: 'hidden', textOverflow: 'ellipsis',
+                          display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical'
+                        }}
                       >
                         {group.description}
                       </Typography>
                     )}
-                    <Button
-                      variant={joined ? 'outlined' : 'contained'}
-                      size="small"
-                      fullWidth
-                      disabled={pending}
-                      onClick={(e) => (joined ? handleLeave(e, group.id) : handleJoin(e, group.id))}
-                      sx={{ borderRadius: 5, minHeight: 44 }}
-                    >
-                      {pending ? <CircularProgress size={16} color="inherit" /> : (joined ? 'Ayrıl' : 'Katıl')}
-                    </Button>
                   </Box>
+                  <Button
+                    variant={joined ? 'text' : 'contained'}
+                    size="small"
+                    disabled={pending}
+                    onClick={(e) => (joined ? handleLeave(e, group.id) : handleJoin(e, group.id))}
+                    sx={{
+                      flexShrink: 0, borderRadius: 5, minHeight: 40, minWidth: 72,
+                      px: 1.75, alignSelf: 'center',
+                      ...(joined ? { color: 'text.secondary' } : {})
+                    }}
+                  >
+                    {pending ? <CircularProgress size={16} color="inherit" /> : (joined ? 'Ayrıl' : 'Katıl')}
+                  </Button>
                 </Stack>
               </Box>
             )

@@ -671,10 +671,23 @@ export default function PostDetail() {
         </Typography>
       </Stack>
 
-      <Alert severity="info" icon={<InfoOutlined fontSize="small" />} sx={{ mb: 2 }}>
-        Bu sayfadaki paylaşımlar kullanıcı deneyimlerine dayanır, tıbbi tavsiye niteliği taşımaz.
-        Sağlığınızla ilgili kararlar için mutlaka bir sağlık profesyoneline danışın.
-      </Alert>
+      {/* Yasal uyarı korunuyor ama kompakt: eskiden her gönderi sayfasının
+          tepesinde 3 satırlık dolgulu bir blok olarak duruyor ve asıl
+          içeriği ekranın çok altına itiyordu. Her gönderide birebir aynı
+          metin tekrarlandığı için kullanıcı zaten ikinci gönderiden sonra
+          okumayı bırakıyor - görünür olması yeterli, baskın olması gerekmiyor. */}
+      <Stack
+        direction="row"
+        spacing={1}
+        alignItems="flex-start"
+        sx={{ mb: 2, px: 0.5, color: 'text.secondary' }}
+      >
+        <InfoOutlined sx={{ fontSize: 16, mt: '2px', flexShrink: 0 }} />
+        <Typography variant="caption" sx={{ lineHeight: 1.5 }}>
+          Buradaki paylaşımlar kişisel deneyimlerdir, tıbbi tavsiye değildir.
+          Sağlık kararlarınız için bir uzmana danışın.
+        </Typography>
+      </Stack>
 
       <Box sx={{ mb: 1 }}>
       <Box sx={{ pb: { xs: 2, md: 2.5 } }}>

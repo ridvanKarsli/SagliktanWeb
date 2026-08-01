@@ -5,6 +5,18 @@ import ThumbUpAltIcon from '@mui/icons-material/ThumbUpAlt'
 import ThumbDownAltOutlinedIcon from '@mui/icons-material/ThumbDownAltOutlined'
 import ThumbDownAltIcon from '@mui/icons-material/ThumbDownAlt'
 
+// Öğeyi ekranda göstermeden DOM'da tutar. Burada amaç erişilebilirlik değil,
+// E2E sözleşmesi: reactions.spec.js sayaçları 0 iken de okuyor, bu yüzden
+// koşullu render (DOM'dan çıkarma) yapamıyoruz.
+const visuallyHidden = {
+  position: 'absolute',
+  width: 1,
+  height: 1,
+  overflow: 'hidden',
+  clipPath: 'inset(50%)',
+  whiteSpace: 'nowrap'
+}
+
 /**
  * Beğeni yerine: "Faydalı" / "Faydalı Değil" reaksiyonu. Sağlık içerikli bir
  * toplulukta düz "beğeni" garip kaçabiliyor (ör. zor bir paylaşımı kimse
@@ -75,6 +87,7 @@ export default function ReactionButtons({
   const shownHelpful = local.helpfulCount
   const shownNotHelpful = local.notHelpfulCount
   const shownReaction = local.myReaction
+  const hasAnyReaction = shownHelpful > 0 || shownNotHelpful > 0
 
   // Instagram tarzı: aksiyon ikonları üstte tek satır (numara ikonun
   // yanında değil - IG'de kalp/yorum/paylaş ikonları sade, sayı ayrı bir
@@ -111,27 +124,31 @@ export default function ReactionButtons({
           </span>
         </Tooltip>
       </Stack>
-      {/* İki testid de sayı 0 olsa bile HER ZAMAN DOM'da bulunmalı - E2E
-          "0" değerini de bekliyor (bkz. reactions.spec.js). Bu yüzden
-          koşullu render yerine, sayı 0 olan tarafı sadece görsel olarak
-          soluklaştırıyoruz, DOM'dan çıkarmıyoruz. */}
-      <Typography variant="caption" sx={{ display: 'block', fontWeight: 700, color: 'text.primary', px: 0.5 }}>
-        <Box
-          component="span"
-          data-testid="reaction-helpful-count"
-          sx={{ display: 'inline', opacity: shownHelpful > 0 ? 1 : 0.55 }}
-        >
-          {shownHelpful}
+      {/* Sayı 0 iken metin GÖSTERİLMEZ: akıştaki her gönderinin altında
+          "0 faydalı · 0 faydalı değil" yazması, hiçbir bilgi vermeyen ama
+          her kartı kalabalıklaştıran bir gürültüydü (Instagram da "0 beğeni"
+          yazmaz). Ancak iki testid de sayı 0 olsa bile DOM'da KALMALI - E2E
+          başlangıçta "0" değerini okuyor (bkz. reactions.spec.js) - bu yüzden
+          gizlerken DOM'dan çıkarmıyor, görsel olarak saklıyoruz. */}
+      <Typography
+        variant="caption"
+        component="div"
+        sx={{
+          fontWeight: 700,
+          color: 'text.primary',
+          px: 0.5,
+          ...(hasAnyReaction ? {} : { height: 0, overflow: 'hidden' })
+        }}
+      >
+        <Box component="span" sx={shownHelpful > 0 ? null : visuallyHidden}>
+          <Box component="span" data-testid="reaction-helpful-count">{shownHelpful}</Box>
+          {' faydalı'}
         </Box>
-        {' faydalı  ·  '}
-        <Box
-          component="span"
-          data-testid="reaction-not-helpful-count"
-          sx={{ display: 'inline', opacity: shownNotHelpful > 0 ? 1 : 0.55 }}
-        >
-          {shownNotHelpful}
+        {shownHelpful > 0 && shownNotHelpful > 0 ? '  ·  ' : ''}
+        <Box component="span" sx={shownNotHelpful > 0 ? null : visuallyHidden}>
+          <Box component="span" data-testid="reaction-not-helpful-count">{shownNotHelpful}</Box>
+          {' faydalı değil'}
         </Box>
-        {' faydalı değil'}
       </Typography>
     </Box>
   )
