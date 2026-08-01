@@ -12,7 +12,7 @@ import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
 import PostCard from '../../components/PostCard.jsx'
 import {
-  changePassword, deactivateAccount, getMyDiseaseGroups, getMyPosts, updateProfile
+  changePassword, deactivateAccount, getMyDiseaseGroups, getMyPosts, getUserProfile, updateProfile
 } from '../../services/api.js'
 import { Section, SectionList, SubRow } from './ProfileShared.jsx'
 
@@ -176,6 +176,29 @@ export default function Profile() {
     }
   }
 
+  /* ---- İstatistikler (yorum sayısı, faydalı/faydalı değil) ----
+     AuthContext'teki user nesnesi bootstrap/login anında bir kereliğine
+     alınıp cache'leniyor - içerik ürettikçe bu sayılar değişeceği için,
+     tıpkı postsTotalCount gibi, sayfa her açıldığında /users/me'den taze
+     çekiyoruz (kaynak zaten stats'ı da döndürüyor, ekstra uç gerekmedi). */
+  const [stats, setStats] = useState({ commentCount: 0, likesReceived: 0, dislikesReceived: 0 })
+
+  useEffect(() => {
+    if (!token) return
+    let mounted = true
+    getUserProfile(token)
+      .then(res => {
+        if (!mounted) return
+        setStats({
+          commentCount: res?.commentCount ?? 0,
+          likesReceived: res?.likesReceived ?? 0,
+          dislikesReceived: res?.dislikesReceived ?? 0
+        })
+      })
+      .catch(() => { /* istatistik yüklenemezse sessizce 0 göster, sayfa akışını bozmasın */ })
+    return () => { mounted = false }
+  }, [token])
+
   /* ---- Hesabı deaktive et ---- */
   const [deactivateConfirm, setDeactivateConfirm] = useState(false)
   const [deactivating, setDeactivating] = useState(false)
@@ -234,7 +257,7 @@ export default function Profile() {
                 <EditOutlined fontSize="small" />
               </IconButton>
             </Stack>
-            <Stack direction="row" spacing={{ xs: 2.5, md: 3.5 }} sx={{ mt: 0.5, mb: 0.5 }}>
+            <Stack direction="row" spacing={{ xs: 2, md: 3 }} sx={{ mt: 0.5, mb: 0.5 }} flexWrap="wrap" useFlexGap>
               <Box>
                 <Typography variant="subtitle2" sx={{ fontWeight: 700, lineHeight: 1.3 }}>
                   {postsTotalCount}
@@ -245,21 +268,40 @@ export default function Profile() {
               </Box>
               <Box>
                 <Typography variant="subtitle2" sx={{ fontWeight: 700, lineHeight: 1.3 }}>
+                  {stats.commentCount}
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                  Yorum
+                </Typography>
+              </Box>
+              <Box>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, lineHeight: 1.3 }}>
                   {myGroups.length}
                 </Typography>
                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                   Grup
                 </Typography>
               </Box>
+              <Box>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, lineHeight: 1.3, color: 'success.main' }}>
+                  {stats.likesReceived}
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                  Faydalı
+                </Typography>
+              </Box>
+              <Box>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, lineHeight: 1.3, color: 'error.main' }}>
+                  {stats.dislikesReceived}
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                  Faydalı Değil
+                </Typography>
+              </Box>
             </Stack>
-            <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
-              <Typography variant="body2" sx={{ color: 'text.secondary', wordBreak: 'break-word' }}>
-                {user.email}
-              </Typography>
-              {!user.emailVerified && (
-                <Chip label="doğrulanmadı" size="small" color="warning" variant="outlined" sx={{ height: 20 }} />
-              )}
-            </Stack>
+            {!user.emailVerified && (
+              <Chip label="e-posta doğrulanmadı" size="small" color="warning" variant="outlined" sx={{ height: 20, mt: 0.5 }} />
+            )}
           </Box>
         </Stack>
         {user.bio && (

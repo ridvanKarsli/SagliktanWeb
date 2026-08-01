@@ -134,14 +134,40 @@ export default function UserProfile() {
             <Typography variant="h2" sx={{ fontWeight: 700, mb: 0.5, wordBreak: 'break-word' }}>
               {fullName}
             </Typography>
-            <Box>
-              <Typography variant="subtitle2" component="span" sx={{ fontWeight: 700 }}>
-                {postsTotalCount}
-              </Typography>
-              <Typography variant="caption" sx={{ color: 'text.secondary', ml: 0.5 }}>
-                Gönderi
-              </Typography>
-            </Box>
+            <Stack direction="row" spacing={{ xs: 2, md: 3 }} flexWrap="wrap" useFlexGap>
+              <Box>
+                <Typography variant="subtitle2" component="span" sx={{ fontWeight: 700 }}>
+                  {postsTotalCount}
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary', ml: 0.5 }}>
+                  Gönderi
+                </Typography>
+              </Box>
+              <Box>
+                <Typography variant="subtitle2" component="span" sx={{ fontWeight: 700 }}>
+                  {profile.commentCount ?? 0}
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary', ml: 0.5 }}>
+                  Yorum
+                </Typography>
+              </Box>
+              <Box>
+                <Typography variant="subtitle2" component="span" sx={{ fontWeight: 700, color: 'success.main' }}>
+                  {profile.likesReceived ?? 0}
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary', ml: 0.5 }}>
+                  Faydalı
+                </Typography>
+              </Box>
+              <Box>
+                <Typography variant="subtitle2" component="span" sx={{ fontWeight: 700, color: 'error.main' }}>
+                  {profile.dislikesReceived ?? 0}
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary', ml: 0.5 }}>
+                  Faydalı Değil
+                </Typography>
+              </Box>
+            </Stack>
           </Box>
         </Stack>
         {profile.bio && (
