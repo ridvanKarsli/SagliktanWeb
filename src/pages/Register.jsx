@@ -108,16 +108,25 @@ export default function Register() {
         <Box
           sx={{
             flex: 1,
-            background: 'linear-gradient(135deg, #2C7562 0%, #3F9C87 100%)',
+            background: 'linear-gradient(160deg, #241F1A 0%, #1E1A16 100%)',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'center',
             alignItems: 'center',
             p: 6,
-            position: 'relative'
+            position: 'relative',
+            overflow: 'hidden'
           }}
         >
-          <Box sx={{ maxWidth: 400, textAlign: 'center' }}>
+          <Box sx={{
+            position: 'absolute', top: '-10%', right: '-15%', width: 420, height: 420,
+            borderRadius: '50%', bgcolor: 'rgba(224, 139, 109, 0.16)', filter: 'blur(100px)', pointerEvents: 'none'
+          }} />
+          <Box sx={{
+            position: 'absolute', bottom: '-15%', left: '-10%', width: 380, height: 380,
+            borderRadius: '50%', bgcolor: 'rgba(76, 184, 159, 0.16)', filter: 'blur(100px)', pointerEvents: 'none'
+          }} />
+          <Box sx={{ maxWidth: 400, textAlign: 'center', position: 'relative' }}>
             <Box
               component="img"
               src="/sagliktanLogo.png"
@@ -130,11 +139,11 @@ export default function Register() {
                 boxShadow: '0 16px 48px rgba(44, 117, 98, 0.3)'
               }}
             />
-            <Typography variant="h2" sx={{ color: 'white', mb: 2, fontWeight: 700 }}>
+            <Typography variant="h2" sx={{ color: 'primary.main', mb: 2, fontWeight: 700 }}>
               Sizi Anlayan
               <br />Bir Topluluk
             </Typography>
-            <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.9)', lineHeight: 1.8 }}>
+            <Typography variant="body1" sx={{ color: 'text.secondary', lineHeight: 1.8 }}>
               Aynı yolu yürüyen insanlarla tanışın, deneyimlerinizi güvenle paylaşın.
             </Typography>
           </Box>

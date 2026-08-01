@@ -7,8 +7,26 @@ html, body, #root {
   width: 100%;
 }
 
+/* Düz tek renk zemin yerine sabit (scroll ile kaymayan) alçak-opasiteli
+   glow noktalarından oluşan bir "ambient mesh" arkaplan - modern koyu tema
+   ürünlerinde (Linear, Vercel, Raycast vb.) derinlik hissi veren standart
+   teknik. Tek renk espresso zemin siteyi düz/amatör gösteriyordu; bu katman
+   JS yüklenmeden önce de (index.css, olası flash'ı önlemek için) aynı
+   gradyanı çiziyor - theme.js'teki CssBaseline body override'ı ile birebir
+   aynı tutulmalı. */
 body {
-  background: #1E1A16; /* Sıcak espresso zemin */
+  background-color: #1E1A16; /* Sıcak espresso zemin */
+  background-image:
+    radial-gradient(ellipse 900px 600px at 8% -5%, rgba(76, 184, 159, 0.13), transparent 60%),
+    radial-gradient(ellipse 700px 500px at 100% 8%, rgba(224, 139, 109, 0.10), transparent 60%),
+    radial-gradient(ellipse 800px 700px at 92% 92%, rgba(44, 117, 98, 0.14), transparent 60%),
+    radial-gradient(ellipse 600px 500px at -5% 85%, rgba(224, 139, 109, 0.07), transparent 55%);
+  background-repeat: no-repeat;
+  /* background-attachment: fixed BİLEREK kullanılmadı - mobil Safari'de
+     scroll sırasında ciddi jank/takılmaya yol açan bilinen bir sorun,
+     bu da bir PWA için kabul edilemez. Gradyanlar üst/alt köşelere
+     sabitlendiği için attachment olmadan da statik sayfa yüksekliğinde
+     aynı "ambient glow" hissini veriyor. */
   margin: 0;
   position: relative;
 }

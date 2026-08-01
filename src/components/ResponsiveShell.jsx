@@ -55,7 +55,11 @@ export default function ResponsiveShell({ children }) {
             top: 0,
             left: 0,
             bottom: 0,
-            bgcolor: 'background.paper',
+            // Camsı yarı saydam + blur - arkadaki ambient glow (bkz. body
+            // arkaplanı, theme.js) hafifçe sızsın diye düz opak yüzey yerine.
+            bgcolor: 'rgba(42, 36, 31, 0.86)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
             display: 'flex',
             flexDirection: 'column',
             py: 3,
@@ -109,6 +113,7 @@ export default function ResponsiveShell({ children }) {
                   key={item.to}
                   onClick={() => navigate(item.to)}
                   sx={{
+                    position: 'relative',
                     display: 'flex',
                     alignItems: 'center',
                     gap: 2,
@@ -117,11 +122,29 @@ export default function ResponsiveShell({ children }) {
                     borderRadius: 2.5,
                     cursor: 'pointer',
                     color: active ? 'primary.main' : 'text.secondary',
-                    bgcolor: active ? 'rgba(63, 156, 135, 0.10)' : 'transparent',
+                    background: active
+                      ? 'linear-gradient(90deg, rgba(76, 184, 159, 0.16) 0%, rgba(76, 184, 159, 0.05) 100%)'
+                      : 'transparent',
                     fontWeight: active ? 600 : 500,
                     transition: 'all 0.2s ease',
+                    // Aktif satırın solunda ince bir vurgu çubuğu - hangi
+                    // sekmede olduğunu arka plan tonundan daha net anlatır.
+                    '&::before': {
+                      content: '""',
+                      position: 'absolute',
+                      left: -10,
+                      top: '20%',
+                      bottom: '20%',
+                      width: 3,
+                      borderRadius: 3,
+                      bgcolor: 'primary.main',
+                      opacity: active ? 1 : 0,
+                      transition: 'opacity 0.2s ease'
+                    },
                     '&:hover': {
-                      bgcolor: active ? 'rgba(63, 156, 135, 0.14)' : 'rgba(63, 156, 135, 0.06)',
+                      background: active
+                        ? 'linear-gradient(90deg, rgba(76, 184, 159, 0.20) 0%, rgba(76, 184, 159, 0.07) 100%)'
+                        : 'rgba(76, 184, 159, 0.06)',
                       color: 'primary.main'
                     }
                   }}
@@ -200,7 +223,9 @@ export default function ResponsiveShell({ children }) {
               px: 2,
               pt: 'calc(10px + env(safe-area-inset-top))',
               pb: 1.25,
-              bgcolor: 'background.paper',
+              bgcolor: 'rgba(42, 36, 31, 0.86)',
+              backdropFilter: 'blur(16px)',
+              WebkitBackdropFilter: 'blur(16px)',
               borderBottom: '1px solid',
               borderColor: 'divider'
             }}
@@ -241,7 +266,9 @@ export default function ResponsiveShell({ children }) {
             left: 0,
             right: 0,
             bottom: 0,
-            bgcolor: 'background.paper',
+            bgcolor: 'rgba(42, 36, 31, 0.86)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
             borderTop: '1px solid',
             borderColor: 'divider',
             zIndex: theme.zIndex.appBar + 1,

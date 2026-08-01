@@ -62,26 +62,35 @@ export default function ForgotPassword() {
         <Box
           sx={{
             flex: 1,
-            background: 'linear-gradient(135deg, #2C7562 0%, #3F9C87 100%)',
+            background: 'linear-gradient(160deg, #241F1A 0%, #1E1A16 100%)',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'center',
             alignItems: 'center',
             p: 6,
-            position: 'relative'
+            position: 'relative',
+            overflow: 'hidden'
           }}
         >
-          <Box sx={{ maxWidth: 400, textAlign: 'center' }}>
+          <Box sx={{
+            position: 'absolute', top: '-10%', left: '-15%', width: 420, height: 420,
+            borderRadius: '50%', bgcolor: 'rgba(76, 184, 159, 0.18)', filter: 'blur(100px)', pointerEvents: 'none'
+          }} />
+          <Box sx={{
+            position: 'absolute', bottom: '-15%', right: '-10%', width: 380, height: 380,
+            borderRadius: '50%', bgcolor: 'rgba(224, 139, 109, 0.14)', filter: 'blur(100px)', pointerEvents: 'none'
+          }} />
+          <Box sx={{ maxWidth: 400, textAlign: 'center', position: 'relative' }}>
             <Box
               component="img"
               src="/sagliktanLogo.png"
               alt="Sağlıktan"
               sx={{ width: 80, height: 80, borderRadius: '20px', mb: 4, boxShadow: '0 16px 48px rgba(44, 117, 98, 0.3)' }}
             />
-            <Typography variant="h2" sx={{ color: 'white', mb: 2, fontWeight: 700 }}>
+            <Typography variant="h2" sx={{ color: 'primary.main', mb: 2, fontWeight: 700 }}>
               Şifreni Sıfırla
             </Typography>
-            <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.85)', lineHeight: 1.8 }}>
+            <Typography variant="body1" sx={{ color: 'text.secondary', lineHeight: 1.8 }}>
               Merak etme, herkesin başına gelebilir. E-postana gelecek kodla şifreni birkaç adımda yenileyebilirsin.
             </Typography>
           </Box>

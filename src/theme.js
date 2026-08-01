@@ -161,8 +161,18 @@ const theme = createTheme({
           WebkitFontSmoothing: 'antialiased',
           MozOsxFontSmoothing: 'grayscale',
         },
+        // index.css'teki gradyanla birebir aynı - orada JS yüklenmeden önceki
+        // ilk boyama için, burada CssBaseline'ın kendi reset'i body arkaplanını
+        // ezmesin diye tekrarlanıyor.
         body: {
           backgroundColor: colors.background,
+          backgroundImage: [
+            'radial-gradient(ellipse 900px 600px at 8% -5%, rgba(76, 184, 159, 0.13), transparent 60%)',
+            'radial-gradient(ellipse 700px 500px at 100% 8%, rgba(224, 139, 109, 0.10), transparent 60%)',
+            'radial-gradient(ellipse 800px 700px at 92% 92%, rgba(44, 117, 98, 0.14), transparent 60%)',
+            'radial-gradient(ellipse 600px 500px at -5% 85%, rgba(224, 139, 109, 0.07), transparent 55%)',
+          ].join(', '),
+          backgroundRepeat: 'no-repeat',
           color: colors.text.primary,
         },
         '::selection': {
@@ -316,10 +326,15 @@ const theme = createTheme({
         },
       },
     },
+    // Nav yüzeyleri (AppBar/Drawer/BottomNav) camsı yarı saydam + blur -
+    // arkadaki ambient glow'un hafifçe sızmasına izin verir, tamamen opak
+    // düz panellerden daha "modern ürün" hissi verir (bkz. body gradyanı).
     MuiAppBar: {
       styleOverrides: {
         root: {
-          backgroundColor: colors.surface,
+          backgroundColor: 'rgba(42, 36, 31, 0.86)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
           color: colors.text.primary,
           boxShadow: '0 1px 3px rgba(0, 0, 0, 0.3)',
         },
@@ -328,7 +343,9 @@ const theme = createTheme({
     MuiDrawer: {
       styleOverrides: {
         paper: {
-          backgroundColor: colors.surface,
+          backgroundColor: 'rgba(42, 36, 31, 0.86)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
           borderRight: `1px solid ${colors.border}`,
         },
       },
@@ -336,7 +353,9 @@ const theme = createTheme({
     MuiBottomNavigation: {
       styleOverrides: {
         root: {
-          backgroundColor: colors.surface,
+          backgroundColor: 'rgba(42, 36, 31, 0.86)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
           borderTop: `1px solid ${colors.border}`,
           height: 64,
         },

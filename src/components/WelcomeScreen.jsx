@@ -53,8 +53,9 @@ export default function WelcomeScreen() {
           top: 0,
           left: 0,
           right: 0,
-          bgcolor: 'rgba(30, 26, 22, 0.92)',
-          backdropFilter: 'blur(8px)',
+          bgcolor: 'rgba(42, 36, 31, 0.86)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
           zIndex: 1000,
           borderBottom: '1px solid',
           borderColor: 'divider'
@@ -98,15 +99,29 @@ export default function WelcomeScreen() {
         </Container>
       </Box>
 
-      {/* Hero Section */}
+      {/* Hero Section - dekoratif bulanık glow toplarıyla derinlik (bkz.
+          body'deki ambient mesh, theme.js) - düz gradyan zemin siteyi tek
+          düze/amatör gösteriyordu, burada da aynı dile devam ediyoruz. */}
       <Box
         sx={{
+          position: 'relative',
+          overflow: 'hidden',
           pt: { xs: 14, md: 18 },
           pb: { xs: 8, md: 12 },
           background: 'linear-gradient(180deg, #1E1A16 0%, #2A241F 100%)'
         }}
       >
-        <Container maxWidth="lg">
+        <Box sx={{
+          position: 'absolute', top: '-15%', left: '-10%', width: 480, height: 480,
+          borderRadius: '50%', bgcolor: 'rgba(76, 184, 159, 0.16)', filter: 'blur(90px)',
+          pointerEvents: 'none'
+        }} />
+        <Box sx={{
+          position: 'absolute', bottom: '-20%', right: '-8%', width: 420, height: 420,
+          borderRadius: '50%', bgcolor: 'rgba(224, 139, 109, 0.14)', filter: 'blur(100px)',
+          pointerEvents: 'none'
+        }} />
+        <Container maxWidth="lg" sx={{ position: 'relative' }}>
           <Grid container spacing={4} alignItems="center">
             <Grid item xs={12} md={6}>
               <Box sx={{ textAlign: { xs: 'center', md: 'left' } }}>
@@ -362,49 +377,52 @@ export default function WelcomeScreen() {
         </Container>
       </Box>
 
-      {/* CTA Section */}
-      <Box
-        sx={{
-          py: { xs: 8, md: 10 },
-          background: 'linear-gradient(135deg, #2C7562 0%, #3F9C87 100%)'
-        }}
-      >
+      {/* CTA Section - eskiden düz parlak yeşil bir blok olarak siteden kopuk
+          duruyordu (bkz. görüşme geçmişi: "tasarım çok kötü"); geri kalan
+          sıcak koyu tema diliyle uyumlu, kenarlıklı/glow'lu bir kart haline
+          getirildi - vurgu artık dolgu renginden değil kenarlık+glow'dan geliyor. */}
+      <Box sx={{ py: { xs: 8, md: 10 }, bgcolor: 'background.default' }}>
         <Container maxWidth="md">
-          <Box sx={{ textAlign: 'center' }}>
-            <Typography variant="h2" sx={{ color: 'white', mb: 2 }}>
-              Sağlık Topluluğuna Katılın
-            </Typography>
-            <Typography
-              variant="body1"
-              sx={{
-                color: 'rgba(255,255,255,0.85)',
-                mb: 4,
-                maxWidth: 500,
-                mx: 'auto'
-              }}
-            >
-              Sağlık yolculuğunuzda yalnız değilsiniz. Aramıza katılın, sizi anlayan
-              bir topluluğun parçası olun.
-            </Typography>
-            <Stack
-              direction={{ xs: 'column', sm: 'row' }}
-              spacing={2}
-              justifyContent="center"
-            >
+          <Box
+            sx={{
+              position: 'relative',
+              overflow: 'hidden',
+              textAlign: 'center',
+              px: { xs: 3, md: 8 },
+              py: { xs: 6, md: 8 },
+              borderRadius: 4,
+              border: '1px solid',
+              borderColor: 'rgba(76, 184, 159, 0.28)',
+              background: 'linear-gradient(160deg, rgba(63, 156, 135, 0.16) 0%, rgba(42, 36, 31, 0.6) 55%)',
+              boxShadow: '0 24px 64px rgba(0, 0, 0, 0.35)'
+            }}
+          >
+            <Box sx={{
+              position: 'absolute', top: '-30%', left: '50%', transform: 'translateX(-50%)',
+              width: 380, height: 380, borderRadius: '50%',
+              bgcolor: 'rgba(76, 184, 159, 0.22)', filter: 'blur(90px)', pointerEvents: 'none'
+            }} />
+            <Box sx={{ position: 'relative' }}>
+              <Typography variant="h2" sx={{ color: 'primary.main', mb: 2 }}>
+                Sağlık Topluluğuna Katılın
+              </Typography>
+              <Typography
+                variant="body1"
+                sx={{ color: 'text.secondary', mb: 4, maxWidth: 480, mx: 'auto' }}
+              >
+                Sağlık yolculuğunuzda yalnız değilsiniz. Aramıza katılın, sizi anlayan
+                bir topluluğun parçası olun.
+              </Typography>
               <Button
                 variant="contained"
                 size="large"
                 onClick={() => navigate("/register")}
-                sx={{
-                  bgcolor: 'secondary.main',
-                  color: 'white',
-                  minWidth: 200,
-                  '&:hover': { bgcolor: '#B85C3D' }
-                }}
+                endIcon={<ArrowForward />}
+                sx={{ minWidth: 220 }}
               >
                 Ücretsiz Kayıt Ol
               </Button>
-            </Stack>
+            </Box>
           </Box>
         </Container>
       </Box>
@@ -414,10 +432,9 @@ export default function WelcomeScreen() {
         component="footer"
         sx={{
           py: 4,
-          bgcolor: '#2C7562',
-          color: 'white',
+          bgcolor: 'background.paper',
           borderTop: '1px solid',
-          borderColor: 'rgba(255,255,255,0.1)'
+          borderColor: 'divider'
         }}
       >
         <Container maxWidth="lg">
@@ -437,7 +454,7 @@ export default function WelcomeScreen() {
                 alt="Sağlıktan"
                 sx={{ width: 32, height: 32, borderRadius: '8px' }}
               />
-              <Typography variant="body2" sx={{ opacity: 0.9 }}>
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                 © {new Date().getFullYear()} Sağlıktan. Tüm hakları saklıdır.
               </Typography>
             </Box>
@@ -446,9 +463,9 @@ export default function WelcomeScreen() {
                 variant="body2"
                 onClick={() => navigate('/gizlilik-politikasi')}
                 sx={{
-                  opacity: 0.85,
+                  color: 'text.secondary',
                   cursor: 'pointer',
-                  '&:hover': { opacity: 1 }
+                  '&:hover': { color: 'primary.main' }
                 }}
               >
                 Gizlilik Politikası
