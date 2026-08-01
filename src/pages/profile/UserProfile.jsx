@@ -33,8 +33,9 @@ export default function UserProfile() {
 
   const [posts, setPosts] = useState([])
   const [postsLoading, setPostsLoading] = useState(true)
+  const [postsLoadingMore, setPostsLoadingMore] = useState(false)
   const [postsPage, setPostsPage] = useState(0)
-  const [postsTotalPages, setPostsTotalPages] = useState(1)
+  const [postsTotalCount, setPostsTotalCount] = useState(0)
   const [postsLast, setPostsLast] = useState(true)
 
   useEffect(() => {
@@ -61,18 +62,33 @@ export default function UserProfile() {
     if (!token || !userId) return
     let mounted = true
     setPostsLoading(true)
-    getUserPosts(token, userId, { page: postsPage })
+    setPostsPage(0)
+    getUserPosts(token, userId, { page: 0 })
       .then(res => {
         if (!mounted) return
         setPosts(Array.isArray(res?.content) ? res.content : [])
-        setPostsTotalPages(res?.totalPages ?? 1)
+        setPostsTotalCount(res?.totalElements ?? 0)
         setPostsLast(res?.last ?? true)
       })
       .catch(err => showError(err.message || 'Gönderiler alınamadı.'))
       .finally(() => { if (mounted) setPostsLoading(false) })
     return () => { mounted = false }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, userId, postsPage])
+  }, [token, userId, showError])
+
+  const loadMorePosts = async () => {
+    const nextPage = postsPage + 1
+    setPostsLoadingMore(true)
+    try {
+      const res = await getUserPosts(token, userId, { page: nextPage })
+      setPosts(prev => [...prev, ...(Array.isArray(res?.content) ? res.content : [])])
+      setPostsLast(res?.last ?? true)
+      setPostsPage(nextPage)
+    } catch (err) {
+      showError(err.message || 'Gönderiler alınamadı.')
+    } finally {
+      setPostsLoadingMore(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -104,21 +120,35 @@ export default function UserProfile() {
       </Button>
 
       <Box sx={{ mb: 4, px: { xs: 0.5, md: 0 } }}>
-        <Stack direction="row" spacing={3} alignItems="center">
-          <Avatar sx={{ width: { xs: 72, md: 88 }, height: { xs: 72, md: 88 }, fontSize: { xs: 24, md: 30 }, fontWeight: 600 }}>
+        <Stack direction="row" spacing={{ xs: 2, md: 3 }} alignItems="center">
+          <Avatar
+            sx={{
+              width: { xs: 72, md: 96 }, height: { xs: 72, md: 96 },
+              fontSize: { xs: 24, md: 32 }, fontWeight: 600, flexShrink: 0,
+              border: '3px solid', borderColor: 'primary.main'
+            }}
+          >
             {initialsFrom(fullName)}
           </Avatar>
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography variant="h2" sx={{ fontWeight: 700, mb: 0.5 }}>
+            <Typography variant="h2" sx={{ fontWeight: 700, mb: 0.5, wordBreak: 'break-word' }}>
               {fullName}
             </Typography>
-            {profile.bio && (
-              <Typography variant="body2" sx={{ color: 'text.primary', mt: 1 }}>
-                {profile.bio}
+            <Box>
+              <Typography variant="subtitle2" component="span" sx={{ fontWeight: 700 }}>
+                {postsTotalCount}
               </Typography>
-            )}
+              <Typography variant="caption" sx={{ color: 'text.secondary', ml: 0.5 }}>
+                Gönderi
+              </Typography>
+            </Box>
           </Box>
         </Stack>
+        {profile.bio && (
+          <Typography variant="body2" sx={{ color: 'text.primary', mt: 1.5 }}>
+            {profile.bio}
+          </Typography>
+        )}
       </Box>
 
       <Typography variant="h3" sx={{ mb: 2, px: { xs: 0.5, md: 0 }, color: 'text.primary' }}>
@@ -139,24 +169,17 @@ export default function UserProfile() {
           {posts.map(p => (
             <PostCard key={p.id} post={p} token={token} onClick={() => navigate(`/post/${p.id}`)} />
           ))}
-          {postsTotalPages > 1 && (
-            <Stack direction="row" spacing={2} justifyContent="center" alignItems="center" sx={{ py: 2 }}>
+          {!postsLast && (
+            <Box sx={{ textAlign: 'center', py: 3 }}>
               <Button
-                variant="outlined" size="small" disabled={postsPage <= 0}
-                onClick={() => setPostsPage(p => Math.max(0, p - 1))}
+                variant="outlined"
+                onClick={loadMorePosts}
+                disabled={postsLoadingMore}
+                sx={{ minWidth: 180, minHeight: 44 }}
               >
-                Önceki
+                {postsLoadingMore ? <CircularProgress size={18} /> : 'Daha Fazla Yükle'}
               </Button>
-              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                Sayfa {postsPage + 1} / {postsTotalPages}
-              </Typography>
-              <Button
-                variant="outlined" size="small" disabled={postsLast}
-                onClick={() => setPostsPage(p => p + 1)}
-              >
-                Sonraki
-              </Button>
-            </Stack>
+            </Box>
           )}
         </>
       )}

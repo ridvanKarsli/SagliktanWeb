@@ -136,20 +136,20 @@ export default function Profile() {
   /* ---- Postlarım ---- */
   const [myPosts, setMyPosts] = useState([])
   const [postsPage, setPostsPage] = useState(0)
-  const [postsTotalPages, setPostsTotalPages] = useState(1)
   const [postsTotalCount, setPostsTotalCount] = useState(0)
   const [postsLast, setPostsLast] = useState(true)
   const [postsLoading, setPostsLoading] = useState(true)
+  const [postsLoadingMore, setPostsLoadingMore] = useState(false)
 
   useEffect(() => {
     if (!token) { setPostsLoading(false); return }
     let mounted = true
     setPostsLoading(true)
-    getMyPosts(token, { page: postsPage })
+    setPostsPage(0)
+    getMyPosts(token, { page: 0 })
       .then(res => {
         if (!mounted) return
         setMyPosts(Array.isArray(res?.content) ? res.content : [])
-        setPostsTotalPages(res?.totalPages ?? 1)
         // totalElements standart Spring Page yanıtında zaten mevcut - yeni
         // bir backend alanı gerekmiyor, sadece bu sayıyı arayüzde gösteriyoruz.
         setPostsTotalCount(res?.totalElements ?? 0)
@@ -159,7 +159,22 @@ export default function Profile() {
       .finally(() => { if (mounted) setPostsLoading(false) })
     return () => { mounted = false }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, postsPage])
+  }, [token])
+
+  const loadMorePosts = async () => {
+    const nextPage = postsPage + 1
+    setPostsLoadingMore(true)
+    try {
+      const res = await getMyPosts(token, { page: nextPage })
+      setMyPosts(prev => [...prev, ...(Array.isArray(res?.content) ? res.content : [])])
+      setPostsLast(res?.last ?? true)
+      setPostsPage(nextPage)
+    } catch (err) {
+      showError(err.message || 'Postlarınız alınamadı.')
+    } finally {
+      setPostsLoadingMore(false)
+    }
+  }
 
   /* ---- Hesabı deaktive et ---- */
   const [deactivateConfirm, setDeactivateConfirm] = useState(false)
@@ -333,24 +348,17 @@ export default function Profile() {
               {myPosts.map(p => (
                 <PostCard key={p.id} post={p} token={token} onClick={() => navigate(`/post/${p.id}`)} />
               ))}
-              {postsTotalPages > 1 && (
-                <Stack direction="row" spacing={2} justifyContent="center" alignItems="center" sx={{ py: 2 }}>
+              {!postsLast && (
+                <Box sx={{ textAlign: 'center', py: 3 }}>
                   <Button
-                    variant="outlined" size="small" disabled={postsPage <= 0}
-                    onClick={() => setPostsPage(p => Math.max(0, p - 1))}
+                    variant="outlined"
+                    onClick={loadMorePosts}
+                    disabled={postsLoadingMore}
+                    sx={{ minWidth: 180, minHeight: 44 }}
                   >
-                    Önceki
+                    {postsLoadingMore ? <CircularProgress size={18} /> : 'Daha Fazla Yükle'}
                   </Button>
-                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                    Sayfa {postsPage + 1} / {postsTotalPages}
-                  </Typography>
-                  <Button
-                    variant="outlined" size="small" disabled={postsLast}
-                    onClick={() => setPostsPage(p => p + 1)}
-                  >
-                    Sonraki
-                  </Button>
-                </Stack>
+                </Box>
               )}
             </>
           )}

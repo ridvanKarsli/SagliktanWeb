@@ -5,7 +5,8 @@ import {
   useMediaQuery, useTheme
 } from '@mui/material'
 import {
-  ArrowBack, DeleteOutline, EditOutlined, FlagOutlined, InfoOutlined, ReplyOutlined
+  ArrowBack, DeleteOutline, EditOutlined, ExpandLessRounded, ExpandMoreRounded, FlagOutlined,
+  InfoOutlined, ReplyOutlined
 } from '@mui/icons-material'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
@@ -154,6 +155,11 @@ function CommentRow({
   const [replyOpen, setReplyOpen] = useState(false)
   const [replyText, setReplyText] = useState('')
   const [replySubmitting, setReplySubmitting] = useState(false)
+  // X/Twitter tarzı: yanıtlar gönderi açılır açılmaz hepsi birden dökülmesin
+  // diye varsayılan olarak kapalı - kullanıcı "N yanıt görüntüle" diyerek
+  // tıkladığında o dalı açıyor. Uzun tartışmalarda ilk bakışta sadece
+  // üst-seviye yorumları görmek çok daha okunabilir bir akış sağlıyor.
+  const [repliesOpen, setRepliesOpen] = useState(false)
   const confirm = useConfirm()
   const theme = useTheme()
   // Mobilde satır içi yanıt kutusu, üstteki/alttaki yorumları aşağı itip
@@ -208,6 +214,10 @@ function CommentRow({
       await onReplySubmitted(comment.id, replyText.trim())
       setReplyText('')
       setReplyOpen(false)
+      // Az önce eklediği yanıtı hemen görsün diye - kapalı bırakırsak
+      // kullanıcı kendi yazdığı yanıtı "N yanıtı görüntüle" arkasında
+      // saklanmış bulup kafası karışabilir.
+      setRepliesOpen(true)
       showSuccess('Yanıt eklendi.')
     } catch (err) {
       showError(err.message || 'Yanıt eklenemedi.')
@@ -406,25 +416,37 @@ function CommentRow({
       )}
 
       {comment.replies?.length > 0 && (
-        <Stack spacing={1.5} sx={{ mt: 1.5 }}>
-          {comment.replies.map(reply => (
-            <CommentRow
-              key={reply.id}
-              comment={reply}
-              depth={depth + 1}
-              parentAuthorName={comment.authorName || 'Kullanıcı'}
-              user={user}
-              token={token}
-              canReply={canReply}
-              onUpdated={onUpdated}
-              onReplySubmitted={onReplySubmitted}
-              onReport={onReport}
-              onAuthorClick={onAuthorClick}
-              showError={showError}
-              showSuccess={showSuccess}
-            />
-          ))}
-        </Stack>
+        <Box sx={{ mt: 1.5 }}>
+          <Button
+            size="small"
+            onClick={() => setRepliesOpen(o => !o)}
+            startIcon={repliesOpen ? <ExpandLessRounded fontSize="small" /> : <ExpandMoreRounded fontSize="small" />}
+            sx={{ color: 'primary.main', fontWeight: 600, pl: 0.5 }}
+          >
+            {repliesOpen ? 'Yanıtları gizle' : `${comment.replies.length} yanıtı görüntüle`}
+          </Button>
+          {repliesOpen && (
+            <Stack spacing={1.5} sx={{ mt: 1 }}>
+              {comment.replies.map(reply => (
+                <CommentRow
+                  key={reply.id}
+                  comment={reply}
+                  depth={depth + 1}
+                  parentAuthorName={comment.authorName || 'Kullanıcı'}
+                  user={user}
+                  token={token}
+                  canReply={canReply}
+                  onUpdated={onUpdated}
+                  onReplySubmitted={onReplySubmitted}
+                  onReport={onReport}
+                  onAuthorClick={onAuthorClick}
+                  showError={showError}
+                  showSuccess={showSuccess}
+                />
+              ))}
+            </Stack>
+          )}
+        </Box>
       )}
     </Box>
   )

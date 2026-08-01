@@ -6,7 +6,10 @@ import {
   ToggleButton, ToggleButtonGroup, Typography, useMediaQuery
 } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
-import { DeleteOutline, EditOutlined, ExpandMoreRounded } from '@mui/icons-material'
+import {
+  ChatBubbleOutlineRounded, DeleteOutline, DescriptionOutlined, EditOutlined, ExpandMoreRounded,
+  FlagOutlined, GroupsRounded, PeopleAltRounded
+} from '@mui/icons-material'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
 import { useConfirm } from '../../context/ConfirmContext.jsx'
@@ -20,42 +23,80 @@ import {
 const REPORT_STATUS_LABEL = { PENDING: 'Bekliyor', REVIEWED: 'İncelendi', REJECTED: 'Reddedildi' }
 const REPORT_STATUS_COLOR = { PENDING: 'warning', REVIEWED: 'success', REJECTED: 'default' }
 
-function StatCard({ label, value }) {
+// Renk adı MUI theme palette anahtarına karşılık geliyor (ör. 'warning' ->
+// theme.palette.warning.main) - StatCard'ın arka plan/ikon rengini buradan
+// türetiyoruz ki bekleyen şikayet gibi "dikkat çekmesi gereken" kartlar
+// diğerlerinden görsel olarak ayrışsın.
+function StatCard({ label, value, icon, color = 'primary', highlight = false }) {
   return (
     <Box
       sx={{
-        flex: '1 1 160px', p: 2.5, borderRadius: 2, bgcolor: 'background.paper',
-        border: '1px solid', borderColor: 'divider'
+        flex: '1 1 200px', p: 2.5, borderRadius: 3, bgcolor: 'background.paper',
+        border: '1px solid', borderColor: highlight ? `${color}.main` : 'divider',
+        display: 'flex', alignItems: 'center', gap: 2
       }}
     >
-      <Typography variant="caption" sx={{ color: 'text.secondary' }}>{label}</Typography>
-      <Typography variant="h4" sx={{ fontWeight: 700, mt: 0.5 }}>{value ?? '—'}</Typography>
+      <Box
+        sx={{
+          width: 48, height: 48, borderRadius: 2.5, flexShrink: 0,
+          display: 'grid', placeItems: 'center',
+          background: (t) => `linear-gradient(135deg, ${t.palette[color].main}33, ${t.palette[color].main}14)`,
+          color: `${color}.main`
+        }}
+      >
+        {icon}
+      </Box>
+      <Box sx={{ minWidth: 0 }}>
+        <Typography variant="caption" sx={{ color: 'text.secondary' }}>{label}</Typography>
+        <Typography variant="h4" sx={{ fontWeight: 700, mt: 0.25 }}>{value ?? '—'}</Typography>
+      </Box>
     </Box>
   )
 }
 
 function DashboardTab({ token }) {
   const [stats, setStats] = useState(null)
+  const [groupCount, setGroupCount] = useState(null)
   const [loading, setLoading] = useState(true)
   const { showError } = useNotification()
 
   useEffect(() => {
     setLoading(true)
-    getAdminStats(token)
-      .then(setStats)
+    Promise.all([
+      getAdminStats(token),
+      listDiseaseGroups(token).catch(() => [])
+    ])
+      .then(([statsRes, groups]) => {
+        setStats(statsRes)
+        setGroupCount(Array.isArray(groups) ? groups.length : null)
+      })
       .catch(err => showError(err.message || 'İstatistikler alınamadı.'))
       .finally(() => setLoading(false))
   }, [token, showError])
 
   if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress size={22} /></Box>
 
+  const pending = stats?.pendingReports ?? 0
+
   return (
-    <Stack direction="row" flexWrap="wrap" gap={2} sx={{ mt: 2 }}>
-      <StatCard label="Toplam Kayıtlı Kişi" value={stats?.totalUsers} />
-      <StatCard label="Toplam Gönderi" value={stats?.totalPosts} />
-      <StatCard label="Toplam Yorum" value={stats?.totalComments} />
-      <StatCard label="Bekleyen Şikayet" value={stats?.pendingReports} />
-    </Stack>
+    <Box sx={{ mt: 2 }}>
+      <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
+        Platformun genel durumuna hızlı bir bakış.
+      </Typography>
+      <Stack direction="row" flexWrap="wrap" gap={2}>
+        <StatCard label="Toplam Kayıtlı Kişi" value={stats?.totalUsers} icon={<PeopleAltRounded />} color="primary" />
+        <StatCard label="Toplam Gönderi" value={stats?.totalPosts} icon={<DescriptionOutlined />} color="secondary" />
+        <StatCard label="Toplam Yorum" value={stats?.totalComments} icon={<ChatBubbleOutlineRounded />} color="secondary" />
+        <StatCard label="Hastalık Grubu" value={groupCount} icon={<GroupsRounded />} color="primary" />
+        <StatCard
+          label="Bekleyen Şikayet"
+          value={pending}
+          icon={<FlagOutlined />}
+          color={pending > 0 ? 'warning' : 'success'}
+          highlight={pending > 0}
+        />
+      </Stack>
+    </Box>
   )
 }
 
