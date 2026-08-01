@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   Alert, Avatar, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent,
-  DialogTitle, Fab, IconButton, Stack, TextField, Typography
+  DialogTitle, Divider, Fab, IconButton, Stack, TextField, Typography
 } from '@mui/material'
 import { Add, ArrowBack } from '@mui/icons-material'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -171,8 +171,11 @@ export default function Posts() {
         </Box>
       ) : (
         <Box>
-          {posts.map(post => (
-            <PostCard key={post.id} post={post} token={token} onClick={() => navigate(`/post/${post.id}`)} />
+          {posts.map((post, i) => (
+            <Box key={post.id}>
+              {i > 0 && <Divider />}
+              <PostCard post={post} token={token} onClick={() => navigate(`/post/${post.id}`)} />
+            </Box>
           ))}
           {posts.length === 0 && (
             <Box sx={{ textAlign: 'center', py: 10 }}>

@@ -6,7 +6,8 @@ import {
 import useMediaQuery from '@mui/material/useMediaQuery'
 import { useTheme } from '@mui/material/styles'
 import {
-  HomeRounded, SearchRounded, PersonRounded, LogoutRounded, AdminPanelSettingsRounded
+  HomeRounded, HomeOutlined, SearchRounded, SearchOutlined,
+  PersonRounded, PersonOutlineRounded, LogoutRounded, AdminPanelSettingsRounded, AdminPanelSettingsOutlined
 } from '@mui/icons-material'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
@@ -16,13 +17,18 @@ import NotificationBell from './NotificationBell.jsx'
 const SIDEBAR_WIDTH = 240
 const MOBILE_NAV_HEIGHT = 64
 
+// Instagram deseni: sekme aktifken outline ikon yerine dolu (filled)
+// versiyonu gösterilir - salt renk değişiminden daha güçlü, alışılmış bir
+// "buradasın" sinyali. iconOutline pasifken, icon aktifken kullanılıyor.
 const BASE_NAV_ITEMS = [
-  { label: 'Gruplar', icon: <HomeRounded />, to: '/groups' },
-  { label: 'Ara', icon: <SearchRounded />, to: '/search' },
-  { label: 'Profil', icon: <PersonRounded />, to: '/profile' }
+  { label: 'Gruplar', icon: <HomeRounded />, iconOutline: <HomeOutlined />, to: '/groups' },
+  { label: 'Ara', icon: <SearchRounded />, iconOutline: <SearchOutlined />, to: '/search' },
+  { label: 'Profil', icon: <PersonRounded />, iconOutline: <PersonOutlineRounded />, to: '/profile' }
 ]
 
-const ADMIN_NAV_ITEM = { label: 'Admin', icon: <AdminPanelSettingsRounded />, to: '/admin' }
+const ADMIN_NAV_ITEM = {
+  label: 'Admin', icon: <AdminPanelSettingsRounded />, iconOutline: <AdminPanelSettingsOutlined />, to: '/admin'
+}
 
 export default function ResponsiveShell({ children }) {
   const theme = useTheme()
@@ -158,7 +164,7 @@ export default function ResponsiveShell({ children }) {
                       } 
                     }}
                   >
-                    {item.icon}
+                    {active ? item.icon : item.iconOutline}
                   </Box>
                   <Typography sx={{ fontWeight: 'inherit', fontSize: '0.9375rem' }}>
                     {item.label}
@@ -305,10 +311,10 @@ export default function ResponsiveShell({ children }) {
               }
             }}
           >
-            {navItems.map(item => (
-              <BottomNavigationAction 
-                key={item.to} 
-                icon={item.icon} 
+            {navItems.map((item, i) => (
+              <BottomNavigationAction
+                key={item.to}
+                icon={i === current ? item.icon : item.iconOutline}
                 label={item.label}
               />
             ))}

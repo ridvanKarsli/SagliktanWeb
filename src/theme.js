@@ -194,20 +194,23 @@ const theme = createTheme({
             boxShadow: 'none',
           },
         },
+        // Instagram'ın buton dili düz/tek renk, parlak "SaaS gradyanı" değil
+        // - burada da öyle: hover'da hafif renk koyulaşması + minik kalkma,
+        // ama dolgu her zaman tek düz renk.
         contained: {
           '&:hover': {
             transform: 'translateY(-1px)',
-            boxShadow: '0 6px 18px rgba(76, 184, 159, 0.28)',
+            boxShadow: '0 6px 18px rgba(76, 184, 159, 0.24)',
           },
           '&:active': {
             transform: 'translateY(0)',
           },
         },
         containedPrimary: {
-          background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryDark} 100%)`,
+          backgroundColor: colors.primary,
           color: colors.background,
           '&:hover': {
-            background: `linear-gradient(135deg, #7ECCB6 0%, ${colors.primary} 100%)`,
+            backgroundColor: colors.primaryDark,
           },
         },
         containedSecondary: {

@@ -232,9 +232,12 @@ function CommentRow({
       sx={{
         p: 2,
         borderRadius: 2,
-        bgcolor: isReply ? 'action.hover' : 'background.paper',
-        border: '1px solid',
-        borderColor: 'divider',
+        // Instagram'ın yorum satırları borderless - burada da üst seviye
+        // yorum düz zemin üstünde duruyor, sadece yanıtlar (isReply) hafif
+        // bir zemin farkı + sol vurgu çizgisiyle ayrışıyor (hangi yorumun
+        // altına yazıldığı belli olsun diye - bu kısım IG'de yok ama
+        // hiyerarşi netliği için tutuldu).
+        bgcolor: isReply ? 'action.hover' : 'transparent',
         // Yanıtlar tek bir sabit girinti alıyor - bu satır hiçbir zaman
         // kendi içinde bir yanıt render etmiyor (bkz. thread-drill
         // navigasyonu), o yüzden girinti asla üst üste binip büyüyemiyor.
@@ -671,23 +674,27 @@ export default function PostDetail() {
         Sağlığınızla ilgili kararlar için mutlaka bir sağlık profesyoneline danışın.
       </Alert>
 
-      <Box
-        sx={{
-          mb: 3, borderRadius: 3, overflow: 'hidden',
-          bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider'
-        }}
-      >
-      <Box sx={{ p: { xs: 2, md: 3 } }}>
+      <Box sx={{ mb: 1 }}>
+      <Box sx={{ pb: { xs: 2, md: 2.5 } }}>
         <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2 }}>
-          <Avatar
+          {/* Gradyan ring avatar - bkz. PostCard.jsx, marka diliyle tutarlı */}
+          <Box
             onClick={() => goToProfile(post.authorId)}
             sx={{
-              width: 44, height: 44, fontWeight: 700, cursor: 'pointer',
-              border: '2px solid', borderColor: 'primary.main'
+              width: 48, height: 48, borderRadius: '50%', flexShrink: 0, cursor: 'pointer',
+              background: 'linear-gradient(135deg, #4CB89F 0%, #E08B6D 100%)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', p: '2.5px'
             }}
           >
-            {initialsFrom(post.authorName || '')}
-          </Avatar>
+            <Avatar
+              sx={{
+                width: '100%', height: '100%', fontWeight: 700,
+                border: '2px solid', borderColor: 'background.default'
+              }}
+            >
+              {initialsFrom(post.authorName || '')}
+            </Avatar>
+          </Box>
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <Typography
               variant="subtitle2"

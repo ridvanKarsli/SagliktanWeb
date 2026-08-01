@@ -166,19 +166,17 @@ export default function SubGroups() {
                 p: { xs: 2, md: 2.5 },
                 borderRadius: 3,
                 bgcolor: 'background.paper',
-                border: '1px solid',
-                borderColor: 'divider',
                 cursor: 'pointer',
-                transition: 'background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease',
-                '&:hover': { bgcolor: 'action.hover', borderColor: 'primary.main', boxShadow: '0 4px 16px rgba(0,0,0,0.10)' }
+                transition: 'background-color 0.2s ease, box-shadow 0.2s ease',
+                '&:hover': { bgcolor: 'action.hover', boxShadow: '0 4px 16px rgba(0,0,0,0.10)' }
               }}
             >
               <Stack direction="row" spacing={2} alignItems="center">
                 <Box
                   sx={{
-                    width: 44, height: 44, borderRadius: 2.5, flexShrink: 0,
+                    width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
                     display: 'grid', placeItems: 'center',
-                    background: 'linear-gradient(135deg, rgba(217,119,87,0.22), rgba(217,119,87,0.08))',
+                    background: 'linear-gradient(135deg, rgba(224,139,109,0.24), rgba(76,184,159,0.10))',
                     color: 'secondary.main'
                   }}
                 >

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import {
-  Avatar, Box, Button, CircularProgress, ClickAwayListener, Fade, IconButton, Paper,
+  Avatar, Box, Button, CircularProgress, ClickAwayListener, Divider, Fade, IconButton, Paper,
   Stack, Tab, Tabs, TextField, Typography
 } from '@mui/material'
 import { SearchRounded, ChatBubbleOutlineRounded, CloseRounded } from '@mui/icons-material'
@@ -452,14 +452,16 @@ export default function Search() {
             </Box>
           ) : (
             <>
-              {activeTab.key === 'posts' && activeState.results.map(post => (
-                <PostCard
-                  key={post.id}
-                  post={post}
-                  token={token}
-                  onClick={() => navigate(`/post/${post.id}`)}
-                  highlightQuery={activeQuery}
-                />
+              {activeTab.key === 'posts' && activeState.results.map((post, i) => (
+                <Box key={post.id}>
+                  {i > 0 && <Divider />}
+                  <PostCard
+                    post={post}
+                    token={token}
+                    onClick={() => navigate(`/post/${post.id}`)}
+                    highlightQuery={activeQuery}
+                  />
+                </Box>
               ))}
               {activeTab.key === 'comments' && activeState.results.map(c => (
                 <CommentResultCard

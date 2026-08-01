@@ -1,4 +1,4 @@
-import { Avatar, Box, Divider, Stack, Typography } from '@mui/material'
+import { Avatar, Box, Stack, Typography } from '@mui/material'
 import ReactionButtons from './ReactionButtons.jsx'
 import HighlightText from './HighlightText.jsx'
 import { reactToPost, removePostReaction } from '../services/api.js'
@@ -20,11 +20,12 @@ function truncate(text = '', max = 180) {
 }
 
 /**
- * Feed kartı - büyük platformların (X, Instagram, Facebook) standart feed
- * kartı deseninden ilham alınarak yenilendi: yuvarlak avatar rozeti, tek
- * satırda isim + zaman (X tarzı kompakt başlık), tam genişlik bölücüyle
- * ayrılmış aksiyon çubuğu (Facebook tarzı). Veri sözleşmesi değişmedi -
- * sadece görsel/yapısal düzen.
+ * Feed kartı - Instagram'ın gönderi öğesi deseninden ilham alınarak yeniden
+ * kuruldu: ağır kart kenarlığı/gölge yerine borderless, sadece alt ince bir
+ * bölücüyle ayrılan akış öğesi (bkz. Posts.jsx - kartlar artık `Divider`
+ * ile ayrılıyor, kendi border'ı yok). Avatar'da IG'nin "story ring"
+ * dilinden esinlenen ama markaya özgü sıcak gradyan bir halka var. Veri
+ * sözleşmesi değişmedi - sadece görsel/yapısal düzen.
  */
 export default function PostCard({ post, onClick, token, highlightQuery }) {
   if (!post) return null
@@ -40,70 +41,64 @@ export default function PostCard({ post, onClick, token, highlightQuery }) {
       onClick={onClick}
       className={onClick ? 'tap-scale' : undefined}
       sx={{
-        mb: 1.5,
-        borderRadius: 3,
-        bgcolor: 'background.paper',
-        border: '1px solid',
-        borderColor: 'divider',
+        py: { xs: 2, md: 2.25 },
         cursor: onClick ? 'pointer' : 'default',
-        overflow: 'hidden',
-        transition: 'background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease',
-        '&:hover': onClick
-          ? { bgcolor: 'action.hover', borderColor: 'primary.main', boxShadow: '0 4px 16px rgba(0,0,0,0.10)' }
-          : undefined
+        transition: 'background-color 0.15s ease',
+        '&:hover': onClick ? { bgcolor: 'action.hover' } : undefined
       }}
     >
-      <Box sx={{ p: { xs: 2, md: 2.5 }, pb: { xs: 1.5, md: 1.75 } }}>
-        <Stack direction="row" spacing={1.25} alignItems="center" sx={{ mb: 1.25 }}>
+      <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1.25 }}>
+        {/* Gradyan "ring" avatar - IG'nin hikaye halkasından esinlenildi,
+            burada marka rengiyle (yeşil->mercan) sabit bir dekoratif çerçeve. */}
+        <Box
+          sx={{
+            width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
+            background: 'linear-gradient(135deg, #4CB89F 0%, #E08B6D 100%)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', p: '2.5px'
+          }}
+        >
           <Avatar
             sx={{
-              width: 40, height: 40, fontSize: 15, fontWeight: 700, flexShrink: 0,
-              border: '2px solid', borderColor: 'primary.main'
+              width: '100%', height: '100%', fontSize: 15, fontWeight: 700,
+              border: '2px solid', borderColor: 'background.default'
             }}
           >
             {initialsFrom(authorName || '')}
           </Avatar>
-          <Box sx={{ minWidth: 0, flex: 1 }}>
-            <Stack direction="row" spacing={0.75} alignItems="baseline" flexWrap="wrap" useFlexGap>
-              <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.primary' }} noWrap>
-                {authorName || 'Kullanıcı'}
-              </Typography>
-              <Typography variant="caption" sx={{ color: 'text.secondary', flexShrink: 0 }}>
-                · {dateLabel}{edited ? ' · düzenlendi' : ''}
-              </Typography>
-            </Stack>
-          </Box>
-        </Stack>
+        </Box>
+        <Box sx={{ minWidth: 0, flex: 1 }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.primary' }} noWrap>
+            {authorName || 'Kullanıcı'}
+          </Typography>
+          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+            {dateLabel}{edited ? ' · düzenlendi' : ''}
+          </Typography>
+        </Box>
+      </Stack>
 
-        <Typography
-          variant="subtitle1"
-          sx={{ fontWeight: 700, color: 'text.primary', mb: 0.5, wordBreak: 'break-word', lineHeight: 1.35 }}
-        >
-          {highlightQuery ? <HighlightText text={title} query={highlightQuery} /> : title}
-        </Typography>
-        <Typography
-          variant="body2"
-          sx={{ color: 'text.secondary', whiteSpace: 'pre-line', wordBreak: 'break-word', lineHeight: 1.55 }}
-        >
-          {highlightQuery
-            ? <HighlightText text={truncate(content, 180)} query={highlightQuery} />
-            : truncate(content, 180)}
-        </Typography>
-      </Box>
+      <Typography
+        variant="subtitle1"
+        sx={{ fontWeight: 700, color: 'text.primary', mb: 0.5, wordBreak: 'break-word', lineHeight: 1.35 }}
+      >
+        {highlightQuery ? <HighlightText text={title} query={highlightQuery} /> : title}
+      </Typography>
+      <Typography
+        variant="body2"
+        sx={{ color: 'text.secondary', whiteSpace: 'pre-line', wordBreak: 'break-word', lineHeight: 1.55, mb: token ? 1.5 : 0 }}
+      >
+        {highlightQuery
+          ? <HighlightText text={truncate(content, 180)} query={highlightQuery} />
+          : truncate(content, 180)}
+      </Typography>
 
       {token && (
-        <>
-          <Divider />
-          <Box sx={{ px: { xs: 1.5, md: 2 }, py: 0.75 }}>
-            <ReactionButtons
-              helpfulCount={helpfulCount}
-              notHelpfulCount={notHelpfulCount}
-              myReaction={myReaction}
-              onReact={(value) => reactToPost(token, id, value)}
-              onRemove={() => removePostReaction(token, id)}
-            />
-          </Box>
-        </>
+        <ReactionButtons
+          helpfulCount={helpfulCount}
+          notHelpfulCount={notHelpfulCount}
+          myReaction={myReaction}
+          onReact={(value) => reactToPost(token, id, value)}
+          onRemove={() => removePostReaction(token, id)}
+        />
       )}
     </Box>
   )

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { IconButton, Stack, Tooltip, Typography } from '@mui/material'
+import { Box, IconButton, Stack, Tooltip, Typography } from '@mui/material'
 import ThumbUpAltOutlinedIcon from '@mui/icons-material/ThumbUpAltOutlined'
 import ThumbUpAltIcon from '@mui/icons-material/ThumbUpAlt'
 import ThumbDownAltOutlinedIcon from '@mui/icons-material/ThumbDownAltOutlined'
@@ -76,48 +76,63 @@ export default function ReactionButtons({
   const shownNotHelpful = local.notHelpfulCount
   const shownReaction = local.myReaction
 
+  // Instagram tarzı: aksiyon ikonları üstte tek satır (numara ikonun
+  // yanında değil - IG'de kalp/yorum/paylaş ikonları sade, sayı ayrı bir
+  // özet satırında), altında kalın bir "N faydalı · N faydalı değil" özet
+  // satırı. data-testid'ler ve buton aria-label'ları (E2E'nin dayandığı
+  // sözleşme) birebir korundu - sadece görsel yerleşim değişti.
   return (
-    <Stack direction="row" spacing={0.5} alignItems="center" onClick={(e) => e.stopPropagation()}>
-      <Tooltip title="Faydalı">
-        <span>
-          <IconButton
-            size={size}
-            disabled={disabled}
-            onClick={(e) => handleClick(e, 'HELPFUL')}
-            color={shownReaction === 'HELPFUL' ? 'primary' : 'default'}
-            aria-label="Faydalı"
-          >
-            {shownReaction === 'HELPFUL' ? <ThumbUpAltIcon fontSize="inherit" /> : <ThumbUpAltOutlinedIcon fontSize="inherit" />}
-          </IconButton>
-        </span>
-      </Tooltip>
-      <Typography
-        data-testid="reaction-helpful-count"
-        variant="caption"
-        sx={{ minWidth: 14, textAlign: 'center', color: 'text.secondary' }}
-      >
-        {shownHelpful}
+    <Box onClick={(e) => e.stopPropagation()}>
+      <Stack direction="row" spacing={0.5} alignItems="center">
+        <Tooltip title="Faydalı">
+          <span>
+            <IconButton
+              size={size}
+              disabled={disabled}
+              onClick={(e) => handleClick(e, 'HELPFUL')}
+              color={shownReaction === 'HELPFUL' ? 'primary' : 'default'}
+              aria-label="Faydalı"
+            >
+              {shownReaction === 'HELPFUL' ? <ThumbUpAltIcon fontSize="inherit" /> : <ThumbUpAltOutlinedIcon fontSize="inherit" />}
+            </IconButton>
+          </span>
+        </Tooltip>
+        <Tooltip title="Faydalı Değil">
+          <span>
+            <IconButton
+              size={size}
+              disabled={disabled}
+              onClick={(e) => handleClick(e, 'NOT_HELPFUL')}
+              color={shownReaction === 'NOT_HELPFUL' ? 'error' : 'default'}
+              aria-label="Faydalı Değil"
+            >
+              {shownReaction === 'NOT_HELPFUL' ? <ThumbDownAltIcon fontSize="inherit" /> : <ThumbDownAltOutlinedIcon fontSize="inherit" />}
+            </IconButton>
+          </span>
+        </Tooltip>
+      </Stack>
+      {/* İki testid de sayı 0 olsa bile HER ZAMAN DOM'da bulunmalı - E2E
+          "0" değerini de bekliyor (bkz. reactions.spec.js). Bu yüzden
+          koşullu render yerine, sayı 0 olan tarafı sadece görsel olarak
+          soluklaştırıyoruz, DOM'dan çıkarmıyoruz. */}
+      <Typography variant="caption" sx={{ display: 'block', fontWeight: 700, color: 'text.primary', px: 0.5 }}>
+        <Box
+          component="span"
+          data-testid="reaction-helpful-count"
+          sx={{ display: 'inline', opacity: shownHelpful > 0 ? 1 : 0.55 }}
+        >
+          {shownHelpful}
+        </Box>
+        {' faydalı  ·  '}
+        <Box
+          component="span"
+          data-testid="reaction-not-helpful-count"
+          sx={{ display: 'inline', opacity: shownNotHelpful > 0 ? 1 : 0.55 }}
+        >
+          {shownNotHelpful}
+        </Box>
+        {' faydalı değil'}
       </Typography>
-      <Tooltip title="Faydalı Değil">
-        <span>
-          <IconButton
-            size={size}
-            disabled={disabled}
-            onClick={(e) => handleClick(e, 'NOT_HELPFUL')}
-            color={shownReaction === 'NOT_HELPFUL' ? 'error' : 'default'}
-            aria-label="Faydalı Değil"
-          >
-            {shownReaction === 'NOT_HELPFUL' ? <ThumbDownAltIcon fontSize="inherit" /> : <ThumbDownAltOutlinedIcon fontSize="inherit" />}
-          </IconButton>
-        </span>
-      </Tooltip>
-      <Typography
-        data-testid="reaction-not-helpful-count"
-        variant="caption"
-        sx={{ minWidth: 14, textAlign: 'center', color: 'text.secondary' }}
-      >
-        {shownNotHelpful}
-      </Typography>
-    </Stack>
+    </Box>
   )
 }

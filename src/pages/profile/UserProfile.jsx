@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Avatar, Box, Button, CircularProgress, Stack, Typography } from '@mui/material'
+import { Avatar, Box, Button, CircularProgress, Divider, Stack, Typography } from '@mui/material'
 import { ArrowBack } from '@mui/icons-material'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
@@ -121,15 +121,23 @@ export default function UserProfile() {
 
       <Box sx={{ mb: 4, px: { xs: 0.5, md: 0 } }}>
         <Stack direction="row" spacing={{ xs: 2, md: 3 }} alignItems="center">
-          <Avatar
+          <Box
             sx={{
-              width: { xs: 72, md: 96 }, height: { xs: 72, md: 96 },
-              fontSize: { xs: 24, md: 32 }, fontWeight: 600, flexShrink: 0,
-              border: '3px solid', borderColor: 'primary.main'
+              width: { xs: 78, md: 102 }, height: { xs: 78, md: 102 }, borderRadius: '50%', flexShrink: 0,
+              background: 'linear-gradient(135deg, #4CB89F 0%, #E08B6D 100%)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', p: '3px'
             }}
           >
-            {initialsFrom(fullName)}
-          </Avatar>
+            <Avatar
+              sx={{
+                width: '100%', height: '100%',
+                fontSize: { xs: 24, md: 32 }, fontWeight: 600,
+                border: '3px solid', borderColor: 'background.default'
+              }}
+            >
+              {initialsFrom(fullName)}
+            </Avatar>
+          </Box>
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <Typography variant="h2" sx={{ fontWeight: 700, mb: 0.5, wordBreak: 'break-word' }}>
               {fullName}
@@ -192,8 +200,11 @@ export default function UserProfile() {
         </Box>
       ) : (
         <>
-          {posts.map(p => (
-            <PostCard key={p.id} post={p} token={token} onClick={() => navigate(`/post/${p.id}`)} />
+          {posts.map((p, i) => (
+            <Box key={p.id}>
+              {i > 0 && <Divider />}
+              <PostCard post={p} token={token} onClick={() => navigate(`/post/${p.id}`)} />
+            </Box>
           ))}
           {!postsLast && (
             <Box sx={{ textAlign: 'center', py: 3 }}>

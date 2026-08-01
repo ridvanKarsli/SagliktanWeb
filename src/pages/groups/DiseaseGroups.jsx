@@ -127,20 +127,20 @@ export default function DiseaseGroups() {
                   borderRadius: 3,
                   bgcolor: 'background.paper',
                   border: '1px solid',
-                  borderColor: joined ? 'primary.main' : 'divider',
+                  borderColor: joined ? 'primary.main' : 'transparent',
                   cursor: 'pointer',
                   position: 'relative',
                   overflow: 'hidden',
                   transition: 'background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease',
-                  '&:hover': { bgcolor: 'action.hover', borderColor: 'primary.main', boxShadow: '0 4px 16px rgba(0,0,0,0.10)' }
+                  '&:hover': { bgcolor: 'action.hover', boxShadow: '0 4px 16px rgba(0,0,0,0.10)' }
                 }}
               >
                 <Stack direction="row" spacing={1.75} alignItems="flex-start">
                   <Box
                     sx={{
-                      width: 52, height: 52, borderRadius: 2.5, flexShrink: 0,
+                      width: 52, height: 52, borderRadius: '50%', flexShrink: 0,
                       display: 'grid', placeItems: 'center',
-                      background: 'linear-gradient(135deg, rgba(63,156,135,0.20), rgba(63,156,135,0.08))',
+                      background: 'linear-gradient(135deg, rgba(76,184,159,0.22), rgba(224,139,109,0.14))',
                       color: 'primary.main'
                     }}
                   >
