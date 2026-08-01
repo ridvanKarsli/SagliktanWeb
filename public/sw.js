@@ -5,7 +5,13 @@
 // cache-first ile SONSUZA KADAR eski veri döndürüyordu - gruba katılma/gönderi
 // paylaşma gibi işlemler DB'de başarılı oluyor ama arayüz güncellenmiyordu.
 // Düzeltme: API isteklerini origin yerine /api/ path'ine göre tanı.
-const CACHE_NAME = 'sagliktan-pwa-v3';
+// v4: favicon/ikon seti eklendi ve sagliktanLogo.png değişti (4096x4096 ->
+// 512x512). Statik dosyalar cache-first olduğu için, daha önce siteyi ziyaret
+// etmiş kullanıcıların tarayıcısında eski büyük dosya/eski favicon sonsuza
+// kadar cache'den servis edilmeye devam ederdi - cache adını değiştirmek eski
+// cache'i geçersiz kılıp (activate handler'daki temizlik) yeni dosyaların
+// çekilmesini garantiliyor.
+const CACHE_NAME = 'sagliktan-pwa-v4';
 const ASSETS = [
   '/',
   '/index.html',
