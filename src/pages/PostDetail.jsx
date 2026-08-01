@@ -5,7 +5,7 @@ import {
   useMediaQuery, useTheme
 } from '@mui/material'
 import {
-  ArrowBack, DeleteOutline, EditOutlined, ExpandLessRounded, ExpandMoreRounded, FlagOutlined,
+  ArrowBack, ChevronRightRounded, DeleteOutline, EditOutlined, FlagOutlined,
   InfoOutlined, ReplyOutlined
 } from '@mui/icons-material'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -92,15 +92,25 @@ function addReplyToTree(comments, reply) {
   })
 }
 
-// Yanıt zincirleri eskiden derinlik arttıkça kademeli olarak daha da
-// girintileniyordu (Reddit tarzı) - bu, mobilde 4-5 seviye sonra kartların
-// giderek daralıp "merdiven" gibi ekrandan taşmasına yol açıyordu. Bunun
-// yerine X/Twitter'ın kullandığı desene geçildi: 2. seviyeden itibaren
-// girinti ARTMIYOR, sabit kalıyor - bağlam kaybolmasın diye her yanıt kendi
-// üstünde küçük bir "↳ [isim] kişisine yanıt" etiketiyle kime yanıt
-// verildiğini gösteriyor. Yapısal derinlik (backend'de) sınırsız kalmaya
-// devam ediyor, sadece görsel girinti sabitlendi.
-const FLAT_REPLY_DEPTH = 2
+// Yanıt zincirlerini iç içe kutular halinde göstermek (Reddit tarzı) -
+// sabit bir girinti değeri kullansak bile her seviye kendi ebeveyninin
+// İÇİNDE render edildiği için girintiler birbirine binip yine "merdiven"
+// oluşturuyordu. Bunun yerine X/Twitter'ın gerçek deseni uygulandı: bir
+// yorumun yanıtlarını görmek için o yoruma TIKLANIR, o yorum üstte "post
+// gibi" sabitlenir ve doğrudan yanıtları altında DÜZ (iç içe olmayan) bir
+// liste halinde gösterilir - bkz. PostDetail'deki threadPath state'i.
+// Yapısal derinlik (backend'de) sınırsız kalmaya devam ediyor, sadece aynı
+// anda ekranda hiçbir zaman ikiden fazla seviye render edilmiyor.
+function findCommentById(list, id) {
+  for (const c of list) {
+    if (c.id === id) return c
+    if (c.replies?.length) {
+      const found = findCommentById(c.replies, id)
+      if (found) return found
+    }
+  }
+  return null
+}
 
 // Şikayet için ortak dialog: post ya da yorum, tek bir bileşenle karşılanıyor.
 function ReportDialog({ open, onClose, onSubmit, submitting }) {
@@ -145,8 +155,8 @@ function ReportDialog({ open, onClose, onSubmit, submitting }) {
 }
 
 function CommentRow({
-  comment, depth = 0, parentAuthorName, user, token, canReply, onUpdated, onReplySubmitted, onReport, onAuthorClick,
-  showError, showSuccess
+  comment, isReply = false, user, token, canReply, onUpdated, onReplySubmitted, onReport, onAuthorClick,
+  onOpenThread, showError, showSuccess
 }) {
   const [editing, setEditing] = useState(false)
   const [text, setText] = useState(comment.content)
@@ -155,11 +165,6 @@ function CommentRow({
   const [replyOpen, setReplyOpen] = useState(false)
   const [replyText, setReplyText] = useState('')
   const [replySubmitting, setReplySubmitting] = useState(false)
-  // X/Twitter tarzı: yanıtlar gönderi açılır açılmaz hepsi birden dökülmesin
-  // diye varsayılan olarak kapalı - kullanıcı "N yanıt görüntüle" diyerek
-  // tıkladığında o dalı açıyor. Uzun tartışmalarda ilk bakışta sadece
-  // üst-seviye yorumları görmek çok daha okunabilir bir akış sağlıyor.
-  const [repliesOpen, setRepliesOpen] = useState(false)
   const confirm = useConfirm()
   const theme = useTheme()
   // Mobilde satır içi yanıt kutusu, üstteki/alttaki yorumları aşağı itip
@@ -170,10 +175,6 @@ function CommentRow({
   const isDeleted = !!comment.deleted
   const manageable = !isDeleted && canManage(user, comment.authorId)
   const isOwnComment = user?.id === comment.authorId
-  const isReply = depth > 0
-  // FLAT_REPLY_DEPTH'ten itibaren "kime yanıt" etiketi gösteriliyor - bkz.
-  // yukarıdaki FLAT_REPLY_DEPTH açıklaması.
-  const showReplyContext = depth >= FLAT_REPLY_DEPTH && !!parentAuthorName
 
   const saveEdit = async () => {
     if (!text.trim()) { showError('Yorum boş olamaz.'); return }
@@ -214,10 +215,10 @@ function CommentRow({
       await onReplySubmitted(comment.id, replyText.trim())
       setReplyText('')
       setReplyOpen(false)
-      // Az önce eklediği yanıtı hemen görsün diye - kapalı bırakırsak
-      // kullanıcı kendi yazdığı yanıtı "N yanıtı görüntüle" arkasında
-      // saklanmış bulup kafası karışabilir.
-      setRepliesOpen(true)
+      // Az önce eklediği yanıtı hemen görsün diye - bu yorumun thread
+      // görünümünü açıyoruz (zaten açıksa no-op), "N yanıtı görüntüle"
+      // arkasında saklı kalıp kafa karıştırmasın.
+      onOpenThread(comment)
       showSuccess('Yanıt eklendi.')
     } catch (err) {
       showError(err.message || 'Yanıt eklenemedi.')
@@ -234,19 +235,14 @@ function CommentRow({
         bgcolor: isReply ? 'action.hover' : 'background.paper',
         border: '1px solid',
         borderColor: 'divider',
+        // Yanıtlar tek bir sabit girinti alıyor - bu satır hiçbir zaman
+        // kendi içinde bir yanıt render etmiyor (bkz. thread-drill
+        // navigasyonu), o yüzden girinti asla üst üste binip büyüyemiyor.
         ...(isReply
-          ? { ml: { xs: 2, sm: 3.5 }, borderLeft: '2px solid', borderLeftColor: 'primary.main' }
+          ? { ml: { xs: 1.5, sm: 2.5 }, borderLeft: '2px solid', borderLeftColor: 'primary.main' }
           : {})
       }}
     >
-      {showReplyContext && (
-        <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mb: 1, color: 'text.secondary' }}>
-          <ReplyOutlined sx={{ fontSize: 13, transform: 'scaleX(-1)' }} />
-          <Typography variant="caption" sx={{ fontWeight: 600 }}>
-            {parentAuthorName} kişisine yanıt
-          </Typography>
-        </Stack>
-      )}
       <Stack direction="row" spacing={1.5}>
         <Avatar
           onClick={!isDeleted ? () => onAuthorClick(comment.authorId) : undefined}
@@ -416,37 +412,14 @@ function CommentRow({
       )}
 
       {comment.replies?.length > 0 && (
-        <Box sx={{ mt: 1.5 }}>
-          <Button
-            size="small"
-            onClick={() => setRepliesOpen(o => !o)}
-            startIcon={repliesOpen ? <ExpandLessRounded fontSize="small" /> : <ExpandMoreRounded fontSize="small" />}
-            sx={{ color: 'primary.main', fontWeight: 600, pl: 0.5 }}
-          >
-            {repliesOpen ? 'Yanıtları gizle' : `${comment.replies.length} yanıtı görüntüle`}
-          </Button>
-          {repliesOpen && (
-            <Stack spacing={1.5} sx={{ mt: 1 }}>
-              {comment.replies.map(reply => (
-                <CommentRow
-                  key={reply.id}
-                  comment={reply}
-                  depth={depth + 1}
-                  parentAuthorName={comment.authorName || 'Kullanıcı'}
-                  user={user}
-                  token={token}
-                  canReply={canReply}
-                  onUpdated={onUpdated}
-                  onReplySubmitted={onReplySubmitted}
-                  onReport={onReport}
-                  onAuthorClick={onAuthorClick}
-                  showError={showError}
-                  showSuccess={showSuccess}
-                />
-              ))}
-            </Stack>
-          )}
-        </Box>
+        <Button
+          size="small"
+          onClick={() => onOpenThread(comment)}
+          endIcon={<ChevronRightRounded fontSize="small" />}
+          sx={{ color: 'primary.main', fontWeight: 600, pl: 0.5, mt: 1.5 }}
+        >
+          {comment.replies.length} yanıtı görüntüle
+        </Button>
       )}
     </Box>
   )
@@ -468,6 +441,10 @@ export default function PostDetail() {
   const [commentsLoadingMore, setCommentsLoadingMore] = useState(false)
   const [page, setPage] = useState(0)
   const [last, setLast] = useState(true)
+  // X tarzı thread-drill: bir yoruma tıklanınca id'si buraya eklenir, o
+  // yorum "odak" olur (üstte sabitlenir), doğrudan yanıtları altında düz
+  // bir liste halinde gösterilir - bkz. yukarıdaki findCommentById.
+  const [threadPath, setThreadPath] = useState([])
 
   const [newComment, setNewComment] = useState('')
   const [postingComment, setPostingComment] = useState(false)
@@ -517,6 +494,7 @@ export default function PostDetail() {
     if (!token || !postId) return
     setCommentsLoading(true)
     setPage(0)
+    setThreadPath([])
     listComments(token, postId, { page: 0 })
       .then(res => {
         setComments(Array.isArray(res?.content) ? res.content : [])
@@ -525,6 +503,13 @@ export default function PostDetail() {
       .catch(err => showError(err.message || 'Yorumlar alınamadı.'))
       .finally(() => setCommentsLoading(false))
   }, [token, postId, showError])
+
+  // Bir yorumun thread'ini aç (o yorum "odak" olur) - zaten odaktaysa
+  // tekrar eklemiyoruz ki geri butonu tek tıkla üst seviyeye dönsün.
+  const openThread = useCallback((comment) => {
+    setThreadPath(prev => (prev[prev.length - 1] === comment.id ? prev : [...prev, comment.id]))
+  }, [])
+  const goBackThread = () => setThreadPath(prev => prev.slice(0, -1))
 
   // Sayfa numaralı gezinme yerine mevcut listeye ekleyen "Daha Fazla Yükle" -
   // mobilde tek elle kullanım daha kolay, kullanıcı okuduğu yeri kaybetmiyor.
@@ -666,6 +651,9 @@ export default function PostDetail() {
   // Üyelik henüz yükleniyorsa (myGroupIds === null) yorum kutusunu
   // gösterip sonra "yetkin yok" hatası almasın diye şimdilik gizli tutuyoruz.
   const isMember = myGroupIds != null && myGroupIds.has(post.diseaseGroupId)
+  const focusedComment = threadPath.length > 0
+    ? findCommentById(comments, threadPath[threadPath.length - 1])
+    : null
 
   return (
     <Box sx={{ py: { xs: 2, md: 4 } }}>
@@ -791,43 +779,48 @@ export default function PostDetail() {
       </Box>
 
       <Typography variant="h4" sx={{ fontWeight: 600, mb: 2 }}>
-        Yorumlar
+        {focusedComment ? 'Yanıtlar' : 'Yorumlar'}
       </Typography>
 
-      {myGroupIds != null && !isMember ? (
-        <Alert
-          severity="info"
-          sx={{ mb: 3 }}
-          action={
-            <Button color="inherit" size="small" onClick={() => navigate(`/groups/${post.diseaseGroupId}`)}>
-              Gruba Git
-            </Button>
-          }
-        >
-          Yorum yapabilmek için bu hastalık grubuna üye olmalısın.
-        </Alert>
-      ) : (
-        <Box component="form" onSubmit={submitComment} sx={{ mb: 3 }}>
-          <Stack spacing={1.5}>
-            <TextField
-              placeholder="Yorumunu yaz..."
-              value={newComment}
-              onChange={e => setNewComment(e.target.value)}
-              multiline
-              minRows={2}
-              fullWidth
-              disabled={!isMember}
-            />
-            <Button
-              type="submit"
-              variant="contained"
-              disabled={postingComment || !isMember}
-              sx={{ alignSelf: 'flex-end' }}
-            >
-              {postingComment ? <CircularProgress size={16} color="inherit" /> : 'Yorum Yap'}
-            </Button>
-          </Stack>
-        </Box>
+      {/* Bir yorumun thread'i açıkken üst-seviye yorum kutusu yerine odak
+          yorumun kendi "Yanıtla" butonu kullanılıyor - hangi seviyeye yazdığı
+          karışmasın diye. */}
+      {!focusedComment && (
+        myGroupIds != null && !isMember ? (
+          <Alert
+            severity="info"
+            sx={{ mb: 3 }}
+            action={
+              <Button color="inherit" size="small" onClick={() => navigate(`/groups/${post.diseaseGroupId}`)}>
+                Gruba Git
+              </Button>
+            }
+          >
+            Yorum yapabilmek için bu hastalık grubuna üye olmalısın.
+          </Alert>
+        ) : (
+          <Box component="form" onSubmit={submitComment} sx={{ mb: 3 }}>
+            <Stack spacing={1.5}>
+              <TextField
+                placeholder="Yorumunu yaz..."
+                value={newComment}
+                onChange={e => setNewComment(e.target.value)}
+                multiline
+                minRows={2}
+                fullWidth
+                disabled={!isMember}
+              />
+              <Button
+                type="submit"
+                variant="contained"
+                disabled={postingComment || !isMember}
+                sx={{ alignSelf: 'flex-end' }}
+              >
+                {postingComment ? <CircularProgress size={16} color="inherit" /> : 'Yorum Yap'}
+              </Button>
+            </Stack>
+          </Box>
+        )
       )}
 
       {commentsLoading ? (
@@ -836,6 +829,52 @@ export default function PostDetail() {
           <CommentRowSkeleton />
           <CommentRowSkeleton />
         </Stack>
+      ) : focusedComment ? (
+        <Box>
+          <Button
+            size="small"
+            onClick={goBackThread}
+            startIcon={<ArrowBack fontSize="small" />}
+            sx={{ color: 'text.secondary', mb: 1.5 }}
+          >
+            Geri
+          </Button>
+          <CommentRow
+            comment={focusedComment}
+            isReply={false}
+            user={user}
+            token={token}
+            canReply={isMember}
+            onUpdated={saveCommentUpdate}
+            onReplySubmitted={submitReply}
+            onReport={id => openReportDialog('comment', id)}
+            onAuthorClick={goToProfile}
+            onOpenThread={openThread}
+            showError={showError}
+            showSuccess={showSuccess}
+          />
+          {focusedComment.replies?.length > 0 && (
+            <Stack spacing={1.5} sx={{ mt: 1.5 }}>
+              {focusedComment.replies.map(reply => (
+                <CommentRow
+                  key={reply.id}
+                  comment={reply}
+                  isReply
+                  user={user}
+                  token={token}
+                  canReply={isMember}
+                  onUpdated={saveCommentUpdate}
+                  onReplySubmitted={submitReply}
+                  onReport={id => openReportDialog('comment', id)}
+                  onAuthorClick={goToProfile}
+                  onOpenThread={openThread}
+                  showError={showError}
+                  showSuccess={showSuccess}
+                />
+              ))}
+            </Stack>
+          )}
+        </Box>
       ) : (
         <Stack spacing={1.5}>
           {comments.length === 0 ? (
@@ -847,7 +886,7 @@ export default function PostDetail() {
               <CommentRow
                 key={c.id}
                 comment={c}
-                depth={0}
+                isReply={false}
                 user={user}
                 token={token}
                 canReply={isMember}
@@ -855,6 +894,7 @@ export default function PostDetail() {
                 onReplySubmitted={submitReply}
                 onReport={id => openReportDialog('comment', id)}
                 onAuthorClick={goToProfile}
+                onOpenThread={openThread}
                 showError={showError}
                 showSuccess={showSuccess}
               />
