@@ -1,6 +1,7 @@
 import { Component } from 'react'
 import { Box, Button, Stack, Typography } from '@mui/material'
 import { ErrorOutlineRounded, HomeRounded, RefreshRounded } from '@mui/icons-material'
+import * as Sentry from '@sentry/react'
 
 // React'in render sırasında yakaladığı beklenmedik hatalara karşı güvenlik
 // ağı - bu olmadan bir bileşende fırlatılan hata (örn. beklenmeyen null,
@@ -20,9 +21,10 @@ export default class ErrorBoundary extends Component {
   }
 
   componentDidCatch(error, info) {
-    // İleride bir hata izleme servisi (örn. Sentry) eklenirse burası o
-    // servise raporlama yapılacak tek nokta olur.
     console.error('Beklenmeyen render hatası:', error, info)
+    // main.jsx'te VITE_SENTRY_DSN yoksa Sentry.init hiç çağrılmıyor - o
+    // durumda bu no-op'tur, güvenle her ortamda çağrılabilir.
+    Sentry.captureException(error, { extra: { componentStack: info?.componentStack } })
   }
 
   handleReload = () => {
