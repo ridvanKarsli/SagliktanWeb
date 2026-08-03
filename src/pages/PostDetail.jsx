@@ -15,7 +15,7 @@ import { useConfirm } from '../context/ConfirmContext.jsx'
 import ReactionButtons from '../components/ReactionButtons.jsx'
 import {
   createComment, deleteComment, deletePost, getMyDiseaseGroups, getPost, listComments,
-  reactToComment, reactToPost, removeCommentReaction, removePostReaction,
+  listCommentReplies, reactToComment, reactToPost, removeCommentReaction, removePostReaction,
   reportComment, reportPost, updateComment, updatePost
 } from '../services/api.js'
 
@@ -64,52 +64,57 @@ function canManage(user, authorId) {
   return user.id === authorId || user.role === 'ADMIN'
 }
 
-// --- Yorum ağacı yardımcıları ---
-// listByPost sadece üst-seviye yorumları sayfalar; her yorumun (ve onun
-// yanıtlarının, sınırsız derinlikte) tamamı kendi `replies` alanında gömülü
-// gelir (bkz. backend CommentResponse.buildTree). Bu yüzden ağaç üzerinde
-// güncelleme/ekleme yaparken de recursive gezinmemiz gerekiyor.
+// --- Yorum thread yardımcıları ---
+// Artık backend tüm yorum ağacını (sınırsız derinlik) tek seferde gömülü
+// döndürmüyor - her yorum sadece kendi DOĞRUDAN yanıt SAYISINI (replyCount)
+// taşıyor, gerçek yanıtlar kullanıcı o dalı TIKLAYIP açtığında ayrı bir
+// istekle (listCommentReplies) sayfalı olarak gelir (bkz. PostDetail'deki
+// threadStack state'i ve openThread). Bu yüzden aynı anda bellekte sadece
+// kök liste (comments) + o an açık olan thread zincirinin seviyeleri var -
+// tıpkı ekranda da hiçbir zaman ikiden fazla seviyenin render edilmemesi
+// gibi (X/Twitter tarzı thread-drill navigasyonu).
+//
+// Bir yorum; kök listede, ya da açık olan herhangi bir thread seviyesinde
+// (o seviyenin odak yorumu ya da gösterilen yanıtlarından biri olarak)
+// bulunabilir - bu yüzden güncelleme/sayaç artırma işlemleri tüm bu
+// olası konumları tarıyor.
 
-function updateCommentInTree(comments, updated) {
-  return comments.map(c => {
-    if (c.id === updated.id) return { ...c, ...updated }
-    if (c.replies?.length) return { ...c, replies: updateCommentInTree(c.replies, updated) }
-    return c
-  })
+function bumpAt(comment, id, delta) {
+  if (comment.id !== id) return comment
+  return { ...comment, replyCount: (comment.replyCount ?? 0) + delta }
 }
 
-// Not: yorum silme artık backend'de soft delete (bkz. CommentServiceImpl.delete) -
-// satır kaybolmuyor, "[Bu yorum silindi]" placeholder'ına dönüşüyor ki altındaki
-// yanıt zinciri kopmasın. Bu yüzden burada bir "ağaçtan çıkar" fonksiyonuna
-// gerek yok, silme de updateCommentInTree ile işleniyor.
-
-function addReplyToTree(comments, reply) {
-  const parentId = reply.parentCommentId
-  return comments.map(c => {
-    if (c.id === parentId) return { ...c, replies: [...(c.replies || []), reply] }
-    if (c.replies?.length) return { ...c, replies: addReplyToTree(c.replies, reply) }
-    return c
-  })
+// Bir yoruma yeni bir doğrudan yanıt eklendiğinde, o yorumun replyCount'unu
+// -nerede gösteriliyorsa orada- bir artırır (kök liste + tüm açık thread
+// seviyeleri, sadece en üstteki değil - kullanıcı "Geri" ile üst seviyeye
+// döndüğünde de sayaç güncel görünsün diye).
+function bumpReplyCount(comments, threadStack, parentId, delta) {
+  const nextComments = comments.map(c => bumpAt(c, parentId, delta))
+  const nextStack = threadStack.map(frame => ({
+    ...frame,
+    comment: bumpAt(frame.comment, parentId, delta),
+    replies: frame.replies.map(r => bumpAt(r, parentId, delta))
+  }))
+  return { comments: nextComments, threadStack: nextStack }
 }
 
-// Yanıt zincirlerini iç içe kutular halinde göstermek (Reddit tarzı) -
-// sabit bir girinti değeri kullansak bile her seviye kendi ebeveyninin
-// İÇİNDE render edildiği için girintiler birbirine binip yine "merdiven"
-// oluşturuyordu. Bunun yerine X/Twitter'ın gerçek deseni uygulandı: bir
-// yorumun yanıtlarını görmek için o yoruma TIKLANIR, o yorum üstte "post
-// gibi" sabitlenir ve doğrudan yanıtları altında DÜZ (iç içe olmayan) bir
-// liste halinde gösterilir - bkz. PostDetail'deki threadPath state'i.
-// Yapısal derinlik (backend'de) sınırsız kalmaya devam ediyor, sadece aynı
-// anda ekranda hiçbir zaman ikiden fazla seviye render edilmiyor.
-function findCommentById(list, id) {
-  for (const c of list) {
-    if (c.id === id) return c
-    if (c.replies?.length) {
-      const found = findCommentById(c.replies, id)
-      if (found) return found
-    }
-  }
-  return null
+// Bir yorum düzenlendiğinde/silindiğinde, sadece değişen alanları (content,
+// deleted) -nerede gösteriliyorsa orada- günceller. Bilerek `updated`
+// objesini olduğu gibi spread ETMİYORUZ: update() uç noktası replyCount'u
+// bilmediği için 0 döner, tam spread bu doğru sayacın üzerine yazardı.
+function patchAt(comment, updated) {
+  if (comment.id !== updated.id) return comment
+  return { ...comment, content: updated.content, deleted: updated.deleted }
+}
+
+function updateCommentEverywhere(comments, threadStack, updated) {
+  const nextComments = comments.map(c => patchAt(c, updated))
+  const nextStack = threadStack.map(frame => ({
+    ...frame,
+    comment: patchAt(frame.comment, updated),
+    replies: frame.replies.map(r => patchAt(r, updated))
+  }))
+  return { comments: nextComments, threadStack: nextStack }
 }
 
 // Şikayet için ortak dialog: post ya da yorum, tek bir bileşenle karşılanıyor.
@@ -416,14 +421,14 @@ function CommentRow({
         </Drawer>
       )}
 
-      {comment.replies?.length > 0 && (
+      {(comment.replyCount ?? 0) > 0 && (
         <Button
           size="small"
           onClick={() => onOpenThread(comment)}
           endIcon={<ChevronRightRounded fontSize="small" />}
           sx={{ color: 'primary.main', fontWeight: 600, pl: 0.5, mt: 1.5 }}
         >
-          {comment.replies.length} yanıtı görüntüle
+          {comment.replyCount} yanıtı görüntüle
         </Button>
       )}
     </Box>
@@ -446,10 +451,13 @@ export default function PostDetail() {
   const [commentsLoadingMore, setCommentsLoadingMore] = useState(false)
   const [page, setPage] = useState(0)
   const [last, setLast] = useState(true)
-  // X tarzı thread-drill: bir yoruma tıklanınca id'si buraya eklenir, o
-  // yorum "odak" olur (üstte sabitlenir), doğrudan yanıtları altında düz
-  // bir liste halinde gösterilir - bkz. yukarıdaki findCommentById.
-  const [threadPath, setThreadPath] = useState([])
+  // X tarzı thread-drill: bir yoruma tıklanınca bir "seviye" (frame) buraya
+  // eklenir - o yorum "odak" olur (üstte sabitlenir), doğrudan yanıtları
+  // (sayfalı, talep üzerine backend'den çekilmiş) altında düz bir liste
+  // halinde gösterilir. Her frame: { comment, replies, repliesLoading,
+  // repliesLoadingMore, page, last }. Yalnızca en üstteki (son) frame ekrana
+  // basılır; geri gitmek sadece stack'ten pop eder (yeniden fetch gerekmez).
+  const [threadStack, setThreadStack] = useState([])
 
   const [newComment, setNewComment] = useState('')
   const [postingComment, setPostingComment] = useState(false)
@@ -499,7 +507,7 @@ export default function PostDetail() {
     if (!token || !postId) return
     setCommentsLoading(true)
     setPage(0)
-    setThreadPath([])
+    setThreadStack([])
     listComments(token, postId, { page: 0 })
       .then(res => {
         setComments(Array.isArray(res?.content) ? res.content : [])
@@ -509,12 +517,60 @@ export default function PostDetail() {
       .finally(() => setCommentsLoading(false))
   }, [token, postId, showError])
 
-  // Bir yorumun thread'ini aç (o yorum "odak" olur) - zaten odaktaysa
-  // tekrar eklemiyoruz ki geri butonu tek tıkla üst seviyeye dönsün.
-  const openThread = useCallback((comment) => {
-    setThreadPath(prev => (prev[prev.length - 1] === comment.id ? prev : [...prev, comment.id]))
-  }, [])
-  const goBackThread = () => setThreadPath(prev => prev.slice(0, -1))
+  // Bir yorumun thread'ini aç: o yorum "odak" olur, doğrudan yanıtları
+  // backend'den (ilk sayfa) çekilir. Zaten açık olan bir thread'i tekrar
+  // açmak (ör. az önce ona bir yanıt eklendiğinde) yeni bir seviye
+  // EKLEMEZ, ama yanıtları YENİDEN çeker ki yeni eklenen yanıt görünsün.
+  const openThread = useCallback(async (comment) => {
+    setThreadStack(prev => {
+      if (prev.length > 0 && prev[prev.length - 1].comment.id === comment.id) return prev
+      return [...prev, { comment, replies: [], repliesLoading: true, repliesLoadingMore: false, page: 0, last: true }]
+    })
+    try {
+      const res = await listCommentReplies(token, comment.id, { page: 0 })
+      setThreadStack(prev => {
+        const idx = prev.findIndex(f => f.comment.id === comment.id)
+        if (idx === -1) return prev
+        const next = [...prev]
+        next[idx] = {
+          ...next[idx],
+          replies: Array.isArray(res?.content) ? res.content : [],
+          repliesLoading: false,
+          page: 0,
+          last: res?.last ?? true
+        }
+        return next
+      })
+    } catch (err) {
+      showError(err.message || 'Yanıtlar alınamadı.')
+      setThreadStack(prev => prev.map(f => (f.comment.id === comment.id ? { ...f, repliesLoading: false } : f)))
+    }
+  }, [token, showError])
+
+  const goBackThread = () => setThreadStack(prev => prev.slice(0, -1))
+
+  // Açık olan thread seviyesinde "Daha Fazla Yükle" - o yorumun bir sonraki
+  // yanıt sayfasını mevcut listeye ekler (aynı Posts.jsx/loadMoreComments
+  // deseni, sadece thread seviyesine özel).
+  const loadMoreThreadReplies = async () => {
+    const frame = threadStack[threadStack.length - 1]
+    if (!frame) return
+    const nextPage = frame.page + 1
+    setThreadStack(prev => prev.map((f, i) => (i === prev.length - 1 ? { ...f, repliesLoadingMore: true } : f)))
+    try {
+      const res = await listCommentReplies(token, frame.comment.id, { page: nextPage })
+      setThreadStack(prev => prev.map((f, i) => (i === prev.length - 1 ? {
+        ...f,
+        replies: [...f.replies, ...(Array.isArray(res?.content) ? res.content : [])],
+        last: res?.last ?? true,
+        page: nextPage,
+        repliesLoadingMore: false
+      } : f)))
+    } catch (err) {
+      showError(err.message || 'Yanıtlar alınamadı.')
+      setThreadStack(prev => prev.map((f, i) => (i === prev.length - 1 ? { ...f, repliesLoadingMore: false } : f)))
+    }
+  }
 
   // Sayfa numaralı gezinme yerine mevcut listeye ekleyen "Daha Fazla Yükle" -
   // mobilde tek elle kullanım daha kolay, kullanıcı okuduğu yeri kaybetmiyor.
@@ -553,12 +609,20 @@ export default function PostDetail() {
   }
 
   const submitReply = async (parentCommentId, content) => {
-    const reply = await createComment(token, postId, content, parentCommentId)
-    setComments(prev => addReplyToTree(prev, reply))
+    await createComment(token, postId, content, parentCommentId)
+    // Yanıtın kendisi CommentRow.submitReply'de ardından onOpenThread(comment)
+    // çağrılarak (o dalın taze verisiyle) gösterilecek - burada sadece
+    // ebeveynin "N yanıtı görüntüle" sayacını, nerede gösteriliyorsa orada
+    // bir artırıyoruz.
+    const { comments: nextComments, threadStack: nextStack } = bumpReplyCount(comments, threadStack, parentCommentId, 1)
+    setComments(nextComments)
+    setThreadStack(nextStack)
   }
 
   const saveCommentUpdate = (updated) => {
-    setComments(prev => updateCommentInTree(prev, updated))
+    const { comments: nextComments, threadStack: nextStack } = updateCommentEverywhere(comments, threadStack, updated)
+    setComments(nextComments)
+    setThreadStack(nextStack)
   }
 
   const openReportDialog = (type, targetId) => setReportTarget({ open: true, type, targetId })
@@ -656,9 +720,8 @@ export default function PostDetail() {
   // Üyelik henüz yükleniyorsa (myGroupIds === null) yorum kutusunu
   // gösterip sonra "yetkin yok" hatası almasın diye şimdilik gizli tutuyoruz.
   const isMember = myGroupIds != null && myGroupIds.has(post.diseaseGroupId)
-  const focusedComment = threadPath.length > 0
-    ? findCommentById(comments, threadPath[threadPath.length - 1])
-    : null
+  const currentThread = threadStack.length > 0 ? threadStack[threadStack.length - 1] : null
+  const focusedComment = currentThread?.comment ?? null
 
   return (
     <Box sx={{ py: { xs: 2, md: 4 } }}>
@@ -875,9 +938,14 @@ export default function PostDetail() {
             showError={showError}
             showSuccess={showSuccess}
           />
-          {focusedComment.replies?.length > 0 && (
+          {currentThread?.repliesLoading ? (
             <Stack spacing={1.5} sx={{ mt: 1.5 }}>
-              {focusedComment.replies.map(reply => (
+              <CommentRowSkeleton />
+              <CommentRowSkeleton />
+            </Stack>
+          ) : currentThread?.replies.length > 0 ? (
+            <Stack spacing={1.5} sx={{ mt: 1.5 }}>
+              {currentThread.replies.map(reply => (
                 <CommentRow
                   key={reply.id}
                   comment={reply}
@@ -894,8 +962,20 @@ export default function PostDetail() {
                   showSuccess={showSuccess}
                 />
               ))}
+              {currentThread && !currentThread.last && (
+                <Box sx={{ textAlign: 'center', py: 1 }}>
+                  <Button
+                    variant="outlined"
+                    onClick={loadMoreThreadReplies}
+                    disabled={currentThread.repliesLoadingMore}
+                    sx={{ minWidth: 180, minHeight: 44 }}
+                  >
+                    {currentThread.repliesLoadingMore ? <CircularProgress size={18} /> : 'Daha Fazla Yükle'}
+                  </Button>
+                </Box>
+              )}
             </Stack>
-          )}
+          ) : null}
         </Box>
       ) : (
         <Stack spacing={1.5}>

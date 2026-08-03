@@ -231,6 +231,13 @@ export function createComment(token, postId, content, parentCommentId) {
   });
 }
 
+// Bir yorumun DOĞRUDAN yanıtlarını sayfalı getirir (thread-drill: kullanıcı
+// bir yorumun "N yanıtı görüntüle" butonuna tıklayınca çağrılır). Backend
+// artık tüm yorum ağacını tek seferde göndermiyor - bkz. CommentController.
+export function listCommentReplies(token, commentId, { page = 0, size, signal } = {}) {
+  return request(`/comments/${commentId}/replies`, { token, params: { page, size }, signal });
+}
+
 export function updateComment(token, id, content) {
   return request(`/comments/${id}`, { method: 'PUT', token, body: { content } });
 }
