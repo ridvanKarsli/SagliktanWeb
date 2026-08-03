@@ -27,6 +27,12 @@ function ProtectedLayout() {
   )
 }
 
+// GEÇİCİ - sadece Sentry entegrasyonunu canlıda doğrulamak için, hiçbir
+// yerden link verilmiyor (nav'da görünmez). Doğrulama bitince kaldırılacak.
+function SentryTestRoute() {
+  throw new Error('Sentry test hatası - bu bilerek tetiklendi, doğrulama amaçlı.')
+}
+
 // Backend'in gerçek kapsamı: hastalık grubu -> alt grup -> post -> yorum.
 // Eski düz "/posts" akışı yerine bu hiyerarşiyi izliyoruz.
 export default function App() {
@@ -42,6 +48,7 @@ export default function App() {
       <Route path="/register" element={<PublicOnlyRoute><Register /></PublicOnlyRoute>} />
       <Route path="/forgot-password" element={<PublicOnlyRoute><ForgotPassword /></PublicOnlyRoute>} />
       <Route path="/gizlilik-politikasi" element={<PrivacyPolicy />} />
+      <Route path="/debug/sentry-test" element={<SentryTestRoute />} />
       <Route element={<ProtectedLayout />}>
         <Route path="/groups" element={<DiseaseGroups />} />
         <Route path="/groups/:groupId" element={<SubGroups />} />
