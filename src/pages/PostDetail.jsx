@@ -14,6 +14,7 @@ import { useNotification } from '../context/NotificationContext.jsx'
 import { useConfirm } from '../context/ConfirmContext.jsx'
 import ReactionButtons from '../components/ReactionButtons.jsx'
 import SaveButton from '../components/SaveButton.jsx'
+import PostGallery from '../components/PostGallery.jsx'
 import {
   createComment, deleteComment, deletePost, getMyDiseaseGroups, getPost, listComments,
   listCommentReplies, reactToComment, reactToPost, removeCommentReaction, removePostReaction,
@@ -837,9 +838,10 @@ export default function PostDetail() {
             <Typography variant="h4" sx={{ fontWeight: 700, mb: 1.5, wordBreak: 'break-word' }}>
               {post.title}
             </Typography>
-            <Typography variant="body1" sx={{ whiteSpace: 'pre-line', wordBreak: 'break-word', color: 'text.primary' }}>
+            <Typography variant="body1" sx={{ whiteSpace: 'pre-line', wordBreak: 'break-word', color: 'text.primary', mb: post.attachments?.length ? 1.5 : 0 }}>
               {post.content}
             </Typography>
+            <PostGallery attachments={post.attachments} />
           </>
         )}
       </Box>

@@ -189,8 +189,12 @@ export function listPostsBySubGroup(token, subGroupId, { page = 0, size, sort, s
   return request(`/sub-groups/${subGroupId}/posts`, { token, params: { page, size, sort }, signal });
 }
 
-export function createPost(token, subGroupId, { title, content }) {
-  return request(`/sub-groups/${subGroupId}/posts`, { method: 'POST', token, body: { title, content } });
+// attachmentKeys: Faz 2 adım 4 - requestPresignedUpload + uploadToPresignedUrl
+// ile önceden R2'ye yüklenmiş storage key'leri (bkz. PhotoUploadField.jsx).
+export function createPost(token, subGroupId, { title, content, attachmentKeys }) {
+  return request(`/sub-groups/${subGroupId}/posts`, {
+    method: 'POST', token, body: { title, content, attachmentKeys }
+  });
 }
 
 export function searchPosts(token, q, { page = 0, size, signal } = {}) {
@@ -286,6 +290,27 @@ export function savePost(token, postId) {
 
 export function unsavePost(token, postId) {
   return request(`/posts/${postId}/saved`, { method: 'DELETE', token });
+}
+
+// --- Medya (gönderi fotoğrafları) - Faz 2 adım 4 ---
+
+export function requestPresignedUpload(token, contentType) {
+  return request('/media/presigned-upload-url', { method: 'POST', token, body: { contentType } });
+}
+
+// R2'ye DOĞRUDAN yükleme - bilerek request()'i kullanmıyor: hedef backend
+// değil R2'nin kendisi (imzalı URL zaten kimlik doğrulamayı taşıyor,
+// Authorization header'ına gerek yok) ve gövde JSON değil ham dosya
+// baytları (bkz. PhotoUploadField.jsx).
+export async function uploadToPresignedUrl(uploadUrl, file, contentType) {
+  const res = await fetch(uploadUrl, {
+    method: 'PUT',
+    headers: { 'Content-Type': contentType },
+    body: file
+  });
+  if (!res.ok) {
+    throw new Error(`Fotoğraf yüklenemedi (${res.status})`);
+  }
 }
 
 export function reactToComment(token, commentId, value) {

@@ -8,6 +8,7 @@ import { Add, ArrowBack, CloseRounded, SearchRounded } from '@mui/icons-material
 import { useNavigate, useParams } from 'react-router-dom'
 import PostCard from '../components/PostCard.jsx'
 import PostCardSkeleton from '../components/PostCardSkeleton.jsx'
+import PhotoUploadField from '../components/PhotoUploadField.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useNotification } from '../context/NotificationContext.jsx'
 import { createPost, getSubGroup, listPostsBySubGroup, searchPostsInSubGroup } from '../services/api.js'
@@ -52,6 +53,15 @@ export default function Posts() {
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  // Faz 2 adım 4: her giriş {id, status, previewUrl, storageKey, errorMessage}
+  // - bkz. PhotoUploadField.jsx.
+  const [attachments, setAttachments] = useState([])
+  const photosBusy = attachments.some(a => a.status === 'compressing' || a.status === 'uploading')
+
+  const resetAttachments = () => {
+    attachments.forEach(a => { if (a.previewUrl) URL.revokeObjectURL(a.previewUrl) })
+    setAttachments([])
+  }
 
   useEffect(() => {
     if (!token || !subGroupId) return
@@ -115,20 +125,24 @@ export default function Posts() {
     }
   }
 
-  const openDialog = () => { setTitle(''); setContent(''); setDialogOpen(true) }
-  const closeDialog = () => { if (!submitting) setDialogOpen(false) }
+  const openDialog = () => { setTitle(''); setContent(''); resetAttachments(); setDialogOpen(true) }
+  const closeDialog = () => { if (!submitting) { resetAttachments(); setDialogOpen(false) } }
 
   const onSubmit = async (e) => {
     e.preventDefault()
     if (!title.trim()) { showError('Başlık zorunludur.'); return }
     if (title.trim().length > 255) { showError('Başlık en fazla 255 karakter olabilir.'); return }
     if (!content.trim()) { showError('İçerik zorunludur.'); return }
+    if (photosBusy) { showError('Fotoğraflar hâlâ yükleniyor, birazdan tekrar deneyin.'); return }
+
+    const attachmentKeys = attachments.filter(a => a.status === 'done').map(a => a.storageKey)
 
     setSubmitting(true)
     try {
-      await createPost(token, subGroupId, { title: title.trim(), content: content.trim() })
+      await createPost(token, subGroupId, { title: title.trim(), content: content.trim(), attachmentKeys })
       showSuccess('Gönderi oluşturuldu.')
       setDialogOpen(false)
+      resetAttachments()
       setPage(0)
       const res = await fetchPage(0)
       setPosts(Array.isArray(res?.content) ? res.content : [])
@@ -314,11 +328,12 @@ export default function Posts() {
                 minRows={isSmallScreen ? 10 : 5}
                 slotProps={{ htmlInput: { 'data-testid': 'post-content' } }}
               />
+              <PhotoUploadField value={attachments} onChange={setAttachments} token={token} disabled={submitting} />
             </Stack>
           </DialogContent>
           <DialogActions sx={{ px: 3, pb: 2.5 }}>
             <Button onClick={closeDialog} disabled={submitting}>İptal</Button>
-            <Button type="submit" variant="contained" disabled={submitting}>
+            <Button type="submit" variant="contained" disabled={submitting || photosBusy}>
               {submitting ? <CircularProgress size={18} color="inherit" /> : 'Paylaş'}
             </Button>
           </DialogActions>

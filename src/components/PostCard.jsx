@@ -2,6 +2,7 @@ import { Avatar, Box, Stack, Typography } from '@mui/material'
 import ReactionButtons from './ReactionButtons.jsx'
 import SaveButton from './SaveButton.jsx'
 import HighlightText from './HighlightText.jsx'
+import PostGallery from './PostGallery.jsx'
 import { reactToPost, removePostReaction, savePost, unsavePost } from '../services/api.js'
 
 function initialsFrom(name = '') {
@@ -30,7 +31,7 @@ function truncate(text = '', max = 180) {
  */
 export default function PostCard({ post, onClick, token, highlightQuery }) {
   if (!post) return null
-  const { id, authorName, title, content, createdAt, updatedAt, helpfulCount, notHelpfulCount, myReaction, saved, savedCount } = post
+  const { id, authorName, title, content, createdAt, updatedAt, helpfulCount, notHelpfulCount, myReaction, saved, savedCount, attachments } = post
 
   const dateLabel = createdAt
     ? new Date(createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })
@@ -95,6 +96,8 @@ export default function PostCard({ post, onClick, token, highlightQuery }) {
           ? <HighlightText text={truncate(content, 180)} query={highlightQuery} />
           : truncate(content, 180)}
       </Typography>
+
+      <PostGallery attachments={attachments} />
 
       {token && (
         <Stack direction="row" alignItems="center" justifyContent="space-between">
