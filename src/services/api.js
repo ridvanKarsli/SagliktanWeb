@@ -192,6 +192,12 @@ export function searchPosts(token, q, { page = 0, size, signal } = {}) {
   return request('/posts/search', { token, params: { q, page, size }, signal });
 }
 
+// Faz 2 adım 2: "Gönderiler" sayfasındaki alt gruba özel arama - searchPosts
+// (platform geneli) ile karıştırılmasın diye ayrı fonksiyon.
+export function searchPostsInSubGroup(token, subGroupId, q, { page = 0, size, signal } = {}) {
+  return request(`/sub-groups/${subGroupId}/posts/search`, { token, params: { q, page, size }, signal });
+}
+
 export function searchComments(token, q, { page = 0, size, signal } = {}) {
   return request('/comments/search', { token, params: { q, page, size }, signal });
 }
