@@ -30,7 +30,7 @@ function truncate(text = '', max = 180) {
  */
 export default function PostCard({ post, onClick, token, highlightQuery }) {
   if (!post) return null
-  const { id, authorName, title, content, createdAt, updatedAt, helpfulCount, notHelpfulCount, myReaction, saved } = post
+  const { id, authorName, title, content, createdAt, updatedAt, helpfulCount, notHelpfulCount, myReaction, saved, savedCount } = post
 
   const dateLabel = createdAt
     ? new Date(createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })
@@ -108,6 +108,7 @@ export default function PostCard({ post, onClick, token, highlightQuery }) {
           {/* IG'deki yer bloğuna sadık: yıldızlama (bookmark) sağ tarafta. */}
           <SaveButton
             saved={!!saved}
+            count={savedCount}
             onSave={() => savePost(token, id)}
             onUnsave={() => unsavePost(token, id)}
           />

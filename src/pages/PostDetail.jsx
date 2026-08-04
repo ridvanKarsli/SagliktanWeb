@@ -861,6 +861,7 @@ export default function PostDetail() {
             />
             <SaveButton
               saved={!!post.saved}
+              count={post.savedCount}
               onSave={() => savePost(token, post.id)}
               onUnsave={() => unsavePost(token, post.id)}
               size="medium"
