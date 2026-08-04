@@ -1,16 +1,16 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   Alert, Avatar, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent,
-  DialogTitle, Divider, Fab, IconButton, Stack, TextField, Typography,
-  useMediaQuery, useTheme
+  DialogTitle, Divider, Fab, IconButton, Stack, TextField, ToggleButton, ToggleButtonGroup,
+  Typography, useMediaQuery, useTheme
 } from '@mui/material'
-import { Add, ArrowBack } from '@mui/icons-material'
+import { Add, ArrowBack, CloseRounded, SearchRounded } from '@mui/icons-material'
 import { useNavigate, useParams } from 'react-router-dom'
 import PostCard from '../components/PostCard.jsx'
 import PostCardSkeleton from '../components/PostCardSkeleton.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useNotification } from '../context/NotificationContext.jsx'
-import { createPost, getSubGroup, listPostsBySubGroup } from '../services/api.js'
+import { createPost, getSubGroup, listPostsBySubGroup, searchPostsInSubGroup } from '../services/api.js'
 
 function initialsFrom(name = '') {
   const parts = name.trim().split(/\s+/).filter(Boolean)
@@ -37,6 +37,16 @@ export default function Posts() {
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState('')
+  const [sort, setSort] = useState('recent')
+
+  // Faz 2 adım 2: gruba özel arama kutusu. `query` kullanıcının yazdığı ham
+  // metin, `debouncedQuery` 300ms sonra (Search.jsx'teki genel arama
+  // sayfasıyla aynı debounce süresi) gerçek isteğe dönüşen değer - her
+  // tuş vuruşunda backend'e gitmemek için.
+  const [query, setQuery] = useState('')
+  const [debouncedQuery, setDebouncedQuery] = useState('')
+  const searchDebounceRef = useRef(null)
+  const isSearching = debouncedQuery.length > 0
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [title, setTitle] = useState('')
@@ -52,12 +62,27 @@ export default function Posts() {
   }, [token, subGroupId])
 
   useEffect(() => {
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current)
+    searchDebounceRef.current = setTimeout(() => setDebouncedQuery(query.trim()), 300)
+    return () => clearTimeout(searchDebounceRef.current)
+  }, [query])
+
+  // Arama modundaysak (debouncedQuery dolu) gruba özel arama uçlarını,
+  // değilse normal listeleme+sıralama uçlarını çağırır - sayfalama/yükleme
+  // state'i (page/last/loading) iki modda da aynı şekilde yönetiliyor.
+  const fetchPage = (pageNum) => (
+    isSearching
+      ? searchPostsInSubGroup(token, subGroupId, debouncedQuery, { page: pageNum })
+      : listPostsBySubGroup(token, subGroupId, { page: pageNum, sort })
+  )
+
+  useEffect(() => {
     if (!token || !subGroupId) { setLoading(false); return }
     let mounted = true
     setLoading(true)
     setError('')
     setPage(0)
-    listPostsBySubGroup(token, subGroupId, { page: 0 })
+    fetchPage(0)
       .then(res => {
         if (!mounted) return
         setPosts(Array.isArray(res?.content) ? res.content : [])
@@ -69,7 +94,8 @@ export default function Posts() {
       })
       .finally(() => { if (mounted) setLoading(false) })
     return () => { mounted = false }
-  }, [token, subGroupId])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, subGroupId, sort, debouncedQuery])
 
   // Sayfa numaralı "Önceki/Sonraki" yerine mobilde tek elle kullanımı daha
   // kolay olan "Daha Fazla Yükle" - yeni sayfa mevcut listeye ekleniyor,
@@ -78,7 +104,7 @@ export default function Posts() {
     const nextPage = page + 1
     setLoadingMore(true)
     try {
-      const res = await listPostsBySubGroup(token, subGroupId, { page: nextPage })
+      const res = await fetchPage(nextPage)
       setPosts(prev => [...prev, ...(Array.isArray(res?.content) ? res.content : [])])
       setLast(res?.last ?? true)
       setPage(nextPage)
@@ -104,7 +130,7 @@ export default function Posts() {
       showSuccess('Gönderi oluşturuldu.')
       setDialogOpen(false)
       setPage(0)
-      const res = await listPostsBySubGroup(token, subGroupId, { page: 0 })
+      const res = await fetchPage(0)
       setPosts(Array.isArray(res?.content) ? res.content : [])
       setLast(res?.last ?? true)
     } catch (err) {
@@ -166,6 +192,41 @@ export default function Posts() {
         </Box>
       )}
 
+      <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1.5 }}>
+        <TextField
+          size="small"
+          fullWidth
+          placeholder="Bu grupta ara..."
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          slotProps={{
+            input: {
+              startAdornment: <SearchRounded sx={{ color: 'text.secondary', mr: 1, fontSize: 20 }} />,
+              endAdornment: query ? (
+                <IconButton size="small" aria-label="Aramayı temizle" onClick={() => setQuery('')} edge="end">
+                  <CloseRounded fontSize="small" />
+                </IconButton>
+              ) : null,
+            }
+          }}
+        />
+        {/* Arama sonuçları alaka düzeyine göre sıralı geldiği için (bkz.
+            backend searchBySubGroup), arama modundayken sıralama seçicisi
+            anlamsız - gizleniyor. */}
+        {!isSearching && (
+          <ToggleButtonGroup
+            size="small"
+            value={sort}
+            exclusive
+            onChange={(_, v) => v && setSort(v)}
+            sx={{ flexShrink: 0 }}
+          >
+            <ToggleButton value="recent">Yeni</ToggleButton>
+            <ToggleButton value="popular">Popüler</ToggleButton>
+          </ToggleButtonGroup>
+        )}
+      </Stack>
+
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       {loading ? (
@@ -177,16 +238,21 @@ export default function Posts() {
           {posts.map((post, i) => (
             <Box key={post.id}>
               {i > 0 && <Divider />}
-              <PostCard post={post} token={token} onClick={() => navigate(`/post/${post.id}`)} />
+              <PostCard
+                post={post}
+                token={token}
+                onClick={() => navigate(`/post/${post.id}`)}
+                highlightQuery={isSearching ? debouncedQuery : undefined}
+              />
             </Box>
           ))}
           {posts.length === 0 && (
             <Box sx={{ textAlign: 'center', py: 10 }}>
               <Typography variant="body1" sx={{ color: 'text.secondary', mb: 1 }}>
-                Henüz gönderi yok
+                {isSearching ? 'Sonuç bulunamadı' : 'Henüz gönderi yok'}
               </Typography>
               <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                İlk gönderiyi sen yap!
+                {isSearching ? 'Farklı bir arama terimi deneyin' : 'İlk gönderiyi sen yap!'}
               </Typography>
             </Box>
           )}

@@ -179,8 +179,9 @@ export function getSubGroup(token, id) {
 
 // --- Postlar ---
 
-export function listPostsBySubGroup(token, subGroupId, { page = 0, size, signal } = {}) {
-  return request(`/sub-groups/${subGroupId}/posts`, { token, params: { page, size }, signal });
+// sort: 'recent' (varsayılan, backend'de de varsayılan) | 'popular'
+export function listPostsBySubGroup(token, subGroupId, { page = 0, size, sort, signal } = {}) {
+  return request(`/sub-groups/${subGroupId}/posts`, { token, params: { page, size, sort }, signal });
 }
 
 export function createPost(token, subGroupId, { title, content }) {
@@ -189,6 +190,12 @@ export function createPost(token, subGroupId, { title, content }) {
 
 export function searchPosts(token, q, { page = 0, size, signal } = {}) {
   return request('/posts/search', { token, params: { q, page, size }, signal });
+}
+
+// Faz 2 adım 2: "Gönderiler" sayfasındaki alt gruba özel arama - searchPosts
+// (platform geneli) ile karıştırılmasın diye ayrı fonksiyon.
+export function searchPostsInSubGroup(token, subGroupId, q, { page = 0, size, signal } = {}) {
+  return request(`/sub-groups/${subGroupId}/posts/search`, { token, params: { q, page, size }, signal });
 }
 
 export function searchComments(token, q, { page = 0, size, signal } = {}) {
