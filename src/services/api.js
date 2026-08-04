@@ -179,8 +179,9 @@ export function getSubGroup(token, id) {
 
 // --- Postlar ---
 
-export function listPostsBySubGroup(token, subGroupId, { page = 0, size, signal } = {}) {
-  return request(`/sub-groups/${subGroupId}/posts`, { token, params: { page, size }, signal });
+// sort: 'recent' (varsayılan, backend'de de varsayılan) | 'popular'
+export function listPostsBySubGroup(token, subGroupId, { page = 0, size, sort, signal } = {}) {
+  return request(`/sub-groups/${subGroupId}/posts`, { token, params: { page, size, sort }, signal });
 }
 
 export function createPost(token, subGroupId, { title, content }) {

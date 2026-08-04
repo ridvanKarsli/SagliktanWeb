@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import {
   Alert, Avatar, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent,
-  DialogTitle, Divider, Fab, IconButton, Stack, TextField, Typography,
-  useMediaQuery, useTheme
+  DialogTitle, Divider, Fab, IconButton, Stack, TextField, ToggleButton, ToggleButtonGroup,
+  Typography, useMediaQuery, useTheme
 } from '@mui/material'
 import { Add, ArrowBack } from '@mui/icons-material'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -37,6 +37,7 @@ export default function Posts() {
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState('')
+  const [sort, setSort] = useState('recent')
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [title, setTitle] = useState('')
@@ -57,7 +58,7 @@ export default function Posts() {
     setLoading(true)
     setError('')
     setPage(0)
-    listPostsBySubGroup(token, subGroupId, { page: 0 })
+    listPostsBySubGroup(token, subGroupId, { page: 0, sort })
       .then(res => {
         if (!mounted) return
         setPosts(Array.isArray(res?.content) ? res.content : [])
@@ -69,7 +70,7 @@ export default function Posts() {
       })
       .finally(() => { if (mounted) setLoading(false) })
     return () => { mounted = false }
-  }, [token, subGroupId])
+  }, [token, subGroupId, sort])
 
   // Sayfa numaralı "Önceki/Sonraki" yerine mobilde tek elle kullanımı daha
   // kolay olan "Daha Fazla Yükle" - yeni sayfa mevcut listeye ekleniyor,
@@ -78,7 +79,7 @@ export default function Posts() {
     const nextPage = page + 1
     setLoadingMore(true)
     try {
-      const res = await listPostsBySubGroup(token, subGroupId, { page: nextPage })
+      const res = await listPostsBySubGroup(token, subGroupId, { page: nextPage, sort })
       setPosts(prev => [...prev, ...(Array.isArray(res?.content) ? res.content : [])])
       setLast(res?.last ?? true)
       setPage(nextPage)
@@ -104,7 +105,7 @@ export default function Posts() {
       showSuccess('Gönderi oluşturuldu.')
       setDialogOpen(false)
       setPage(0)
-      const res = await listPostsBySubGroup(token, subGroupId, { page: 0 })
+      const res = await listPostsBySubGroup(token, subGroupId, { page: 0, sort })
       setPosts(Array.isArray(res?.content) ? res.content : [])
       setLast(res?.last ?? true)
     } catch (err) {
@@ -165,6 +166,18 @@ export default function Posts() {
           </Typography>
         </Box>
       )}
+
+      <Stack direction="row" justifyContent="flex-end" sx={{ mb: 1.5 }}>
+        <ToggleButtonGroup
+          size="small"
+          value={sort}
+          exclusive
+          onChange={(_, v) => v && setSort(v)}
+        >
+          <ToggleButton value="recent">Yeni</ToggleButton>
+          <ToggleButton value="popular">Popüler</ToggleButton>
+        </ToggleButtonGroup>
+      </Stack>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
