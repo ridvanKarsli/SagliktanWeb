@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   Alert, Avatar, Box, Button, Chip, CircularProgress, Collapse, Divider, IconButton,
-  Stack, TextField, Typography
+  Stack, TextField, ToggleButton, ToggleButtonGroup, Typography
 } from '@mui/material'
 import {
   ChevronRightRounded, EditOutlined, GroupsRounded, LockOutlined, LogoutRounded,
@@ -12,7 +12,8 @@ import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
 import PostCard from '../../components/PostCard.jsx'
 import {
-  changePassword, deactivateAccount, getMyDiseaseGroups, getMyPosts, getUserProfile, updateProfile
+  changePassword, deactivateAccount, getMyDiseaseGroups, getMyPosts, getMySavedPosts,
+  getUserProfile, updateProfile
 } from '../../services/api.js'
 import { Section, SectionList, SubRow } from './ProfileShared.jsx'
 
@@ -173,6 +174,51 @@ export default function Profile() {
       showError(err.message || 'Postlarınız alınamadı.')
     } finally {
       setPostsLoadingMore(false)
+    }
+  }
+
+  /* ---- Kaydedilenler (Faz 2 adım 3) ----
+     "Postlarım" bölümünün üstündeki Gönderiler/Kaydedilenler seçiciyle
+     değişen ikinci bir liste. Herkes kaydedilenler sekmesine hiç
+     bakmayabileceği için tembel yükleniyor: ilk kez "Kaydedilenler"e
+     geçilince çekiliyor, sonrasında cache'leniyor (savedLoaded). */
+  const [postsMode, setPostsMode] = useState('mine')
+  const [savedPosts, setSavedPosts] = useState([])
+  const [savedPage, setSavedPage] = useState(0)
+  const [savedLast, setSavedLast] = useState(true)
+  const [savedLoading, setSavedLoading] = useState(false)
+  const [savedLoadingMore, setSavedLoadingMore] = useState(false)
+  const [savedLoaded, setSavedLoaded] = useState(false)
+
+  useEffect(() => {
+    if (postsMode !== 'saved' || savedLoaded || !token) return
+    let mounted = true
+    setSavedLoading(true)
+    getMySavedPosts(token, { page: 0 })
+      .then(res => {
+        if (!mounted) return
+        setSavedPosts(Array.isArray(res?.content) ? res.content : [])
+        setSavedLast(res?.last ?? true)
+        setSavedLoaded(true)
+      })
+      .catch(err => showError(err.message || 'Kaydedilen gönderiler alınamadı.'))
+      .finally(() => { if (mounted) setSavedLoading(false) })
+    return () => { mounted = false }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [postsMode, savedLoaded, token])
+
+  const loadMoreSaved = async () => {
+    const nextPage = savedPage + 1
+    setSavedLoadingMore(true)
+    try {
+      const res = await getMySavedPosts(token, { page: nextPage })
+      setSavedPosts(prev => [...prev, ...(Array.isArray(res?.content) ? res.content : [])])
+      setSavedLast(res?.last ?? true)
+      setSavedPage(nextPage)
+    } catch (err) {
+      showError(err.message || 'Kaydedilen gönderiler alınamadı.')
+    } finally {
+      setSavedLoadingMore(false)
     }
   }
 
@@ -379,42 +425,91 @@ export default function Profile() {
           )}
         </Section>
 
-        {/* Postlarım */}
+        {/* Postlarım / Kaydedilenler - Instagram'daki gönderiler/kaydedilenler
+            sekme çiftiyle aynı fikir (bkz. Posts.jsx'teki Yeni/Popüler
+            seçiciyle aynı ToggleButtonGroup deseni, tutarlılık için). */}
         <Box>
-          <Typography variant="h3" sx={{ mb: 2, px: { xs: 0.5, md: 0 }, color: 'text.primary' }}>
-            Postlarım
-          </Typography>
-          {postsLoading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-              <CircularProgress size={22} />
-            </Box>
-          ) : myPosts.length === 0 ? (
-            <Box sx={{ textAlign: 'center', py: 6 }}>
-              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                Henüz gönderiniz yok.
-              </Typography>
-            </Box>
+          <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2, px: { xs: 0.5, md: 0 } }}>
+            <Typography variant="h3" sx={{ color: 'text.primary' }}>
+              {postsMode === 'saved' ? 'Kaydedilenler' : 'Postlarım'}
+            </Typography>
+            <ToggleButtonGroup
+              size="small"
+              value={postsMode}
+              exclusive
+              onChange={(_, v) => v && setPostsMode(v)}
+            >
+              <ToggleButton value="mine">Postlarım</ToggleButton>
+              <ToggleButton value="saved">Kaydedilenler</ToggleButton>
+            </ToggleButtonGroup>
+          </Stack>
+
+          {postsMode === 'mine' ? (
+            postsLoading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                <CircularProgress size={22} />
+              </Box>
+            ) : myPosts.length === 0 ? (
+              <Box sx={{ textAlign: 'center', py: 6 }}>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                  Henüz gönderiniz yok.
+                </Typography>
+              </Box>
+            ) : (
+              <>
+                {myPosts.map((p, i) => (
+                  <Box key={p.id}>
+                    {i > 0 && <Divider />}
+                    <PostCard post={p} token={token} onClick={() => navigate(`/post/${p.id}`)} />
+                  </Box>
+                ))}
+                {!postsLast && (
+                  <Box sx={{ textAlign: 'center', py: 3 }}>
+                    <Button
+                      variant="outlined"
+                      onClick={loadMorePosts}
+                      disabled={postsLoadingMore}
+                      sx={{ minWidth: 180, minHeight: 44 }}
+                    >
+                      {postsLoadingMore ? <CircularProgress size={18} /> : 'Daha Fazla Yükle'}
+                    </Button>
+                  </Box>
+                )}
+              </>
+            )
           ) : (
-            <>
-              {myPosts.map((p, i) => (
-                <Box key={p.id}>
-                  {i > 0 && <Divider />}
-                  <PostCard post={p} token={token} onClick={() => navigate(`/post/${p.id}`)} />
-                </Box>
-              ))}
-              {!postsLast && (
-                <Box sx={{ textAlign: 'center', py: 3 }}>
-                  <Button
-                    variant="outlined"
-                    onClick={loadMorePosts}
-                    disabled={postsLoadingMore}
-                    sx={{ minWidth: 180, minHeight: 44 }}
-                  >
-                    {postsLoadingMore ? <CircularProgress size={18} /> : 'Daha Fazla Yükle'}
-                  </Button>
-                </Box>
-              )}
-            </>
+            savedLoading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                <CircularProgress size={22} />
+              </Box>
+            ) : savedPosts.length === 0 ? (
+              <Box sx={{ textAlign: 'center', py: 6 }}>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                  Henüz kaydettiğiniz bir gönderi yok.
+                </Typography>
+              </Box>
+            ) : (
+              <>
+                {savedPosts.map((p, i) => (
+                  <Box key={p.id}>
+                    {i > 0 && <Divider />}
+                    <PostCard post={p} token={token} onClick={() => navigate(`/post/${p.id}`)} />
+                  </Box>
+                ))}
+                {!savedLast && (
+                  <Box sx={{ textAlign: 'center', py: 3 }}>
+                    <Button
+                      variant="outlined"
+                      onClick={loadMoreSaved}
+                      disabled={savedLoadingMore}
+                      sx={{ minWidth: 180, minHeight: 44 }}
+                    >
+                      {savedLoadingMore ? <CircularProgress size={18} /> : 'Daha Fazla Yükle'}
+                    </Button>
+                  </Box>
+                )}
+              </>
+            )
           )}
         </Box>
 

@@ -1,7 +1,8 @@
 import { Avatar, Box, Stack, Typography } from '@mui/material'
 import ReactionButtons from './ReactionButtons.jsx'
+import SaveButton from './SaveButton.jsx'
 import HighlightText from './HighlightText.jsx'
-import { reactToPost, removePostReaction } from '../services/api.js'
+import { reactToPost, removePostReaction, savePost, unsavePost } from '../services/api.js'
 
 function initialsFrom(name = '') {
   const parts = name.trim().split(/\s+/).filter(Boolean)
@@ -29,7 +30,7 @@ function truncate(text = '', max = 180) {
  */
 export default function PostCard({ post, onClick, token, highlightQuery }) {
   if (!post) return null
-  const { id, authorName, title, content, createdAt, updatedAt, helpfulCount, notHelpfulCount, myReaction } = post
+  const { id, authorName, title, content, createdAt, updatedAt, helpfulCount, notHelpfulCount, myReaction, saved } = post
 
   const dateLabel = createdAt
     ? new Date(createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })
@@ -96,13 +97,21 @@ export default function PostCard({ post, onClick, token, highlightQuery }) {
       </Typography>
 
       {token && (
-        <ReactionButtons
-          helpfulCount={helpfulCount}
-          notHelpfulCount={notHelpfulCount}
-          myReaction={myReaction}
-          onReact={(value) => reactToPost(token, id, value)}
-          onRemove={() => removePostReaction(token, id)}
-        />
+        <Stack direction="row" alignItems="center" justifyContent="space-between">
+          <ReactionButtons
+            helpfulCount={helpfulCount}
+            notHelpfulCount={notHelpfulCount}
+            myReaction={myReaction}
+            onReact={(value) => reactToPost(token, id, value)}
+            onRemove={() => removePostReaction(token, id)}
+          />
+          {/* IG'deki yer bloğuna sadık: yıldızlama (bookmark) sağ tarafta. */}
+          <SaveButton
+            saved={!!saved}
+            onSave={() => savePost(token, id)}
+            onUnsave={() => unsavePost(token, id)}
+          />
+        </Stack>
       )}
     </Box>
   )

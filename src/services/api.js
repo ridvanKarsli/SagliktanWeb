@@ -135,6 +135,11 @@ export function getMyPosts(token, { page = 0, size, signal } = {}) {
   return request('/users/me/posts', { token, params: { page, size }, signal });
 }
 
+// Faz 2 adım 3: profildeki "Kaydedilenler" sekmesi.
+export function getMySavedPosts(token, { page = 0, size, signal } = {}) {
+  return request('/users/me/saved-posts', { token, params: { page, size }, signal });
+}
+
 // --- Başka bir kullanıcının herkese açık profili ---
 
 export function getUserPublicProfile(token, id) {
@@ -271,6 +276,16 @@ export function reactToPost(token, postId, value) {
 
 export function removePostReaction(token, postId) {
   return request(`/posts/${postId}/reactions`, { method: 'DELETE', token });
+}
+
+// --- Kaydetme (yıldızlama) - Faz 2 adım 3 ---
+
+export function savePost(token, postId) {
+  return request(`/posts/${postId}/saved`, { method: 'PUT', token });
+}
+
+export function unsavePost(token, postId) {
+  return request(`/posts/${postId}/saved`, { method: 'DELETE', token });
 }
 
 export function reactToComment(token, commentId, value) {

@@ -13,10 +13,11 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { useNotification } from '../context/NotificationContext.jsx'
 import { useConfirm } from '../context/ConfirmContext.jsx'
 import ReactionButtons from '../components/ReactionButtons.jsx'
+import SaveButton from '../components/SaveButton.jsx'
 import {
   createComment, deleteComment, deletePost, getMyDiseaseGroups, getPost, listComments,
   listCommentReplies, reactToComment, reactToPost, removeCommentReaction, removePostReaction,
-  reportComment, reportPost, updateComment, updatePost
+  reportComment, reportPost, savePost, unsavePost, updateComment, updatePost
 } from '../services/api.js'
 
 // Bir kullanıcının profiline git - kendi profilinse (App.jsx'te UserProfile
@@ -849,13 +850,19 @@ export default function PostDetail() {
       {!editingPost && (
         <>
           <Divider />
-          <Box sx={{ px: { xs: 1.5, md: 2.5 }, py: 1 }}>
+          <Box sx={{ px: { xs: 1.5, md: 2.5 }, py: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <ReactionButtons
               helpfulCount={post.helpfulCount}
               notHelpfulCount={post.notHelpfulCount}
               myReaction={post.myReaction}
               onReact={(value) => reactToPost(token, post.id, value)}
               onRemove={() => removePostReaction(token, post.id)}
+              size="medium"
+            />
+            <SaveButton
+              saved={!!post.saved}
+              onSave={() => savePost(token, post.id)}
+              onUnsave={() => unsavePost(token, post.id)}
               size="medium"
             />
           </Box>
