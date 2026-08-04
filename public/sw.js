@@ -11,7 +11,10 @@
 // kadar cache'den servis edilmeye devam ederdi - cache adını değiştirmek eski
 // cache'i geçersiz kılıp (activate handler'daki temizlik) yeni dosyaların
 // çekilmesini garantiliyor.
-const CACHE_NAME = 'sagliktan-pwa-v4';
+// v5: fetch handler artık farklı origin'e giden istekleri (staging/dev'de
+// doğrudan ayrı bir backend'e giden istekler gibi) hiç yakalamıyor - bkz.
+// aşağıdaki origin kontrolü.
+const CACHE_NAME = 'sagliktan-pwa-v5';
 const ASSETS = [
   '/',
   '/index.html',
@@ -36,6 +39,13 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
+
+  // Farklı origin'e giden istekler (örn. staging/dev ortamında VITE_API_BASE
+  // ile doğrudan ayrı bir Railway servisine yapılan istekler) SW'ye hiç
+  // takılmasın, tarayıcı normal şekilde yönetsin. Bunu yakalamaya çalışmak
+  // "FetchEvent.respondWith received an error: Returned response is null"
+  // hatasına yol açıyordu çünkü cache hiçbir zaman bu farklı origin'i içermiyor.
+  if (url.origin !== self.location.origin) return;
 
   // POST ve diğer yazan istekleri hiç ele alma
   if (request.method !== 'GET') return;
