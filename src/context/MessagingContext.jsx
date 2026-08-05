@@ -1,19 +1,21 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { useAuth } from './AuthContext.jsx'
 import { connectMessagingSocket } from '../services/messagingSocket.js'
-import { getPendingMessageRequestCount } from '../services/api.js'
+import { getPendingMessageRequestCount, getUnreadMessageCount } from '../services/api.js'
 
 // Faz 2 adım 6: NotificationsFeedContext ile aynı üst seviye rol (global,
 // nav rozeti için sayaç tutan bir context) ama farklı bir şekilde - burada
 // TÜM konuşma/mesaj listesini global state'te tutmuyoruz (o, Conversations/
 // Chat sayfalarının kendi sorumluluğu), sadece nav rozeti için "bekleyen
-// mesaj isteği" sayısını ve sayfaların canlı WS olaylarına abone
-// olabileceği basit bir yayıncı/abone (pub-sub) mekanizması sağlıyor.
+// mesaj isteği" + "okunmamış mesaj" sayısını ve sayfaların canlı WS
+// olaylarına abone olabileceği basit bir yayıncı/abone (pub-sub) mekanizması
+// sağlıyor.
 const MessagingContext = createContext(null)
 
 export function MessagingProvider({ children }) {
   const { token } = useAuth()
   const [pendingRequestCount, setPendingRequestCount] = useState(0)
+  const [unreadMessageCount, setUnreadMessageCount] = useState(0)
   const clientRef = useRef(null)
   const messageListenersRef = useRef(new Set())
   const requestListenersRef = useRef(new Set())
@@ -25,23 +27,36 @@ export function MessagingProvider({ children }) {
       .catch(() => {})
   }, [token])
 
+  // Yerel artır/azalt yerine sunucudan tekrar okuyoruz - "okundu" işaretleme
+  // (Chat.jsx) ile "yeni mesaj geldi" (WS) olayları farklı yerlerden
+  // tetiklendiği için basit +1/-1 sayaç kolayca senkron dışı kalır; tek bir
+  // GET isteği bunu garanti doğru tutar.
+  const refreshUnreadCount = useCallback(() => {
+    if (!token) return
+    getUnreadMessageCount(token)
+      .then(res => setUnreadMessageCount(res?.count ?? 0))
+      .catch(() => {})
+  }, [token])
+
   useEffect(() => {
     if (!token) {
       setPendingRequestCount(0)
+      setUnreadMessageCount(0)
       clientRef.current?.deactivate()
       clientRef.current = null
       return undefined
     }
 
     refreshPendingCount()
+    refreshUnreadCount()
 
     const client = connectMessagingSocket(token, {
       // Aktif bir sohbet ekranı açıksa (Chat.jsx) mesajı orada canlı
-      // gösterecek, kapalıysa bir sonraki Conversations ziyaretinde REST ile
-      // gelecek - burada global bir "okunmamış mesaj" sayacı TUTULMUYOR,
-      // her konuşmanın kendi unreadCount'u zaten listConversations
-      // yanıtında geliyor (bkz. Conversations.jsx).
+      // gösterecek ve okundu işaretleyecek, kapalıysa nav rozetine yansır -
+      // her konuşmanın kendi unreadCount'u ayrıca listConversations
+      // yanıtında geliyor (bkz. Conversations.jsx), burada sadece TOPLAM.
       onMessage: (message) => {
+        refreshUnreadCount()
         messageListenersRef.current.forEach(fn => fn(message))
       },
       onMessageRequest: (req) => {
@@ -55,7 +70,7 @@ export function MessagingProvider({ children }) {
       client.deactivate()
       if (clientRef.current === client) clientRef.current = null
     }
-  }, [token, refreshPendingCount])
+  }, [token, refreshPendingCount, refreshUnreadCount])
 
   const subscribeToMessages = useCallback((fn) => {
     messageListenersRef.current.add(fn)
@@ -75,7 +90,9 @@ export function MessagingProvider({ children }) {
     <MessagingContext.Provider
       value={{
         pendingRequestCount,
+        unreadMessageCount,
         refreshPendingCount,
+        refreshUnreadCount,
         decrementPendingCount,
         subscribeToMessages,
         subscribeToMessageRequests,

@@ -395,6 +395,10 @@ export function markConversationRead(token, conversationId) {
   return request(`/messages/conversations/${conversationId}/read`, { method: 'PUT', token });
 }
 
+export function getUnreadMessageCount(token, { signal } = {}) {
+  return request('/messages/unread-count', { token, signal });
+}
+
 export function reportMessage(token, messageId, reason) {
   return request(`/messages/${messageId}/report`, { method: 'POST', token, body: { reason: reason || null } });
 }

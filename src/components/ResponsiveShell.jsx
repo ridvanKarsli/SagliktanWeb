@@ -41,7 +41,8 @@ export default function ResponsiveShell({ children }) {
   const location = useLocation()
   const navigate = useNavigate()
   const { logout, user } = useAuth()
-  const { pendingRequestCount } = useMessaging()
+  const { pendingRequestCount, unreadMessageCount } = useMessaging()
+  const messagesBadgeCount = pendingRequestCount + unreadMessageCount
 
   const navItems = useMemo(
     () => (user?.role === 'ADMIN' ? [...BASE_NAV_ITEMS, ADMIN_NAV_ITEM] : BASE_NAV_ITEMS),
@@ -170,8 +171,8 @@ export default function ResponsiveShell({ children }) {
                       }
                     }}
                   >
-                    {item.to === '/messages' && pendingRequestCount > 0 ? (
-                      <Badge badgeContent={pendingRequestCount} color="error" max={99}>
+                    {item.to === '/messages' && messagesBadgeCount > 0 ? (
+                      <Badge badgeContent={messagesBadgeCount} color="error" max={99}>
                         {active ? item.icon : item.iconOutline}
                       </Badge>
                     ) : (
@@ -327,8 +328,8 @@ export default function ResponsiveShell({ children }) {
               <BottomNavigationAction
                 key={item.to}
                 icon={
-                  item.to === '/messages' && pendingRequestCount > 0 ? (
-                    <Badge badgeContent={pendingRequestCount} color="error" max={99}>
+                  item.to === '/messages' && messagesBadgeCount > 0 ? (
+                    <Badge badgeContent={messagesBadgeCount} color="error" max={99}>
                       {i === current ? item.icon : item.iconOutline}
                     </Badge>
                   ) : (

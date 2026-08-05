@@ -33,7 +33,7 @@ export default function Chat() {
   const { token, user: currentUser } = useAuth()
   const { showError, showSuccess } = useNotification()
   const confirm = useConfirm()
-  const { subscribeToMessages } = useMessaging()
+  const { subscribeToMessages, refreshUnreadCount } = useMessaging()
   const navigate = useNavigate()
 
   const [conversation, setConversation] = useState(null)
@@ -69,7 +69,7 @@ export default function Chat() {
         setMessages([...(msgPage?.content || [])].reverse())
         setHasMoreOlder(!(msgPage?.last ?? true))
         setPage(0)
-        markConversationRead(token, conversationId).catch(() => {})
+        markConversationRead(token, conversationId).then(refreshUnreadCount).catch(() => {})
       })
       .catch(err => {
         showError(err.message || 'Sohbet açılamadı.')
@@ -77,7 +77,7 @@ export default function Chat() {
       })
       .finally(() => { if (mounted) setLoading(false) })
     return () => { mounted = false }
-  }, [token, conversationId, showError, navigate])
+  }, [token, conversationId, showError, navigate, refreshUnreadCount])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: 'end' })
@@ -89,9 +89,9 @@ export default function Chat() {
     return subscribeToMessages((message) => {
       if (String(message.conversationId) !== String(conversationId)) return
       setMessages(prev => (prev.some(m => m.id === message.id) ? prev : [...prev, message]))
-      markConversationRead(token, conversationId).catch(() => {})
+      markConversationRead(token, conversationId).then(refreshUnreadCount).catch(() => {})
     })
-  }, [subscribeToMessages, conversationId, token])
+  }, [subscribeToMessages, conversationId, token, refreshUnreadCount])
 
   const loadOlder = async () => {
     const nextPage = page + 1
