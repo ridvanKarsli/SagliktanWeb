@@ -14,6 +14,15 @@
 // v5: fetch handler artık farklı origin'e giden istekleri (staging/dev'de
 // doğrudan ayrı bir backend'e giden istekler gibi) hiç yakalamıyor - bkz.
 // aşağıdaki origin kontrolü.
+// v6: BU DOSYA sadece kabuğu (/, index.html) precache eden bir ŞABLONdur.
+// `npm run build` çalıştığında scripts/generate-sw-precache.js, vite'ın
+// oluşturduğu hash'li ana bundle dosyalarını (index-HASH.js/.css) bu listeye
+// ekleyip CACHE_NAME'i build hash'ine göre otomatik günceller - bkz.
+// dist/sw.js (build çıktısı, git'e girmez). Lazy route chunk'ları (Admin,
+// Chat, PostDetail...) BİLEREK precache edilmiyor; code splitting'in amacı
+// tam da bunları ilk yüklemede indirmemek (bkz. App.jsx yorumları) - onlar
+// aşağıdaki fetch handler'ın cache-first dalıyla ziyaret edildiklerinde
+// fırsatçı olarak önbelleğe giriyor.
 const CACHE_NAME = 'sagliktan-pwa-v5';
 const ASSETS = [
   '/',
