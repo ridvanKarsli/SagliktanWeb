@@ -353,7 +353,17 @@ export default function WelcomeScreen() {
             {steps.map((step, index) => (
               <Grid item xs={12} sm={4} key={index}>
                 <Box sx={{ textAlign: 'center' }}>
+                  {/* axe-core (bkz. e2e/accessibility.spec.js) bu rakamları
+                      color-contrast ihlali olarak işaretledi: %22 opaklıktaki
+                      yeşil, zeminle neredeyse aynı luminansta (~1.2:1,
+                      WCAG AA eşiği 4.5:1). Kontrastı artırmak bilinçli
+                      tasarım niyetini (arka planda soluk bir dekoratif rakam)
+                      bozardı - bunun yerine aria-hidden: bu rakamlar salt
+                      görsel bir süsleme, adım sırası zaten step.title ve DOM
+                      sırasıyla ekran okuyucuya iletiliyor, kaybolan bir bilgi
+                      yok. */}
                   <Typography
+                    aria-hidden="true"
                     sx={{
                       fontSize: '3.5rem',
                       fontWeight: 800,
