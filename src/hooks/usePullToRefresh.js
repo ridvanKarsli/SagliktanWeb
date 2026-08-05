@@ -1,0 +1,75 @@
+import { useEffect, useRef, useState } from 'react'
+
+// Basit, bağımlılıksız pull-to-refresh - kontrol listesi "Pull-to-refresh
+// desteği" maddesi için eklendi (bkz. Sagliktan_Mobil_Uyum_Raporu.docx).
+// Sadece sayfa zaten en üstteyken (window.scrollY === 0) başlayan bir aşağı
+// çekme jestini izler; index.css'teki overscroll-behavior-y: contain native
+// "lastik" efektini kapattığı için görsel geri bildirimi burada elle veriyoruz.
+const PULL_THRESHOLD = 70 // bu mesafeyi (piksel) geçince bırakınca refresh tetiklenir
+const MAX_PULL = 110 // göstergenin ulaşabileceği en yüksek çekme mesafesi
+const RESISTANCE = 0.5 // elastik his: parmağın gittiği mesafenin yarısı kadar açılır
+
+export function usePullToRefresh(onRefresh, { disabled = false } = {}) {
+  const [pullDistance, setPullDistance] = useState(0)
+  const [refreshing, setRefreshing] = useState(false)
+  const startYRef = useRef(null)
+  const distanceRef = useRef(0)
+  const refreshingRef = useRef(false)
+  const onRefreshRef = useRef(onRefresh)
+  onRefreshRef.current = onRefresh
+
+  useEffect(() => { refreshingRef.current = refreshing }, [refreshing])
+
+  useEffect(() => {
+    if (disabled) return undefined
+
+    const onTouchStart = (e) => {
+      if (window.scrollY > 0 || refreshingRef.current) { startYRef.current = null; return }
+      startYRef.current = e.touches[0].clientY
+    }
+
+    const onTouchMove = (e) => {
+      if (startYRef.current === null) return
+      const delta = e.touches[0].clientY - startYRef.current
+      if (delta <= 0 || window.scrollY > 0) {
+        distanceRef.current = 0
+        setPullDistance(0)
+        return
+      }
+      const next = Math.min(delta * RESISTANCE, MAX_PULL)
+      distanceRef.current = next
+      setPullDistance(next)
+    }
+
+    const onTouchEnd = () => {
+      if (startYRef.current === null) return
+      startYRef.current = null
+      if (distanceRef.current >= PULL_THRESHOLD) {
+        setPullDistance(PULL_THRESHOLD)
+        setRefreshing(true)
+        Promise.resolve(onRefreshRef.current?.()).finally(() => {
+          setRefreshing(false)
+          setPullDistance(0)
+          distanceRef.current = 0
+        })
+      } else {
+        setPullDistance(0)
+        distanceRef.current = 0
+      }
+    }
+
+    // passive: true - dokunma listener'ları scroll performansını
+    // engellemesin diye (preventDefault hiç çağrılmıyor, native scroll'a
+    // müdahale etmiyoruz, sadece izliyoruz).
+    window.addEventListener('touchstart', onTouchStart, { passive: true })
+    window.addEventListener('touchmove', onTouchMove, { passive: true })
+    window.addEventListener('touchend', onTouchEnd, { passive: true })
+    return () => {
+      window.removeEventListener('touchstart', onTouchStart)
+      window.removeEventListener('touchmove', onTouchMove)
+      window.removeEventListener('touchend', onTouchEnd)
+    }
+  }, [disabled])
+
+  return { pullDistance, refreshing, threshold: PULL_THRESHOLD }
+}

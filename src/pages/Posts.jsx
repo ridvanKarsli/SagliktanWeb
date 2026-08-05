@@ -14,6 +14,7 @@ import { useNotification } from '../context/NotificationContext.jsx'
 import { createPost, getSubGroup, listPostsBySubGroup, searchPostsInSubGroup } from '../services/api.js'
 import { initialsFrom } from '../utils/format.js'
 import { usePaginatedList } from '../hooks/usePaginatedList.js'
+import { usePullToRefresh } from '../hooks/usePullToRefresh.js'
 
 export default function Posts() {
   const { subGroupId } = useParams()
@@ -91,6 +92,13 @@ export default function Posts() {
   // burada da aynı anda tetikleniyor.
   useEffect(() => { setError('') }, [token, subGroupId, sort, debouncedQuery])
 
+  // Kontrol listesi "Pull-to-refresh desteği" maddesi - dialog açıkken
+  // (gönderi yazarken) devre dışı, yanlışlıkla tetiklenip yazılanı
+  // kaybettirmesin diye.
+  const { pullDistance, refreshing: pullRefreshing, threshold: pullThreshold } = usePullToRefresh(
+    reloadPosts, { disabled: dialogOpen }
+  )
+
   const openDialog = () => { setTitle(''); setContent(''); resetAttachments(); setDialogOpen(true) }
   const closeDialog = () => { if (!submitting) { resetAttachments(); setDialogOpen(false) } }
 
@@ -119,6 +127,27 @@ export default function Posts() {
 
   return (
     <Box sx={{ py: { xs: 2, md: 4 } }}>
+      {/* Pull-to-refresh göstergesi: parmak çekildikçe yükseklik açılır,
+          bıraktığında ya sıfıra döner ya da (eşiği geçtiyse) dönen bir
+          spinner'a geçip reloadPosts() bitene kadar açık kalır. */}
+      <Box
+        sx={{
+          height: pullDistance,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          overflow: 'hidden', color: 'primary.main',
+          transition: pullDistance === 0 ? 'height 0.2s ease' : 'none'
+        }}
+      >
+        {pullDistance > 0 && (
+          <CircularProgress
+            size={22}
+            thickness={5}
+            variant={pullRefreshing ? 'indeterminate' : 'determinate'}
+            value={Math.min(100, (pullDistance / pullThreshold) * 100)}
+          />
+        )}
+      </Box>
+
       <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
         <IconButton
           onClick={() => navigate(subGroup ? `/groups/${subGroup.diseaseGroupId}` : '/groups')}

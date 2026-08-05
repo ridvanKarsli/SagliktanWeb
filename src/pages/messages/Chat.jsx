@@ -224,7 +224,12 @@ export default function Chat() {
   }
 
   return (
-    <Box sx={{ width: '100%', maxWidth: 680, mx: 'auto', display: 'flex', flexDirection: 'column', height: { xs: 'calc(100vh - 128px)', md: 'calc(100vh - 32px)' } }}>
+    // dvh (dynamic viewport height) - klasik vh mobilde klavye açıldığında
+    // güncellenmiyor, bu da mesaj yazma alanının klavyenin arkasında kalıp
+    // görünmez olmasına yol açıyordu. dvh, klavye/adres çubuğu gibi dinamik
+    // viewport değişikliklerini otomatik yansıtır (bkz. kontrol listesi
+    // "klavye açıldığında input alanının kaybolmaması" maddesi).
+    <Box sx={{ width: '100%', maxWidth: 680, mx: 'auto', display: 'flex', flexDirection: 'column', height: { xs: 'calc(100dvh - 128px)', md: 'calc(100dvh - 32px)' } }}>
       {/* Header */}
       <Stack direction="row" alignItems="center" spacing={1} sx={{ py: 1.5, px: { xs: 0.5, md: 0 }, borderBottom: '1px solid', borderColor: 'divider' }}>
         <IconButton onClick={() => navigate('/messages')} aria-label="Geri" size="small">
@@ -310,6 +315,7 @@ export default function Chat() {
                           component="img"
                           src={m.sharedPost.thumbnailUrl}
                           alt=""
+                          loading="lazy"
                           sx={{ width: 48, height: 48, borderRadius: 1.5, objectFit: 'cover', flexShrink: 0 }}
                         />
                       )}
@@ -340,6 +346,7 @@ export default function Chat() {
                       component="img"
                       src={m.attachmentUrl}
                       alt=""
+                      loading="lazy"
                       sx={{ maxWidth: '100%', borderRadius: 2, display: 'block', mb: m.content ? 0.75 : 0, cursor: 'pointer' }}
                       onClick={() => window.open(m.attachmentUrl, '_blank')}
                     />
