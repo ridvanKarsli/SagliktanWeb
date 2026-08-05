@@ -1,5 +1,34 @@
 import { createTheme } from '@mui/material/styles'
 
+// BREAKPOINT KONVANSİYONU (mobil uyum raporu roadmap: "Breakpoint kullanımını
+// tek bir konvansiyona indir"). Kod tabanında iki farklı responsive yaklaşım
+// var - useMediaQuery(theme.breakpoints...) (13 dosya) ve sx={{ xs:, sm: }}
+// (28 dosya) - bunlar ÇAKIŞAN alternatifler değil, iki AYRI amaca hizmet
+// ediyor. Denetimde ikisinin bir arada olması "karışıklık" gibi görünse de,
+// asıl kural şu ve zaten büyük ölçüde uygulanıyor:
+//
+// 1) sx={{ xs: ..., sm: ..., md: ... }} → SADECE STİL/DEĞER farklılığı için
+//    varsayılan seçim (spacing, fontSize, width, flexDirection, display vb.).
+//    Render edilen DOM/bileşen ağacı aynı kalıyor, sadece CSS değeri
+//    değişiyor. Ekstra JS re-render'ı yok, SSR/hydration'a duyarlı değil.
+//
+// 2) useMediaQuery(theme.breakpoints.down/up('xx')) → SADECE JS'in kendisinin
+//    dallanması GEREKTİĞİNDE: Dialog'un fullScreen prop'u (bkz.
+//    SendPostDialog.jsx, ReportDialog.jsx, Chat.jsx), admin tablolarının
+//    mobilde tamamen farklı bir DOM'a (kart listesi) geçmesi (bkz.
+//    UsersTab/ContentTab/ReportsTab.jsx) veya ResponsiveShell'in masaüstü/
+//    mobil navigasyon arasında seçim yapması gibi durumlar - yani sx'in
+//    karşılayamayacağı, koşullu render/prop mantığı.
+//
+// Her iki durumda da breakpoint değeri HER ZAMAN buradaki theme.breakpoints'
+// tan (MUI varsayılanları: xs=0, sm=600, md=900, lg=1200, xl=1536) gelir -
+// hiçbir dosyada window.matchMedia veya elle yazılmış piksel değeri (örn.
+// "@media (max-width: 640px)") kullanılmaz. Yeni bir responsive karar
+// eklerken önce "bu sadece görünüm mü değişiyor, yoksa render edilen şey mi
+// değişiyor?" sorusu sorulmalı - cevaba göre yukarıdaki iki seçenekten biri
+// kullanılır, üçüncü bir yöntem (yeni bir hook, elle matchMedia vb.) icat
+// edilmez.
+
 // Sağlıktan Kurumsal Renk Paleti - Sıcak Dark Mode
 // Tasarım niyeti: sağlık topluluğu için huzur verici, sıcak ve profesyonel
 // bir koyu tema - mavi/siyah "tech" kontrastı yerine sıcak espresso tonlu
