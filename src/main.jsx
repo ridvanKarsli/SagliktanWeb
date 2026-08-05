@@ -8,6 +8,7 @@ import theme from './theme.js'
 import { AuthProvider } from './context/AuthContext.jsx'
 import { NotificationProvider } from './context/NotificationContext.jsx'
 import { NotificationsFeedProvider } from './context/NotificationsFeedContext.jsx'
+import { MessagingProvider } from './context/MessagingContext.jsx'
 import { ConfirmProvider } from './context/ConfirmContext.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 // Inter fontu artık Google Fonts'tan değil, yerelden (bkz. index.html'deki not).
@@ -45,7 +46,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             <NotificationProvider>
               <ConfirmProvider>
                 <NotificationsFeedProvider>
-                  <App />
+                  <MessagingProvider>
+                    <App />
+                  </MessagingProvider>
                 </NotificationsFeedProvider>
               </ConfirmProvider>
             </NotificationProvider>

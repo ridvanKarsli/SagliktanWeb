@@ -339,6 +339,70 @@ export function markAllNotificationsRead(token) {
   return request('/notifications/read-all', { method: 'PUT', token });
 }
 
+// --- Mesajlaşma (Faz 2 adım 6) - WebSocket bağlantısı için bkz.
+// services/messagingSocket.js. Mesaj isteği kabul edilmeden serbest
+// mesajlaşma açılmıyor, bkz. backend MessageRequestService.
+
+export function sendMessageRequest(token, recipientId) {
+  return request('/messages/requests', { method: 'POST', token, body: { recipientId } });
+}
+
+export function listMessageRequests(token, { page = 0, size, signal } = {}) {
+  return request('/messages/requests', { token, params: { page, size }, signal });
+}
+
+export function getPendingMessageRequestCount(token, { signal } = {}) {
+  return request('/messages/requests/count', { token, signal });
+}
+
+export function acceptMessageRequest(token, id) {
+  return request(`/messages/requests/${id}/accept`, { method: 'PUT', token });
+}
+
+export function rejectMessageRequest(token, id) {
+  return request(`/messages/requests/${id}/reject`, { method: 'PUT', token });
+}
+
+export function listConversations(token, { page = 0, size, signal } = {}) {
+  return request('/messages/conversations', { token, params: { page, size }, signal });
+}
+
+// Sohbet ekranına doğrudan girildiğinde (liste sayfasından geçmeden) karşı
+// tarafın kim olduğunu göstermek için - bkz. Chat.jsx.
+export function getConversation(token, conversationId, { signal } = {}) {
+  return request(`/messages/conversations/${conversationId}`, { token, signal });
+}
+
+export function listConversationMessages(token, conversationId, { page = 0, size, signal } = {}) {
+  return request(`/messages/conversations/${conversationId}/messages`, { token, params: { page, size }, signal });
+}
+
+export function sendChatMessage(token, conversationId, { content, attachmentKey }) {
+  return request(`/messages/conversations/${conversationId}/messages`, {
+    method: 'POST', token, body: { content: content || null, attachmentKey: attachmentKey || null }
+  });
+}
+
+export function markConversationRead(token, conversationId) {
+  return request(`/messages/conversations/${conversationId}/read`, { method: 'PUT', token });
+}
+
+export function reportMessage(token, messageId, reason) {
+  return request(`/messages/${messageId}/report`, { method: 'POST', token, body: { reason: reason || null } });
+}
+
+export function blockUser(token, userId) {
+  return request(`/messages/block/${userId}`, { method: 'POST', token });
+}
+
+export function unblockUser(token, userId) {
+  return request(`/messages/block/${userId}`, { method: 'DELETE', token });
+}
+
+export function listBlockedUsers(token, { signal } = {}) {
+  return request('/messages/blocked', { token, signal });
+}
+
 // --- Admin paneli ---
 
 export function getAdminStats(token) {

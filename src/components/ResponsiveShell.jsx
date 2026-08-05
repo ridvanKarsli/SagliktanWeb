@@ -1,16 +1,18 @@
 import { useMemo } from 'react'
 import {
-  BottomNavigation, BottomNavigationAction, Box, 
+  Badge, BottomNavigation, BottomNavigationAction, Box,
   Typography, Avatar
 } from '@mui/material'
 import useMediaQuery from '@mui/material/useMediaQuery'
 import { useTheme } from '@mui/material/styles'
 import {
   HomeRounded, HomeOutlined, SearchRounded, SearchOutlined,
+  ChatBubbleRounded, ChatBubbleOutlineRounded,
   PersonRounded, PersonOutlineRounded, LogoutRounded, AdminPanelSettingsRounded, AdminPanelSettingsOutlined
 } from '@mui/icons-material'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
+import { useMessaging } from '../context/MessagingContext.jsx'
 import InstallPrompt from './InstallPrompt.jsx'
 import NotificationBell from './NotificationBell.jsx'
 
@@ -20,9 +22,12 @@ const MOBILE_NAV_HEIGHT = 64
 // Instagram deseni: sekme aktifken outline ikon yerine dolu (filled)
 // versiyonu gösterilir - salt renk değişiminden daha güçlü, alışılmış bir
 // "buradasın" sinyali. iconOutline pasifken, icon aktifken kullanılıyor.
+// Mesajlar sekmesinin rozeti (bekleyen istek sayısı) statik değil - bkz.
+// aşağıdaki navItems useMemo'su, MessagingContext'ten canlı okunuyor.
 const BASE_NAV_ITEMS = [
   { label: 'Gruplar', icon: <HomeRounded />, iconOutline: <HomeOutlined />, to: '/groups' },
   { label: 'Ara', icon: <SearchRounded />, iconOutline: <SearchOutlined />, to: '/search' },
+  { label: 'Mesajlar', icon: <ChatBubbleRounded />, iconOutline: <ChatBubbleOutlineRounded />, to: '/messages' },
   { label: 'Profil', icon: <PersonRounded />, iconOutline: <PersonOutlineRounded />, to: '/profile' }
 ]
 
@@ -36,6 +41,7 @@ export default function ResponsiveShell({ children }) {
   const location = useLocation()
   const navigate = useNavigate()
   const { logout, user } = useAuth()
+  const { pendingRequestCount } = useMessaging()
 
   const navItems = useMemo(
     () => (user?.role === 'ADMIN' ? [...BASE_NAV_ITEMS, ADMIN_NAV_ITEM] : BASE_NAV_ITEMS),
@@ -155,16 +161,22 @@ export default function ResponsiveShell({ children }) {
                     }
                   }}
                 >
-                  <Box 
-                    sx={{ 
-                      display: 'flex', 
-                      '& svg': { 
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      '& svg': {
                         fontSize: 22,
                         color: active ? 'secondary.main' : 'inherit'
-                      } 
+                      }
                     }}
                   >
-                    {active ? item.icon : item.iconOutline}
+                    {item.to === '/messages' && pendingRequestCount > 0 ? (
+                      <Badge badgeContent={pendingRequestCount} color="error" max={99}>
+                        {active ? item.icon : item.iconOutline}
+                      </Badge>
+                    ) : (
+                      active ? item.icon : item.iconOutline
+                    )}
                   </Box>
                   <Typography sx={{ fontWeight: 'inherit', fontSize: '0.9375rem' }}>
                     {item.label}
@@ -314,7 +326,15 @@ export default function ResponsiveShell({ children }) {
             {navItems.map((item, i) => (
               <BottomNavigationAction
                 key={item.to}
-                icon={i === current ? item.icon : item.iconOutline}
+                icon={
+                  item.to === '/messages' && pendingRequestCount > 0 ? (
+                    <Badge badgeContent={pendingRequestCount} color="error" max={99}>
+                      {i === current ? item.icon : item.iconOutline}
+                    </Badge>
+                  ) : (
+                    i === current ? item.icon : item.iconOutline
+                  )
+                }
                 label={item.label}
               />
             ))}

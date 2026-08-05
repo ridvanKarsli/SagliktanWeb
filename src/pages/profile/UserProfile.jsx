@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Avatar, Box, Button, CircularProgress, Divider, Stack, Typography } from '@mui/material'
-import { ArrowBack } from '@mui/icons-material'
+import { ArrowBack, MailOutlineRounded } from '@mui/icons-material'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
 import PostCard from '../../components/PostCard.jsx'
-import { getUserPublicProfile, getUserPosts } from '../../services/api.js'
+import { getUserPublicProfile, getUserPosts, sendMessageRequest } from '../../services/api.js'
 
 function initialsFrom(name = '') {
   const parts = name.trim().split(/\s+/).filter(Boolean)
@@ -25,7 +25,7 @@ export default function UserProfile() {
   const { userId } = useParams()
   const navigate = useNavigate()
   const { token, user: currentUser } = useAuth()
-  const { showError } = useNotification()
+  const { showError, showSuccess } = useNotification()
 
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -37,6 +37,9 @@ export default function UserProfile() {
   const [postsPage, setPostsPage] = useState(0)
   const [postsTotalCount, setPostsTotalCount] = useState(0)
   const [postsLast, setPostsLast] = useState(true)
+
+  const [sendingRequest, setSendingRequest] = useState(false)
+  const [requestSent, setRequestSent] = useState(false)
 
   useEffect(() => {
     // Kendi profiline bu sayfadan (link/geri butonu vb.) ulaşılırsa tam
@@ -87,6 +90,26 @@ export default function UserProfile() {
       showError(err.message || 'Gönderiler alınamadı.')
     } finally {
       setPostsLoadingMore(false)
+    }
+  }
+
+  const handleSendMessageRequest = async () => {
+    setSendingRequest(true)
+    try {
+      const res = await sendMessageRequest(token, userId)
+      if (res?.autoAccepted) {
+        // Karşı taraf zaten bize istek göndermişti ya da aramızda bir
+        // konuşma vardı - backend otomatik eşleştirdi, direkt sohbete gir
+        // (bkz. MessageRequestService.send Outcome.autoAccepted).
+        navigate(`/messages/${res.conversationId}`)
+        return
+      }
+      setRequestSent(true)
+      showSuccess('Mesaj isteği gönderildi.')
+    } catch (err) {
+      showError(err.message || 'Mesaj isteği gönderilemedi.')
+    } finally {
+      setSendingRequest(false)
     }
   }
 
@@ -183,6 +206,16 @@ export default function UserProfile() {
             {profile.bio}
           </Typography>
         )}
+        <Button
+          variant={requestSent ? 'outlined' : 'contained'}
+          size="small"
+          startIcon={sendingRequest ? <CircularProgress size={14} color="inherit" /> : <MailOutlineRounded />}
+          onClick={handleSendMessageRequest}
+          disabled={sendingRequest || requestSent}
+          sx={{ mt: 2, minHeight: 40 }}
+        >
+          {requestSent ? 'İstek Gönderildi' : 'Mesaj Gönder'}
+        </Button>
       </Box>
 
       <Typography variant="h3" sx={{ mb: 2, px: { xs: 0.5, md: 0 }, color: 'text.primary' }}>

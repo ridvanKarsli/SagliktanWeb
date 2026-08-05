@@ -10,6 +10,9 @@ import PostDetail from './pages/PostDetail.jsx'
 import Search from './pages/Search.jsx'
 import Profile from './pages/profile/Profile.jsx'
 import UserProfile from './pages/profile/UserProfile.jsx'
+import Conversations from './pages/messages/Conversations.jsx'
+import Chat from './pages/messages/Chat.jsx'
+import MessageRequests from './pages/messages/MessageRequests.jsx'
 import AdminPanel from './pages/admin/AdminPanel.jsx'
 import ProtectedRoute from './components/ProtectedRoute.jsx'
 import PublicOnlyRoute from './components/PublicOnlyRoute.jsx'
@@ -50,6 +53,9 @@ export default function App() {
         <Route path="/search" element={<Search />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/users/:userId" element={<UserProfile />} />
+        <Route path="/messages" element={<Conversations />} />
+        <Route path="/messages/requests" element={<MessageRequests />} />
+        <Route path="/messages/:conversationId" element={<Chat />} />
         <Route path="/admin" element={<AdminRoute><AdminPanel /></AdminRoute>} />
       </Route>
       <Route path="*" element={<WelcomeScreen />} />
