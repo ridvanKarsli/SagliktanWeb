@@ -4,7 +4,7 @@ import {
   Button, IconButton, ListItemText, Menu, MenuItem, Stack, TextField, Typography
 } from '@mui/material'
 import {
-  ArrowBackRounded, BlockRounded, FlagOutlined, ImageOutlined, MoreVertRounded, SendRounded
+  ArrowBackRounded, BlockRounded, FlagOutlined, ImageOutlined, LockOpenRounded, MoreVertRounded, SendRounded
 } from '@mui/icons-material'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
@@ -14,7 +14,7 @@ import { useMessaging } from '../../context/MessagingContext.jsx'
 import { compressImage } from '../../utils/compressImage.js'
 import {
   getConversation, listConversationMessages, sendChatMessage, markConversationRead,
-  requestPresignedUpload, uploadToPresignedUrl, blockUser, reportMessage
+  requestPresignedUpload, uploadToPresignedUrl, blockUser, unblockUser, listBlockedUsers, reportMessage
 } from '../../services/api.js'
 
 function initialsFrom(name = '') {
@@ -50,6 +50,7 @@ export default function Chat() {
   const [menuAnchor, setMenuAnchor] = useState(null)
   const [reportTarget, setReportTarget] = useState(null) // message id
   const [reportReason, setReportReason] = useState('')
+  const [isBlocked, setIsBlocked] = useState(false)
 
   const bottomRef = useRef(null)
   const fileInputRef = useRef(null)
@@ -62,13 +63,19 @@ export default function Chat() {
     Promise.all([
       getConversation(token, conversationId),
       listConversationMessages(token, conversationId, { page: 0 }),
+      // Engellenmişse "Kullanıcıyı Engelle" menüsü yanlışlıkla hep aynı
+      // etiketle görünüyordu - burada gerçek durumu öğrenip menüyü/yazma
+      // alanını ona göre gösteriyoruz. Ayrı bir çağrı başarısız olursa sohbet
+      // açılışını bozmasın diye [] ile yutuluyor.
+      listBlockedUsers(token).catch(() => []),
     ])
-      .then(([conv, msgPage]) => {
+      .then(([conv, msgPage, blocked]) => {
         if (!mounted) return
         setConversation(conv)
         setMessages([...(msgPage?.content || [])].reverse())
         setHasMoreOlder(!(msgPage?.last ?? true))
         setPage(0)
+        setIsBlocked(Array.isArray(blocked) && blocked.some(b => b.userId === conv.otherUserId))
         markConversationRead(token, conversationId).then(refreshUnreadCount).catch(() => {})
       })
       .catch(err => {
@@ -169,10 +176,22 @@ export default function Chat() {
     if (!ok) return
     try {
       await blockUser(token, conversation.otherUserId)
+      setIsBlocked(true)
       showSuccess('Kullanıcı engellendi.')
-      navigate('/messages')
     } catch (err) {
       showError(err.message || 'Engellenemedi.')
+    }
+  }
+
+  const handleUnblock = async () => {
+    setMenuAnchor(null)
+    if (!conversation) return
+    try {
+      await unblockUser(token, conversation.otherUserId)
+      setIsBlocked(false)
+      showSuccess('Engel kaldırıldı.')
+    } catch (err) {
+      showError(err.message || 'Engel kaldırılamadı.')
     }
   }
 
@@ -220,10 +239,17 @@ export default function Chat() {
           <MoreVertRounded />
         </IconButton>
         <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={() => setMenuAnchor(null)}>
-          <MenuItem onClick={handleBlock} sx={{ color: 'error.main' }}>
-            <BlockRounded fontSize="small" sx={{ mr: 1.5 }} />
-            <ListItemText primary="Kullanıcıyı Engelle" />
-          </MenuItem>
+          {isBlocked ? (
+            <MenuItem onClick={handleUnblock}>
+              <LockOpenRounded fontSize="small" sx={{ mr: 1.5 }} />
+              <ListItemText primary="Engeli Kaldır" />
+            </MenuItem>
+          ) : (
+            <MenuItem onClick={handleBlock} sx={{ color: 'error.main' }}>
+              <BlockRounded fontSize="small" sx={{ mr: 1.5 }} />
+              <ListItemText primary="Kullanıcıyı Engelle" />
+            </MenuItem>
+          )}
         </Menu>
       </Stack>
 
@@ -292,7 +318,16 @@ export default function Chat() {
         <div ref={bottomRef} />
       </Box>
 
-      {/* Mesaj yazma alanı */}
+      {/* Mesaj yazma alanı - engellenmişken form yerine bilgi + engeli kaldır
+          gösterilir, aksi halde kullanıcı yazıp gönderince 403 ile karşılaşırdı. */}
+      {isBlocked ? (
+        <Box sx={{ borderTop: '1px solid', borderColor: 'divider', px: { xs: 0.5, md: 0 }, py: 2, textAlign: 'center' }}>
+          <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
+            Bu kullanıcıyı engelledin, mesajlaşamazsınız.
+          </Typography>
+          <Button size="small" variant="outlined" onClick={handleUnblock}>Engeli Kaldır</Button>
+        </Box>
+      ) : (
       <Box component="form" onSubmit={handleSend} sx={{ borderTop: '1px solid', borderColor: 'divider', px: { xs: 0.5, md: 0 }, py: 1.5 }}>
         {attachment && (
           <Box sx={{ position: 'relative', width: 64, height: 64, borderRadius: 2, overflow: 'hidden', mb: 1, bgcolor: 'action.hover' }}>
@@ -345,6 +380,7 @@ export default function Chat() {
           </IconButton>
         </Stack>
       </Box>
+      )}
 
       {/* Mesaj şikayet dialogu */}
       <Dialog open={Boolean(reportTarget)} onClose={() => setReportTarget(null)} maxWidth="xs" fullWidth>
