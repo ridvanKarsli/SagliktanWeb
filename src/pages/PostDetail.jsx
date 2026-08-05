@@ -135,7 +135,7 @@ export default function PostDetail() {
   if (error || !post) {
     return (
       <Box sx={{ py: { xs: 2, md: 4 } }}>
-        <IconButton onClick={() => navigate(-1)} sx={{ mb: 2 }}>
+        <IconButton onClick={() => navigate(-1)} sx={{ mb: 2 }} aria-label="Geri dön">
           <ArrowBack />
         </IconButton>
         <Alert severity="error">{error || 'Gönderi bulunamadı.'}</Alert>
@@ -153,7 +153,7 @@ export default function PostDetail() {
   return (
     <Box sx={{ py: { xs: 2, md: 4 } }}>
       <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
-        <IconButton onClick={() => navigate(`/sub-groups/${post.subGroupId}`)} size="small">
+        <IconButton onClick={() => navigate(`/sub-groups/${post.subGroupId}`)} size="small" aria-label="Alt gruba dön">
           <ArrowBack />
         </IconButton>
         <Typography variant="body2" sx={{ color: 'text.secondary' }}>
@@ -217,13 +217,14 @@ export default function PostDetail() {
             <Stack direction="row" spacing={0.5}>
               {manageable && (
                 <>
-                  <IconButton size="small" onClick={startEditing}>
+                  <IconButton size="small" onClick={startEditing} aria-label="Düzenle">
                     <EditOutlined fontSize="small" />
                   </IconButton>
                   <IconButton
                     size="small"
                     onClick={() => removePost((deletedPost) => navigate(`/sub-groups/${deletedPost.subGroupId}`))}
                     disabled={deletingPost}
+                    aria-label="Sil"
                   >
                     {deletingPost ? <CircularProgress size={16} /> : <DeleteOutline fontSize="small" />}
                   </IconButton>

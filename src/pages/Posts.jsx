@@ -149,9 +149,13 @@ export default function Posts() {
       </Box>
 
       <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
+        {/* axe-core "button-name" (kritik) ihlali: ikon-sadece buton, yanındaki
+            "Alt Gruba Dön" metni DOM'da AYRI bir Typography - butonla ilişkili
+            değil, erişilebilir isim vermiyor. */}
         <IconButton
           onClick={() => navigate(subGroup ? `/groups/${subGroup.diseaseGroupId}` : '/groups')}
           size="small"
+          aria-label="Alt gruba dön"
         >
           <ArrowBack />
         </IconButton>

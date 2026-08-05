@@ -224,6 +224,18 @@ const theme = createTheme({
         },
       },
     },
+    // axe-core (bkz. e2e/accessibility.spec.js) "aria-progressbar-name"
+    // ihlalini yakaladı: kod tabanındaki onlarca <CircularProgress /> (sayfa
+    // yükleme, buton içi spinner, pull-to-refresh...) hiçbirinde erişilebilir
+    // isim yok, MUI varsayılan olarak eklemiyor. Her kullanım yerini tek tek
+    // düzeltmek yerine (dokunma ihtimali yüksek, tutarsız kalma riski var)
+    // burada TEK bir varsayılan tanımlanıyor - defaultProps, tek tek
+    // sx/props geçilen yerlerde ezilebilir ama genel kural bu.
+    MuiCircularProgress: {
+      defaultProps: {
+        'aria-label': 'Yükleniyor',
+      },
+    },
     MuiButton: {
       styleOverrides: {
         root: {

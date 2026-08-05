@@ -113,7 +113,7 @@ export default function InstallPrompt() {
               </>
             )}
           </Box>
-          <IconButton size="small" onClick={dismiss} sx={{ color: 'text.secondary', flexShrink: 0 }}>
+          <IconButton size="small" onClick={dismiss} sx={{ color: 'text.secondary', flexShrink: 0 }} aria-label="Kapat">
             <CloseRounded fontSize="small" />
           </IconButton>
         </Stack>

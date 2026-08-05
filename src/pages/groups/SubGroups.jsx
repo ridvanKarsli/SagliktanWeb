@@ -85,7 +85,9 @@ export default function SubGroups() {
   return (
     <Box sx={{ py: { xs: 2, md: 4 } }}>
       <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
-        <IconButton onClick={() => navigate('/groups')} size="small">
+        {/* bkz. Posts.jsx aynı gerekçe - ikon-sadece buton + ayrı Typography,
+            aria-label olmadan axe-core "button-name" ihlali verir. */}
+        <IconButton onClick={() => navigate('/groups')} size="small" aria-label="Hastalık gruplarına dön">
           <ArrowBack />
         </IconButton>
         <Typography variant="body2" sx={{ color: 'text.secondary' }}>
@@ -183,7 +185,7 @@ export default function SubGroups() {
       <Dialog open={membersOpen} onClose={() => setMembersOpen(false)} fullWidth maxWidth="xs">
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           Üyeler
-          <IconButton size="small" onClick={() => setMembersOpen(false)}>
+          <IconButton size="small" onClick={() => setMembersOpen(false)} aria-label="Kapat">
             <CloseRounded fontSize="small" />
           </IconButton>
         </DialogTitle>

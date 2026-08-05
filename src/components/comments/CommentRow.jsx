@@ -145,10 +145,10 @@ export default function CommentRow({
               <Stack direction="row" spacing={0.5} flexShrink={0}>
                 {manageable && (
                   <>
-                    <IconButton size="small" onClick={() => { setText(comment.content); setEditing(true) }}>
+                    <IconButton size="small" onClick={() => { setText(comment.content); setEditing(true) }} aria-label="Düzenle">
                       <EditOutlined fontSize="small" />
                     </IconButton>
-                    <IconButton size="small" onClick={remove} disabled={deleting}>
+                    <IconButton size="small" onClick={remove} disabled={deleting} aria-label="Sil">
                       {deleting ? <CircularProgress size={16} /> : <DeleteOutline fontSize="small" />}
                     </IconButton>
                   </>

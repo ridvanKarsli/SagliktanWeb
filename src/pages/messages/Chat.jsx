@@ -415,6 +415,7 @@ export default function Chat() {
             )}
             <IconButton
               size="small" onClick={removeAttachment}
+              aria-label="Eki kaldır"
               sx={{
                 position: 'absolute', top: 2, right: 2,
                 width: { xs: 26, sm: 18 }, height: { xs: 26, sm: 18 },
