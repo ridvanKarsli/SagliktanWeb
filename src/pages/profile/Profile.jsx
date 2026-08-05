@@ -4,7 +4,7 @@ import {
   Stack, TextField, ToggleButton, ToggleButtonGroup, Typography
 } from '@mui/material'
 import {
-  ChevronRightRounded, EditOutlined, GroupsRounded, LockOutlined, LogoutRounded,
+  BlockRounded, ChevronRightRounded, EditOutlined, GroupsRounded, LockOutlined, LogoutRounded,
   PrivacyTipOutlined, WarningAmberRounded
 } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
@@ -13,7 +13,7 @@ import { useNotification } from '../../context/NotificationContext.jsx'
 import PostCard from '../../components/PostCard.jsx'
 import {
   changePassword, deactivateAccount, getMyDiseaseGroups, getMyPosts, getMySavedPosts,
-  getUserProfile, updateProfile
+  getUserProfile, listBlockedUsers, unblockUser, updateProfile
 } from '../../services/api.js'
 import { Section, SectionList, SubRow } from './ProfileShared.jsx'
 
@@ -259,6 +259,41 @@ export default function Profile() {
     } catch (err) {
       showError(err.message || 'Hesap deaktive edilemedi.')
       setDeactivating(false)
+    }
+  }
+
+  /* ---- Engellenen kullanıcılar (Faz 2 adım 6) ----
+     listBlockedUsers/unblockUser zaten mesajlaşma API'sinde vardı ama hiçbir
+     sayfa kullanmıyordu - Chat.jsx'te engelleyebiliyordun ama geri
+     kaldıracak bir arayüz yoktu. Diğer lazy-load'lu (Kaydedilenler) bölümle
+     aynı desen: ilk açılışta çekilir. */
+  const [blockedOpen, setBlockedOpen] = useState(false)
+  const [blockedUsers, setBlockedUsers] = useState([])
+  const [blockedLoading, setBlockedLoading] = useState(false)
+  const [blockedLoaded, setBlockedLoaded] = useState(false)
+  const [unblockingId, setUnblockingId] = useState(null)
+
+  useEffect(() => {
+    if (!blockedOpen || blockedLoaded || !token) return
+    let mounted = true
+    setBlockedLoading(true)
+    listBlockedUsers(token)
+      .then(res => { if (mounted) { setBlockedUsers(Array.isArray(res) ? res : []); setBlockedLoaded(true) } })
+      .catch(err => showError(err.message || 'Engellenen kullanıcılar alınamadı.'))
+      .finally(() => { if (mounted) setBlockedLoading(false) })
+    return () => { mounted = false }
+  }, [blockedOpen, blockedLoaded, token, showError])
+
+  const handleUnblock = async (userId) => {
+    setUnblockingId(userId)
+    try {
+      await unblockUser(token, userId)
+      setBlockedUsers(prev => prev.filter(b => b.userId !== userId))
+      showSuccess('Engel kaldırıldı.')
+    } catch (err) {
+      showError(err.message || 'Engel kaldırılamadı.')
+    } finally {
+      setUnblockingId(null)
     }
   }
 
@@ -543,6 +578,48 @@ export default function Profile() {
                         <Button size="small" onClick={() => setPwOpen(false)} disabled={savingPassword}>İptal</Button>
                       </Stack>
                     </Stack>
+                  </Box>
+                </Collapse>
+              </Box>
+
+              <Box>
+                <SettingsRow
+                  icon={<BlockRounded sx={{ fontSize: 20 }} />}
+                  label="Engellenen Kullanıcılar"
+                  open={blockedOpen}
+                  onClick={() => setBlockedOpen(o => !o)}
+                />
+                <Collapse in={blockedOpen} unmountOnExit>
+                  <Box sx={{ px: 1.5, pb: 1.5 }}>
+                    {blockedLoading ? (
+                      <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                        <CircularProgress size={20} />
+                      </Box>
+                    ) : blockedUsers.length === 0 ? (
+                      <Typography variant="body2" sx={{ color: 'text.secondary', py: 1 }}>
+                        Engellediğin kimse yok.
+                      </Typography>
+                    ) : (
+                      <Stack spacing={1}>
+                        {blockedUsers.map(b => (
+                          <Stack
+                            key={b.id} direction="row" alignItems="center" spacing={1.5}
+                            sx={{ py: 0.75 }}
+                          >
+                            <Typography variant="body2" sx={{ flex: 1, fontWeight: 500 }} noWrap>
+                              {b.userName}
+                            </Typography>
+                            <Button
+                              size="small" variant="outlined"
+                              disabled={unblockingId === b.userId}
+                              onClick={() => handleUnblock(b.userId)}
+                            >
+                              {unblockingId === b.userId ? <CircularProgress size={14} color="inherit" /> : 'Engeli Kaldır'}
+                            </Button>
+                          </Stack>
+                        ))}
+                      </Stack>
+                    )}
                   </Box>
                 </Collapse>
               </Box>
