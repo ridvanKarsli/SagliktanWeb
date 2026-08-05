@@ -140,11 +140,16 @@ export default function LumoNotification({ message, type = 'info', onClose, dura
         </IconButton>
       </Box>
 
-      {/* Progress bar */}
+      {/* Progress bar - saf görsel geri sayım, toast zaten kendi mesajıyla
+          ve otomatik kapanmasıyla anlamı taşıyor; axe-core burada rakam/metin
+          değil rol (aria-progressbar-name) denetlediği ve bu ARIA-tabanlı bir
+          kural olduğu için (color-contrast'ın aksine) aria-hidden gerçekten
+          etkili: element erişilebilirlik ağacından tamamen çıkıyor. */}
       {duration > 0 && (
         <LinearProgress
           variant="determinate"
           value={progress}
+          aria-hidden="true"
           sx={{
             position: 'absolute',
             bottom: 0,

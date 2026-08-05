@@ -354,20 +354,26 @@ export default function WelcomeScreen() {
               <Grid item xs={12} sm={4} key={index}>
                 <Box sx={{ textAlign: 'center' }}>
                   {/* axe-core (bkz. e2e/accessibility.spec.js) bu rakamları
-                      color-contrast ihlali olarak işaretledi: %22 opaklıktaki
-                      yeşil, zeminle neredeyse aynı luminansta (~1.2:1,
-                      WCAG AA eşiği 4.5:1). Kontrastı artırmak bilinçli
-                      tasarım niyetini (arka planda soluk bir dekoratif rakam)
-                      bozardı - bunun yerine aria-hidden: bu rakamlar salt
-                      görsel bir süsleme, adım sırası zaten step.title ve DOM
-                      sırasıyla ekran okuyucuya iletiliyor, kaybolan bir bilgi
-                      yok. */}
+                      color-contrast ihlali olarak işaretledi. Önceki düzeltme
+                      denemesi (aria-hidden) YANLIŞTI: aria-hidden yalnızca
+                      ekran okuyucu ağacından çıkarır, ama color-contrast
+                      kuralı GÖRSEL algıyla ilgili - az gören ama ekran
+                      okuyucu kullanmayan sighted kullanıcıları koruyor, bu
+                      yüzden aria-hidden'a rağmen ihlal olarak işaretlenmeye
+                      devam etti (doğrulandı: gerçek test koşusunda hâlâ 3
+                      öğe raporlandı). Gerçek düzeltme opaklığı artırmak -
+                      56px/800 weight "large text" eşiğine (3:1) göre
+                      opaklık 0.75'te ~3.5:1 sağlıyor, "soluk dekoratif"
+                      hissi korunuyor ama artık okunabilir. aria-hidden yine
+                      de duruyor: rakamlar salt görsel süsleme, adım sırası
+                      zaten step.title ve DOM sırasıyla ekran okuyucuya
+                      iletiliyor. */}
                   <Typography
                     aria-hidden="true"
                     sx={{
                       fontSize: '3.5rem',
                       fontWeight: 800,
-                      color: 'rgba(63, 156, 135, 0.22)',
+                      color: 'rgba(63, 156, 135, 0.75)',
                       lineHeight: 1,
                       mb: 2
                     }}

@@ -101,7 +101,10 @@ export default function PhotoUploadField({ value = [], onChange, token, disabled
               />
             )}
             {(entry.status === 'compressing' || entry.status === 'uploading') && (
-              <LinearProgress sx={{ position: 'absolute', bottom: 0, left: 0, right: 0 }} />
+              <LinearProgress
+                aria-label={entry.status === 'compressing' ? 'Sıkıştırılıyor' : 'Yükleniyor'}
+                sx={{ position: 'absolute', bottom: 0, left: 0, right: 0 }}
+              />
             )}
             {entry.status === 'error' && (
               <ErrorOutlineRounded
