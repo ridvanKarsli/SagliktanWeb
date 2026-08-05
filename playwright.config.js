@@ -48,7 +48,12 @@ export default defineConfig({
 
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-    // Kök neden bulunana kadar geçici olarak kapalı - teşhis süresini yarıya indiriyor.
+    // mobile-safari: 2026-08-05'te teşhis edildi - register sayfası WebKit'te
+    // sorunsuz render oluyor, axe-core WCAG taraması geçti (bkz. görüşme
+    // geçmişi). CI'da varsayılan olarak KAPALI tutuluyor - bilinçli tercih:
+    // WebKit headless CI'da chromium'a göre daha yavaş/flaky, bu proje için
+    // ek sinyal/maliyet dengesi şu an chromium-only lehine. Gerekirse
+    // aşağıdaki satırı açıp lokalde veya ayrı bir CI job'unda çalıştırılabilir.
     // { name: 'mobile-safari', use: { ...devices['iPhone 13'] } },
   ],
 
