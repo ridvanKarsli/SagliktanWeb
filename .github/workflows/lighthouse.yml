@@ -1,0 +1,46 @@
+name: Lighthouse CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+# Mobil uyum raporu roadmap: "Lighthouse CI'ı PR pipeline'ına ekleyip
+# performans bütçesi (LCP/INP/CLS eşikleri) aşıldığında build'i
+# uyarsın/engellesin". e2e.yml'den (Playwright) BİLEREK ayrı bir workflow:
+# o job gerçek backend + Postgres ayağa kaldırıyor (yavaş, ~dakikalar), bu
+# job'un buna hiç ihtiyacı yok - lighthouserc.json sadece statik dist/
+# çıktısını (staticDistDir) test ediyor, "/" (WelcomeScreen - PublicOnlyRoute,
+# fetch çağrısı yapmıyor) her oturumun girdiği ilk nokta ve LCP açısından en
+# kritik sayfa (bkz. App.jsx'teki eager/lazy ayrımı yorumları). Mobil form
+# faktörü + throttling zorunlu (bkz. lighthouserc.json settings) çünkü bu
+# raporun tamamı mobil deneyim odaklı.
+jobs:
+  lighthouse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Bağımlılıkları kur
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Lighthouse CI çalıştır
+        uses: treosh/lighthouse-ci-action@v11
+        with:
+          configPath: './lighthouserc.json'
+          uploadArtifacts: true
+          temporaryPublicStorage: true

@@ -1,0 +1,31 @@
+{
+  "ci": {
+    "collect": {
+      "staticDistDir": "./dist",
+      "numberOfRuns": 3,
+      "settings": {
+        "formFactor": "mobile",
+        "throttlingMethod": "simulate",
+        "screenEmulation": {
+          "mobile": true,
+          "width": 390,
+          "height": 844,
+          "deviceScaleFactor": 3,
+          "disabled": false
+        }
+      }
+    },
+    "assert": {
+      "assertions": {
+        "categories:performance": ["warn", { "minScore": 0.8 }],
+        "largest-contentful-paint": ["error", { "maxNumericValue": 2500 }],
+        "cumulative-layout-shift": ["error", { "maxNumericValue": 0.1 }],
+        "total-blocking-time": ["warn", { "maxNumericValue": 300 }],
+        "interactive": ["warn", { "maxNumericValue": 5000 }]
+      }
+    },
+    "upload": {
+      "target": "temporary-public-storage"
+    }
+  }
+}
