@@ -385,9 +385,11 @@ export function listConversationMessages(token, conversationId, { page = 0, size
   return request(`/messages/conversations/${conversationId}/messages`, { token, params: { page, size }, signal });
 }
 
-export function sendChatMessage(token, conversationId, { content, attachmentKey }) {
+export function sendChatMessage(token, conversationId, { content, attachmentKey, sharedPostId }) {
   return request(`/messages/conversations/${conversationId}/messages`, {
-    method: 'POST', token, body: { content: content || null, attachmentKey: attachmentKey || null }
+    method: 'POST',
+    token,
+    body: { content: content || null, attachmentKey: attachmentKey || null, sharedPostId: sharedPostId || null }
   });
 }
 

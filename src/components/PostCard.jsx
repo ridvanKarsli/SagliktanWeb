@@ -1,8 +1,11 @@
-import { Avatar, Box, Stack, Typography } from '@mui/material'
+import { useState } from 'react'
+import { Avatar, Box, IconButton, Stack, Typography } from '@mui/material'
+import { SendOutlined } from '@mui/icons-material'
 import ReactionButtons from './ReactionButtons.jsx'
 import SaveButton from './SaveButton.jsx'
 import HighlightText from './HighlightText.jsx'
 import PostGallery from './PostGallery.jsx'
+import SendPostDialog from './SendPostDialog.jsx'
 import { reactToPost, removePostReaction, savePost, unsavePost } from '../services/api.js'
 
 function initialsFrom(name = '') {
@@ -30,6 +33,7 @@ function truncate(text = '', max = 180) {
  * sözleşmesi değişmedi - sadece görsel/yapısal düzen.
  */
 export default function PostCard({ post, onClick, token, highlightQuery }) {
+  const [sendDialogOpen, setSendDialogOpen] = useState(false)
   if (!post) return null
   const { id, authorName, title, content, createdAt, updatedAt, helpfulCount, notHelpfulCount, myReaction, saved, savedCount, attachments } = post
 
@@ -108,15 +112,27 @@ export default function PostCard({ post, onClick, token, highlightQuery }) {
             onReact={(value) => reactToPost(token, id, value)}
             onRemove={() => removePostReaction(token, id)}
           />
-          {/* IG'deki yer bloğuna sadık: yıldızlama (bookmark) sağ tarafta. */}
-          <SaveButton
-            saved={!!saved}
-            count={savedCount}
-            onSave={() => savePost(token, id)}
-            onUnsave={() => unsavePost(token, id)}
-          />
+          {/* IG'deki yer bloğuna sadık: yıldızlama (bookmark) + gönder sağ tarafta. */}
+          <Stack direction="row" alignItems="center">
+            <SaveButton
+              saved={!!saved}
+              count={savedCount}
+              onSave={() => savePost(token, id)}
+              onUnsave={() => unsavePost(token, id)}
+            />
+            <IconButton
+              size="small"
+              onClick={(e) => { e.stopPropagation(); setSendDialogOpen(true) }}
+              aria-label="Mesajla gönder"
+              title="Mesajla gönder"
+            >
+              <SendOutlined fontSize="small" />
+            </IconButton>
+          </Stack>
         </Stack>
       )}
+
+      <SendPostDialog open={sendDialogOpen} onClose={() => setSendDialogOpen(false)} post={post} />
     </Box>
   )
 }

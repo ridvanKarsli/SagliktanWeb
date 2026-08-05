@@ -71,6 +71,7 @@ export default function Conversations() {
           ...prev[idx],
           lastMessagePreview: message.content,
           lastMessageHasAttachment: Boolean(message.attachmentUrl),
+          lastMessageHasSharedPost: Boolean(message.sharedPost),
           lastMessageAt: message.createdAt,
           unreadCount: (prev[idx].unreadCount || 0) + 1,
         }
@@ -163,7 +164,10 @@ export default function Conversations() {
                       whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
                     }}
                   >
-                    {c.lastMessagePreview || (c.lastMessageHasAttachment ? '📷 Fotoğraf' : 'Sohbete başla')}
+                    {c.lastMessagePreview
+                      || (c.lastMessageHasAttachment ? '📷 Fotoğraf'
+                        : c.lastMessageHasSharedPost ? '🔗 Gönderi paylaştı'
+                          : 'Sohbete başla')}
                   </Typography>
                 </Box>
                 {c.unreadCount > 0 && (

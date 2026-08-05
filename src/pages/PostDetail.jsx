@@ -6,7 +6,7 @@ import {
 } from '@mui/material'
 import {
   ArrowBack, ChevronRightRounded, DeleteOutline, EditOutlined, FlagOutlined,
-  InfoOutlined, IosShareRounded, ReplyOutlined
+  InfoOutlined, IosShareRounded, ReplyOutlined, SendOutlined
 } from '@mui/icons-material'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
@@ -16,6 +16,7 @@ import ReactionButtons from '../components/ReactionButtons.jsx'
 import SaveButton from '../components/SaveButton.jsx'
 import PostGallery from '../components/PostGallery.jsx'
 import ShareStoryCardDialog from '../components/ShareStoryCardDialog.jsx'
+import SendPostDialog from '../components/SendPostDialog.jsx'
 import {
   createComment, deleteComment, deletePost, getMyDiseaseGroups, getPost, listComments,
   listCommentReplies, reactToComment, reactToPost, removeCommentReaction, removePostReaction,
@@ -477,6 +478,8 @@ export default function PostDetail() {
 
   // Faz 2 adım 5: hikaye kartı dialogu - bkz. ShareStoryCardDialog.jsx.
   const [shareCardOpen, setShareCardOpen] = useState(false)
+  // Faz 2 adım 7: gönderiyi mesajla gönderme dialogu - bkz. SendPostDialog.jsx.
+  const [sendDialogOpen, setSendDialogOpen] = useState(false)
 
   // Backend, bir hastalık grubuna üye olmayan kullanıcının o gruba ait
   // postlara yorum yapmasını reddediyor (bkz. CommentServiceImpl.
@@ -876,6 +879,9 @@ export default function PostDetail() {
               <IconButton onClick={() => setShareCardOpen(true)} title="Hikaye olarak paylaş">
                 <IosShareRounded fontSize="small" />
               </IconButton>
+              <IconButton onClick={() => setSendDialogOpen(true)} title="Mesajla gönder">
+                <SendOutlined fontSize="small" />
+              </IconButton>
             </Stack>
           </Box>
         </>
@@ -883,6 +889,7 @@ export default function PostDetail() {
       </Box>
 
       <ShareStoryCardDialog open={shareCardOpen} onClose={() => setShareCardOpen(false)} post={post} />
+      <SendPostDialog open={sendDialogOpen} onClose={() => setSendDialogOpen(false)} post={post} />
 
       <Typography variant="h4" sx={{ fontWeight: 600, mb: 2 }}>
         {focusedComment ? 'Yanıtlar' : 'Yorumlar'}

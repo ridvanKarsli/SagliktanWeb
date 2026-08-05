@@ -288,6 +288,52 @@ export default function Chat() {
                     '&:hover .report-message-btn': { opacity: 1 }
                   }}
                 >
+                  {/* Faz 2 adım 7: mesajla paylaşılan gönderi önizlemesi -
+                      backend post silinmişse sharedPost'u null döner (bkz.
+                      ChatMessageResponse), o durumda kısa bir "silinmiş"
+                      notu gösteriyoruz. */}
+                  {m.sharedPost ? (
+                    <Box
+                      onClick={() => navigate(`/post/${m.sharedPost.id}`)}
+                      sx={{
+                        display: 'flex', gap: 1, alignItems: 'center', cursor: 'pointer',
+                        borderRadius: 2, overflow: 'hidden', maxWidth: 260,
+                        mb: (m.content || m.attachmentUrl) ? 0.75 : 0,
+                        bgcolor: mine ? 'rgba(255,255,255,0.14)' : 'background.paper',
+                        border: '1px solid', borderColor: mine ? 'rgba(255,255,255,0.26)' : 'divider',
+                        p: 1
+                      }}
+                    >
+                      {m.sharedPost.thumbnailUrl && (
+                        <Box
+                          component="img"
+                          src={m.sharedPost.thumbnailUrl}
+                          alt=""
+                          sx={{ width: 48, height: 48, borderRadius: 1.5, objectFit: 'cover', flexShrink: 0 }}
+                        />
+                      )}
+                      <Box sx={{ minWidth: 0 }}>
+                        <Typography variant="caption" sx={{ fontWeight: 700, display: 'block' }} noWrap>
+                          {m.sharedPost.title}
+                        </Typography>
+                        {m.sharedPost.contentSnippet && (
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              opacity: 0.85, display: '-webkit-box', WebkitLineClamp: 2,
+                              WebkitBoxOrient: 'vertical', overflow: 'hidden'
+                            }}
+                          >
+                            {m.sharedPost.contentSnippet}
+                          </Typography>
+                        )}
+                      </Box>
+                    </Box>
+                  ) : (!m.content && !m.attachmentUrl && (
+                    <Typography variant="caption" sx={{ fontStyle: 'italic', opacity: 0.7 }}>
+                      Paylaşılan gönderi silinmiş
+                    </Typography>
+                  ))}
                   {m.attachmentUrl && (
                     <Box
                       component="img"
