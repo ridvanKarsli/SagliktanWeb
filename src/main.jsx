@@ -11,6 +11,7 @@ import { NotificationsFeedProvider } from './context/NotificationsFeedContext.js
 import { MessagingProvider } from './context/MessagingContext.jsx'
 import { ConfirmProvider } from './context/ConfirmContext.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
+import { reportWebVitals } from './utils/reportWebVitals.js'
 // Inter fontu artık Google Fonts'tan değil, yerelden (bkz. index.html'deki not).
 import '@fontsource/inter/400.css'
 import '@fontsource/inter/500.css'
@@ -34,6 +35,9 @@ if (sentryDsn) {
       httpBodies: [],
     },
   })
+  // Gerçek kullanıcı Core Web Vitals'ı (RUM) - bkz. utils/reportWebVitals.js
+  // üstündeki gerekçe. Sentry DSN yoksa (lokal/preview) hiç çalışmaz.
+  reportWebVitals()
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(
