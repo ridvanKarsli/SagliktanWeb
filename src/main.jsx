@@ -2,7 +2,6 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { ThemeProvider, CssBaseline } from '@mui/material'
-import * as Sentry from '@sentry/react'
 import App from './App.jsx'
 import theme from './theme.js'
 import { AuthProvider } from './context/AuthContext.jsx'
@@ -26,18 +25,39 @@ import './index.css'
 // prod projesine karışmıyor. userInfo/httpBodies bilerek kapalı - backend
 // tarafındaki send-default-pii=false kararıyla tutarlı, KVKK incelemesi
 // tamamlanana kadar kullanıcı verisi üçüncü tarafa gitmiyor.
+//
+// @sentry/react artık dinamik import() ile yükleniyor (bkz. ErrorBoundary.jsx
+// üstündeki gerekçe - Lighthouse CI'ın yakaladığı LCP ihlali). SDK ayrı bir
+// chunk'a düşüyor, ilk render'ı bloke eden ana pakete hiç girmiyor.
 const sentryDsn = import.meta.env.VITE_SENTRY_DSN
 if (sentryDsn) {
-  Sentry.init({
-    dsn: sentryDsn,
-    dataCollection: {
-      userInfo: false,
-      httpBodies: [],
-    },
+  import('@sentry/react').then((Sentry) => {
+    Sentry.init({
+      dsn: sentryDsn,
+      dataCollection: {
+        userInfo: false,
+        httpBodies: [],
+      },
+    })
+    // Gerçek kullanıcı Core Web Vitals'ı (RUM) - bkz. utils/reportWebVitals.js
+    // üstündeki gerekçe. Sentry burada zaten yüklü olduğu için reporter'ı
+    // doğrudan ona bağlıyoruz.
+    reportWebVitals((metric) => {
+      Sentry.captureMessage(`web-vital: ${metric.name} ${metric.rating}`, {
+        level: metric.rating === 'poor' ? 'warning' : 'info',
+        tags: {
+          webVitalName: metric.name,
+          webVitalRating: metric.rating,
+          page: window.location.pathname,
+        },
+        extra: {
+          value: metric.value,
+          id: metric.id,
+          navigationType: metric.navigationType,
+        },
+      })
+    })
   })
-  // Gerçek kullanıcı Core Web Vitals'ı (RUM) - bkz. utils/reportWebVitals.js
-  // üstündeki gerekçe. Sentry DSN yoksa (lokal/preview) hiç çalışmaz.
-  reportWebVitals()
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(

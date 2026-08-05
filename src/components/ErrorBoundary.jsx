@@ -1,7 +1,6 @@
 import { Component } from 'react'
 import { Box, Button, Stack, Typography } from '@mui/material'
 import { ErrorOutlineRounded, HomeRounded, RefreshRounded } from '@mui/icons-material'
-import * as Sentry from '@sentry/react'
 
 // React'in render sırasında yakaladığı beklenmedik hatalara karşı güvenlik
 // ağı - bu olmadan bir bileşende fırlatılan hata (örn. beklenmeyen null,
@@ -22,9 +21,22 @@ export default class ErrorBoundary extends Component {
 
   componentDidCatch(error, info) {
     console.error('Beklenmeyen render hatası:', error, info)
-    // main.jsx'te VITE_SENTRY_DSN yoksa Sentry.init hiç çağrılmıyor - o
-    // durumda bu no-op'tur, güvenle her ortamda çağrılabilir.
-    Sentry.captureException(error, { extra: { componentStack: info?.componentStack } })
+    // @sentry/react artık burada da statik import DEĞİL - Lighthouse CI'ın
+    // yakaladığı LCP ihlali (bkz. commit geçmişi) SDK'nın, DSN olsun ya da
+    // olmasın, önceden bu dosya üzerinden ana JS paketine (initial render'ı
+    // bloke eden) kalıcı biçimde girmesinden kaynaklanıyordu - main.jsx'teki
+    // "if (sentryDsn)" kontrolü sadece Sentry.init/reportWebVitals çağrısını
+    // eliyordu, SDK'nın kendisini değil (bu dosya koşulsuz/her zaman
+    // ulaşılabilir olduğu için tree-shaking SDK'yı çıkaramıyordu). Dinamik
+    // import ile SDK artık ayrı bir chunk'a düşüyor, ana paketi hiç
+    // büyütmüyor; hata gerçekten oluşursa (nadir yol) bir adet ek ağ isteği
+    // kabul edilebilir bir bedel. DSN yoksa Sentry.init hiç çağrılmadığından
+    // captureException zaten no-op - güvenle her ortamda çağrılabilir.
+    import('@sentry/react')
+      .then((Sentry) => {
+        Sentry.captureException(error, { extra: { componentStack: info?.componentStack } })
+      })
+      .catch(() => {})
   }
 
   handleReload = () => {

@@ -1,5 +1,4 @@
 import { onCLS, onINP, onLCP, onFCP, onTTFB } from 'web-vitals'
-import * as Sentry from '@sentry/react'
 
 // Mobil uyum raporu roadmap: "Üretimde gerçek kullanıcı Core Web Vitals
 // verisi topla (web-vitals kütüphanesi -> Sentry/analytics) - laboratuvar
@@ -19,30 +18,19 @@ import * as Sentry from '@sentry/react'
 //    "poor" olarak derecelendirilen ölçümleri gönderiyoruz; "good" olanlar
 //    (asıl beklenen/istenen durum) gönderilmez - aksi halde her sayfa
 //    yüklemesinde 5 event, yüksek trafikte kotayı hızla tüketir.
-// 3) Sadece prod build'de VE Sentry DSN varsa çalışır (main.jsx'teki
-//    Sentry.init ile aynı kapı) - lokal geliştirme verisi karışmasın.
-function sendToSentry(metric) {
-  if (metric.rating === 'good') return
-
-  Sentry.captureMessage(`web-vital: ${metric.name} ${metric.rating}`, {
-    level: metric.rating === 'poor' ? 'warning' : 'info',
-    tags: {
-      webVitalName: metric.name,
-      webVitalRating: metric.rating,
-      page: window.location.pathname,
-    },
-    extra: {
-      value: metric.value,
-      id: metric.id,
-      navigationType: metric.navigationType,
-    },
-  })
-}
-
-export function reportWebVitals() {
-  onCLS(sendToSentry)
-  onINP(sendToSentry)
-  onLCP(sendToSentry)
-  onFCP(sendToSentry)
-  onTTFB(sendToSentry)
+// 3) Sentry'ye NASIL gönderileceğini bu dosya artık bilmiyor - @sentry/react'i
+//    burada import etmek, LCP'yi bozan aynı "SDK ana pakete kalıcı giriyor"
+//    sorununu tekrar ederdi (bkz. ErrorBoundary.jsx'teki uzun gerekçe).
+//    Çağıran taraf (main.jsx) DSN varsa Sentry'yi dinamik yükleyip bir
+//    "reporter" callback'i buraya veriyor - bu dosya sadece metriği ölçüyor.
+export function reportWebVitals(onMetric) {
+  function handle(metric) {
+    if (metric.rating === 'good') return
+    onMetric(metric)
+  }
+  onCLS(handle)
+  onINP(handle)
+  onLCP(handle)
+  onFCP(handle)
+  onTTFB(handle)
 }
