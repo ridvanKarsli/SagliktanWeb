@@ -255,6 +255,18 @@ const theme = createTheme({
             color: colors.text.primary,
           },
         },
+        // root'taki minHeight: 48 ve padding: '12px 24px' tüm boyutlara
+        // (size prop'undan bağımsız) uygulanıyordu - size="small" verilen
+        // butonlar (admin tabloları, yorum/gönderi aksiyonları vb. birçok
+        // yerde kullanılıyor) görsel olarak medium boyutta render oluyordu.
+        // Mobilde bu, sık kullanılan küçük aksiyon butonlarının (İncelendi,
+        // Reddet, Sil, Düzenle...) gereğinden büyük yer kaplayıp satırların
+        // taşmasına/sıkışmasına yol açıyordu.
+        sizeSmall: {
+          minHeight: 38,
+          padding: '6px 14px',
+          fontSize: '0.8125rem',
+        },
       },
     },
     MuiTextField: {
