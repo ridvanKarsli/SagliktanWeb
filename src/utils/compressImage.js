@@ -3,13 +3,34 @@
 // PLAN_faz2_ozellikler.md adım 4) - hem R2 depolama maliyetini hem
 // yükleme/gösterim süresini düşürür, backend'e ekstra iş bindirmez.
 //
-// Her zaman JPEG'e çevriliyor (PNG/WebP girişleri dahil) - basitlik için:
-// tek bir çıktı formatı, hem sıkıştırma oranı hem backend doğrulaması
-// (bkz. MediaConstraints.ALLOWED_CONTENT_TYPES) tarafında tutarlı.
-// Şeffaflık gerektiren bir kullanım senaryosu yok (fotoğraf paylaşımı).
-
+// Mobil uyum raporu roadmap: "Görsel işleme hattına AVIF/WebP üretimi ekle".
+// Yükleme mimarisi BİLEREK backend'i atlıyor (bkz. MediaController.java -
+// presigned URL ile doğrudan client -> R2) - bu yüzden WebP üretimi de
+// SUNUCU TARAFINDA değil, tıpkı JPEG sıkıştırması gibi burada, tarayıcıda
+// yapılıyor: mevcut mimariye ek bir bileşen (backend işleme adımı veya
+// Cloudflare Images gibi ücretli bir edge transform ürünü) eklemeden aynı
+// kazancı sağlıyor. Backend zaten "image/webp" içeriğini kabul ediyor (bkz.
+// MediaConstraints.ALLOWED_CONTENT_TYPES) - eksik olan sadece istemcinin
+// bunu üretmesiydi.
+//
+// WebP ENCODE desteği tarayıcıya göre değişebiliyor (ör. çok eski Safari
+// sürümleri canvas.toBlob'da 'image/webp' isteğini sessizce PNG'ye
+// düşürebiliyor - hata FIRLATMIYOR, bu yüzden blob.type kontrolü şart).
+// Gösterim tarafında (WebP'yi <img> ile AÇMA) bunun aksine praktik olarak
+// evrensel destek var, bu yüzden sadece üretim tarafını feature-detect
+// ediyoruz. Desteklenmiyorsa JPEG'e (eski davranış) sorunsuzca düşer.
 const DEFAULT_MAX_DIMENSION = 1920
 const DEFAULT_QUALITY = 0.8
+
+let webpSupportCache = null
+function supportsWebpEncoding() {
+  if (webpSupportCache !== null) return webpSupportCache
+  const canvas = document.createElement('canvas')
+  canvas.width = 1
+  canvas.height = 1
+  webpSupportCache = canvas.toDataURL('image/webp').startsWith('data:image/webp')
+  return webpSupportCache
+}
 
 export async function compressImage(file, { maxDimension = DEFAULT_MAX_DIMENSION, quality = DEFAULT_QUALITY } = {}) {
   const bitmap = await createImageBitmap(file)
@@ -24,21 +45,30 @@ export async function compressImage(file, { maxDimension = DEFAULT_MAX_DIMENSION
     const ctx = canvas.getContext('2d')
     ctx.drawImage(bitmap, 0, 0, targetWidth, targetHeight)
 
+    const useWebp = supportsWebpEncoding()
+    const mimeType = useWebp ? 'image/webp' : 'image/jpeg'
+
     const blob = await new Promise((resolve, reject) => {
       canvas.toBlob(
         (result) => (result ? resolve(result) : reject(new Error('Görsel sıkıştırılamadı'))),
-        'image/jpeg',
+        mimeType,
         quality
       )
     })
 
-    return new File([blob], toJpgFileName(file.name), { type: 'image/jpeg' })
+    // Tarayıcı sessizce farklı bir formata düştüyse (yukarıdaki teşhis
+    // yanlış pozitif verdiyse) gerçek blob.type'a güven, varsayılan olarak
+    // WebP iddia etme.
+    const finalMime = blob.type === 'image/webp' ? 'image/webp' : 'image/jpeg'
+    const extension = finalMime === 'image/webp' ? 'webp' : 'jpg'
+
+    return new File([blob], toFileName(file.name, extension), { type: finalMime })
   } finally {
     bitmap.close?.()
   }
 }
 
-function toJpgFileName(originalName) {
+function toFileName(originalName, extension) {
   const base = (originalName || 'foto').replace(/\.[^./]+$/, '')
-  return `${base}.jpg`
+  return `${base}.${extension}`
 }
