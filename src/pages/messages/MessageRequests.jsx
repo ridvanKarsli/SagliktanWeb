@@ -153,22 +153,34 @@ export default function MessageRequests() {
               const otherId = tab === 0 ? r.senderId : r.recipientId
               const otherName = tab === 0 ? r.senderName : r.recipientName
               return (
-                <Box key={r.id} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 2, py: 1.5 }}>
-                  <Avatar
-                    sx={{ width: 44, height: 44, fontWeight: 600, flexShrink: 0, cursor: 'pointer' }}
-                    onClick={() => navigate(`/users/${otherId}`)}
-                  >
-                    {initialsFrom(otherName)}
-                  </Avatar>
-                  <Typography
-                    variant="subtitle2"
-                    sx={{ fontWeight: 600, flex: 1, cursor: 'pointer' }}
-                    onClick={() => navigate(`/users/${otherId}`)}
-                  >
-                    {otherName}
-                  </Typography>
+                <Box
+                  key={r.id}
+                  sx={{
+                    display: 'flex',
+                    flexDirection: { xs: 'column', sm: 'row' },
+                    alignItems: { xs: 'stretch', sm: 'center' },
+                    gap: 1.25,
+                    px: 2,
+                    py: 1.5
+                  }}
+                >
+                  <Stack direction="row" alignItems="center" spacing={1.5} sx={{ minWidth: 0, flex: 1 }}>
+                    <Avatar
+                      sx={{ width: 44, height: 44, fontWeight: 600, flexShrink: 0, cursor: 'pointer' }}
+                      onClick={() => navigate(`/users/${otherId}`)}
+                    >
+                      {initialsFrom(otherName)}
+                    </Avatar>
+                    <Typography
+                      variant="subtitle2"
+                      sx={{ fontWeight: 600, minWidth: 0, wordBreak: 'break-word', cursor: 'pointer' }}
+                      onClick={() => navigate(`/users/${otherId}`)}
+                    >
+                      {otherName}
+                    </Typography>
+                  </Stack>
                   {tab === 0 ? (
-                    <Stack direction="row" spacing={1}>
+                    <Stack direction="row" spacing={1} sx={{ justifyContent: { xs: 'flex-end', sm: 'flex-start' } }}>
                       <Button
                         size="small" variant="outlined" color="inherit"
                         disabled={actingId === r.id}
@@ -189,6 +201,7 @@ export default function MessageRequests() {
                       size="small" variant="outlined" color="error"
                       disabled={actingId === r.id}
                       onClick={() => handleCancel(r)}
+                      sx={{ alignSelf: { xs: 'flex-end', sm: 'center' } }}
                     >
                       {actingId === r.id ? <CircularProgress size={16} color="inherit" /> : 'Geri Çek'}
                     </Button>

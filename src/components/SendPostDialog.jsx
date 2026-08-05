@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import {
   Avatar, Box, Button, CircularProgress, Dialog, DialogContent, DialogTitle,
-  IconButton, Stack, Typography
+  IconButton, Stack, Typography, useMediaQuery
 } from '@mui/material'
+import { useTheme } from '@mui/material/styles'
 import { CheckCircleRounded, CloseRounded, SendRounded } from '@mui/icons-material'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useNotification } from '../context/NotificationContext.jsx'
@@ -19,6 +20,11 @@ import { initialsFrom } from '../utils/format.js'
 export default function SendPostDialog({ open, onClose, post }) {
   const { token } = useAuth()
   const { showError } = useNotification()
+  const theme = useTheme()
+  // Mobilde küçük bir modal (maxWidth="xs") liste + her satırda buton
+  // barındırdığında dar alana sıkışıyordu - tam ekran, konuşma listesini
+  // rahat kaydırılabilir ve dokunma hedefleri daha ferah hale getiriyor.
+  const fullScreen = useMediaQuery(theme.breakpoints.down('sm'))
 
   const [conversations, setConversations] = useState([])
   const [loading, setLoading] = useState(true)
@@ -50,7 +56,7 @@ export default function SendPostDialog({ open, onClose, post }) {
   }
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth fullScreen={fullScreen}>
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         Gönderiyi Gönder
         <IconButton size="small" onClick={onClose} aria-label="Kapat">

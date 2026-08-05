@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import {
   Avatar, Box, CircularProgress, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle,
-  Button, IconButton, ListItemText, Menu, MenuItem, Stack, TextField, Typography
+  Button, IconButton, ListItemText, Menu, MenuItem, Stack, TextField, Typography, useMediaQuery
 } from '@mui/material'
+import { useTheme } from '@mui/material/styles'
 import {
   ArrowBackRounded, BlockRounded, FlagOutlined, ImageOutlined, LockOpenRounded, MoreVertRounded, SendRounded
 } from '@mui/icons-material'
@@ -29,6 +30,8 @@ export default function Chat() {
   const confirm = useConfirm()
   const { subscribeToMessages, refreshUnreadCount } = useMessaging()
   const navigate = useNavigate()
+  const theme = useTheme()
+  const fullScreenDialog = useMediaQuery(theme.breakpoints.down('sm'))
 
   const [conversation, setConversation] = useState(null)
   const [messages, setMessages] = useState([]) // kronolojik sırada (eski -> yeni)
@@ -349,12 +352,17 @@ export default function Chat() {
                       aria-label="Mesajı şikayet et"
                       className="report-message-btn"
                       sx={{
-                        position: 'absolute', top: -10, right: -10, width: 24, height: 24,
+                        position: 'absolute', top: -10, right: -10,
+                        width: { xs: 30, sm: 24 }, height: { xs: 30, sm: 24 },
                         bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider',
-                        opacity: 0, transition: 'opacity 0.15s'
+                        // Hover, dokunmatik cihazlarda tetiklenmiyor - "hover'da
+                        // görün" davranışı masaüstünde temiz dursun diye
+                        // korunuyor, ama mobilde buton hiç görünmez/erişilemez
+                        // hale gelmesin diye orada her zaman görünür tutuluyor.
+                        opacity: { xs: 1, sm: 0 }, transition: 'opacity 0.15s'
                       }}
                     >
-                      <FlagOutlined sx={{ fontSize: 13 }} />
+                      <FlagOutlined sx={{ fontSize: { xs: 16, sm: 13 } }} />
                     </IconButton>
                   )}
                 </Box>
@@ -396,7 +404,12 @@ export default function Chat() {
             )}
             <IconButton
               size="small" onClick={removeAttachment}
-              sx={{ position: 'absolute', top: 2, right: 2, width: 18, height: 18, bgcolor: 'rgba(0,0,0,0.55)', color: '#fff', '&:hover': { bgcolor: 'rgba(0,0,0,0.75)' } }}
+              sx={{
+                position: 'absolute', top: 2, right: 2,
+                width: { xs: 26, sm: 18 }, height: { xs: 26, sm: 18 },
+                fontSize: { xs: '1.05rem', sm: '0.875rem' },
+                bgcolor: 'rgba(0,0,0,0.55)', color: '#fff', '&:hover': { bgcolor: 'rgba(0,0,0,0.75)' }
+              }}
             >
               ×
             </IconButton>
@@ -438,7 +451,7 @@ export default function Chat() {
       )}
 
       {/* Mesaj şikayet dialogu */}
-      <Dialog open={Boolean(reportTarget)} onClose={() => setReportTarget(null)} maxWidth="xs" fullWidth>
+      <Dialog open={Boolean(reportTarget)} onClose={() => setReportTarget(null)} maxWidth="xs" fullWidth fullScreen={fullScreenDialog}>
         <DialogTitle>Mesajı Şikayet Et</DialogTitle>
         <DialogContent>
           <DialogContentText sx={{ mb: 1.5 }}>

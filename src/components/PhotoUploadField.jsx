@@ -115,12 +115,13 @@ export default function PhotoUploadField({ value = [], onChange, token, disabled
               disabled={disabled}
               aria-label="Fotoğrafı kaldır"
               sx={{
-                position: 'absolute', top: 2, right: 2, width: 20, height: 20,
+                position: 'absolute', top: 2, right: 2,
+                width: { xs: 26, sm: 20 }, height: { xs: 26, sm: 20 },
                 bgcolor: 'rgba(0,0,0,0.55)', color: '#fff',
                 '&:hover': { bgcolor: 'rgba(0,0,0,0.75)' }
               }}
             >
-              <CloseRounded sx={{ fontSize: 14 }} />
+              <CloseRounded sx={{ fontSize: { xs: 16, sm: 14 } }} />
             </IconButton>
           </Box>
         ))}

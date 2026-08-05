@@ -1,12 +1,16 @@
 import { useState } from 'react'
 import {
-  Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, TextField
+  Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle,
+  TextField, useMediaQuery
 } from '@mui/material'
+import { useTheme } from '@mui/material/styles'
 
 // Şikayet için ortak dialog: post ya da yorum, tek bir bileşenle karşılanıyor.
 // PostDetail.jsx'ten taşındı (bkz. clean-code audit).
 export default function ReportDialog({ open, onClose, onSubmit, submitting }) {
   const [reason, setReason] = useState('')
+  const theme = useTheme()
+  const fullScreen = useMediaQuery(theme.breakpoints.down('sm'))
 
   const handleClose = () => {
     if (submitting) return
@@ -20,7 +24,7 @@ export default function ReportDialog({ open, onClose, onSubmit, submitting }) {
   }
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="xs" fullWidth>
+    <Dialog open={open} onClose={handleClose} maxWidth="xs" fullWidth fullScreen={fullScreen}>
       <DialogTitle>İçeriği Şikayet Et</DialogTitle>
       <DialogContent>
         <DialogContentText sx={{ mb: 2 }}>
