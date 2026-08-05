@@ -49,6 +49,9 @@ export default function DashboardTab({ token }) {
     setLoading(true)
     Promise.all([
       getAdminStats(token),
+      // İkincil veri: sadece "Hastalık Grubu" kart sayısı için kullanılıyor,
+      // başarısız olursa kart '—' gösterir, tüm dashboard'u bozmasın diye
+      // ayrı yutuluyor (bkz. api.js hata yutma konvansiyonu).
       listDiseaseGroups(token).catch(() => [])
     ])
       .then(([statsRes, groups]) => {

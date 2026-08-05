@@ -22,6 +22,9 @@ export function MessagingProvider({ children }) {
 
   const refreshPendingCount = useCallback(() => {
     if (!token) return
+    // İkincil veri (bkz. api.js hata yutma konvansiyonu): nav rozeti için
+    // sayaç - başarısız olursa rozet güncel kalır, kullanıcıyı toast'la
+    // rahatsız etmeye değmez.
     getPendingMessageRequestCount(token)
       .then(res => setPendingRequestCount(res?.count ?? 0))
       .catch(() => {})
@@ -33,6 +36,7 @@ export function MessagingProvider({ children }) {
   // GET isteği bunu garanti doğru tutar.
   const refreshUnreadCount = useCallback(() => {
     if (!token) return
+    // İkincil veri, yukarıdaki refreshPendingCount ile aynı gerekçe.
     getUnreadMessageCount(token)
       .then(res => setUnreadMessageCount(res?.count ?? 0))
       .catch(() => {})

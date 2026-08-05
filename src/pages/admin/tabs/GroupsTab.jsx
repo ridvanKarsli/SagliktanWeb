@@ -110,6 +110,9 @@ function DiseaseGroupAccordion({ group, token, onChanged }) {
   const confirm = useConfirm()
 
   const loadSubGroups = useCallback(() => {
+    // Başarısız olursa boş liste göster ("Henüz alt grup yok" gibi) - accordion
+    // zaten kullanıcının kendi açtığı ikincil bir görünüm, ayrı bir toast
+    // eklemek burada gürültü olurdu (bkz. api.js hata yutma konvansiyonu).
     listSubGroups(token, group.id).then(setSubGroups).catch(() => setSubGroups([]))
   }, [token, group.id])
 

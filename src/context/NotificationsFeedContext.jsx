@@ -25,6 +25,9 @@ export function NotificationsFeedProvider({ children }) {
 
   const refresh = useCallback(() => {
     if (!token) return
+    // İkincil veri (bkz. api.js hata yutma konvansiyonu): bildirim akışı
+    // WS bağlantısı zaten yeniden dener, burada başarısız bir refresh
+    // için toast göstermek gürültü olurdu.
     listNotifications(token, { size: FEED_PAGE_SIZE })
       .then(res => setItems(Array.isArray(res?.content) ? res.content : []))
       .catch(() => {})

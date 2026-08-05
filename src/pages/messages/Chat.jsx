@@ -80,6 +80,9 @@ export default function Chat() {
         // BlockService.isBlockedEitherDirection), bu ikisini birleştirerek
         // çıkarıyoruz.
         setBlockedByOther(conv.canMessage === false && !iBlockedThem)
+        // İkincil işlem: "okundu" işaretleme başarısız olsa bile sohbet
+        // zaten açıldı - nav rozeti bir sonraki refreshUnreadCount'ta
+        // kendiliğinden düzelir, kullanıcıyı toast'la rahatsız etmeye değmez.
         markConversationRead(token, conversationId).then(refreshUnreadCount).catch(() => {})
       })
       .catch(err => {
@@ -100,6 +103,7 @@ export default function Chat() {
     return subscribeToMessages((message) => {
       if (String(message.conversationId) !== String(conversationId)) return
       setMessages(prev => (prev.some(m => m.id === message.id) ? prev : [...prev, message]))
+      // Yukarıdaki ile aynı gerekçe: ikincil işlem, sessizce başarısız olabilir.
       markConversationRead(token, conversationId).then(refreshUnreadCount).catch(() => {})
     })
   }, [subscribeToMessages, conversationId, token, refreshUnreadCount])

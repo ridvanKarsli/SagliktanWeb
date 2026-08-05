@@ -176,6 +176,9 @@ export default function Search() {
     }
     setSuggestLoading(true)
     debounceRef.current = setTimeout(() => {
+      // Yazarken-öneri (autocomplete) ikincil bir yardımcı - başarısız
+      // olursa öneri kutusu sessizce kapanır, kullanıcı yine de Enter'a
+      // basıp asıl aramayı (runSearch) çalıştırabilir.
       quickSearch(token, term)
         .then(res => { setSuggestions(res); setActiveIndex(-1) })
         .catch(() => setSuggestions(null))

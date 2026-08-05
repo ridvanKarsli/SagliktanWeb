@@ -10,10 +10,16 @@ function b64urlToUtf8(b64url) {
       atob(b64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')
     )
   } catch {
+    // Payload UTF-8 çok baytlı karakter içermiyorsa yukarıdaki decode
+    // gereksiz/başarısız olabilir - ham atob() sonucu zaten doğru ASCII'dir.
     return atob(b64)
   }
 }
 function parseJwt(token) {
+  // Bozuk/eksik bir token'da boş obje dön - çağıran taraf (isTokenExpired)
+  // zaten `p?.exp` ile kontrollü okuyor, burada hata fırlatmak (ki zaten
+  // sadece expiry kontrolü için kullanılan, güvenlik kararı vermeyen bir
+  // yardımcı) gereksiz bir crash'e yol açardı.
   try { return JSON.parse(b64urlToUtf8(token.split('.')[1])) || {} } catch { return {} }
 }
 function isTokenExpired(token) {
@@ -47,11 +53,16 @@ const AuthContext = createContext(null)
 function getAuthStorage() {
   const localAuth = localStorage.getItem('auth')
   if (localAuth) {
-    try { return { storage: localStorage, data: JSON.parse(localAuth) } } catch {}
+    // Bozuk JSON ise sessionStorage'a da bakmaya devam et - burada hata
+    // fırlatmak, kullanıcıyı geçerli bir oturumu varken bile login'e
+    // düşürürdü.
+    try { return { storage: localStorage, data: JSON.parse(localAuth) } } catch { /* devam et */ }
   }
   const sessionAuth = sessionStorage.getItem('auth')
   if (sessionAuth) {
-    try { return { storage: sessionStorage, data: JSON.parse(sessionAuth) } } catch {}
+    // Her iki depoda da bozuk veri varsa aşağıdaki null dönüşü zaten
+    // "oturum yok" olarak yorumlanıyor (bkz. AuthProvider init effect'i).
+    try { return { storage: sessionStorage, data: JSON.parse(sessionAuth) } } catch { /* devam et */ }
   }
   return null
 }

@@ -5,7 +5,21 @@
 // doktor/uzmanlık/iş adresi/duyuru/reaksiyon gibi karşılığı olmayan
 // fonksiyonlar kaldırıldı. Backend'in gerçek endpoint/DTO şekli:
 // bkz. SagliktanApi controller/dto paketleri.
-
+//
+// HATA YUTMA KONVANSİYONU (bu dosyadaki fonksiyonları çağıran her yerde
+// geçerli): bir `.catch(...)` bloğu YALNIZCA aşağıdaki iki durumdan birinde
+// sessiz kalmalı - aksi halde en azından `console.warn`/`console.error` ile
+// logla (bkz. ReactionButtons.jsx'teki örnek: sessizce yutulan bir hata,
+// arayüz eski haline dönse bile NEDEN başarısız olduğunu hiçbir yerde
+// görünmez kılıyor, teşhisi imkansızlaştırıyor):
+//   1) İkincil/arka plan verisi (bildirim sayacı, dashboard istatistiği,
+//      "opsiyonel" bir liste gibi) - sayfanın asıl işlevini engellemiyor,
+//      kullanıcıya toast ile rahatsız etmeye değmez. Yine de KISA bir
+//      yorumla "neden sessiz" belirtilmeli (bkz. Profile.jsx satır ~177).
+//   2) Zaten beklenen/anlamsız durumlar (WS mesaj parse hatası, kullanıcının
+//      kendi kapattığı bir prompt vb.) - bunlar da yorumla açıklanmalı.
+// Kullanıcının doğrudan tetiklediği bir aksiyonun (form gönderme, silme,
+// kaydetme vb.) hatası HER ZAMAN showError/setError ile görünür olmalı.
 const API_BASE = import.meta.env.VITE_API_BASE?.trim() || '/api';
 
 // Dinamik import: AuthContext bu modülü de import ettiği için döngüsel

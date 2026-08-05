@@ -74,6 +74,9 @@ export default function PostDetail() {
     let mounted = true
     getMyDiseaseGroups(token)
       .then(groups => { if (mounted) setMyGroupIds(new Set((Array.isArray(groups) ? groups : []).map(g => g.id))) })
+      // Başarısız olursa "hiçbir gruba üye değil" varsayılır - yorum kutusu
+      // güvenli tarafta kalıp gizlenir (backend zaten reddederdi), ayrı bir
+      // hata toast'ı bu sayfanın asıl akışını (postu okumayı) bozardı.
       .catch(() => { if (mounted) setMyGroupIds(new Set()) })
     return () => { mounted = false }
   }, [token])
