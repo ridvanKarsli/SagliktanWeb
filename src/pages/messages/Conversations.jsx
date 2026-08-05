@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect } from 'react'
 import { Avatar, Badge, Box, Button, CircularProgress, Divider, Stack, Typography } from '@mui/material'
 import { ChatBubbleOutlineRounded, MailOutlineRounded } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
@@ -6,13 +6,8 @@ import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
 import { useMessaging } from '../../context/MessagingContext.jsx'
 import { listConversations } from '../../services/api.js'
-
-function initialsFrom(name = '') {
-  const parts = name.trim().split(/\s+/).filter(Boolean)
-  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase()
-  if (parts.length === 1) return ((parts[0][0] || '') + (parts[0][1] || '')).toUpperCase()
-  return '?'
-}
+import { initialsFrom } from '../../utils/format.js'
+import { usePaginatedList } from '../../hooks/usePaginatedList.js'
 
 function formatWhen(iso) {
   if (!iso) return ''
@@ -34,26 +29,14 @@ export default function Conversations() {
   const { pendingRequestCount, subscribeToMessages } = useMessaging()
   const navigate = useNavigate()
 
-  const [conversations, setConversations] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [loadingMore, setLoadingMore] = useState(false)
-  const [page, setPage] = useState(0)
-  const [last, setLast] = useState(true)
-
-  const load = useCallback(() => {
-    if (!token) return
-    setLoading(true)
-    setPage(0)
-    listConversations(token, { page: 0 })
-      .then(res => {
-        setConversations(Array.isArray(res?.content) ? res.content : [])
-        setLast(res?.last ?? true)
-      })
-      .catch(err => showError(err.message || 'Sohbetler alınamadı.'))
-      .finally(() => setLoading(false))
-  }, [token, showError])
-
-  useEffect(() => { load() }, [load])
+  const conversationsFetcher = useCallback((page) => listConversations(token, { page }), [token])
+  const {
+    items: conversations, setItems: setConversations, loading, loadingMore, last, loadMore, reload: load
+  } = usePaginatedList(conversationsFetcher, {
+    enabled: !!token,
+    deps: [token],
+    onError: err => showError(err.message || 'Sohbetler alınamadı.')
+  })
 
   // Canlı mesaj geldiğinde tüm listeyi yeniden çekmek yerine (gereksiz ağ
   // trafiği) yerinde güncelliyoruz - konuşma listede zaten varsa önizlemesini
@@ -80,22 +63,7 @@ export default function Conversations() {
         return [updated, ...next]
       })
     })
-  }, [subscribeToMessages, load])
-
-  const loadMore = async () => {
-    const nextPage = page + 1
-    setLoadingMore(true)
-    try {
-      const res = await listConversations(token, { page: nextPage })
-      setConversations(prev => [...prev, ...(Array.isArray(res?.content) ? res.content : [])])
-      setLast(res?.last ?? true)
-      setPage(nextPage)
-    } catch (err) {
-      showError(err.message || 'Sohbetler alınamadı.')
-    } finally {
-      setLoadingMore(false)
-    }
-  }
+  }, [subscribeToMessages, load, setConversations])
 
   return (
     <Box sx={{ width: '100%', maxWidth: 680, mx: 'auto', py: { xs: 2, md: 4 } }}>

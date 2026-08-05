@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
   Alert, Avatar, Box, Button, Chip, CircularProgress, Collapse, Divider, IconButton,
   Stack, TextField, ToggleButton, ToggleButtonGroup, Typography
@@ -16,16 +16,8 @@ import {
   getUserProfile, listBlockedUsers, unblockUser, updateProfile
 } from '../../services/api.js'
 import { Section, SectionList, SubRow } from './ProfileShared.jsx'
-
-function initialsFrom(name = '') {
-  const parts = name.trim().split(/\s+/).filter(Boolean)
-  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase()
-  if (parts.length === 1) {
-    const s = parts[0]
-    return ((s[0] || '') + (s[1] || '')).toUpperCase()
-  }
-  return '?'
-}
+import { initialsFrom } from '../../utils/format.js'
+import { usePaginatedList } from '../../hooks/usePaginatedList.js'
 
 // Ayarlar sekmesindeki her satır (şifre, gizlilik, çıkış, hesap silme) için
 // ortak tıklanabilir satır bileşeni.
@@ -135,92 +127,33 @@ export default function Profile() {
   }, [token])
 
   /* ---- Postlarım ---- */
-  const [myPosts, setMyPosts] = useState([])
-  const [postsPage, setPostsPage] = useState(0)
-  const [postsTotalCount, setPostsTotalCount] = useState(0)
-  const [postsLast, setPostsLast] = useState(true)
-  const [postsLoading, setPostsLoading] = useState(true)
-  const [postsLoadingMore, setPostsLoadingMore] = useState(false)
-
-  useEffect(() => {
-    if (!token) { setPostsLoading(false); return }
-    let mounted = true
-    setPostsLoading(true)
-    setPostsPage(0)
-    getMyPosts(token, { page: 0 })
-      .then(res => {
-        if (!mounted) return
-        setMyPosts(Array.isArray(res?.content) ? res.content : [])
-        // totalElements standart Spring Page yanıtında zaten mevcut - yeni
-        // bir backend alanı gerekmiyor, sadece bu sayıyı arayüzde gösteriyoruz.
-        setPostsTotalCount(res?.totalElements ?? 0)
-        setPostsLast(res?.last ?? true)
-      })
-      .catch(err => showError(err.message || 'Postlarınız alınamadı.'))
-      .finally(() => { if (mounted) setPostsLoading(false) })
-    return () => { mounted = false }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token])
-
-  const loadMorePosts = async () => {
-    const nextPage = postsPage + 1
-    setPostsLoadingMore(true)
-    try {
-      const res = await getMyPosts(token, { page: nextPage })
-      setMyPosts(prev => [...prev, ...(Array.isArray(res?.content) ? res.content : [])])
-      setPostsLast(res?.last ?? true)
-      setPostsPage(nextPage)
-    } catch (err) {
-      showError(err.message || 'Postlarınız alınamadı.')
-    } finally {
-      setPostsLoadingMore(false)
-    }
-  }
+  const postsFetcher = useCallback((page) => getMyPosts(token, { page }), [token])
+  const {
+    items: myPosts, loading: postsLoading, loadingMore: postsLoadingMore,
+    last: postsLast, totalCount: postsTotalCount, loadMore: loadMorePosts
+  } = usePaginatedList(postsFetcher, {
+    enabled: !!token,
+    deps: [token],
+    onError: err => showError(err.message || 'Postlarınız alınamadı.')
+  })
 
   /* ---- Kaydedilenler (Faz 2 adım 3) ----
      "Postlarım" bölümünün üstündeki Gönderiler/Kaydedilenler seçiciyle
      değişen ikinci bir liste. Herkes kaydedilenler sekmesine hiç
      bakmayabileceği için tembel yükleniyor: ilk kez "Kaydedilenler"e
-     geçilince çekiliyor, sonrasında cache'leniyor (savedLoaded). */
+     geçilince çekiliyor, sonrasında cache'leniyor (usePaginatedList'in
+     once:true'su). */
   const [postsMode, setPostsMode] = useState('mine')
-  const [savedPosts, setSavedPosts] = useState([])
-  const [savedPage, setSavedPage] = useState(0)
-  const [savedLast, setSavedLast] = useState(true)
-  const [savedLoading, setSavedLoading] = useState(false)
-  const [savedLoadingMore, setSavedLoadingMore] = useState(false)
-  const [savedLoaded, setSavedLoaded] = useState(false)
-
-  useEffect(() => {
-    if (postsMode !== 'saved' || savedLoaded || !token) return
-    let mounted = true
-    setSavedLoading(true)
-    getMySavedPosts(token, { page: 0 })
-      .then(res => {
-        if (!mounted) return
-        setSavedPosts(Array.isArray(res?.content) ? res.content : [])
-        setSavedLast(res?.last ?? true)
-        setSavedLoaded(true)
-      })
-      .catch(err => showError(err.message || 'Kaydedilen gönderiler alınamadı.'))
-      .finally(() => { if (mounted) setSavedLoading(false) })
-    return () => { mounted = false }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [postsMode, savedLoaded, token])
-
-  const loadMoreSaved = async () => {
-    const nextPage = savedPage + 1
-    setSavedLoadingMore(true)
-    try {
-      const res = await getMySavedPosts(token, { page: nextPage })
-      setSavedPosts(prev => [...prev, ...(Array.isArray(res?.content) ? res.content : [])])
-      setSavedLast(res?.last ?? true)
-      setSavedPage(nextPage)
-    } catch (err) {
-      showError(err.message || 'Kaydedilen gönderiler alınamadı.')
-    } finally {
-      setSavedLoadingMore(false)
-    }
-  }
+  const savedPostsFetcher = useCallback((page) => getMySavedPosts(token, { page }), [token])
+  const {
+    items: savedPosts, loading: savedLoading, loadingMore: savedLoadingMore,
+    last: savedLast, loadMore: loadMoreSaved
+  } = usePaginatedList(savedPostsFetcher, {
+    enabled: postsMode === 'saved' && !!token,
+    once: true,
+    deps: [token],
+    onError: err => showError(err.message || 'Kaydedilen gönderiler alınamadı.')
+  })
 
   /* ---- İstatistikler (yorum sayısı, faydalı/faydalı değil) ----
      AuthContext'teki user nesnesi bootstrap/login anında bir kereliğine

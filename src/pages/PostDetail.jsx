@@ -22,6 +22,7 @@ import {
   listCommentReplies, reactToComment, reactToPost, removeCommentReaction, removePostReaction,
   reportComment, reportPost, savePost, unsavePost, updateComment, updatePost
 } from '../services/api.js'
+import { initialsFrom, prettyDate } from '../utils/format.js'
 
 // Bir kullanıcının profiline git - kendi profilinse (App.jsx'te UserProfile
 // zaten /profile'a yönlendiriyor ama burada da direkt /profile'a göndermek
@@ -34,16 +35,6 @@ function goToUserProfile(navigate, currentUser, targetUserId) {
   } else {
     navigate(`/users/${targetUserId}`)
   }
-}
-
-function initialsFrom(name = '') {
-  const parts = name.trim().split(/\s+/).filter(Boolean)
-  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase()
-  if (parts.length === 1) {
-    const s = parts[0]
-    return ((s[0] || '') + (s[1] || '')).toUpperCase()
-  }
-  return '?'
 }
 
 // Yorum satırı yüklenirken gösterilen iskelet - CommentRow'un avatar+metin
@@ -284,7 +275,7 @@ function CommentRow({
                 {comment.authorName || 'Kullanıcı'}
               </Typography>
               <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
-                {comment.createdAt ? new Date(comment.createdAt).toLocaleDateString('tr-TR') : ''}
+                {prettyDate(comment.createdAt) || ''}
               </Typography>
             </Box>
             {!editing && !isDeleted && (
@@ -791,7 +782,7 @@ export default function PostDetail() {
               {post.authorName || 'Kullanıcı'}
             </Typography>
             <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
-              {post.createdAt ? new Date(post.createdAt).toLocaleDateString('tr-TR') : ''}
+              {prettyDate(post.createdAt) || ''}
               {edited ? ' · düzenlendi' : ''}
             </Typography>
           </Box>

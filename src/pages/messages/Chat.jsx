@@ -16,13 +16,7 @@ import {
   getConversation, listConversationMessages, sendChatMessage, markConversationRead,
   requestPresignedUpload, uploadToPresignedUrl, blockUser, unblockUser, listBlockedUsers, reportMessage
 } from '../../services/api.js'
-
-function initialsFrom(name = '') {
-  const parts = name.trim().split(/\s+/).filter(Boolean)
-  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase()
-  if (parts.length === 1) return ((parts[0][0] || '') + (parts[0][1] || '')).toUpperCase()
-  return '?'
-}
+import { initialsFrom } from '../../utils/format.js'
 
 // Faz 2 adım 6: tek bir konuşmanın mesaj akışı. Backend sayfaları en yeni
 // mesaj önce (DESC) döndürüyor - bu bileşen kronolojik (eski üstte, yeni

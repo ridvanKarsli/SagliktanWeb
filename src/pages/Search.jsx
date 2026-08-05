@@ -10,22 +10,13 @@ import HighlightText from '../components/HighlightText.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useNotification } from '../context/NotificationContext.jsx'
 import { searchPosts, searchComments, searchUsers, quickSearch } from '../services/api.js'
+import { initialsFrom, prettyDate } from '../utils/format.js'
 
 const TABS = [
   { key: 'posts', label: 'Gönderiler', fetcher: searchPosts },
   { key: 'comments', label: 'Yorumlar', fetcher: searchComments },
   { key: 'people', label: 'Kişiler', fetcher: searchUsers },
 ]
-
-function initialsFrom(name = '') {
-  const parts = name.trim().split(/\s+/).filter(Boolean)
-  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase()
-  if (parts.length === 1) {
-    const s = parts[0]
-    return ((s[0] || '') + (s[1] || '')).toUpperCase()
-  }
-  return '?'
-}
 
 function truncate(text = '', max = 140) {
   const clean = String(text || '').trim()
@@ -60,7 +51,7 @@ function CommentResultCard({ comment, onClick, onAuthorClick, query }) {
           {comment.authorName || 'Kullanıcı'}
         </Typography>
         <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-          · {comment.createdAt ? new Date(comment.createdAt).toLocaleDateString('tr-TR') : ''}
+          · {prettyDate(comment.createdAt) || ''}
         </Typography>
       </Stack>
       <Typography

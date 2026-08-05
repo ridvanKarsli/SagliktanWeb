@@ -7,16 +7,7 @@ import HighlightText from './HighlightText.jsx'
 import PostGallery from './PostGallery.jsx'
 import SendPostDialog from './SendPostDialog.jsx'
 import { reactToPost, removePostReaction, savePost, unsavePost } from '../services/api.js'
-
-function initialsFrom(name = '') {
-  const parts = name.trim().split(/\s+/).filter(Boolean)
-  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase()
-  if (parts.length === 1) {
-    const s = parts[0]
-    return ((s[0] || '') + (s[1] || '')).toUpperCase()
-  }
-  return '?'
-}
+import { initialsFrom } from '../utils/format.js'
 
 function truncate(text = '', max = 180) {
   const clean = String(text || '').trim()

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
   Alert, Avatar, Box, Button, Chip, CircularProgress, Dialog, DialogContent, DialogTitle,
   IconButton, Stack, Typography
@@ -8,16 +8,8 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
 import { getDiseaseGroup, listSubGroups, listDiseaseGroupMembers } from '../../services/api.js'
-
-function initialsFrom(name = '') {
-  const parts = name.trim().split(/\s+/).filter(Boolean)
-  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase()
-  if (parts.length === 1) {
-    const s = parts[0]
-    return ((s[0] || '') + (s[1] || '')).toUpperCase()
-  }
-  return '?'
-}
+import { initialsFrom } from '../../utils/format.js'
+import { usePaginatedList } from '../../hooks/usePaginatedList.js'
 
 export default function SubGroups() {
   const { groupId } = useParams()
@@ -33,13 +25,21 @@ export default function SubGroups() {
   // Gruba kayıtlı üyelerin listesi - "Üyeleri Gör" tıklanınca yükleniyor.
   // Kalabalık gruplarda (1000+ kullanıcı hedefi) tek seferde tüm üyeleri
   // çekmemek için backend sayfalı dönüyor, burada "Daha Fazla Yükle" ile
-  // sayfa sayfa ekleniyor.
+  // sayfa sayfa ekleniyor. once:true - dialog kapanıp tekrar açılınca
+  // yeniden çekmez, ilk açılışta bir kez yükler.
   const [membersOpen, setMembersOpen] = useState(false)
-  const [members, setMembers] = useState([])
-  const [membersLoading, setMembersLoading] = useState(false)
-  const [membersLoadingMore, setMembersLoadingMore] = useState(false)
-  const [membersPage, setMembersPage] = useState(0)
-  const [membersLast, setMembersLast] = useState(true)
+  const membersFetcher = useCallback(
+    (page) => listDiseaseGroupMembers(token, groupId, { page }), [token, groupId]
+  )
+  const {
+    items: members, loading: membersLoading, loadingMore: membersLoadingMore, last: membersLast,
+    loadMore: loadMoreMembers
+  } = usePaginatedList(membersFetcher, {
+    enabled: membersOpen,
+    once: true,
+    deps: [token, groupId],
+    onError: err => showError(err.message || 'Üyeler alınamadı.')
+  })
 
   useEffect(() => {
     let mounted = true
@@ -72,36 +72,7 @@ export default function SubGroups() {
     }
   }
 
-  const openMembers = async () => {
-    setMembersOpen(true)
-    if (members.length > 0) return
-    setMembersLoading(true)
-    try {
-      const res = await listDiseaseGroupMembers(token, groupId, { page: 0 })
-      setMembers(Array.isArray(res?.content) ? res.content : [])
-      setMembersPage(0)
-      setMembersLast(res?.last ?? true)
-    } catch (err) {
-      showError(err.message || 'Üyeler alınamadı.')
-    } finally {
-      setMembersLoading(false)
-    }
-  }
-
-  const loadMoreMembers = async () => {
-    const nextPage = membersPage + 1
-    setMembersLoadingMore(true)
-    try {
-      const res = await listDiseaseGroupMembers(token, groupId, { page: nextPage })
-      setMembers(prev => [...prev, ...(Array.isArray(res?.content) ? res.content : [])])
-      setMembersPage(nextPage)
-      setMembersLast(res?.last ?? true)
-    } catch (err) {
-      showError(err.message || 'Üyeler alınamadı.')
-    } finally {
-      setMembersLoadingMore(false)
-    }
-  }
+  const openMembers = () => setMembersOpen(true)
 
   if (loading) {
     return (

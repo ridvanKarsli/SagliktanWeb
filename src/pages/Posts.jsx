@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   Alert, Avatar, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent,
   DialogTitle, Divider, Fab, IconButton, Stack, TextField, ToggleButton, ToggleButtonGroup,
@@ -12,16 +12,8 @@ import PhotoUploadField from '../components/PhotoUploadField.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useNotification } from '../context/NotificationContext.jsx'
 import { createPost, getSubGroup, listPostsBySubGroup, searchPostsInSubGroup } from '../services/api.js'
-
-function initialsFrom(name = '') {
-  const parts = name.trim().split(/\s+/).filter(Boolean)
-  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase()
-  if (parts.length === 1) {
-    const s = parts[0]
-    return ((s[0] || '') + (s[1] || '')).toUpperCase()
-  }
-  return '?'
-}
+import { initialsFrom } from '../utils/format.js'
+import { usePaginatedList } from '../hooks/usePaginatedList.js'
 
 export default function Posts() {
   const { subGroupId } = useParams()
@@ -32,11 +24,6 @@ export default function Posts() {
   const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'))
 
   const [subGroup, setSubGroup] = useState(null)
-  const [posts, setPosts] = useState([])
-  const [page, setPage] = useState(0)
-  const [last, setLast] = useState(true)
-  const [loading, setLoading] = useState(true)
-  const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState('')
   const [sort, setSort] = useState('recent')
 
@@ -78,52 +65,31 @@ export default function Posts() {
   }, [query])
 
   // Arama modundaysak (debouncedQuery dolu) gruba özel arama uçlarını,
-  // değilse normal listeleme+sıralama uçlarını çağırır - sayfalama/yükleme
-  // state'i (page/last/loading) iki modda da aynı şekilde yönetiliyor.
-  const fetchPage = (pageNum) => (
+  // değilse normal listeleme+sıralama uçlarını çağırır.
+  const fetchPage = useCallback((pageNum) => (
     isSearching
       ? searchPostsInSubGroup(token, subGroupId, debouncedQuery, { page: pageNum })
       : listPostsBySubGroup(token, subGroupId, { page: pageNum, sort })
-  )
+  ), [token, subGroupId, sort, isSearching, debouncedQuery])
 
-  useEffect(() => {
-    if (!token || !subGroupId) { setLoading(false); return }
-    let mounted = true
-    setLoading(true)
-    setError('')
-    setPage(0)
-    fetchPage(0)
-      .then(res => {
-        if (!mounted) return
-        setPosts(Array.isArray(res?.content) ? res.content : [])
-        setLast(res?.last ?? true)
-      })
-      .catch(err => {
-        if (!mounted) return
-        setError(err.message || 'Gönderiler alınamadı.')
-      })
-      .finally(() => { if (mounted) setLoading(false) })
-    return () => { mounted = false }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, subGroupId, sort, debouncedQuery])
-
-  // Sayfa numaralı "Önceki/Sonraki" yerine mobilde tek elle kullanımı daha
-  // kolay olan "Daha Fazla Yükle" - yeni sayfa mevcut listeye ekleniyor,
-  // kullanıcı yerini kaybetmiyor.
-  const loadMore = async () => {
-    const nextPage = page + 1
-    setLoadingMore(true)
-    try {
-      const res = await fetchPage(nextPage)
-      setPosts(prev => [...prev, ...(Array.isArray(res?.content) ? res.content : [])])
-      setLast(res?.last ?? true)
-      setPage(nextPage)
-    } catch (err) {
-      showError(err.message || 'Gönderiler alınamadı.')
-    } finally {
-      setLoadingMore(false)
+  const {
+    items: posts, loading, loadingMore, last, loadMore, reload: reloadPosts
+  } = usePaginatedList(fetchPage, {
+    enabled: !!token && !!subGroupId,
+    deps: [token, subGroupId, sort, debouncedQuery],
+    // İlk yükleme hatası sayfanın en üstünde kalıcı bir Alert olarak
+    // gösterilir, "Daha Fazla Yükle" hatası ise (liste zaten dolu olduğu
+    // için) sadece bir toast - eskisiyle aynı ayrım.
+    onError: (err, phase) => {
+      if (phase === 'initial') setError(err.message || 'Gönderiler alınamadı.')
+      else showError(err.message || 'Gönderiler alınamadı.')
     }
-  }
+  })
+
+  // Yeni bir sorgu/sıralama başladığında önceki hatayı temizle - eskiden
+  // fetch effect'inin başında senkron yapılıyordu, aynı deps üzerinden
+  // burada da aynı anda tetikleniyor.
+  useEffect(() => { setError('') }, [token, subGroupId, sort, debouncedQuery])
 
   const openDialog = () => { setTitle(''); setContent(''); resetAttachments(); setDialogOpen(true) }
   const closeDialog = () => { if (!submitting) { resetAttachments(); setDialogOpen(false) } }
@@ -143,10 +109,7 @@ export default function Posts() {
       showSuccess('Gönderi oluşturuldu.')
       setDialogOpen(false)
       resetAttachments()
-      setPage(0)
-      const res = await fetchPage(0)
-      setPosts(Array.isArray(res?.content) ? res.content : [])
-      setLast(res?.last ?? true)
+      await reloadPosts()
     } catch (err) {
       showError(err.message || 'Gönderi oluşturulamadı.')
     } finally {

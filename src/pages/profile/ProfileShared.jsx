@@ -1,9 +1,9 @@
 import { Box, Stack, Typography } from '@mui/material'
 
-export function prettyDate(d) {
-  const dt = d ? new Date(d) : null
-  return dt && !isNaN(dt) ? dt.toLocaleDateString('tr-TR') : null
-}
+// prettyDate artık burada değil - bkz. utils/format.js (clean-code audit,
+// eskiden bu dosyada tanımlıydı ama profil dışı sayfalarda da inline
+// kopyalanmıştı).
+export { prettyDate } from '../../utils/format.js'
 
 export function SectionList({ items, renderItem, getKey, emptyText }) {
   if (!Array.isArray(items) || items.length === 0) {

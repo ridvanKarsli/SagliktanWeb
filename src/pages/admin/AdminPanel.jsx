@@ -19,6 +19,7 @@ import {
   listDiseaseGroups, listSubGroups, resolveAdminReport, updateAdminUser, updateDiseaseGroup,
   updateSubGroup
 } from '../../services/api.js'
+import { prettyDate } from '../../utils/format.js'
 
 const REPORT_STATUS_LABEL = { PENDING: 'Bekliyor', REVIEWED: 'İncelendi', REJECTED: 'Reddedildi' }
 const REPORT_STATUS_COLOR = { PENDING: 'warning', REVIEWED: 'success', REJECTED: 'default' }
@@ -454,7 +455,7 @@ function ContentCard({ item, type, deletingId, remove }) {
         <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
           <Typography variant="caption" sx={{ color: 'text.secondary' }}>{item.authorName}</Typography>
           <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-            {item.createdAt ? new Date(item.createdAt).toLocaleDateString('tr-TR') : ''}
+            {prettyDate(item.createdAt) || ''}
           </Typography>
           {type === 'comments' && (
             <Chip size="small" label={item.deleted ? 'Silinmiş' : 'Aktif'} color={item.deleted ? 'default' : 'success'} />
@@ -587,7 +588,7 @@ function ContentTab({ token }) {
                       <Chip size="small" label={item.deleted ? 'Silinmiş' : 'Aktif'} color={item.deleted ? 'default' : 'success'} />
                     </TableCell>
                   )}
-                  <TableCell>{item.createdAt ? new Date(item.createdAt).toLocaleDateString('tr-TR') : ''}</TableCell>
+                  <TableCell>{prettyDate(item.createdAt) || ''}</TableCell>
                   <TableCell align="right">
                     {!(type === 'comments' && item.deleted) && (
                       <Button size="small" color="error" disabled={deletingId === item.id} onClick={() => remove(item)}>

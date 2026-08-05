@@ -7,13 +7,7 @@ import { CheckCircleRounded, CloseRounded, SendRounded } from '@mui/icons-materi
 import { useAuth } from '../context/AuthContext.jsx'
 import { useNotification } from '../context/NotificationContext.jsx'
 import { listConversations, sendChatMessage } from '../services/api.js'
-
-function initialsFrom(name = '') {
-  const parts = name.trim().split(/\s+/).filter(Boolean)
-  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase()
-  if (parts.length === 1) return ((parts[0][0] || '') + (parts[0][1] || '')).toUpperCase()
-  return '?'
-}
+import { initialsFrom } from '../utils/format.js'
 
 // Faz 2 adım 7: bir gönderiyi sohbetlerinden birine mesaj olarak gönderme -
 // IG/WhatsApp'taki "Gönder" (Send to...) dialogunun sadeleştirilmiş hali.

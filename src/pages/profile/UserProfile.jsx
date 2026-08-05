@@ -6,16 +6,7 @@ import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
 import PostCard from '../../components/PostCard.jsx'
 import { getUserPublicProfile, getUserPosts, sendMessageRequest } from '../../services/api.js'
-
-function initialsFrom(name = '') {
-  const parts = name.trim().split(/\s+/).filter(Boolean)
-  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase()
-  if (parts.length === 1) {
-    const s = parts[0]
-    return ((s[0] || '') + (s[1] || '')).toUpperCase()
-  }
-  return '?'
-}
+import { initialsFrom } from '../../utils/format.js'
 
 // Başka bir kullanıcının herkese açık profili - arama sonuçlarında ya da bir
 // post/yorumun altında isme tıklayınca gelinen sayfa. Kendi profilin için
