@@ -50,7 +50,8 @@ export default function Chat() {
   const [menuAnchor, setMenuAnchor] = useState(null)
   const [reportTarget, setReportTarget] = useState(null) // message id
   const [reportReason, setReportReason] = useState('')
-  const [isBlocked, setIsBlocked] = useState(false)
+  const [isBlocked, setIsBlocked] = useState(false) // ben onu engelledim
+  const [blockedByOther, setBlockedByOther] = useState(false) // o beni engellemiş
 
   const bottomRef = useRef(null)
   const fileInputRef = useRef(null)
@@ -75,7 +76,13 @@ export default function Chat() {
         setMessages([...(msgPage?.content || [])].reverse())
         setHasMoreOlder(!(msgPage?.last ?? true))
         setPage(0)
-        setIsBlocked(Array.isArray(blocked) && blocked.some(b => b.userId === conv.otherUserId))
+        const iBlockedThem = Array.isArray(blocked) && blocked.some(b => b.userId === conv.otherUserId)
+        setIsBlocked(iBlockedThem)
+        // canMessage=false ve ben engellememişsem, engelleyen karşı taraf
+        // olmalı - backend hangi yönde olduğunu ayrıca söylemiyor (bkz.
+        // BlockService.isBlockedEitherDirection), bu ikisini birleştirerek
+        // çıkarıyoruz.
+        setBlockedByOther(conv.canMessage === false && !iBlockedThem)
         markConversationRead(token, conversationId).then(refreshUnreadCount).catch(() => {})
       })
       .catch(err => {
@@ -318,14 +325,22 @@ export default function Chat() {
         <div ref={bottomRef} />
       </Box>
 
-      {/* Mesaj yazma alanı - engellenmişken form yerine bilgi + engeli kaldır
-          gösterilir, aksi halde kullanıcı yazıp gönderince 403 ile karşılaşırdı. */}
+      {/* Mesaj yazma alanı - herhangi bir yönde engel varken form yerine
+          bilgi gösterilir, aksi halde kullanıcı yazıp gönderince 403 ile
+          karşılaşırdı. İki durum ayrı metinle anlatılıyor: kendi engelini
+          kaldırabilir ama karşı tarafın engelini kaldıramaz. */}
       {isBlocked ? (
         <Box sx={{ borderTop: '1px solid', borderColor: 'divider', px: { xs: 0.5, md: 0 }, py: 2, textAlign: 'center' }}>
           <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
             Bu kullanıcıyı engelledin, mesajlaşamazsınız.
           </Typography>
           <Button size="small" variant="outlined" onClick={handleUnblock}>Engeli Kaldır</Button>
+        </Box>
+      ) : blockedByOther ? (
+        <Box sx={{ borderTop: '1px solid', borderColor: 'divider', px: { xs: 0.5, md: 0 }, py: 2, textAlign: 'center' }}>
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+            Bu kişiye mesaj gönderemezsin.
+          </Typography>
         </Box>
       ) : (
       <Box component="form" onSubmit={handleSend} sx={{ borderTop: '1px solid', borderColor: 'divider', px: { xs: 0.5, md: 0 }, py: 1.5 }}>
