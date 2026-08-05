@@ -363,6 +363,14 @@ export function rejectMessageRequest(token, id) {
   return request(`/messages/requests/${id}/reject`, { method: 'PUT', token });
 }
 
+export function listSentMessageRequests(token, { page = 0, size, signal } = {}) {
+  return request('/messages/requests/outgoing', { token, params: { page, size }, signal });
+}
+
+export function cancelMessageRequest(token, id) {
+  return request(`/messages/requests/${id}`, { method: 'DELETE', token });
+}
+
 export function listConversations(token, { page = 0, size, signal } = {}) {
   return request('/messages/conversations', { token, params: { page, size }, signal });
 }
