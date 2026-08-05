@@ -6,7 +6,7 @@ import {
 } from '@mui/material'
 import {
   ArrowBack, ChevronRightRounded, DeleteOutline, EditOutlined, FlagOutlined,
-  InfoOutlined, ReplyOutlined
+  InfoOutlined, IosShareRounded, ReplyOutlined
 } from '@mui/icons-material'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
@@ -15,6 +15,7 @@ import { useConfirm } from '../context/ConfirmContext.jsx'
 import ReactionButtons from '../components/ReactionButtons.jsx'
 import SaveButton from '../components/SaveButton.jsx'
 import PostGallery from '../components/PostGallery.jsx'
+import ShareStoryCardDialog from '../components/ShareStoryCardDialog.jsx'
 import {
   createComment, deleteComment, deletePost, getMyDiseaseGroups, getPost, listComments,
   listCommentReplies, reactToComment, reactToPost, removeCommentReaction, removePostReaction,
@@ -474,6 +475,9 @@ export default function PostDetail() {
   const [reportTarget, setReportTarget] = useState({ open: false, type: null, targetId: null })
   const [reportSubmitting, setReportSubmitting] = useState(false)
 
+  // Faz 2 adım 5: hikaye kartı dialogu - bkz. ShareStoryCardDialog.jsx.
+  const [shareCardOpen, setShareCardOpen] = useState(false)
+
   // Backend, bir hastalık grubuna üye olmayan kullanıcının o gruba ait
   // postlara yorum yapmasını reddediyor (bkz. CommentServiceImpl.
   // assertMemberOfGroup). Bunu önceden bilmeden yorum kutusunu göstermek,
@@ -861,17 +865,24 @@ export default function PostDetail() {
               onRemove={() => removePostReaction(token, post.id)}
               size="medium"
             />
-            <SaveButton
-              saved={!!post.saved}
-              count={post.savedCount}
-              onSave={() => savePost(token, post.id)}
-              onUnsave={() => unsavePost(token, post.id)}
-              size="medium"
-            />
+            <Stack direction="row" spacing={0.5} alignItems="center">
+              <SaveButton
+                saved={!!post.saved}
+                count={post.savedCount}
+                onSave={() => savePost(token, post.id)}
+                onUnsave={() => unsavePost(token, post.id)}
+                size="medium"
+              />
+              <IconButton onClick={() => setShareCardOpen(true)} title="Hikaye olarak paylaş">
+                <IosShareRounded fontSize="small" />
+              </IconButton>
+            </Stack>
           </Box>
         </>
       )}
       </Box>
+
+      <ShareStoryCardDialog open={shareCardOpen} onClose={() => setShareCardOpen(false)} post={post} />
 
       <Typography variant="h4" sx={{ fontWeight: 600, mb: 2 }}>
         {focusedComment ? 'Yanıtlar' : 'Yorumlar'}

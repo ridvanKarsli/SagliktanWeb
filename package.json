@@ -21,6 +21,7 @@
     "@sentry/react": "^10.69.0",
     "@stomp/stompjs": "^7.3.0",
     "date-fns": "^2.30.0",
+    "qrcode": "^1.5.4",
     "react": "^19.1.1",
     "react-datepicker": "^8.7.0",
     "react-dom": "^19.1.1",
