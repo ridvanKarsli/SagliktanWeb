@@ -362,8 +362,10 @@ export function resolveAdminReport(token, id, status, deleteContent = false) {
 }
 
 // Genel içerik moderasyonu: sadece şikayet edilenler değil tüm postlar/yorumlar.
-export function listAdminPosts(token, { q, page = 0, size, signal } = {}) {
-  return request('/admin/posts', { token, params: { q, page, size }, signal });
+// hasPhotos=true: tehlikeli/uygunsuz görsel içerik denetimi için sadece
+// fotoğraflı gönderileri getirir (bkz. AdminPanel.jsx ContentTab).
+export function listAdminPosts(token, { q, hasPhotos, page = 0, size, signal } = {}) {
+  return request('/admin/posts', { token, params: { q, hasPhotos, page, size }, signal });
 }
 
 export function listAdminComments(token, { q, page = 0, size, signal } = {}) {
