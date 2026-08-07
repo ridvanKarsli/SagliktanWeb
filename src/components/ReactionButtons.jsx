@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Box, IconButton, Stack, Tooltip, Typography } from '@mui/material'
 import ThumbUpAltOutlinedIcon from '@mui/icons-material/ThumbUpAltOutlined'
 import ThumbUpAltIcon from '@mui/icons-material/ThumbUpAlt'
@@ -41,10 +41,23 @@ export default function ReactionButtons({
 }) {
   const [pending, setPending] = useState(false)
   const [local, setLocal] = useState({ helpfulCount, notHelpfulCount, myReaction })
+  // Art arda hızlı tıklamalarda (bkz. reactions.spec.js - "Faydalı"ya basıp
+  // hemen "Faydalı Değil"e geçme) hangi isteğin EN GÜNCEL olduğunu izlemek
+  // için. `pending` tek başına ikinci tıklamayı tamamen ENGELLEMEK için
+  // kullanılıyordu - ama optimistic güncelleme network beklemeden anında
+  // DOM'a yansıdığı için (bkz. aşağıdaki setLocal), kullanıcı/test ikinci
+  // tıklamayı ilk isteğin backend round-trip'i bitmeden yapabiliyordu ve o
+  // tıklama sessizce hiçbir şey yapmadan yutuluyordu (CI'da Postgres+Spring
+  // Boot round-trip'i yerelden daha yavaş olduğu için burada gerçek bir
+  // race - bkz. 2026-08-07 reactions.spec.js CI başarısızlığı). Artık her
+  // tıklama kendi request id'sini alıyor; hata durumunda sadece HÂLÂ en
+  // güncel istek buysa eski haline dönülüyor - aksi halde daha yeni
+  // (başarılı ya da hâlâ süren) bir optimistic güncellemeyi ezmiş oluruz.
+  const requestIdRef = useRef(0)
 
   const handleClick = async (e, value) => {
     e.stopPropagation()
-    if (pending || disabled) return
+    if (disabled) return
 
     const { helpfulCount: wasHelpful, notHelpfulCount: wasNotHelpful, myReaction: current } = local
 
@@ -64,6 +77,7 @@ export default function ReactionButtons({
       if (current === 'NOT_HELPFUL') nextNotHelpful -= 1
     }
 
+    const myRequestId = ++requestIdRef.current
     setLocal({ helpfulCount: nextHelpful, notHelpfulCount: nextNotHelpful, myReaction: nextReaction })
     setPending(true)
     try {
@@ -77,10 +91,13 @@ export default function ReactionButtons({
       // haline dönüyor ama neden başarısız olduğu (401/403/500/network)
       // hiçbir yerde görünmüyor, teşhis imkansız hale geliyor.
       console.error('Reaksiyon isteği başarısız:', err)
-      // Başarısızsa eski haline geri al.
-      setLocal({ helpfulCount: wasHelpful, notHelpfulCount: wasNotHelpful, myReaction: current })
+      // Başarısızsa eski haline geri al - ama sadece bu istek hâlâ en
+      // güncelse (bkz. yukarıdaki requestIdRef notu).
+      if (requestIdRef.current === myRequestId) {
+        setLocal({ helpfulCount: wasHelpful, notHelpfulCount: wasNotHelpful, myReaction: current })
+      }
     } finally {
-      setPending(false)
+      if (requestIdRef.current === myRequestId) setPending(false)
     }
   }
 
@@ -96,7 +113,16 @@ export default function ReactionButtons({
   // sözleşme) birebir korundu - sadece görsel yerleşim değişti.
   return (
     <Box onClick={(e) => e.stopPropagation()}>
-      <Stack direction="row" spacing={0.5} alignItems="center">
+      <Stack
+        direction="row"
+        spacing={0.5}
+        alignItems="center"
+        // Tıklamayı ENGELLEMİYOR (bkz. handleClick - artık pending iken de
+        // tıklamaya izin veriliyor), sadece isteğin sürdüğüne dair hafif bir
+        // görsel ipucu. Bilerek `disabled` değil `opacity` - disabled olsaydı
+        // hızlı ikinci tıklamayı yine engellerdik (aynı race'e geri dönerdik).
+        sx={{ opacity: pending ? 0.7 : 1, transition: 'opacity 0.15s ease' }}
+      >
         <Tooltip title="Faydalı">
           <span>
             <IconButton
