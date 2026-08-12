@@ -71,8 +71,6 @@ jobs:
           SPRING_DATASOURCE_USERNAME: postgres
           SPRING_DATASOURCE_PASSWORD: postgres
           APP_JWT_SECRET: Y2ktb25seS10ZXN0LXNlY3JldC1kby1ub3QtdXNlLWluLXByb2Q9
-          EMAIL_SENDER: ci-test@example.com
-          EMAIL_PASSWORD: ci-test-password
           APP_BASE_URL: http://localhost:8080
           # SADECE burada, E2E ortamında true - Playwright gerçek bir e-posta
           # kutusu okuyamadığı için kayıt anında otomatik doğrulama gerekiyor.
