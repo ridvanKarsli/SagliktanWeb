@@ -5,6 +5,9 @@ import {
   Typography, useMediaQuery
 } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
+import Lightbox from 'yet-another-react-lightbox'
+import Zoom from 'yet-another-react-lightbox/plugins/zoom'
+import 'yet-another-react-lightbox/styles.css'
 import { useNotification } from '../../../context/NotificationContext.jsx'
 import { useConfirm } from '../../../context/ConfirmContext.jsx'
 import { deleteComment, deletePost, listAdminComments, listAdminPosts } from '../../../services/api.js'
@@ -15,29 +18,49 @@ import { prettyDate } from '../../../utils/format.js'
 // Fotoğraf küçük resimleri (admin'in içeriği tıklamadan/indirmeden hızlıca
 // göz atıp tehlikeli/uygunsuz olanı fark edebilmesi için) - hem masaüstü
 // tablosunda hem mobil kartta kullanılıyor, tekrarı önlemek adına ayrı bileşen.
+// Önceden yeni sekmede ham dosyayı açıyordu (<a target="_blank">) - siteki
+// diğer görsellerle (bkz. PostGallery.jsx) tutarlı olsun diye artık aynı
+// yet-another-react-lightbox ile tıklayınca büyütülüyor/yakınlaştırılıyor.
 function AttachmentThumbnails({ attachments }) {
+  const [lightboxIndex, setLightboxIndex] = useState(-1)
   if (!attachments || attachments.length === 0) return null
   return (
-    <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{ mt: 0.5, mb: 0.5 }}>
-      {attachments.map(a => (
-        <Box
-          key={a.id}
-          component="a"
-          href={a.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          sx={{ display: 'block', width: 56, height: 56, borderRadius: 1, overflow: 'hidden', flexShrink: 0 }}
-        >
+    <>
+      <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{ mt: 0.5, mb: 0.5 }}>
+        {attachments.map((a, i) => (
           <Box
-            component="img"
-            src={a.url}
-            alt=""
-            loading="lazy"
-            sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-          />
-        </Box>
-      ))}
-    </Stack>
+            key={a.id}
+            onClick={() => setLightboxIndex(i)}
+            className="tap-scale"
+            sx={{ display: 'block', width: 56, height: 56, borderRadius: 1, overflow: 'hidden', flexShrink: 0, cursor: 'zoom-in' }}
+          >
+            <Box
+              component="img"
+              src={a.url}
+              alt=""
+              loading="lazy"
+              sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+            />
+          </Box>
+        ))}
+      </Stack>
+
+      <Lightbox
+        open={lightboxIndex >= 0}
+        close={() => setLightboxIndex(-1)}
+        index={lightboxIndex}
+        slides={attachments.map(a => ({ src: a.url }))}
+        plugins={[Zoom]}
+        zoom={{
+          maxZoomPixelRatio: 4,
+          doubleTapDelay: 300,
+          doubleClickDelay: 300,
+          scrollToZoom: true
+        }}
+        controller={{ closeOnBackdropClick: true }}
+        styles={{ container: { backgroundColor: 'rgba(20, 17, 14, 0.94)' } }}
+      />
+    </>
   )
 }
 
