@@ -157,8 +157,10 @@ export default function ContentTab({ token }) {
           ))}
         </Stack>
       ) : (
-        <TableContainer sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-          <Table size="small">
+        <TableContainer sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflowX: 'auto' }}>
+          {/* ReportsTab.jsx ile aynı fix: minWidth olmadan tablo dar
+              viewport'ta İçerik sütununu okunmaz şekilde sıkıştırıyordu. */}
+          <Table size="small" sx={{ minWidth: 760 }}>
             <TableHead>
               <TableRow>
                 {type === 'posts' && <TableCell>Başlık</TableCell>}

@@ -119,8 +119,14 @@ export default function ReportsTab({ token }) {
           ))}
         </Stack>
       ) : (
-        <TableContainer sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-          <Table size="small">
+        <TableContainer sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflowX: 'auto' }}>
+          {/* minWidth: table-layout:auto olduğu için, dar viewport'larda
+              tarayıcı Aksiyon sütunundaki 3 butona yer açmak için İçerik/Sebep
+              sütunlarını maxWidth'in çok altına sıkıştırıp her kelimeyi/harfi
+              tek tek satıra bölüyordu (okunmuyordu). minWidth vererek tablo
+              artık gerektiğinde TableContainer içinde yatay kayıyor, sütunlar
+              kendi doğal genişliğini koruyor. */}
+          <Table size="small" sx={{ minWidth: 900 }}>
             <TableHead>
               <TableRow>
                 <TableCell>Tür</TableCell>
