@@ -407,8 +407,10 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           backgroundColor: 'rgba(42, 36, 31, 0.86)',
-          backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)',
+          // bkz. ResponsiveShell.jsx'teki aynı optimizasyon notu - 16px'ten
+          // 10px'e düşürüldü, mobilde scroll performansı için.
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
           color: colors.text.primary,
           boxShadow: '0 1px 3px rgba(0, 0, 0, 0.3)',
         },
@@ -418,8 +420,10 @@ const theme = createTheme({
       styleOverrides: {
         paper: {
           backgroundColor: 'rgba(42, 36, 31, 0.86)',
-          backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)',
+          // bkz. ResponsiveShell.jsx'teki aynı optimizasyon notu - 16px'ten
+          // 10px'e düşürüldü, mobilde scroll performansı için.
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
           borderRight: `1px solid ${colors.border}`,
         },
       },
@@ -428,8 +432,10 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           backgroundColor: 'rgba(42, 36, 31, 0.86)',
-          backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)',
+          // bkz. ResponsiveShell.jsx'teki aynı optimizasyon notu - 16px'ten
+          // 10px'e düşürüldü, mobilde scroll performansı için.
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
           borderTop: `1px solid ${colors.border}`,
           height: 64,
         },

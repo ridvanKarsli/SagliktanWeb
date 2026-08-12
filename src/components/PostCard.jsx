@@ -41,6 +41,13 @@ export default function PostCard({ post, onClick, token, highlightQuery }) {
         py: { xs: 2, md: 2.25 },
         cursor: onClick ? 'pointer' : 'default',
         transition: 'background-color 0.15s ease',
+        // CSS containment: her kart kendi içinde bağımsız bir layout/paint
+        // birimi olduğunu tarayıcıya bildiriyor (dialoglar Portal ile
+        // document.body'ye render olduğu için bundan etkilenmiyor). Uzun
+        // feed'lerde (Posts.jsx) tarayıcı görünür alan dışındaki kartların
+        // iç hesaplamalarını atlayabiliyor - mobilde scroll performansı için
+        // büyük ölçekli feed uygulamalarının kullandığı standart bir teknik.
+        contain: 'content',
         '&:hover': onClick ? { bgcolor: 'action.hover' } : undefined
       }}
     >

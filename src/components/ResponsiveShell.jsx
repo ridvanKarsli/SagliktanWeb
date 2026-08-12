@@ -71,8 +71,18 @@ export default function ResponsiveShell({ children }) {
             // Camsı yarı saydam + blur - arkadaki ambient glow (bkz. body
             // arkaplanı, theme.js) hafifçe sızsın diye düz opak yüzey yerine.
             bgcolor: 'rgba(42, 36, 31, 0.86)',
-            backdropFilter: 'blur(16px)',
-            WebkitBackdropFilter: 'blur(16px)',
+            // Blur radius 16px'ten 10px'e düşürüldü - "kasma" şikayeti
+            // sonrası mobil performans denetiminde bulundu: scroll sırasında
+            // sürekli ekranda kalan (fixed/sticky) camsı yüzeylerde yüksek
+            // blur radius'u GPU'ya sürekli iş yüklüyordu, özellikle orta/alt
+            // segment Android cihazlarda hissedilir jank'e yol açabiliyordu.
+            // 10px görsel olarak neredeyse ayırt edilemez ama compositing
+            // maliyeti belirgin düşüyor - kurumsal ürünlerin (Twitter/X,
+            // LinkedIn vb.) çoğu da persistent nav yüzeylerinde 8-12px
+            // aralığını kullanıyor, 16px+ genelde tek seferlik/geçici
+            // yüzeylerde (modal, toast) tercih ediliyor.
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
             display: 'flex',
             flexDirection: 'column',
             py: 3,
@@ -243,8 +253,8 @@ export default function ResponsiveShell({ children }) {
               pt: 'calc(10px + env(safe-area-inset-top))',
               pb: 1.25,
               bgcolor: 'rgba(42, 36, 31, 0.86)',
-              backdropFilter: 'blur(16px)',
-              WebkitBackdropFilter: 'blur(16px)',
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
               borderBottom: '1px solid',
               borderColor: 'divider'
             }}
@@ -286,8 +296,8 @@ export default function ResponsiveShell({ children }) {
             right: 0,
             bottom: 0,
             bgcolor: 'rgba(42, 36, 31, 0.86)',
-            backdropFilter: 'blur(16px)',
-            WebkitBackdropFilter: 'blur(16px)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
             borderTop: '1px solid',
             borderColor: 'divider',
             zIndex: theme.zIndex.appBar + 1,
@@ -301,6 +311,14 @@ export default function ResponsiveShell({ children }) {
             sx={{
               height: MOBILE_NAV_HEIGHT,
               bgcolor: 'transparent',
+              // Blur zaten sarmalayan Box'ta uygulanıyor (yukarıda) - MUI'nin
+              // MuiBottomNavigation tema varsayılanı (bkz. theme.js) burada
+              // AYRICA blur(16px) uyguluyordu, şeffaf bir katmanın üstüne
+              // ikinci bir blur bindirmek görsel olarak hiçbir fark
+              // yaratmıyor ama mobilde scroll sırasında GPU'ya iki kat iş
+              // yüklüyordu - kaldırıldı.
+              backdropFilter: 'none',
+              WebkitBackdropFilter: 'none',
               '& .MuiBottomNavigationAction-root': {
                 color: 'text.secondary',
                 minWidth: 0,
