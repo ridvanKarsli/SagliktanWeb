@@ -166,8 +166,11 @@ export function getUserPosts(token, id, { page = 0, size, signal } = {}) {
 
 // --- Hastalık grupları ---
 
-export function listDiseaseGroups(token, { signal } = {}) {
-  return request('/disease-groups', { token, signal });
+// q verilirse backend'in prefix + pg_trgm fuzzy tam metin araması devreye
+// girer (bkz. DiseaseGroupController.listAll) - searchPosts/searchComments
+// ile aynı arama altyapısı, DiseaseGroups.jsx'teki arama kutusu için.
+export function listDiseaseGroups(token, { q, signal } = {}) {
+  return request('/disease-groups', { token, params: { q }, signal });
 }
 
 export function getDiseaseGroup(token, id) {

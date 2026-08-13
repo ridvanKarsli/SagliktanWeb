@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   Alert, Box, Button, Chip, CircularProgress, InputAdornment, Stack, TextField, Typography
 } from '@mui/material'
@@ -20,45 +20,63 @@ export default function DiseaseGroups() {
   const navigate = useNavigate()
 
   const [groups, setGroups] = useState([])
+  const [hasAnyGroup, setHasAnyGroup] = useState(true)
   const [joinedIds, setJoinedIds] = useState(new Set())
+  // initialLoading: sadece İLK yüklemede tam sayfa spinner gösterir. Arama
+  // kutusuna yazarken tetiklenen sonraki fetch'lerde `loading` true olsa
+  // bile sayfa/arama kutusu DOM'dan sökülmemeli - aksi halde input focus
+  // kaybolur, kullanıcı her debounce sonrası tekrar kutuya tıklamak zorunda
+  // kalır (bkz. Posts.jsx'teki aynı desen - TextField loading dalının dışında).
+  const [initialLoading, setInitialLoading] = useState(true)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [pendingId, setPendingId] = useState(null)
-  // Grup sayısı büyüdükçe (admin ilerledikçe onlarca hastalık grubu
-  // eklenebilir) listeyi kaydırarak aranan grubu bulmak zorlaşıyordu.
-  // Backend'e yeni bir uç eklemeye gerek yok - liste zaten tek seferde
-  // tamamen çekiliyor (admin-curated, sınırlı sayıda), o yüzden isim/
-  // açıklama üzerinde anlık, istemci tarafı bir filtre yeterli.
+
+  // Arama kutusu: Posts.jsx'teki gönderi aramasıyla aynı desen - backend'in
+  // prefix + pg_trgm fuzzy (yazım hatası toleranslı) tam metin aramasına
+  // bağlı (bkz. DiseaseGroupController.listAll?q=...), istemci tarafı
+  // basit bir substring filtresi değil. 300ms debounce ile her tuş
+  // vuruşunda ayrı istek atılmıyor.
   const [query, setQuery] = useState('')
+  const [debouncedQuery, setDebouncedQuery] = useState('')
+  const searchDebounceRef = useRef(null)
+
+  useEffect(() => {
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current)
+    searchDebounceRef.current = setTimeout(() => setDebouncedQuery(query.trim()), 300)
+    return () => clearTimeout(searchDebounceRef.current)
+  }, [query])
+
+  // Katılınan gruplar arama sorgusundan bağımsız - bir kez çekiliyor,
+  // sonrası join/leave aksiyonlarıyla local state üzerinden güncelleniyor.
+  useEffect(() => {
+    if (!token) return
+    getMyDiseaseGroups(token)
+      .then(mine => setJoinedIds(new Set((Array.isArray(mine) ? mine : []).map(g => g.id))))
+      .catch(() => {})
+  }, [token])
 
   const load = useCallback(async () => {
-    if (!token) { setLoading(false); return }
+    if (!token) { setLoading(false); setInitialLoading(false); return }
     setLoading(true)
     setError('')
     try {
-      const [all, mine] = await Promise.all([
-        listDiseaseGroups(token),
-        getMyDiseaseGroups(token)
-      ])
-      setGroups(Array.isArray(all) ? all : [])
-      setJoinedIds(new Set((Array.isArray(mine) ? mine : []).map(g => g.id)))
+      const all = await listDiseaseGroups(token, { q: debouncedQuery || undefined })
+      const list = Array.isArray(all) ? all : []
+      setGroups(list)
+      // "Hiç grup yok" ile "aramayla eşleşen yok" durumlarını ayırt etmek
+      // için: sadece arama yokken gelen sonuca bakılıyor, arama sırasında
+      // önceki değer korunuyor.
+      if (!debouncedQuery) setHasAnyGroup(list.length > 0)
     } catch (err) {
       setError(err.message || 'Hastalık grupları alınamadı.')
     } finally {
       setLoading(false)
+      setInitialLoading(false)
     }
-  }, [token])
+  }, [token, debouncedQuery])
 
   useEffect(() => { load() }, [load])
-
-  const filteredGroups = useMemo(() => {
-    const q = query.trim().toLocaleLowerCase('tr')
-    if (!q) return groups
-    return groups.filter(g =>
-      (g.name || '').toLocaleLowerCase('tr').includes(q) ||
-      (g.description || '').toLocaleLowerCase('tr').includes(q)
-    )
-  }, [groups, query])
 
   const handleJoin = async (e, groupId) => {
     e.stopPropagation()
@@ -94,7 +112,9 @@ export default function DiseaseGroups() {
     }
   }
 
-  if (loading) {
+  // Sadece İLK yüklemede tam sayfa spinner - sonraki arama fetch'lerinde
+  // arama kutusu (aşağıda) hep mounted kalır, bkz. initialLoading tanımı.
+  if (initialLoading) {
     return (
       <Box sx={{ display: 'grid', placeItems: 'center', minHeight: 300, py: 6 }}>
         <CircularProgress size={28} />
@@ -115,7 +135,7 @@ export default function DiseaseGroups() {
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-      {groups.length > 0 && (
+      {hasAnyGroup && (
         <TextField
           fullWidth
           size="small"
@@ -128,23 +148,28 @@ export default function DiseaseGroups() {
                 <InputAdornment position="start">
                   <SearchRounded sx={{ fontSize: 20, color: 'text.secondary' }} />
                 </InputAdornment>
-              )
+              ),
+              endAdornment: loading ? (
+                <InputAdornment position="end">
+                  <CircularProgress size={16} />
+                </InputAdornment>
+              ) : undefined
             }
           }}
           sx={{ mb: 2 }}
         />
       )}
 
-      {groups.length === 0 && !error ? (
+      {!hasAnyGroup && !error ? (
         <Box sx={{ textAlign: 'center', py: 10 }}>
           <Typography variant="body1" sx={{ color: 'text.secondary' }}>
             Henüz hiç hastalık grubu yok.
           </Typography>
         </Box>
-      ) : filteredGroups.length === 0 ? (
+      ) : groups.length === 0 && !loading ? (
         <Box sx={{ textAlign: 'center', py: 10 }}>
           <Typography variant="body1" sx={{ color: 'text.secondary' }}>
-            "{query}" ile eşleşen grup bulunamadı.
+            "{debouncedQuery}" ile eşleşen grup bulunamadı.
           </Typography>
         </Box>
       ) : (
@@ -165,7 +190,7 @@ export default function DiseaseGroups() {
             gap: 1
           }}
         >
-          {filteredGroups.map(group => {
+          {groups.map(group => {
             const joined = joinedIds.has(group.id)
             const pending = pendingId === group.id
             return (
