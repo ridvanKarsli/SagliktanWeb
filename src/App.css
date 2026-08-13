@@ -86,10 +86,23 @@ body {
   }
 }
 
+/* Önceden sadece .page-transition/.tap-scale kapatılıyordu - ama theme.js'te
+   MuiButton/MuiCard/MuiIconButton gibi onlarca yerde "transition: all 0.2s
+   ease" + hover'da translateY var, html'de scroll-behavior: smooth var,
+   PostGallery/lightbox'ta swipe animasyonları var. Apple'ın reduced-motion
+   ilkesi: azaltma "geri bildirim yok" demek değil, titreşim/kayma/overshoot
+   içermeyen bir eşdeğer demek - süreyi 0'a değil neredeyse-anlık bir değere
+   (0.01ms) çekmek, transition'ı komple silip elementlerin (örn. opacity ile
+   görünürlük değiştiren bir Snackbar/Fade) yarım kalmış bir ara durumda
+   takılı kalma riskini de önlüyor. Bu, a11y topluluğunun standart "reduced
+   motion reset" deseni - proje genelindeki her animasyon/transition'ı (MUI
+   dahil, JS ile değil CSS transition-duration üzerinden) kapsıyor.
+   Kaynak: https://www.w3.org/WAI/WCAG21/Techniques/css/C39 */
 @media (prefers-reduced-motion: reduce) {
-  .page-transition,
-  .tap-scale {
-    animation: none !important;
-    transition: none !important;
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

@@ -57,7 +57,8 @@ function AttachmentThumbnails({ attachments }) {
           doubleClickDelay: 300,
           scrollToZoom: true
         }}
-        controller={{ closeOnBackdropClick: true }}
+        // PostGallery.jsx ile aynı tutarlılık: aşağı sürükleyerek kapatma.
+        controller={{ closeOnBackdropClick: true, closeOnPullDown: true }}
         styles={{ container: { backgroundColor: 'rgba(20, 17, 14, 0.94)' } }}
       />
     </>

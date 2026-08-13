@@ -118,15 +118,24 @@ const theme = createTheme({
       lineHeight: 1.3,
       letterSpacing: '-0.01em',
     },
+    // Tracking (letter-spacing) boyuta göre kademeli daralıyor - h1/h2'de
+    // zaten vardı (-0.02em / -0.01em), h3-h6'da eksikti ve MUI'nin Roboto
+    // için ayarlanmış varsayılanlarına düşüyordu (Inter'e göre optik olarak
+    // hafif gevşek). Apple'ın tipografi ilkesi: büyük metin negatif tracking
+    // ister (harfler büyüdükçe birbirinden fazla ayrı görünür), küçük metin
+    // sıfıra/pozitife yaklaşır - burada da h1'den h6'ya doğru kademeli
+    // sıfıra iniyor.
     h3: {
       fontSize: 'clamp(1.25rem, 3vw, 1.75rem)',
       fontWeight: 600,
       lineHeight: 1.4,
+      letterSpacing: '-0.005em',
     },
     h4: {
       fontSize: 'clamp(1.25rem, 2.5vw, 1.625rem)',
       fontWeight: 600,
       lineHeight: 1.4,
+      letterSpacing: '-0.0025em',
     },
     // h5/h6 gövde metninden (body1 = 1.0625rem) BÜYÜK kalmalı - aksi halde
     // başlık kendi paragrafından küçük görünür. Gövde ölçeği büyütüldüğünde
@@ -135,11 +144,13 @@ const theme = createTheme({
       fontSize: '1.3125rem',
       fontWeight: 600,
       lineHeight: 1.5,
+      letterSpacing: '0em',
     },
     h6: {
       fontSize: '1.1875rem',
       fontWeight: 600,
       lineHeight: 1.5,
+      letterSpacing: '0em',
     },
     // OKUNABİLİRLİK NOTU: bu platformun hedef kitlesi kronik/nadir
     // hastalıklarla yaşayan bireyler ve yakınları - içlerinde yaşlılar,

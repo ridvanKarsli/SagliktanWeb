@@ -74,7 +74,11 @@ export default function PostGallery({ attachments }) {
           doubleClickDelay: 300,
           scrollToZoom: true
         }}
-        controller={{ closeOnBackdropClick: true }}
+        // closeOnPullDown: iOS Fotoğraflar'daki gibi aşağı sürükleyerek
+        // kapatma - kütüphane bunu 1:1 parmak takibi + bırakma hızına göre
+        // karar (Apple'ın momentum/velocity ilkesiyle aynı fikir) ile zaten
+        // kendi içinde yapıyor, önceden kapalıydı (varsayılan false).
+        controller={{ closeOnBackdropClick: true, closeOnPullDown: true }}
         styles={{ container: { backgroundColor: 'rgba(20, 17, 14, 0.94)' } }}
       />
     </>

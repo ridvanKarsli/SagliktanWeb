@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import {
-  Avatar, Box, Button, CircularProgress, Drawer, IconButton, Stack, TextField, Typography,
+  Avatar, Box, Button, CircularProgress, IconButton, Stack, SwipeableDrawer, TextField, Typography,
   useMediaQuery, useTheme
 } from '@mui/material'
 import { ChevronRightRounded, DeleteOutline, EditOutlined, FlagOutlined, ReplyOutlined } from '@mui/icons-material'
@@ -238,10 +238,23 @@ export default function CommentRow({
       </Stack>
 
       {isMobile && (
-        <Drawer
+        // Apple'ın "fluid interfaces" ilkesi: bir sheet parmakla açıldıysa
+        // parmakla da 1:1 kapanabilmeli, sadece buton/backdrop ile değil.
+        // Düz Drawer'da sürükleyerek kapatma yoktu. Bunun için ayrı bir
+        // spring kütüphanesi eklemek yerine (yeni bağımlılık = bundle +
+        // sandbox'ta lockfile riski) MUI'nin zaten pakette olan
+        // SwipeableDrawer'ı kullanıyoruz - aşağı sürüklerken paper parmağı
+        // 1:1 takip ediyor, bırakınca hız/mesafeye göre açık kalıp
+        // kalmayacağına karar veriyor (aynı ilke, hazır implementasyon).
+        // disableSwipeToOpen: açılış hep "Yanıtla" butonuyla, kenardan
+        // sürükleyerek açma davranışını istemiyoruz - sadece kapatma
+        // jesti kalsın.
+        <SwipeableDrawer
           anchor="bottom"
           open={replyOpen}
+          onOpen={() => setReplyOpen(true)}
           onClose={() => { if (!replySubmitting) setReplyOpen(false) }}
+          disableSwipeToOpen
           slotProps={{
             paper: {
               sx: {
@@ -276,7 +289,7 @@ export default function CommentRow({
               </Button>
             </Stack>
           </Stack>
-        </Drawer>
+        </SwipeableDrawer>
       )}
 
       {(comment.replyCount ?? 0) > 0 && (
