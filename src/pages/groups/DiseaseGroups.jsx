@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
-  Alert, Box, Button, Chip, CircularProgress, Stack, Typography
+  Alert, Box, Button, Chip, CircularProgress, InputAdornment, Stack, TextField, Typography
 } from '@mui/material'
-import { GroupsRounded, PeopleAltRounded } from '@mui/icons-material'
+import { GroupsRounded, PeopleAltRounded, SearchRounded } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
@@ -24,6 +24,12 @@ export default function DiseaseGroups() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [pendingId, setPendingId] = useState(null)
+  // Grup sayısı büyüdükçe (admin ilerledikçe onlarca hastalık grubu
+  // eklenebilir) listeyi kaydırarak aranan grubu bulmak zorlaşıyordu.
+  // Backend'e yeni bir uç eklemeye gerek yok - liste zaten tek seferde
+  // tamamen çekiliyor (admin-curated, sınırlı sayıda), o yüzden isim/
+  // açıklama üzerinde anlık, istemci tarafı bir filtre yeterli.
+  const [query, setQuery] = useState('')
 
   const load = useCallback(async () => {
     if (!token) { setLoading(false); return }
@@ -44,6 +50,15 @@ export default function DiseaseGroups() {
   }, [token])
 
   useEffect(() => { load() }, [load])
+
+  const filteredGroups = useMemo(() => {
+    const q = query.trim().toLocaleLowerCase('tr')
+    if (!q) return groups
+    return groups.filter(g =>
+      (g.name || '').toLocaleLowerCase('tr').includes(q) ||
+      (g.description || '').toLocaleLowerCase('tr').includes(q)
+    )
+  }, [groups, query])
 
   const handleJoin = async (e, groupId) => {
     e.stopPropagation()
@@ -100,10 +115,36 @@ export default function DiseaseGroups() {
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
+      {groups.length > 0 && (
+        <TextField
+          fullWidth
+          size="small"
+          placeholder="Grup adı veya açıklamasında ara..."
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchRounded sx={{ fontSize: 20, color: 'text.secondary' }} />
+                </InputAdornment>
+              )
+            }
+          }}
+          sx={{ mb: 2 }}
+        />
+      )}
+
       {groups.length === 0 && !error ? (
         <Box sx={{ textAlign: 'center', py: 10 }}>
           <Typography variant="body1" sx={{ color: 'text.secondary' }}>
             Henüz hiç hastalık grubu yok.
+          </Typography>
+        </Box>
+      ) : filteredGroups.length === 0 ? (
+        <Box sx={{ textAlign: 'center', py: 10 }}>
+          <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+            "{query}" ile eşleşen grup bulunamadı.
           </Typography>
         </Box>
       ) : (
@@ -124,7 +165,7 @@ export default function DiseaseGroups() {
             gap: 1
           }}
         >
-          {groups.map(group => {
+          {filteredGroups.map(group => {
             const joined = joinedIds.has(group.id)
             const pending = pendingId === group.id
             return (
