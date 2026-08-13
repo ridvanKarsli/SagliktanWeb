@@ -31,7 +31,11 @@ const MOBILE_NAV_HEIGHT = 64
 // girişte önce bir grup seçmek zorunda kalıyordu. Home ikonu artık gerçek
 // ana sayfada; Gruplar kendi (GroupsRounded) ikonuyla ayrı bir sekme.
 const BASE_NAV_ITEMS = [
-  { label: 'Ana Sayfa', icon: <HomeRounded />, iconOutline: <HomeOutlined />, to: '/home' },
+  // Tek kelime bilinçli tercih: mobil alt navda artık 5 (admin'de 6) sekme
+  // var, "Ana Sayfa" iki kelimesi dar ekranlarda alt sekmeye sığmayıp
+  // ikinci satıra taşıyor, satır yüksekliğini bozup diğer sekmelerle
+  // hizasız görünüyordu (bkz. mobil tasarım hatası ekran görüntüsü).
+  { label: 'Anasayfa', icon: <HomeRounded />, iconOutline: <HomeOutlined />, to: '/home' },
   { label: 'Gruplar', icon: <GroupsRounded />, iconOutline: <GroupsOutlined />, to: '/groups' },
   { label: 'Ara', icon: <SearchRounded />, iconOutline: <SearchOutlined />, to: '/search' },
   { label: 'Mesajlar', icon: <ChatBubbleRounded />, iconOutline: <ChatBubbleOutlineRounded />, to: '/messages' },
@@ -329,13 +333,24 @@ export default function ResponsiveShell({ children }) {
               '& .MuiBottomNavigationAction-root': {
                 color: 'text.secondary',
                 minWidth: 0,
-                padding: '8px 12px',
+                // Admin kullanıcılarda 6 sekme oluyor (bkz. ADMIN_NAV_ITEM) -
+                // 12px yatay padding dar ekranlarda (ör. iPhone SE/mini)
+                // sekmelerin sıkışıp etiketlerin iki satıra taşmasına yol
+                // açıyordu. 4px'e düşürüldü, ikon/etiket boyutu aynı kaldı.
+                padding: '8px 4px',
                 gap: 0.5,
                 '& .MuiSvgIcon-root': { fontSize: 24 },
                 '& .MuiBottomNavigationAction-label': {
                   fontSize: '0.75rem',
                   fontWeight: 500,
                   marginTop: '2px',
+                  // Güvenlik payı: padding daraltmasına rağmen bir etiket
+                  // yine de sığmazsa iki satıra bölünüp satır yüksekliğini
+                  // bozmak yerine tek satırda üç nokta ile kesilsin.
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  maxWidth: '100%',
                   '&.Mui-selected': {
                     fontSize: '0.75rem'
                   }

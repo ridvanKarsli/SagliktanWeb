@@ -16,12 +16,17 @@ export default function AdminPanel() {
   return (
     <Box sx={{ py: { xs: 2, md: 4 } }}>
       <Typography variant="h4" sx={{ fontWeight: 700, mb: 2 }}>Admin Paneli</Typography>
+      {/* Mobilde scroll ok butonları (allowScrollButtonsMobile) kapatıldı:
+          5 sekme + dar ekranda MUI'nin sol scroll butonu, aktif sekmeye
+          otomatik kaydırma sırasında bir önceki sekmenin üstüne biniyor
+          ("Genel Bakış" -> "enel Bakış" görünüyordu, bkz. mobil tasarım
+          hatası ekran görüntüsü). Dokunmatik cihazlarda zaten native
+          swipe ile kaydırılabiliyor, buton olmadan da erişilebilir. */}
       <Tabs
         value={tab}
         onChange={(_, v) => setTab(v)}
         variant="scrollable"
         scrollButtons="auto"
-        allowScrollButtonsMobile
         sx={{ borderBottom: '1px solid', borderColor: 'divider', mb: 1 }}
       >
         <Tab value="dashboard" label="Genel Bakış" />
