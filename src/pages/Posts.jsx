@@ -4,7 +4,7 @@ import {
   DialogTitle, Divider, Fab, IconButton, Stack, TextField, ToggleButton, ToggleButtonGroup,
   Typography, useMediaQuery, useTheme
 } from '@mui/material'
-import { Add, ArrowBack, CloseRounded, SearchRounded } from '@mui/icons-material'
+import { Add, ArrowBack, CloseRounded, InfoOutlined, SearchRounded } from '@mui/icons-material'
 import { useNavigate, useParams } from 'react-router-dom'
 import PostCard from '../components/PostCard.jsx'
 import PostCardSkeleton from '../components/PostCardSkeleton.jsx'
@@ -305,6 +305,24 @@ export default function Posts() {
         <Box component="form" id="new-post-form" onSubmit={onSubmit}>
           <DialogContent>
             <Stack spacing={2.5}>
+              {/* Hukuki risk azaltma (bkz. plan madde 3): PostDetail.jsx'te
+                  OKUYANA gösterilen uyarının yazma anındaki karşılığı -
+                  paylaşımın tıbbi tavsiye yerine geçmediğini ve okuyanların
+                  danışmadan bir sağlık ürünü/tedavi uygulamaması gerektiğini
+                  yazan kişiye de hatırlatıyor. */}
+              <Stack
+                direction="row"
+                spacing={1}
+                alignItems="flex-start"
+                sx={{ px: 0.5, color: 'text.secondary' }}
+              >
+                <InfoOutlined sx={{ fontSize: 16, mt: '2px', flexShrink: 0 }} />
+                <Typography variant="caption" sx={{ lineHeight: 1.5 }}>
+                  Paylaşımın kişisel deneyimin olarak görünecek, tıbbi tavsiye yerine geçmez.
+                  Okuyanların sana danışmadan hiçbir ilaç, tedavi ya da sağlık ürünü kullanmaması
+                  gerektiğini unutma - sağlık kararları için her zaman bir uzmana danışılmalı.
+                </Typography>
+              </Stack>
               <TextField
                 label="Başlık"
                 value={title}

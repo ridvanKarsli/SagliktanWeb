@@ -4,16 +4,16 @@ import {
   Stack, TextField, ToggleButton, ToggleButtonGroup, Typography
 } from '@mui/material'
 import {
-  BlockRounded, ChevronRightRounded, EditOutlined, GroupsRounded, LockOutlined, LogoutRounded,
-  PrivacyTipOutlined, WarningAmberRounded
+  BlockRounded, ChevronRightRounded, DeleteForeverRounded, EditOutlined, FileDownloadOutlined,
+  GroupsRounded, LockOutlined, LogoutRounded, PrivacyTipOutlined, WarningAmberRounded
 } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
 import PostCard from '../../components/PostCard.jsx'
 import {
-  changePassword, deactivateAccount, getMyDiseaseGroups, getMyPosts, getMySavedPosts,
-  getUserProfile, listBlockedUsers, unblockUser, updateProfile
+  changePassword, deactivateAccount, deleteAccount, exportMyData, getMyDiseaseGroups, getMyPosts,
+  getMySavedPosts, getUserProfile, listBlockedUsers, unblockUser, updateProfile
 } from '../../services/api.js'
 import { Section, SectionList, SubRow } from './ProfileShared.jsx'
 import { initialsFrom } from '../../utils/format.js'
@@ -21,16 +21,17 @@ import { usePaginatedList } from '../../hooks/usePaginatedList.js'
 
 // Ayarlar sekmesindeki her satır (şifre, gizlilik, çıkış, hesap silme) için
 // ortak tıklanabilir satır bileşeni.
-function SettingsRow({ icon, label, onClick, danger, open }) {
+function SettingsRow({ icon, label, onClick, danger, open, loading }) {
   return (
     <Box
-      onClick={onClick}
+      onClick={loading ? undefined : onClick}
       className="tap-scale"
       sx={{
         display: 'flex', alignItems: 'center', gap: 1.5,
-        px: 1.5, py: 1.25, borderRadius: 1.5, cursor: 'pointer',
+        px: 1.5, py: 1.25, borderRadius: 1.5, cursor: loading ? 'default' : 'pointer',
         color: danger ? 'error.main' : 'text.primary',
-        '&:hover': { bgcolor: danger ? 'rgba(196,85,74,0.08)' : 'action.hover' }
+        opacity: loading ? 0.7 : 1,
+        '&:hover': { bgcolor: loading ? 'transparent' : danger ? 'rgba(196,85,74,0.08)' : 'action.hover' }
       }}
     >
       <Box sx={{ display: 'flex', color: danger ? 'error.main' : 'text.secondary' }}>
@@ -39,13 +40,17 @@ function SettingsRow({ icon, label, onClick, danger, open }) {
       <Typography variant="body2" sx={{ flex: 1, fontWeight: 500 }}>
         {label}
       </Typography>
-      <ChevronRightRounded
-        sx={{
-          fontSize: 20, color: 'text.secondary',
-          transform: open ? 'rotate(90deg)' : 'none',
-          transition: 'transform 0.15s ease'
-        }}
-      />
+      {loading ? (
+        <CircularProgress size={16} sx={{ color: danger ? 'error.main' : 'text.secondary' }} />
+      ) : (
+        <ChevronRightRounded
+          sx={{
+            fontSize: 20, color: 'text.secondary',
+            transform: open ? 'rotate(90deg)' : 'none',
+            transition: 'transform 0.15s ease'
+          }}
+        />
+      )}
     </Box>
   )
 }
@@ -192,6 +197,58 @@ export default function Profile() {
     } catch (err) {
       showError(err.message || 'Hesap deaktive edilemedi.')
       setDeactivating(false)
+    }
+  }
+
+  /* ---- Verilerimi indir (KVKK veri taşınabilirliği) ----
+     Backend zaten Content-Disposition: attachment header'ı gönderiyor ama
+     fetch() bunu otomatik "indirmeye" çevirmiyor (sadece response body'sini
+     JS'e veriyor) - bu yüzden JSON'u kendimiz bir Blob'a sarıp geçici bir
+     <a download> ile tetikliyoruz, standart tarayıcı-taraflı indirme deseni. */
+  const [exportingData, setExportingData] = useState(false)
+
+  const doExportData = async () => {
+    if (exportingData) return
+    setExportingData(true)
+    try {
+      const data = await exportMyData(token)
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = 'sagliktan-verilerim.json'
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+      showSuccess('Verileriniz indirildi.')
+    } catch (err) {
+      showError(err.message || 'Verileriniz indirilemedi.')
+    } finally {
+      setExportingData(false)
+    }
+  }
+
+  /* ---- Hesabı sil (geri alınamaz, anonimleştirme) ----
+     deactivateAccount'tan (yukarıda) farklı: bu işlem geri alınamaz ve şifre
+     teyidi ister (bkz. UserServiceImpl.deleteAccount javadoc'u - kimlik
+     anonimleştirilir, gönderi/yorum içeriği korunur). */
+  const [deleteAccountConfirm, setDeleteAccountConfirm] = useState(false)
+  const [deleteAccountPassword, setDeleteAccountPassword] = useState('')
+  const [deletingAccount, setDeletingAccount] = useState(false)
+
+  const doDeleteAccount = async (e) => {
+    e.preventDefault()
+    if (!deleteAccountPassword) { showError('Şifreni gir.'); return }
+    setDeletingAccount(true)
+    try {
+      await deleteAccount(token, deleteAccountPassword)
+      showSuccess('Hesabınız silindi.')
+      await logout()
+      navigate('/')
+    } catch (err) {
+      showError(err.message || 'Hesap silinemedi.')
+      setDeletingAccount(false)
     }
   }
 
@@ -558,6 +615,13 @@ export default function Profile() {
               </Box>
 
               <SettingsRow
+                icon={<FileDownloadOutlined sx={{ fontSize: 20 }} />}
+                label="Verilerimi İndir"
+                loading={exportingData}
+                onClick={doExportData}
+              />
+
+              <SettingsRow
                 icon={<PrivacyTipOutlined sx={{ fontSize: 20 }} />}
                 label="Gizlilik Politikası"
                 onClick={() => navigate('/gizlilik-politikasi')}
@@ -593,6 +657,51 @@ export default function Profile() {
                             {deactivating ? <CircularProgress size={14} color="inherit" /> : 'Evet, Deaktive Et'}
                           </Button>
                           <Button size="small" onClick={() => setDeactivateConfirm(false)} disabled={deactivating}>
+                            Vazgeç
+                          </Button>
+                        </Stack>
+                      </Stack>
+                    </Alert>
+                  </Box>
+                </Collapse>
+              </Box>
+
+              <Box>
+                <SettingsRow
+                  icon={<DeleteForeverRounded sx={{ fontSize: 20 }} />}
+                  label="Hesabımı Sil"
+                  danger
+                  open={deleteAccountConfirm}
+                  onClick={() => setDeleteAccountConfirm(o => !o)}
+                />
+                <Collapse in={deleteAccountConfirm} unmountOnExit>
+                  <Box component="form" onSubmit={doDeleteAccount} sx={{ p: 2.5, pt: 0.5 }}>
+                    <Alert severity="error" sx={{ mb: 0 }}>
+                      <Stack spacing={1.5}>
+                        <Typography variant="body2">
+                          Hesabını silersen kimlik bilgilerin (ad, soyad, e-posta) kalıcı olarak
+                          anonimleştirilir ve oturumun kapatılır. Bu işlem GERİ ALINAMAZ.
+                          Gönderi/yorumların, topluluk tartışmaları bozulmasın diye kaldırılmadan
+                          kalır ama artık sana ait görünmez.
+                        </Typography>
+                        <TextField
+                          label="Şifreni gir" type="password" value={deleteAccountPassword}
+                          onChange={e => setDeleteAccountPassword(e.target.value)}
+                          fullWidth required size="small"
+                          slotProps={{ htmlInput: { 'data-testid': 'delete-account-password' } }}
+                        />
+                        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                          <Button
+                            type="submit" variant="contained" color="error" size="small"
+                            disabled={deletingAccount}
+                          >
+                            {deletingAccount ? <CircularProgress size={14} color="inherit" /> : 'Evet, Hesabımı Sil'}
+                          </Button>
+                          <Button
+                            size="small"
+                            onClick={() => { setDeleteAccountConfirm(false); setDeleteAccountPassword('') }}
+                            disabled={deletingAccount}
+                          >
                             Vazgeç
                           </Button>
                         </Stack>

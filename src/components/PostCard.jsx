@@ -7,6 +7,7 @@ import SaveButton from './SaveButton.jsx'
 import HighlightText from './HighlightText.jsx'
 import PostGallery from './PostGallery.jsx'
 import SendPostDialog from './SendPostDialog.jsx'
+import SensitiveContentBanner from './SensitiveContentBanner.jsx'
 import { reactToPost, removePostReaction, savePost, unsavePost } from '../services/api.js'
 import { initialsFrom } from '../utils/format.js'
 
@@ -30,7 +31,7 @@ export default function PostCard({ post, onClick, token, highlightQuery }) {
   if (!post) return null
   const {
     id, subGroupId, subGroupName, diseaseGroupName, authorName, title, content, createdAt, updatedAt,
-    helpfulCount, notHelpfulCount, myReaction, saved, savedCount, attachments
+    helpfulCount, notHelpfulCount, myReaction, saved, savedCount, attachments, flaggedSensitive
   } = post
 
   const dateLabel = createdAt
@@ -122,6 +123,8 @@ export default function PostCard({ post, onClick, token, highlightQuery }) {
           ? <HighlightText text={truncate(content, 180)} query={highlightQuery} />
           : truncate(content, 180)}
       </Typography>
+
+      {flaggedSensitive && <SensitiveContentBanner sx={{ mt: 0.5 }} />}
 
       <PostGallery attachments={attachments} />
 

@@ -8,6 +8,7 @@ import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
 import { useConfirm } from '../../context/ConfirmContext.jsx'
 import ReactionButtons from '../ReactionButtons.jsx'
+import SensitiveContentBanner from '../SensitiveContentBanner.jsx'
 import { deleteComment, reactToComment, removeCommentReaction, updateComment } from '../../services/api.js'
 import { initialsFrom, prettyDate } from '../../utils/format.js'
 import { canManage } from '../../utils/permissions.js'
@@ -220,6 +221,7 @@ export default function CommentRow({
               >
                 {comment.content}
               </Typography>
+              {!isDeleted && comment.flaggedSensitive && <SensitiveContentBanner sx={{ mt: 1, mb: 0 }} />}
               <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap sx={{ mt: 0.5 }}>
                 <ReactionButtons
                   helpfulCount={comment.helpfulCount}

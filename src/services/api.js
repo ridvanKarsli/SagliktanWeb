@@ -141,6 +141,20 @@ export function deactivateAccount(token) {
   return request('/users/me', { method: 'DELETE', token });
 }
 
+// KVKK "veri taşınabilirliği" hakkı - kullanıcının kendi verisini JSON
+// olarak indirmesi (bkz. Profile.jsx "Verilerimi İndir" satırı). Mevcut
+// deactivateAccount (yukarıda, geri alınabilir) ile karıştırılmasın diye
+// backend'de ayrı bir path altında (bkz. UserController#exportMyData).
+export function exportMyData(token) {
+  return request('/users/me/data-export', { token });
+}
+
+// Hesap silme - GERİ ALINAMAZ, şifre teyidi ister (bkz.
+// UserController#deleteAccount / UserServiceImpl.deleteAccount javadoc'u).
+export function deleteAccount(token, password) {
+  return request('/users/me/delete-account', { method: 'POST', token, body: { password } });
+}
+
 export function getMyDiseaseGroups(token) {
   return request('/users/me/disease-groups', { token });
 }

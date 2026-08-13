@@ -16,6 +16,7 @@ import SendPostDialog from '../components/SendPostDialog.jsx'
 import CommentRow from '../components/comments/CommentRow.jsx'
 import CommentRowSkeleton from '../components/comments/CommentRowSkeleton.jsx'
 import ReportDialog from '../components/comments/ReportDialog.jsx'
+import SensitiveContentBanner from '../components/SensitiveContentBanner.jsx'
 import {
   getMyDiseaseGroups, reactToPost, removePostReaction, reportComment, reportPost, savePost, unsavePost
 } from '../services/api.js'
@@ -271,6 +272,7 @@ export default function PostDetail() {
             <Typography variant="body1" sx={{ whiteSpace: 'pre-line', wordBreak: 'break-word', color: 'text.primary', mb: post.attachments?.length ? 1.5 : 0 }}>
               {post.content}
             </Typography>
+            {post.flaggedSensitive && <SensitiveContentBanner />}
             <PostGallery attachments={post.attachments} />
           </>
         )}
