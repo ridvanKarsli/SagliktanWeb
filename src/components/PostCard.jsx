@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { Avatar, Box, IconButton, Stack, Typography } from '@mui/material'
-import { SendOutlined } from '@mui/icons-material'
+import { Avatar, Box, Chip, IconButton, Stack, Typography } from '@mui/material'
+import { GroupsRounded, SendOutlined } from '@mui/icons-material'
+import { useNavigate } from 'react-router-dom'
 import ReactionButtons from './ReactionButtons.jsx'
 import SaveButton from './SaveButton.jsx'
 import HighlightText from './HighlightText.jsx'
@@ -25,8 +26,12 @@ function truncate(text = '', max = 180) {
  */
 export default function PostCard({ post, onClick, token, highlightQuery }) {
   const [sendDialogOpen, setSendDialogOpen] = useState(false)
+  const navigate = useNavigate()
   if (!post) return null
-  const { id, authorName, title, content, createdAt, updatedAt, helpfulCount, notHelpfulCount, myReaction, saved, savedCount, attachments } = post
+  const {
+    id, subGroupId, subGroupName, diseaseGroupName, authorName, title, content, createdAt, updatedAt,
+    helpfulCount, notHelpfulCount, myReaction, saved, savedCount, attachments
+  } = post
 
   const dateLabel = createdAt
     ? new Date(createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })
@@ -78,6 +83,25 @@ export default function PostCard({ post, onClick, token, highlightQuery }) {
             {dateLabel}{edited ? ' · düzenlendi' : ''}
           </Typography>
         </Box>
+        {/* Ana sayfa karışık akışında (bkz. Home.jsx) subGroupName dolu
+            geliyor - hangi gruptan geldiği belli olmazsa, birbirinden çok
+            farklı hastalık gruplarının içerikleri karışınca kafa karıştırır.
+            Posts.jsx gibi tek-alt-grup bağlamlarında backend bu alanı hiç
+            doldurmuyor (bkz. PostResponseAssembler.assemble vs assembleFeed),
+            o yüzden orada rozet hiç render olmuyor. */}
+        {subGroupName && (
+          <Chip
+            size="small"
+            icon={<GroupsRounded sx={{ fontSize: '14px !important' }} />}
+            label={diseaseGroupName ? `${diseaseGroupName} · ${subGroupName}` : subGroupName}
+            onClick={(e) => { e.stopPropagation(); navigate(`/sub-groups/${subGroupId}`) }}
+            sx={{
+              flexShrink: 0, maxWidth: 180, color: 'text.secondary',
+              bgcolor: 'action.hover', fontWeight: 500,
+              '& .MuiChip-label': { overflow: 'hidden', textOverflow: 'ellipsis' }
+            }}
+          />
+        )}
       </Stack>
 
       {/* Okunabilirlik: başlık ve gövde metni, akışta göz yormadan

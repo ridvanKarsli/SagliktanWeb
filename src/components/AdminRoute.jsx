@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext.jsx'
 // ProtectedRoute zaten "giriş yapmış mı" kontrolünü yapıyor (bu route her
 // zaman ProtectedLayout'un içinde kullanılmalı) - burada ayrıca "ADMIN mi"
 // kontrolü var. Admin olmayan biri /admin'e girmeye çalışırsa sessizce
-// /groups'a yönlendirilir (401/403 sayfası göstermek yerine - içerik
+// /home'a yönlendirilir (401/403 sayfası göstermek yerine - içerik
 // varlığını bile ima etmemek daha güvenli bir varsayılan).
 export default function AdminRoute({ children }) {
   const { user, loading } = useAuth()
@@ -18,6 +18,6 @@ export default function AdminRoute({ children }) {
     )
   }
 
-  if (!user || user.role !== 'ADMIN') return <Navigate to="/groups" replace />
+  if (!user || user.role !== 'ADMIN') return <Navigate to="/home" replace />
   return children || <Outlet />
 }

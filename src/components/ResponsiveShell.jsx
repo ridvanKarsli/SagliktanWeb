@@ -6,7 +6,7 @@ import {
 import useMediaQuery from '@mui/material/useMediaQuery'
 import { useTheme } from '@mui/material/styles'
 import {
-  HomeRounded, HomeOutlined, SearchRounded, SearchOutlined,
+  HomeRounded, HomeOutlined, GroupsRounded, GroupsOutlined, SearchRounded, SearchOutlined,
   ChatBubbleRounded, ChatBubbleOutlineRounded,
   PersonRounded, PersonOutlineRounded, LogoutRounded, AdminPanelSettingsRounded, AdminPanelSettingsOutlined
 } from '@mui/icons-material'
@@ -24,8 +24,15 @@ const MOBILE_NAV_HEIGHT = 64
 // "buradasın" sinyali. iconOutline pasifken, icon aktifken kullanılıyor.
 // Mesajlar sekmesinin rozeti (bekleyen istek sayısı) statik değil - bkz.
 // aşağıdaki navItems useMemo'su, MessagingContext'ten canlı okunuyor.
+//
+// "Ana Sayfa" (karışık gönderi akışı, bkz. Home.jsx) ve "Gruplar" (grup
+// keşfi/yönetimi, bkz. DiseaseGroups.jsx) artık ayrı sekmeler - önceden
+// tek "Gruplar" sekmesi Home ikonuyla /groups'u açıyordu, kullanıcı her
+// girişte önce bir grup seçmek zorunda kalıyordu. Home ikonu artık gerçek
+// ana sayfada; Gruplar kendi (GroupsRounded) ikonuyla ayrı bir sekme.
 const BASE_NAV_ITEMS = [
-  { label: 'Gruplar', icon: <HomeRounded />, iconOutline: <HomeOutlined />, to: '/groups' },
+  { label: 'Ana Sayfa', icon: <HomeRounded />, iconOutline: <HomeOutlined />, to: '/home' },
+  { label: 'Gruplar', icon: <GroupsRounded />, iconOutline: <GroupsOutlined />, to: '/groups' },
   { label: 'Ara', icon: <SearchRounded />, iconOutline: <SearchOutlined />, to: '/search' },
   { label: 'Mesajlar', icon: <ChatBubbleRounded />, iconOutline: <ChatBubbleOutlineRounded />, to: '/messages' },
   { label: 'Profil', icon: <PersonRounded />, iconOutline: <PersonOutlineRounded />, to: '/profile' }
@@ -101,7 +108,7 @@ export default function ResponsiveShell({ children }) {
           >
             <Box
               sx={{ display: 'flex', alignItems: 'center', gap: 2, cursor: 'pointer' }}
-              onClick={() => navigate('/groups')}
+              onClick={() => navigate('/home')}
             >
               <Avatar
                 src="/sagliktanLogo.png"
@@ -260,7 +267,7 @@ export default function ResponsiveShell({ children }) {
             }}
           >
             <Box
-              onClick={() => navigate('/groups')}
+              onClick={() => navigate('/home')}
               sx={{ display: 'flex', alignItems: 'center', gap: 1.25, cursor: 'pointer' }}
             >
               <Avatar

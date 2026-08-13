@@ -19,6 +19,7 @@ import WelcomeScreen from './components/WelcomeScreen.jsx'
 const Register = lazy(() => import('./pages/Register.jsx'))
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword.jsx'))
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy.jsx'))
+const Home = lazy(() => import('./pages/Home.jsx'))
 const DiseaseGroups = lazy(() => import('./pages/groups/DiseaseGroups.jsx'))
 const SubGroups = lazy(() => import('./pages/groups/SubGroups.jsx'))
 const Posts = lazy(() => import('./pages/Posts.jsx'))
@@ -60,7 +61,7 @@ export default function App() {
       <Routes>
         {/* "/" ve auth sayfaları: oturumu zaten açık bir kullanıcı buraya
             gelirse (örn. sekmeyi kapatıp siteyi tekrar açtığında) doğrudan
-            /groups'a yönlendirilir - PublicOnlyRoute bunu sağlıyor. Aksi
+            /home'a yönlendirilir - PublicOnlyRoute bunu sağlıyor. Aksi
             halde geçerli bir oturum olsa bile her seferinde karşılama/giriş
             sayfası görünüp kullanıcı yeniden giriş yapması gerektiğini sanır. */}
         <Route path="/" element={<PublicOnlyRoute><WelcomeScreen /></PublicOnlyRoute>} />
@@ -69,6 +70,7 @@ export default function App() {
         <Route path="/forgot-password" element={<PublicOnlyRoute><ForgotPassword /></PublicOnlyRoute>} />
         <Route path="/gizlilik-politikasi" element={<PrivacyPolicy />} />
         <Route element={<ProtectedLayout />}>
+          <Route path="/home" element={<Home />} />
           <Route path="/groups" element={<DiseaseGroups />} />
           <Route path="/groups/:groupId" element={<SubGroups />} />
           <Route path="/sub-groups/:subGroupId" element={<Posts />} />

@@ -14,7 +14,7 @@ test.describe('Admin paneli', () => {
     await expect(page.getByText('Admin', { exact: true })).not.toBeVisible()
 
     await page.goto('/admin')
-    await expect(page).toHaveURL(/\/groups$/)
+    await expect(page).toHaveURL(/\/home$/)
     await expect(page.getByRole('heading', { name: 'Admin Paneli' })).not.toBeVisible()
   })
 

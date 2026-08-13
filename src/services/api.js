@@ -214,6 +214,12 @@ export function createPost(token, subGroupId, { title, content, attachmentKeys }
   });
 }
 
+// Ana sayfa akışı: kullanıcının üye olduğu tüm gruplardaki gönderiler, tek
+// bir zaman sıralı akışta (bkz. Home.jsx, backend PostController.feed).
+export function getMyFeed(token, { page = 0, size, signal } = {}) {
+  return request('/posts/feed', { token, params: { page, size }, signal });
+}
+
 export function searchPosts(token, q, { page = 0, size, signal } = {}) {
   return request('/posts/search', { token, params: { q, page, size }, signal });
 }

@@ -82,7 +82,7 @@ export async function login(page, user) {
   await page.getByTestId('login-email').fill(user.email)
   await page.getByTestId('login-password').fill(user.password)
   await page.getByRole('button', { name: 'Giriş Yap' }).click()
-  await page.waitForURL('**/groups')
+  await page.waitForURL('**/home')
 }
 
 // V3 migration ile her ortamda seed edilen sabit grup/alt gruplar - testler
