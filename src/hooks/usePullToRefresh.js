@@ -6,8 +6,21 @@ import { useEffect, useRef, useState } from 'react'
 // çekme jestini izler; index.css'teki overscroll-behavior-y: contain native
 // "lastik" efektini kapattığı için görsel geri bildirimi burada elle veriyoruz.
 const PULL_THRESHOLD = 70 // bu mesafeyi (piksel) geçince bırakınca refresh tetiklenir
-const MAX_PULL = 110 // göstergenin ulaşabileceği en yüksek çekme mesafesi
-const RESISTANCE = 0.5 // elastik his: parmağın gittiği mesafenin yarısı kadar açılır
+// Eskiden Math.min(delta * 0.5, 110) idi - delta 220px'i geçince gösterge
+// aniden bir "duvara" çarpmış gibi sabitleniyordu (Apple fluid-interfaces
+// ilkesi #9: sert durma "donmuş" hissettirir, sürekli/azalan direnç
+// "duyarlı ama burada daha fazlası yok" hissettirir). Şimdi Apple'ın
+// rubber-band formülüyle: mesafe arttıkça direnç sürekli artıyor, RUBBER_
+// LIMIT'e hiç ulaşmadan asimptotik olarak yaklaşıyor - sert bir sınır yok.
+// RUBBER_CONSTANT, delta=140px'te (eski formülün 70'e ulaştığı nokta)
+// yine ~70 versin diye eski davranışla aynı hassasiyette kalacak şekilde
+// hesaplandı - tetikleme kolaylığı değişmiyor, sadece aşırı çekmedeki his.
+const RUBBER_LIMIT = 160 // gösterge mesafesinin sonsuza yaklaştığı asimptot
+const RUBBER_CONSTANT = 0.889
+
+function rubberband(overshoot, limit = RUBBER_LIMIT, constant = RUBBER_CONSTANT) {
+  return (overshoot * limit * constant) / (limit + constant * Math.abs(overshoot))
+}
 
 export function usePullToRefresh(onRefresh, { disabled = false } = {}) {
   const [pullDistance, setPullDistance] = useState(0)
@@ -36,7 +49,7 @@ export function usePullToRefresh(onRefresh, { disabled = false } = {}) {
         setPullDistance(0)
         return
       }
-      const next = Math.min(delta * RESISTANCE, MAX_PULL)
+      const next = rubberband(delta)
       distanceRef.current = next
       setPullDistance(next)
     }
