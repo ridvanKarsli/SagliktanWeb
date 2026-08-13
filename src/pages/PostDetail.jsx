@@ -124,7 +124,7 @@ export default function PostDetail() {
           <Skeleton variant="text" width="100%" />
           <Skeleton variant="text" width="80%" />
         </Box>
-        <Stack spacing={1.5}>
+        <Stack spacing={1}>
           <CommentRowSkeleton />
           <CommentRowSkeleton />
         </Stack>
@@ -335,32 +335,41 @@ export default function PostDetail() {
             Yorum yapabilmek için bu hastalık grubuna üye olmalısın.
           </Alert>
         ) : (
+          // Önceden: çok satırlı textarea + altında ayrı hizalanmış bir
+          // "Yorum Yap" butonu - tek bir yorum yazmak için iki satırlık
+          // dikey alan kaplıyordu. Artık tek satırlık (yazdıkça büyüyen)
+          // kutu + yanında gönder ikonu - sohbet composer'larındaki
+          // standart kompakt desen, mesaj kutusuyla (bkz. Chat.jsx) da
+          // görsel dilde tutarlı.
           <Box component="form" onSubmit={submitComment} sx={{ mb: 3 }}>
-            <Stack spacing={1.5}>
+            <Stack direction="row" spacing={1} alignItems="flex-end">
               <TextField
                 placeholder="Yorumunu yaz..."
                 value={newComment}
                 onChange={e => setNewComment(e.target.value)}
                 multiline
-                minRows={2}
+                minRows={1}
+                maxRows={6}
                 fullWidth
+                size="small"
                 disabled={!isMember}
               />
-              <Button
+              <IconButton
                 type="submit"
-                variant="contained"
+                color="primary"
                 disabled={postingComment || !isMember}
-                sx={{ alignSelf: 'flex-end' }}
+                aria-label="Yorum Yap"
+                sx={{ flexShrink: 0, mb: 0.25 }}
               >
-                {postingComment ? <CircularProgress size={16} color="inherit" /> : 'Yorum Yap'}
-              </Button>
+                {postingComment ? <CircularProgress size={20} /> : <SendOutlined />}
+              </IconButton>
             </Stack>
           </Box>
         )
       )}
 
       {commentsLoading ? (
-        <Stack spacing={1.5}>
+        <Stack spacing={1}>
           <CommentRowSkeleton />
           <CommentRowSkeleton />
           <CommentRowSkeleton />
@@ -386,12 +395,12 @@ export default function PostDetail() {
             onOpenThread={openThread}
           />
           {currentThread?.repliesLoading ? (
-            <Stack spacing={1.5} sx={{ mt: 1.5 }}>
+            <Stack spacing={1} sx={{ mt: 1.5 }}>
               <CommentRowSkeleton />
               <CommentRowSkeleton />
             </Stack>
           ) : currentThread?.replies.length > 0 ? (
-            <Stack spacing={1.5} sx={{ mt: 1.5 }}>
+            <Stack spacing={1} sx={{ mt: 1.5 }}>
               {currentThread.replies.map(reply => (
                 <CommentRow
                   key={reply.id}
@@ -421,7 +430,7 @@ export default function PostDetail() {
           ) : null}
         </Box>
       ) : (
-        <Stack spacing={1.5}>
+        <Stack spacing={1}>
           {comments.length === 0 ? (
             <Typography variant="body2" sx={{ color: 'text.secondary', textAlign: 'center', py: 4 }}>
               Henüz yorum yok. İlk yorumu sen yap!

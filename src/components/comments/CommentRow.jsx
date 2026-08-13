@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import {
-  Avatar, Box, Button, CircularProgress, IconButton, Stack, SwipeableDrawer, TextField, Typography,
-  useMediaQuery, useTheme
+  Avatar, Box, Button, CircularProgress, IconButton, Menu, MenuItem, ListItemIcon, ListItemText,
+  Stack, SwipeableDrawer, TextField, Typography, useMediaQuery, useTheme
 } from '@mui/material'
-import { ChevronRightRounded, DeleteOutline, EditOutlined, FlagOutlined, ReplyOutlined } from '@mui/icons-material'
+import { ChevronRightRounded, DeleteOutline, EditOutlined, FlagOutlined, MoreVertRounded, ReplyOutlined } from '@mui/icons-material'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
 import { useConfirm } from '../../context/ConfirmContext.jsx'
@@ -28,6 +28,11 @@ export default function CommentRow({
   const [replyOpen, setReplyOpen] = useState(false)
   const [replyText, setReplyText] = useState('')
   const [replySubmitting, setReplySubmitting] = useState(false)
+  // Düzenle/Sil/Şikayet Et önceden her biri kendi ikonuyla başlıkta yan yana
+  // duruyordu - üç ayrı ikon + avatar + isim aynı satırda dar ekranlarda
+  // sıkışık/karmaşık görünüyordu. Artık tek bir "..." menüsünde toplanıyor
+  // (bkz. kullanıcı geri bildirimi: "yorum kısımları karmaşık").
+  const [menuAnchor, setMenuAnchor] = useState(null)
   const confirm = useConfirm()
   const theme = useTheme()
   // Mobilde satır içi yanıt kutusu, üstteki/alttaki yorumları aşağı itip
@@ -93,7 +98,10 @@ export default function CommentRow({
   return (
     <Box
       sx={{
-        p: 2,
+        // 2 -> 1.5: aksiyon menüsü tekilleşip (bkz. "..." menüsü) ve yanıt
+        // sayısı aynı satıra taşındıktan sonra kart içeriği azaldı, aynı
+        // dolgu artık gereğinden ferah duruyordu - biraz sıkılaştırıldı.
+        p: 1.5,
         borderRadius: 2,
         // Instagram'ın yorum satırları borderless - burada da üst seviye
         // yorum düz zemin üstünde duruyor, sadece yanıtlar (isReply) hafif
@@ -141,24 +149,44 @@ export default function CommentRow({
                 {prettyDate(comment.createdAt) || ''}
               </Typography>
             </Box>
-            {!editing && !isDeleted && (
-              <Stack direction="row" spacing={0.5} flexShrink={0}>
-                {manageable && (
-                  <>
-                    <IconButton size="small" onClick={() => { setText(comment.content); setEditing(true) }} aria-label="Düzenle">
-                      <EditOutlined fontSize="small" />
-                    </IconButton>
-                    <IconButton size="small" onClick={remove} disabled={deleting} aria-label="Sil">
-                      {deleting ? <CircularProgress size={16} /> : <DeleteOutline fontSize="small" />}
-                    </IconButton>
-                  </>
-                )}
-                {!isOwnComment && (
-                  <IconButton size="small" onClick={() => onReport(comment.id)} title="Şikayet Et">
-                    <FlagOutlined fontSize="small" />
-                  </IconButton>
-                )}
-              </Stack>
+            {!editing && !isDeleted && (manageable || !isOwnComment) && (
+              <>
+                <IconButton
+                  size="small"
+                  onClick={(e) => setMenuAnchor(e.currentTarget)}
+                  aria-label="Diğer seçenekler"
+                  sx={{ flexShrink: 0 }}
+                >
+                  <MoreVertRounded fontSize="small" />
+                </IconButton>
+                <Menu anchorEl={menuAnchor} open={!!menuAnchor} onClose={() => setMenuAnchor(null)}>
+                  {manageable && (
+                    <MenuItem
+                      onClick={() => { setMenuAnchor(null); setText(comment.content); setEditing(true) }}
+                    >
+                      <ListItemIcon><EditOutlined fontSize="small" /></ListItemIcon>
+                      <ListItemText>Düzenle</ListItemText>
+                    </MenuItem>
+                  )}
+                  {manageable && (
+                    <MenuItem
+                      onClick={() => { setMenuAnchor(null); remove() }}
+                      disabled={deleting}
+                    >
+                      <ListItemIcon>
+                        {deleting ? <CircularProgress size={16} /> : <DeleteOutline fontSize="small" />}
+                      </ListItemIcon>
+                      <ListItemText>Sil</ListItemText>
+                    </MenuItem>
+                  )}
+                  {!isOwnComment && (
+                    <MenuItem onClick={() => { setMenuAnchor(null); onReport(comment.id) }}>
+                      <ListItemIcon><FlagOutlined fontSize="small" /></ListItemIcon>
+                      <ListItemText>Şikayet Et</ListItemText>
+                    </MenuItem>
+                  )}
+                </Menu>
+              </>
             )}
           </Stack>
 
@@ -208,6 +236,20 @@ export default function CommentRow({
                     sx={{ color: 'text.secondary' }}
                   >
                     Yanıtla
+                  </Button>
+                )}
+                {/* Önceden reaksiyon/Yanıtla satırının ALTINDA, kendi
+                    mt:1.5'i olan ayrı bir satırdı - her yorum iki ayrı
+                    aksiyon satırı gibi görünüyordu. Tek satıra taşındı,
+                    tek bir aksiyon şeridi hissi versin diye. */}
+                {(comment.replyCount ?? 0) > 0 && (
+                  <Button
+                    size="small"
+                    onClick={() => onOpenThread(comment)}
+                    endIcon={<ChevronRightRounded fontSize="small" />}
+                    sx={{ color: 'primary.main', fontWeight: 600 }}
+                  >
+                    {comment.replyCount} yanıtı görüntüle
                   </Button>
                 )}
               </Stack>
@@ -290,17 +332,6 @@ export default function CommentRow({
             </Stack>
           </Stack>
         </SwipeableDrawer>
-      )}
-
-      {(comment.replyCount ?? 0) > 0 && (
-        <Button
-          size="small"
-          onClick={() => onOpenThread(comment)}
-          endIcon={<ChevronRightRounded fontSize="small" />}
-          sx={{ color: 'primary.main', fontWeight: 600, pl: 0.5, mt: 1.5 }}
-        >
-          {comment.replyCount} yanıtı görüntüle
-        </Button>
       )}
     </Box>
   )
