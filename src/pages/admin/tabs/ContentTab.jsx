@@ -67,11 +67,34 @@ function AttachmentThumbnails({ attachments }) {
 
 function ContentCard({ item, type, deletingId, remove }) {
   return (
-    <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
+    <Box
+      sx={{
+        p: 2, borderRadius: 2, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider',
+        // Kart, Stack'in stretch ile verdiği genişliği aşmasın diye açıkça
+        // sabitlendi + overflow:hidden eklendi. Gerçek gönderi metinleri
+        // (uzun kesintisiz kelime/URL içermese bile) bazı mobil
+        // motorlarda satır sonu vermeden kartın dışına taşıp overflow-x:
+        // hidden (bkz. index.css) yüzünden sağ tarafı sessizce kırpılıyordu
+        // (bkz. mobil tasarım hatası ekran görüntüsü) - width/minWidth/
+        // overflow üçlüsü bunu kart seviyesinde garanti altına alıyor.
+        width: '100%', minWidth: 0, boxSizing: 'border-box', overflow: 'hidden'
+      }}
+    >
       {type === 'posts' && (
-        <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5, wordBreak: 'break-word' }}>{item.title}</Typography>
+        <Typography
+          variant="body2"
+          sx={{ fontWeight: 600, mb: 0.5, wordBreak: 'break-word', overflowWrap: 'anywhere' }}
+        >
+          {item.title}
+        </Typography>
       )}
-      <Typography variant="body2" sx={{ mb: 1, wordBreak: 'break-word', color: type === 'posts' ? 'text.secondary' : 'text.primary' }}>
+      <Typography
+        variant="body2"
+        sx={{
+          mb: 1, wordBreak: 'break-word', overflowWrap: 'anywhere',
+          color: type === 'posts' ? 'text.secondary' : 'text.primary'
+        }}
+      >
         {item.content}
       </Typography>
       {type === 'posts' && <AttachmentThumbnails attachments={item.attachments} />}
@@ -145,7 +168,14 @@ export default function ContentTab({ token }) {
 
   return (
     <Box sx={{ mt: 2 }}>
-      <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2, flexWrap: 'wrap', gap: 1 }}>
+      {/* NOT: spacing prop'u kaldırıldı - sx'teki gap:1 ile birlikte
+          kullanılınca (spacing kendi margin mekanizmasını, gap de CSS
+          gap'i uyguluyor) öğeler arası boşluk iki katına çıkıp dar
+          ekranlarda satırın toplam genişlik talebini gereksiz artırıyordu.
+          Arama kutusu da UsersTab.jsx'teki gibi xs'te tam genişliğe
+          çekildi - sabit 280px, çok dar telefonlarda (ör. iPhone SE)
+          tek başına bile satırın taşmasına yakın bir pay bırakıyordu. */}
+      <Stack direction="row" alignItems="center" sx={{ mb: 2, flexWrap: 'wrap', gap: 1 }}>
         <ToggleButtonGroup size="small" value={type} exclusive onChange={(_, v) => v && setType(v)}>
           <ToggleButton value="posts">Gönderiler</ToggleButton>
           <ToggleButton value="comments">Yorumlar</ToggleButton>
@@ -153,7 +183,7 @@ export default function ContentTab({ token }) {
         <TextField
           size="small" placeholder="İçerikte ara..." value={q}
           onChange={e => setQ(e.target.value)}
-          sx={{ width: 280 }}
+          sx={{ width: { xs: '100%', sm: 280 } }}
         />
         {type === 'posts' && (
           <FormControlLabel

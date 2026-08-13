@@ -68,11 +68,19 @@ function EditUserDialog({ user, onClose, onSaved, token }) {
 
 function UserCard({ u, onEdit }) {
   return (
-    <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
+    // width/minWidth/overflow üçlüsü: ContentTab.jsx#ContentCard ile aynı
+    // gerekçe - mobilde metin kart sınırını taşıp overflow-x:hidden (bkz.
+    // index.css) yüzünden sağ tarafın sessizce kırpılmasını önlüyor.
+    <Box
+      sx={{
+        p: 2, borderRadius: 2, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider',
+        width: '100%', minWidth: 0, boxSizing: 'border-box', overflow: 'hidden'
+      }}
+    >
       <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
         <Box sx={{ minWidth: 0 }}>
           <Typography variant="body2" sx={{ fontWeight: 600 }}>{u.firstName} {u.lastName}</Typography>
-          <Typography variant="caption" sx={{ color: 'text.secondary', wordBreak: 'break-word' }}>{u.email}</Typography>
+          <Typography variant="caption" sx={{ color: 'text.secondary', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>{u.email}</Typography>
         </Box>
         <Button size="small" onClick={() => onEdit(u)} sx={{ flexShrink: 0 }}>Düzenle</Button>
       </Stack>

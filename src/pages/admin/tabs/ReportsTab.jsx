@@ -32,12 +32,20 @@ function ReportActions({ r, actingId, act, deleteContent }) {
 
 function ReportCard({ r, actingId, act, deleteContent }) {
   return (
-    <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
+    // width/minWidth/overflow üçlüsü: ContentTab.jsx#ContentCard ile aynı
+    // gerekçe - mobilde metin kart sınırını taşıp overflow-x:hidden (bkz.
+    // index.css) yüzünden sağ tarafın sessizce kırpılmasını önlüyor.
+    <Box
+      sx={{
+        p: 2, borderRadius: 2, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider',
+        width: '100%', minWidth: 0, boxSizing: 'border-box', overflow: 'hidden'
+      }}
+    >
       <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1} sx={{ mb: 1 }}>
         <Chip size="small" label={r.targetType === 'POST' ? 'Gönderi' : 'Yorum'} />
         <Chip size="small" label={REPORT_STATUS_LABEL[r.status] || r.status} color={REPORT_STATUS_COLOR[r.status] || 'default'} />
       </Stack>
-      <Typography variant="body2" sx={{ mb: 1, wordBreak: 'break-word' }}>{r.targetPreview}</Typography>
+      <Typography variant="body2" sx={{ mb: 1, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>{r.targetPreview}</Typography>
       <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
         Sahibi: {r.targetOwnerName || '—'}
       </Typography>
@@ -45,7 +53,7 @@ function ReportCard({ r, actingId, act, deleteContent }) {
         Şikayet Eden: {r.reporterName}
       </Typography>
       {r.reason && (
-        <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', mb: 1.5, wordBreak: 'break-word' }}>
+        <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', mb: 1.5, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
           Sebep: {r.reason}
         </Typography>
       )}
