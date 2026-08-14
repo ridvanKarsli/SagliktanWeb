@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Box, CircularProgress, Stack, Typography } from '@mui/material'
+import { Box, CircularProgress, Typography } from '@mui/material'
 import { ChatBubbleOutlineRounded, DescriptionOutlined, FlagOutlined, GroupsRounded, PeopleAltRounded } from '@mui/icons-material'
 import { useNotification } from '../../../context/NotificationContext.jsx'
 import { getAdminStats, listDiseaseGroups } from '../../../services/api.js'
@@ -14,16 +14,26 @@ import { getAdminStats, listDiseaseGroups } from '../../../services/api.js'
 // diğerlerinden görsel olarak ayrışsın.
 function StatCard({ label, value, icon, color = 'primary', highlight = false }) {
   return (
+    // Kök neden (mobil tasarım hatası): önceden bir Stack(row, flexWrap)
+    // içinde flex: '1 1 200px' idi - 5 kart 200px tabanla dar bir ekranda
+    // 2'şer sarıyor ama son kart TEK başına kalıp flex-grow:1 ile satırın
+    // tamamına gerilip diğerleriyle uyumsuz/"kayık" görünüyordu. Ayrıca
+    // width/minWidth sınırlaması olmadığı için büyük bir sayı (value) kartı
+    // kendi hücresinin dışına taşırabiliyordu (bkz. ContentTab.jsx
+    // ContentCard'daki aynı width/minWidth/overflow üçlüsü). Artık
+    // DashboardTab'daki CSS Grid sabit sütun sayısı veriyor - hiçbir kart
+    // yalnız kalıp gerilmiyor.
     <Box
       sx={{
-        flex: '1 1 200px', p: 2.5, borderRadius: 3, bgcolor: 'background.paper',
+        p: { xs: 2, sm: 2.5 }, borderRadius: 3, bgcolor: 'background.paper',
         border: '1px solid', borderColor: highlight ? `${color}.main` : 'divider',
-        display: 'flex', alignItems: 'center', gap: 2
+        display: 'flex', alignItems: 'center', gap: { xs: 1.5, sm: 2 },
+        width: '100%', minWidth: 0, boxSizing: 'border-box', overflow: 'hidden'
       }}
     >
       <Box
         sx={{
-          width: 48, height: 48, borderRadius: 2.5, flexShrink: 0,
+          width: { xs: 40, sm: 48 }, height: { xs: 40, sm: 48 }, borderRadius: 2.5, flexShrink: 0,
           display: 'grid', placeItems: 'center',
           background: (t) => `linear-gradient(135deg, ${t.palette[color].main}33, ${t.palette[color].main}14)`,
           color: `${color}.main`
@@ -31,9 +41,16 @@ function StatCard({ label, value, icon, color = 'primary', highlight = false }) 
       >
         {icon}
       </Box>
-      <Box sx={{ minWidth: 0 }}>
-        <Typography variant="caption" sx={{ color: 'text.secondary' }}>{label}</Typography>
-        <Typography variant="h4" sx={{ fontWeight: 700, mt: 0.25 }}>{value ?? '—'}</Typography>
+      <Box sx={{ minWidth: 0, flex: 1 }}>
+        <Typography
+          variant="caption"
+          sx={{ color: 'text.secondary', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+        >
+          {label}
+        </Typography>
+        <Typography variant="h4" sx={{ fontWeight: 700, mt: 0.25, fontSize: { xs: '1.5rem', sm: '2rem' } }}>
+          {value ?? '—'}
+        </Typography>
       </Box>
     </Box>
   )
@@ -71,7 +88,21 @@ export default function DashboardTab({ token }) {
       <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
         Platformun genel durumuna hızlı bir bakış.
       </Typography>
-      <Stack direction="row" flexWrap="wrap" gap={2}>
+      {/* Sabit sütun sayılı CSS Grid - flex+flexWrap'in aksine son satırdaki
+          "yetim" kart asla satırın tamamına gerilip diğerleriyle uyumsuz
+          görünmüyor (bkz. StatCard yorumu). xs: 2 sütun, sm: 3, md+: 5 -
+          5 kart md+ ekranda tek satıra tam sığıyor. */}
+      <Box
+        sx={{
+          display: 'grid',
+          gap: 2,
+          gridTemplateColumns: {
+            xs: 'repeat(2, 1fr)',
+            sm: 'repeat(3, 1fr)',
+            md: 'repeat(5, 1fr)'
+          }
+        }}
+      >
         <StatCard label="Toplam Kayıtlı Kişi" value={stats?.totalUsers} icon={<PeopleAltRounded />} color="primary" />
         <StatCard label="Toplam Gönderi" value={stats?.totalPosts} icon={<DescriptionOutlined />} color="secondary" />
         <StatCard label="Toplam Yorum" value={stats?.totalComments} icon={<ChatBubbleOutlineRounded />} color="secondary" />
@@ -83,7 +114,7 @@ export default function DashboardTab({ token }) {
           color={pending > 0 ? 'warning' : 'success'}
           highlight={pending > 0}
         />
-      </Stack>
+      </Box>
     </Box>
   )
 }
