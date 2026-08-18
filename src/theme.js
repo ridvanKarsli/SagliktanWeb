@@ -637,3 +637,45 @@ const theme = createTheme({
 })
 
 export default theme
+
+// Kişiselleştirme: yüksek kontrast modu (bkz. AccessibilityContext.jsx).
+// theme.js'i baştan bir factory'e çevirmek yerine (yüksek risk, ~600 satırlık
+// mevcut tanımı bozma ihtimali), MUI'nin createTheme(baseTheme, overrides)
+// deep-merge özelliğini kullanıyoruz - yalnızca kontrastı düşük olan alanlar
+// (ikincil/disabled metin, divider/border opaklığı, Paper kenarlığı)
+// üzerine yazılıyor, geri kalan tüm tasarım sistemi aynen korunuyor.
+export function createAccessibleTheme(baseTheme, { highContrast = false } = {}) {
+  if (!highContrast) return baseTheme
+  return createTheme(baseTheme, {
+    palette: {
+      text: {
+        secondary: '#D6CCBE',
+        disabled: '#B7AC9C',
+      },
+      divider: 'rgba(242, 237, 230, 0.28)',
+    },
+    components: {
+      MuiPaper: {
+        styleOverrides: {
+          root: { border: '1px solid rgba(242, 237, 230, 0.28)' },
+        },
+      },
+      MuiCard: {
+        styleOverrides: {
+          root: { border: '1px solid rgba(242, 237, 230, 0.32)' },
+        },
+      },
+      MuiButton: {
+        styleOverrides: {
+          outlined: { borderWidth: 2 },
+          outlinedPrimary: { borderWidth: 2 },
+        },
+      },
+      MuiChip: {
+        styleOverrides: {
+          outlined: { borderWidth: 1.5, borderColor: 'rgba(242, 237, 230, 0.4)' },
+        },
+      },
+    },
+  })
+}

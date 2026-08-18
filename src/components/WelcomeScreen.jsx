@@ -474,18 +474,27 @@ export default function WelcomeScreen() {
                 © {new Date().getFullYear()} Sağlıktan. Tüm hakları saklıdır.
               </Typography>
             </Box>
-            <Stack direction="row" spacing={3}>
-              <Typography
-                variant="body2"
-                onClick={() => navigate('/gizlilik-politikasi')}
-                sx={{
-                  color: 'text.secondary',
-                  cursor: 'pointer',
-                  '&:hover': { color: 'primary.main' }
-                }}
-              >
-                Gizlilik Politikası
-              </Typography>
+            <Stack direction="row" spacing={{ xs: 2, sm: 3 }} sx={{ flexWrap: 'wrap', justifyContent: 'center', rowGap: 1 }}>
+              {[
+                { label: 'Hakkımızda', path: '/hakkimizda' },
+                { label: 'Topluluk Kuralları', path: '/topluluk-kurallari' },
+                { label: 'Kullanım Şartları', path: '/kullanim-sartlari' },
+                { label: 'Gizlilik Politikası', path: '/gizlilik-politikasi' },
+                { label: 'Yardım', path: '/yardim' }
+              ].map((link) => (
+                <Typography
+                  key={link.path}
+                  variant="body2"
+                  onClick={() => navigate(link.path)}
+                  sx={{
+                    color: 'text.secondary',
+                    cursor: 'pointer',
+                    '&:hover': { color: 'primary.main' }
+                  }}
+                >
+                  {link.label}
+                </Typography>
+              ))}
             </Stack>
           </Box>
         </Container>

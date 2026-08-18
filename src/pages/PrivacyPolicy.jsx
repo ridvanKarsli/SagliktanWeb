@@ -1,6 +1,5 @@
-import { Box, Button, Container, Divider, Typography } from '@mui/material'
-import { ArrowBack } from '@mui/icons-material'
-import { useNavigate } from 'react-router-dom'
+import StaticPageShell from '../components/StaticPageShell.jsx'
+import StaticPageSections from '../components/StaticPageSections.jsx'
 
 const sections = [
   {
@@ -58,7 +57,7 @@ yurt içinde veya yurt dışında verilerin aktarıldığı üçüncü kişileri
 düzeltilmesini isteme, KVKK'da öngörülen şartlar çerçevesinde silinmesini veya yok edilmesini isteme
 ve bu işlemlerin verilerin aktarıldığı üçüncü kişilere bildirilmesini isteme haklarına sahipsiniz.
 
-Bu haklarınızı kullanmak için hesap ayarlarınızdaki "Hesabı Devre Dışı Bırak" seçeneğini
+Bu haklarınızı kullanmak için hesap ayarlarınızdaki "Verilerimi İndir" ve "Hesabımı Sil" seçeneklerini
 kullanabilir ya da aşağıdaki iletişim adresinden bize ulaşabilirsiniz.`
   },
   {
@@ -68,39 +67,12 @@ kullanabilir ya da aşağıdaki iletişim adresinden bize ulaşabilirsiniz.`
 ]
 
 export default function PrivacyPolicy() {
-  const navigate = useNavigate()
-
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-      <Box sx={{ p: { xs: 2, sm: 3 } }}>
-        <Button startIcon={<ArrowBack />} onClick={() => navigate(-1)} sx={{ color: 'text.secondary' }}>
-          Geri
-        </Button>
-      </Box>
-
-      <Container maxWidth="md" sx={{ pb: 8 }}>
-        <Typography variant="h2" sx={{ color: 'primary.main', mb: 1 }}>
-          KVKK Aydınlatma Metni ve Gizlilik Politikası
-        </Typography>
-        <Typography variant="body2" sx={{ color: 'text.secondary', mb: 4 }}>
-          Son güncelleme: {new Date().toLocaleDateString('tr-TR', { year: 'numeric', month: 'long', day: 'numeric' })}
-        </Typography>
-
-        {sections.map((section, i) => (
-          <Box key={section.title} sx={{ mb: 4 }}>
-            <Typography variant="h5" sx={{ fontWeight: 700, mb: 1.5, color: 'text.primary' }}>
-              {section.title}
-            </Typography>
-            <Typography
-              variant="body1"
-              sx={{ color: 'text.secondary', whiteSpace: 'pre-line', lineHeight: 1.8 }}
-            >
-              {section.body}
-            </Typography>
-            {i < sections.length - 1 && <Divider sx={{ mt: 4 }} />}
-          </Box>
-        ))}
-      </Container>
-    </Box>
+    <StaticPageShell
+      title="KVKK Aydınlatma Metni ve Gizlilik Politikası"
+      subtitle={`Son güncelleme: ${new Date().toLocaleDateString('tr-TR', { year: 'numeric', month: 'long', day: 'numeric' })}`}
+    >
+      <StaticPageSections sections={sections} />
+    </StaticPageShell>
   )
 }

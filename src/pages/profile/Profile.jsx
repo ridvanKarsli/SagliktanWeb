@@ -1,14 +1,16 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
-  Alert, Avatar, Box, Button, Chip, CircularProgress, Collapse, Divider, IconButton,
-  Stack, TextField, ToggleButton, ToggleButtonGroup, Typography
+  Alert, Avatar, Box, Button, Chip, CircularProgress, Collapse, Divider, FormControlLabel,
+  IconButton, Stack, Switch, TextField, ToggleButton, ToggleButtonGroup, Typography
 } from '@mui/material'
 import {
-  BlockRounded, ChevronRightRounded, DeleteForeverRounded, EditOutlined, FileDownloadOutlined,
-  GroupsRounded, LockOutlined, LogoutRounded, PrivacyTipOutlined, WarningAmberRounded
+  BlockRounded, ChevronRightRounded, DeleteForeverRounded, DescriptionOutlined, EditOutlined,
+  FileDownloadOutlined, FormatSizeRounded, GroupsRounded, HelpOutlineRounded, InfoOutlined,
+  LockOutlined, LogoutRounded, PrivacyTipOutlined, WarningAmberRounded
 } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
+import { useAccessibility } from '../../context/AccessibilityContext.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
 import PostCard from '../../components/PostCard.jsx'
 import {
@@ -59,6 +61,7 @@ export default function Profile() {
   const { token, user, updateLocalUser, logout } = useAuth()
   const { showError, showSuccess } = useNotification()
   const navigate = useNavigate()
+  const { fontScale, highContrast, fontScaleOptions, setFontScale, setHighContrast } = useAccessibility()
 
   /* ---- Profil düzenleme ---- */
   const [editOpen, setEditOpen] = useState(false)
@@ -538,6 +541,51 @@ export default function Profile() {
           )}
         </Box>
 
+        {/* Kişiselleştirme: yazı boyutu + yüksek kontrast (bkz. AccessibilityContext.jsx) */}
+        <Section title="Erişilebilirlik">
+          <Box sx={{ borderRadius: 2, border: '1px solid', borderColor: 'divider', p: 2.5 }}>
+            <Stack spacing={2.5}>
+              <Box>
+                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
+                  <FormatSizeRounded sx={{ fontSize: 20, color: 'text.secondary' }} />
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>Yazı Boyutu</Typography>
+                </Stack>
+                <ToggleButtonGroup
+                  value={fontScale}
+                  exclusive
+                  size="small"
+                  onChange={(_, v) => v && setFontScale(v)}
+                  fullWidth
+                >
+                  {Object.entries(fontScaleOptions).map(([key, opt]) => (
+                    <ToggleButton key={key} value={key}>{opt.label}</ToggleButton>
+                  ))}
+                </ToggleButtonGroup>
+              </Box>
+
+              <Divider />
+
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={highContrast}
+                    onChange={e => setHighContrast(e.target.checked)}
+                  />
+                }
+                label={
+                  <Box>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>Yüksek Kontrast</Typography>
+                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                      Metin ve kenarlıkları daha belirgin hale getirir
+                    </Typography>
+                  </Box>
+                }
+                sx={{ m: 0, alignItems: 'flex-start', '& .MuiFormControlLabel-label': { ml: 1 } }}
+              />
+            </Stack>
+          </Box>
+        </Section>
+
         {/* Ayarlar: şifre, gizlilik, çıkış, hesap silme - hepsi tek yerde */}
         <Section title="Ayarlar">
           <Box sx={{ borderRadius: 2, border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
@@ -619,6 +667,30 @@ export default function Profile() {
                 label="Verilerimi İndir"
                 loading={exportingData}
                 onClick={doExportData}
+              />
+
+              <SettingsRow
+                icon={<HelpOutlineRounded sx={{ fontSize: 20 }} />}
+                label="Yardım ve Destek"
+                onClick={() => navigate('/yardim')}
+              />
+
+              <SettingsRow
+                icon={<InfoOutlined sx={{ fontSize: 20 }} />}
+                label="Hakkımızda"
+                onClick={() => navigate('/hakkimizda')}
+              />
+
+              <SettingsRow
+                icon={<GroupsRounded sx={{ fontSize: 20 }} />}
+                label="Topluluk Kuralları"
+                onClick={() => navigate('/topluluk-kurallari')}
+              />
+
+              <SettingsRow
+                icon={<DescriptionOutlined sx={{ fontSize: 20 }} />}
+                label="Kullanım Şartları"
+                onClick={() => navigate('/kullanim-sartlari')}
               />
 
               <SettingsRow

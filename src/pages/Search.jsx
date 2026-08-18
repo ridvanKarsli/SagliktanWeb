@@ -3,7 +3,7 @@ import {
   Avatar, Box, Button, CircularProgress, ClickAwayListener, Divider, Fade, IconButton, Paper,
   Stack, Tab, Tabs, TextField, Typography
 } from '@mui/material'
-import { SearchRounded, ChatBubbleOutlineRounded, CloseRounded } from '@mui/icons-material'
+import { SearchRounded, ChatBubbleOutlineRounded, CloseRounded, HistoryRounded } from '@mui/icons-material'
 import { useLocation, useNavigate } from 'react-router-dom'
 import PostCard from '../components/PostCard.jsx'
 import HighlightText from '../components/HighlightText.jsx'
@@ -11,6 +11,7 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { useNotification } from '../context/NotificationContext.jsx'
 import { searchPosts, searchComments, searchUsers, quickSearch } from '../services/api.js'
 import { initialsFrom, prettyDate } from '../utils/format.js'
+import { loadRecentSearches, saveRecentSearch, removeRecentSearch, clearRecentSearches } from '../utils/recentSearches.js'
 
 const TABS = [
   { key: 'posts', label: 'Gönderiler', fetcher: searchPosts },
@@ -127,6 +128,10 @@ export default function Search() {
   const debounceRef = useRef(null)
   const inputRef = useRef(null)
 
+  // Son aramalar: localStorage'da tutulur, kutu boşken/odaklanınca öneri
+  // panelinde gösterilir (bkz. src/utils/recentSearches.js).
+  const [recentSearches, setRecentSearches] = useState(() => loadRecentSearches())
+
   const activeTab = TABS[tabIndex]
   const activeState = states[activeTab.key]
 
@@ -192,9 +197,24 @@ export default function Search() {
     setStates({ posts: emptyTabState, comments: emptyTabState, people: emptyTabState })
     setActiveQuery(next)
     setSuggestOpen(false)
+    if (next) setRecentSearches(saveRecentSearch(next))
     const sp = new URLSearchParams()
     if (next) sp.set('q', next)
     navigate(`/search${sp.toString() ? `?${sp.toString()}` : ''}`, { replace: true })
+  }
+
+  const runRecentSearch = (term) => {
+    setQ(term)
+    runSearch(term)
+  }
+
+  const onRemoveRecentSearch = (e, term) => {
+    e.stopPropagation()
+    setRecentSearches(removeRecentSearch(term))
+  }
+
+  const onClearRecentSearches = () => {
+    setRecentSearches(clearRecentSearches())
   }
 
   const onSubmit = (e) => {
@@ -297,16 +317,57 @@ export default function Search() {
             />
           </Box>
 
-          <Fade in={suggestOpen && q.trim().length >= 2}>
+          <Fade in={suggestOpen && (q.trim().length >= 2 || (q.trim().length === 0 && recentSearches.length > 0))}>
             <Paper
               elevation={6}
               sx={{
                 position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0,
                 zIndex: 20, borderRadius: 2, border: '1px solid', borderColor: 'divider',
-                maxHeight: 420, overflowY: 'auto', p: suggestLoading || hasAnySuggestions ? 1.5 : 0
+                maxHeight: 420, overflowY: 'auto',
+                p: (q.trim().length === 0 ? recentSearches.length > 0 : (suggestLoading || hasAnySuggestions)) ? 1.5 : 0
               }}
             >
-              {suggestLoading && (
+              {q.trim().length === 0 && recentSearches.length > 0 && (
+                <Box>
+                  <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 1, mb: 0.5 }}>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700 }}>
+                      SON ARAMALAR
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      onClick={onClearRecentSearches}
+                      sx={{ color: 'text.secondary', cursor: 'pointer', '&:hover': { color: 'primary.main' } }}
+                    >
+                      Tümünü temizle
+                    </Typography>
+                  </Stack>
+                  {recentSearches.map(term => (
+                    <Stack
+                      key={term}
+                      direction="row" alignItems="center" spacing={1.25}
+                      onClick={() => runRecentSearch(term)}
+                      sx={{
+                        p: 1, borderRadius: 1.5, cursor: 'pointer',
+                        '&:hover': { bgcolor: 'action.hover' }
+                      }}
+                    >
+                      <HistoryRounded sx={{ fontSize: 18, color: 'text.secondary', flexShrink: 0 }} />
+                      <Typography variant="body2" sx={{ color: 'text.primary', flex: 1 }} noWrap>
+                        {term}
+                      </Typography>
+                      <IconButton
+                        size="small"
+                        aria-label="Bu aramayı kaldır"
+                        onClick={(e) => onRemoveRecentSearch(e, term)}
+                      >
+                        <CloseRounded fontSize="small" />
+                      </IconButton>
+                    </Stack>
+                  ))}
+                </Box>
+              )}
+
+              {q.trim().length >= 2 && suggestLoading && (
                 <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
                   <CircularProgress size={20} />
                 </Box>

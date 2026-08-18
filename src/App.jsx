@@ -19,6 +19,10 @@ import WelcomeScreen from './components/WelcomeScreen.jsx'
 const Register = lazy(() => import('./pages/Register.jsx'))
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword.jsx'))
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy.jsx'))
+const TermsOfService = lazy(() => import('./pages/TermsOfService.jsx'))
+const AboutUs = lazy(() => import('./pages/AboutUs.jsx'))
+const CommunityGuidelines = lazy(() => import('./pages/CommunityGuidelines.jsx'))
+const Help = lazy(() => import('./pages/Help.jsx'))
 const Home = lazy(() => import('./pages/Home.jsx'))
 const DiseaseGroups = lazy(() => import('./pages/groups/DiseaseGroups.jsx'))
 const SubGroups = lazy(() => import('./pages/groups/SubGroups.jsx'))
@@ -69,6 +73,10 @@ export default function App() {
         <Route path="/register" element={<PublicOnlyRoute><Register /></PublicOnlyRoute>} />
         <Route path="/forgot-password" element={<PublicOnlyRoute><ForgotPassword /></PublicOnlyRoute>} />
         <Route path="/gizlilik-politikasi" element={<PrivacyPolicy />} />
+        <Route path="/kullanim-sartlari" element={<TermsOfService />} />
+        <Route path="/hakkimizda" element={<AboutUs />} />
+        <Route path="/topluluk-kurallari" element={<CommunityGuidelines />} />
+        <Route path="/yardim" element={<Help />} />
         <Route element={<ProtectedLayout />}>
           <Route path="/home" element={<Home />} />
           <Route path="/groups" element={<DiseaseGroups />} />

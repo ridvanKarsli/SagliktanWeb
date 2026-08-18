@@ -1,15 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { BrowserRouter } from 'react-router-dom'
-import { ThemeProvider, CssBaseline } from '@mui/material'
-import App from './App.jsx'
-import theme from './theme.js'
-import { AuthProvider } from './context/AuthContext.jsx'
-import { NotificationProvider } from './context/NotificationContext.jsx'
-import { NotificationsFeedProvider } from './context/NotificationsFeedContext.jsx'
-import { MessagingProvider } from './context/MessagingContext.jsx'
-import { ConfirmProvider } from './context/ConfirmContext.jsx'
-import ErrorBoundary from './components/ErrorBoundary.jsx'
+import ThemedApp from './ThemedApp.jsx'
+import { AccessibilityProvider } from './context/AccessibilityContext.jsx'
 import { reportWebVitals } from './utils/reportWebVitals.js'
 // Inter fontu artık Google Fonts'tan değil, yerelden (bkz. index.html'deki not).
 import '@fontsource/inter/400.css'
@@ -62,24 +54,9 @@ if (sentryDsn) {
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <ErrorBoundary>
-        <BrowserRouter>
-          <AuthProvider>
-            <NotificationProvider>
-              <ConfirmProvider>
-                <NotificationsFeedProvider>
-                  <MessagingProvider>
-                    <App />
-                  </MessagingProvider>
-                </NotificationsFeedProvider>
-              </ConfirmProvider>
-            </NotificationProvider>
-          </AuthProvider>
-        </BrowserRouter>
-      </ErrorBoundary>
-    </ThemeProvider>
+    <AccessibilityProvider>
+      <ThemedApp />
+    </AccessibilityProvider>
   </React.StrictMode>
 )
 
