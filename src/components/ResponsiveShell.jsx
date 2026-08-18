@@ -3,6 +3,7 @@ import {
   Badge, BottomNavigation, BottomNavigationAction, Box,
   Typography, Avatar
 } from '@mui/material'
+import useQuickSearchShortcut from '../hooks/useQuickSearchShortcut.js'
 import useMediaQuery from '@mui/material/useMediaQuery'
 import { useTheme } from '@mui/material/styles'
 import {
@@ -54,6 +55,9 @@ export default function ResponsiveShell({ children }) {
   const { logout, user } = useAuth()
   const { pendingRequestCount, unreadMessageCount } = useMessaging()
   const messagesBadgeCount = pendingRequestCount + unreadMessageCount
+
+  // Cmd/Ctrl+K ve "/" ile heryerden hızlı arama - bkz. useQuickSearchShortcut.js
+  useQuickSearchShortcut()
 
   const navItems = useMemo(
     () => (user?.role === 'ADMIN' ? [...BASE_NAV_ITEMS, ADMIN_NAV_ITEM] : BASE_NAV_ITEMS),
@@ -200,9 +204,23 @@ export default function ResponsiveShell({ children }) {
                       active ? item.icon : item.iconOutline
                     )}
                   </Box>
-                  <Typography sx={{ fontWeight: 'inherit', fontSize: '0.9375rem' }}>
+                  <Typography sx={{ fontWeight: 'inherit', fontSize: '0.9375rem', flex: 1 }}>
                     {item.label}
                   </Typography>
+                  {/* X.com/Linear tarzı kısayol ipucu - bkz. useQuickSearchShortcut.js.
+                      Sadece masaüstü sidebar'da: mobilde klavye kısayolunun
+                      bir anlamı yok. */}
+                  {item.to === '/search' && (
+                    <Box
+                      sx={{
+                        fontSize: '0.6875rem', fontWeight: 600, color: 'text.secondary',
+                        border: '1px solid', borderColor: 'divider', borderRadius: 1,
+                        px: 0.75, py: 0.125, opacity: active ? 0.9 : 0.6
+                      }}
+                    >
+                      ⌘K
+                    </Box>
+                  )}
                 </Box>
               )
             })}

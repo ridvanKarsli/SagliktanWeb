@@ -154,7 +154,11 @@ export function AuthProvider({ children }) {
 
   async function logout() {
     if (token) {
-      try { await logoutUser(token) } catch { /* stateless JWT: sunucu tarafı invalidation yok, sessizce yut */ }
+      // Backend artık bu oturumun refresh token'ını DB'de revoke ediyor (bkz.
+      // AuthServiceImpl.revokeCurrentSession, görev #305) - ama bu istek
+      // ağ hatasıyla başarısız olsa bile kullanıcı yerelde çıkış yapabilmeli,
+      // bu yüzden hata sessizce yutuluyor (local token zaten aşağıda siliniyor).
+      try { await logoutUser(token) } catch { /* best-effort server-side revoke */ }
     }
     setToken(null)
     setUser(null)

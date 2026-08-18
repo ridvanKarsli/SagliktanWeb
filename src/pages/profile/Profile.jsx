@@ -4,21 +4,24 @@ import {
   IconButton, Stack, Switch, TextField, ToggleButton, ToggleButtonGroup, Typography
 } from '@mui/material'
 import {
-  BlockRounded, ChevronRightRounded, DeleteForeverRounded, DescriptionOutlined, EditOutlined,
-  FileDownloadOutlined, FormatSizeRounded, GroupsRounded, HelpOutlineRounded, InfoOutlined,
-  LockOutlined, LogoutRounded, PrivacyTipOutlined, WarningAmberRounded
+  BlockRounded, BookmarkBorderRounded, ChevronRightRounded, DeleteForeverRounded, DescriptionOutlined,
+  DevicesOutlined, DynamicFeedRounded, EditOutlined, FileDownloadOutlined, FormatSizeRounded, GroupsRounded,
+  HelpOutlineRounded, InfoOutlined, LockOutlined, LogoutRounded, PrivacyTipOutlined, WarningAmberRounded
 } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useAccessibility } from '../../context/AccessibilityContext.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
 import PostCard from '../../components/PostCard.jsx'
+import VerifiedBadge from '../../components/VerifiedBadge.jsx'
+import EmptyState from '../../components/EmptyState.jsx'
+import PasswordStrengthMeter from '../../components/PasswordStrengthMeter.jsx'
 import {
   changePassword, deactivateAccount, deleteAccount, exportMyData, getMyDiseaseGroups, getMyPosts,
-  getMySavedPosts, getUserProfile, listBlockedUsers, unblockUser, updateProfile
+  getMySavedPosts, getUserProfile, listBlockedUsers, listSessions, revokeSession, unblockUser, updateProfile
 } from '../../services/api.js'
 import { Section, SectionList, SubRow } from './ProfileShared.jsx'
-import { initialsFrom } from '../../utils/format.js'
+import { initialsFrom, prettyDate } from '../../utils/format.js'
 import { usePaginatedList } from '../../hooks/usePaginatedList.js'
 
 // Ayarlar sekmesindeki her satır (şifre, gizlilik, çıkış, hesap silme) için
@@ -290,6 +293,40 @@ export default function Profile() {
     }
   }
 
+  /* ---- Aktif Oturumlar (görev #305/#306) ----
+     Blocked kullanıcılar bölümüyle aynı lazy-load desen: sadece açılınca çekilir.
+     Şu an kullanılan oturum (current: true) revoke edilemez - onun için zaten
+     "Çıkış Yap" satırı var; burada listelenen diğer cihazlardan uzaktan çıkış. */
+  const [sessionsOpen, setSessionsOpen] = useState(false)
+  const [sessions, setSessions] = useState([])
+  const [sessionsLoading, setSessionsLoading] = useState(false)
+  const [sessionsLoaded, setSessionsLoaded] = useState(false)
+  const [revokingSessionId, setRevokingSessionId] = useState(null)
+
+  useEffect(() => {
+    if (!sessionsOpen || sessionsLoaded || !token) return
+    let mounted = true
+    setSessionsLoading(true)
+    listSessions(token)
+      .then(res => { if (mounted) { setSessions(Array.isArray(res) ? res : []); setSessionsLoaded(true) } })
+      .catch(err => showError(err.message || 'Aktif oturumlar alınamadı.'))
+      .finally(() => { if (mounted) setSessionsLoading(false) })
+    return () => { mounted = false }
+  }, [sessionsOpen, sessionsLoaded, token, showError])
+
+  const handleRevokeSession = async (sessionRowId) => {
+    setRevokingSessionId(sessionRowId)
+    try {
+      await revokeSession(token, sessionRowId)
+      setSessions(prev => prev.filter(s => s.id !== sessionRowId))
+      showSuccess('Oturum sonlandırıldı.')
+    } catch (err) {
+      showError(err.message || 'Oturum sonlandırılamadı.')
+    } finally {
+      setRevokingSessionId(null)
+    }
+  }
+
   /* ---- Ayarlar: çıkış yap ---- */
   const handleLogout = async () => {
     await logout()
@@ -382,7 +419,11 @@ export default function Profile() {
                 </Typography>
               </Box>
             </Stack>
-            {!user.emailVerified && (
+            {user.emailVerified ? (
+              <Box sx={{ mt: 0.5 }}>
+                <VerifiedBadge />
+              </Box>
+            ) : (
               <Chip label="e-posta doğrulanmadı" size="small" color="warning" variant="outlined" sx={{ height: 24, mt: 0.5 }} />
             )}
           </Box>
@@ -424,6 +465,15 @@ export default function Profile() {
               <CircularProgress size={22} />
             </Box>
           ) : (
+            myGroups.length === 0 ? (
+              <EmptyState
+                icon={GroupsRounded}
+                title="Henüz bir hastalık grubuna katılmadınız."
+                actionLabel="Grupları Keşfet"
+                onAction={() => navigate('/groups')}
+                dense
+              />
+            ) : (
             <SectionList
               items={myGroups}
               getKey={(g) => g.id}
@@ -450,6 +500,7 @@ export default function Profile() {
                 </Box>
               )}
             />
+            )
           )}
         </Section>
 
@@ -478,11 +529,7 @@ export default function Profile() {
                 <CircularProgress size={22} />
               </Box>
             ) : myPosts.length === 0 ? (
-              <Box sx={{ textAlign: 'center', py: 6 }}>
-                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                  Henüz gönderiniz yok.
-                </Typography>
-              </Box>
+              <EmptyState icon={DynamicFeedRounded} title="Henüz gönderiniz yok." dense />
             ) : (
               <>
                 {myPosts.map((p, i) => (
@@ -511,11 +558,7 @@ export default function Profile() {
                 <CircularProgress size={22} />
               </Box>
             ) : savedPosts.length === 0 ? (
-              <Box sx={{ textAlign: 'center', py: 6 }}>
-                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                  Henüz kaydettiğiniz bir gönderi yok.
-                </Typography>
-              </Box>
+              <EmptyState icon={BookmarkBorderRounded} title="Henüz kaydettiğiniz bir gönderi yok." dense />
             ) : (
               <>
                 {savedPosts.map((p, i) => (
@@ -604,11 +647,16 @@ export default function Profile() {
                         label="Mevcut Şifre" type="password" value={currentPassword}
                         onChange={e => setCurrentPassword(e.target.value)} fullWidth required size="small"
                       />
-                      <TextField
-                        label="Yeni Şifre" type="password" value={newPassword}
-                        onChange={e => setNewPassword(e.target.value)} fullWidth required size="small"
-                        helperText="En az 8 karakter"
-                      />
+                      <Box>
+                        <TextField
+                          label="Yeni Şifre" type="password" value={newPassword}
+                          onChange={e => setNewPassword(e.target.value)} fullWidth required size="small"
+                          helperText="En az 8 karakter"
+                        />
+                        <Box sx={{ mt: 1 }}>
+                          <PasswordStrengthMeter password={newPassword} />
+                        </Box>
+                      </Box>
                       <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                         <Button type="submit" variant="contained" size="small" disabled={savingPassword}>
                           {savingPassword ? <CircularProgress size={16} color="inherit" /> : 'Şifreyi Değiştir'}
@@ -654,6 +702,60 @@ export default function Profile() {
                             >
                               {unblockingId === b.userId ? <CircularProgress size={14} color="inherit" /> : 'Engeli Kaldır'}
                             </Button>
+                          </Stack>
+                        ))}
+                      </Stack>
+                    )}
+                  </Box>
+                </Collapse>
+              </Box>
+
+              <Box>
+                <SettingsRow
+                  icon={<DevicesOutlined sx={{ fontSize: 20 }} />}
+                  label="Aktif Oturumlar"
+                  open={sessionsOpen}
+                  onClick={() => setSessionsOpen(o => !o)}
+                />
+                <Collapse in={sessionsOpen} unmountOnExit>
+                  <Box sx={{ px: 1.5, pb: 1.5 }}>
+                    {sessionsLoading ? (
+                      <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                        <CircularProgress size={20} />
+                      </Box>
+                    ) : sessions.length === 0 ? (
+                      <Typography variant="body2" sx={{ color: 'text.secondary', py: 1 }}>
+                        Aktif oturum bulunamadı.
+                      </Typography>
+                    ) : (
+                      <Stack spacing={1}>
+                        {sessions.map(s => (
+                          <Stack
+                            key={s.id} direction="row" alignItems="center" spacing={1.5}
+                            sx={{ py: 0.75 }}
+                          >
+                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                              <Stack direction="row" alignItems="center" spacing={1}>
+                                <Typography variant="body2" sx={{ fontWeight: 500 }} noWrap>
+                                  {s.deviceLabel}
+                                </Typography>
+                                {s.current && (
+                                  <Chip label="Bu cihaz" size="small" color="primary" variant="outlined" sx={{ height: 20 }} />
+                                )}
+                              </Stack>
+                              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                Son kullanım: {prettyDate(s.lastUsedAt) || 'Bilinmiyor'}
+                              </Typography>
+                            </Box>
+                            {!s.current && (
+                              <Button
+                                size="small" variant="outlined" color="error"
+                                disabled={revokingSessionId === s.id}
+                                onClick={() => handleRevokeSession(s.id)}
+                              >
+                                {revokingSessionId === s.id ? <CircularProgress size={14} color="inherit" /> : 'Çıkış Yap'}
+                              </Button>
+                            )}
                           </Stack>
                         ))}
                       </Stack>

@@ -4,11 +4,12 @@ import {
   DialogTitle, Divider, Fab, IconButton, Stack, TextField, ToggleButton, ToggleButtonGroup,
   Typography, useMediaQuery, useTheme
 } from '@mui/material'
-import { Add, ArrowBack, CloseRounded, InfoOutlined, SearchRounded } from '@mui/icons-material'
+import { Add, ArrowBack, CloseRounded, DynamicFeedRounded, InfoOutlined, SearchOffRounded, SearchRounded } from '@mui/icons-material'
 import { useNavigate, useParams } from 'react-router-dom'
 import PostCard from '../components/PostCard.jsx'
 import PostCardSkeleton from '../components/PostCardSkeleton.jsx'
 import PhotoUploadField from '../components/PhotoUploadField.jsx'
+import EmptyState from '../components/EmptyState.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useNotification } from '../context/NotificationContext.jsx'
 import { createPost, getSubGroup, listPostsBySubGroup, searchPostsInSubGroup } from '../services/api.js'
@@ -257,14 +258,11 @@ export default function Posts() {
             </Box>
           ))}
           {posts.length === 0 && (
-            <Box sx={{ textAlign: 'center', py: 10 }}>
-              <Typography variant="body1" sx={{ color: 'text.secondary', mb: 1 }}>
-                {isSearching ? 'Sonuç bulunamadı' : 'Henüz gönderi yok'}
-              </Typography>
-              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                {isSearching ? 'Farklı bir arama terimi deneyin' : 'İlk gönderiyi sen yap!'}
-              </Typography>
-            </Box>
+            <EmptyState
+              icon={isSearching ? SearchOffRounded : DynamicFeedRounded}
+              title={isSearching ? 'Sonuç bulunamadı' : 'Henüz gönderi yok'}
+              description={isSearching ? 'Farklı bir arama terimi deneyin.' : 'İlk gönderiyi sen yap!'}
+            />
           )}
 
           {!last && posts.length > 0 && (

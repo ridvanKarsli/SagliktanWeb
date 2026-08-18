@@ -7,6 +7,7 @@ import { ArrowBack } from '@mui/icons-material'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useNotification } from '../context/NotificationContext.jsx'
 import { useNavigate, Link as RouterLink } from 'react-router-dom'
+import TrustBadges from '../components/TrustBadges.jsx'
 
 export default function Login() {
   const { login } = useAuth()
@@ -247,6 +248,9 @@ export default function Login() {
                   Kayıt Ol
                 </Link>
               </Typography>
+              <Box sx={{ mt: 2.5 }}>
+                <TrustBadges />
+              </Box>
             </Box>
           </Box>
         </Box>

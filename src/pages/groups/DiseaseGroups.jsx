@@ -2,13 +2,14 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   Alert, Box, Button, Chip, CircularProgress, InputAdornment, Stack, TextField, Typography
 } from '@mui/material'
-import { GroupsRounded, PeopleAltRounded, SearchRounded } from '@mui/icons-material'
+import { GroupsRounded, PeopleAltRounded, SearchOffRounded, SearchRounded } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
 import {
   listDiseaseGroups, getMyDiseaseGroups, joinDiseaseGroup, leaveDiseaseGroup
 } from '../../services/api.js'
+import EmptyState from '../../components/EmptyState.jsx'
 
 /**
  * Uygulamanın giriş sonrası ana sayfası: tüm hastalık gruplarını listeler,
@@ -161,17 +162,13 @@ export default function DiseaseGroups() {
       )}
 
       {!hasAnyGroup && !error ? (
-        <Box sx={{ textAlign: 'center', py: 10 }}>
-          <Typography variant="body1" sx={{ color: 'text.secondary' }}>
-            Henüz hiç hastalık grubu yok.
-          </Typography>
-        </Box>
+        <EmptyState icon={GroupsRounded} title="Henüz hiç hastalık grubu yok." />
       ) : groups.length === 0 && !loading ? (
-        <Box sx={{ textAlign: 'center', py: 10 }}>
-          <Typography variant="body1" sx={{ color: 'text.secondary' }}>
-            "{debouncedQuery}" ile eşleşen grup bulunamadı.
-          </Typography>
-        </Box>
+        <EmptyState
+          icon={SearchOffRounded}
+          title={`"${debouncedQuery}" ile eşleşen grup bulunamadı.`}
+          description="Farklı bir anahtar kelime deneyin."
+        />
       ) : (
         /* KOMPAKTLIK NOTU: bu kartlar eskiden ~200px yükseklikteydi ve
            telefonda ekrana ancak 2,5 grup sığıyordu - kullanıcı listeyi

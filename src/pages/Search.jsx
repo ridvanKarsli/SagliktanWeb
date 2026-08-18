@@ -132,6 +132,32 @@ export default function Search() {
   // panelinde gösterilir (bkz. src/utils/recentSearches.js).
   const [recentSearches, setRecentSearches] = useState(() => loadRecentSearches())
 
+  // Cmd/Ctrl+K/"/" ile başka bir sayfadan buraya yönlendirildiyse (bkz.
+  // useQuickSearchShortcut.js) input'a otomatik odaklan. state'i navigate
+  // ile hemen temizliyoruz ki geri/ileri tuşlarında tekrar tetiklenmesin.
+  useEffect(() => {
+    if (loc.state?.autoFocus) {
+      inputRef.current?.focus()
+      navigate(loc.pathname + loc.search, { replace: true, state: null })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Zaten /search'teyken Cmd/Ctrl+K tekrar basılırsa input'a odaklanıp
+  // mevcut metni seçili hale getir (aramayı sıfırdan yazmayı kolaylaştırır) -
+  // ResponsiveShell'deki genel dinleyici bu sayfadayken bilerek no-op yapıyor.
+  useEffect(() => {
+    function onKeyDown(e) {
+      const isK = (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k'
+      if (!isK) return
+      e.preventDefault()
+      inputRef.current?.focus()
+      inputRef.current?.select()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
+
   const activeTab = TABS[tabIndex]
   const activeState = states[activeTab.key]
 

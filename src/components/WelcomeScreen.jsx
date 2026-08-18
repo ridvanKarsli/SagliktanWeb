@@ -1,4 +1,4 @@
-import { Box, Button, Typography, Container, Grid, Stack, useMediaQuery, useTheme } from "@mui/material"
+import { Box, Button, Typography, Container, Grid, Stack, Tooltip, useMediaQuery, useTheme } from "@mui/material"
 import { useNavigate } from "react-router-dom"
 import {
   Forum,
@@ -6,8 +6,11 @@ import {
   MedicalServicesOutlined,
   Groups,
   ArrowForward,
-  Security
+  Security,
+  VerifiedUserOutlined,
+  LockRounded
 } from "@mui/icons-material"
+import TrustBadges from "./TrustBadges.jsx"
 
 const features = [
   {
@@ -78,6 +81,24 @@ export default function WelcomeScreen() {
               <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main' }}>
                 Sağlıktan
               </Typography>
+              {/* E-devlet tarzı "güvenli bağlantı" imi - tarayıcının kendi
+                  kilit ikonuna ek, kullanıcının siteye ilk bakışta duyduğu
+                  güveni pekiştiren bir vurgu (bkz. görev #301). */}
+              <Tooltip title="Bağlantınız şifrelenmiş ve güvenlidir">
+                <Box
+                  sx={{
+                    display: { xs: 'none', sm: 'flex' },
+                    alignItems: 'center', gap: 0.5, ml: 0.5,
+                    px: 1, py: 0.375, borderRadius: 5,
+                    border: '1px solid', borderColor: 'divider'
+                  }}
+                >
+                  <LockRounded sx={{ fontSize: 14, color: 'text.secondary' }} />
+                  <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', fontWeight: 500 }}>
+                    Güvenli
+                  </Typography>
+                </Box>
+              </Tooltip>
             </Box>
             <Stack direction="row" spacing={1.5}>
               <Button
@@ -188,7 +209,8 @@ export default function WelcomeScreen() {
                 >
                   {[
                     { icon: Groups, text: "Hastalık Grupları" },
-                    { icon: Security, text: "Gizlilik Odaklı" }
+                    { icon: Security, text: "Gizlilik Odaklı" },
+                    { icon: VerifiedUserOutlined, text: "KVKK Uyumlu" }
                   ].map((item, i) => (
                     <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <item.icon sx={{ color: 'secondary.main', fontSize: 20 }} />
@@ -496,6 +518,9 @@ export default function WelcomeScreen() {
                 </Typography>
               ))}
             </Stack>
+          </Box>
+          <Box sx={{ mt: 3, pt: 3, borderTop: '1px solid', borderColor: 'divider', textAlign: { xs: 'center', sm: 'right' } }}>
+            <TrustBadges align={{ xs: 'center', sm: 'flex-end' }} />
           </Box>
         </Container>
       </Box>

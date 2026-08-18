@@ -10,6 +10,7 @@ import { useNotification } from '../../context/NotificationContext.jsx'
 import { getDiseaseGroup, listSubGroups, listDiseaseGroupMembers } from '../../services/api.js'
 import { initialsFrom } from '../../utils/format.js'
 import { usePaginatedList } from '../../hooks/usePaginatedList.js'
+import EmptyState from '../../components/EmptyState.jsx'
 
 export default function SubGroups() {
   const { groupId } = useParams()
@@ -123,11 +124,7 @@ export default function SubGroups() {
       </Typography>
 
       {subGroups.length === 0 && !error ? (
-        <Box sx={{ textAlign: 'center', py: 8 }}>
-          <Typography variant="body1" sx={{ color: 'text.secondary' }}>
-            Bu grupta henüz alt grup (forum) yok.
-          </Typography>
-        </Box>
+        <EmptyState icon={ForumRounded} title="Bu grupta henüz alt grup (forum) yok." />
       ) : (
         <Stack spacing={1.5}>
           {subGroups.map(sub => (
@@ -195,11 +192,7 @@ export default function SubGroups() {
               <CircularProgress size={22} />
             </Box>
           ) : members.length === 0 ? (
-            <Box sx={{ textAlign: 'center', py: 4 }}>
-              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                Henüz üye yok.
-              </Typography>
-            </Box>
+            <EmptyState icon={PeopleAltRounded} title="Henüz üye yok." dense />
           ) : (
             <Stack divider={<Box sx={{ borderBottom: '1px solid', borderColor: 'divider' }} />}>
               {members.map(m => {

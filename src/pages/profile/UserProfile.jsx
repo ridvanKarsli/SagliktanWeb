@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Avatar, Box, Button, CircularProgress, Divider, Stack, Typography } from '@mui/material'
-import { ArrowBack, MailOutlineRounded } from '@mui/icons-material'
+import { ArrowBack, DynamicFeedRounded, MailOutlineRounded } from '@mui/icons-material'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
 import PostCard from '../../components/PostCard.jsx'
+import VerifiedBadge from '../../components/VerifiedBadge.jsx'
+import EmptyState from '../../components/EmptyState.jsx'
 import { getUserPublicProfile, getUserPosts, sendMessageRequest } from '../../services/api.js'
 import { initialsFrom } from '../../utils/format.js'
 
@@ -153,9 +155,12 @@ export default function UserProfile() {
             </Avatar>
           </Box>
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography variant="h2" sx={{ fontWeight: 700, mb: 0.5, wordBreak: 'break-word' }}>
-              {fullName}
-            </Typography>
+            <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap" useFlexGap>
+              <Typography variant="h2" sx={{ fontWeight: 700, mb: 0.5, wordBreak: 'break-word' }}>
+                {fullName}
+              </Typography>
+              {profile.emailVerified && <VerifiedBadge />}
+            </Stack>
             <Stack direction="row" spacing={{ xs: 2, md: 3 }} flexWrap="wrap" useFlexGap>
               <Box>
                 <Typography variant="subtitle2" component="span" sx={{ fontWeight: 700 }}>
@@ -217,11 +222,7 @@ export default function UserProfile() {
           <CircularProgress size={22} />
         </Box>
       ) : posts.length === 0 ? (
-        <Box sx={{ textAlign: 'center', py: 6 }}>
-          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-            Henüz gönderisi yok.
-          </Typography>
-        </Box>
+        <EmptyState icon={DynamicFeedRounded} title="Henüz gönderisi yok." dense />
       ) : (
         <>
           {posts.map((p, i) => (

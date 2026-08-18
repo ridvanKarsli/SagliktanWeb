@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Alert, Box, Button, CircularProgress, Divider, Typography } from '@mui/material'
-import { GroupsRounded } from '@mui/icons-material'
+import { Alert, Box, Button, CircularProgress, Divider } from '@mui/material'
+import { DynamicFeedRounded, GroupsRounded } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import PostCard from '../components/PostCard.jsx'
 import PostCardSkeleton from '../components/PostCardSkeleton.jsx'
+import EmptyState from '../components/EmptyState.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useNotification } from '../context/NotificationContext.jsx'
 import { getMyDiseaseGroups, getMyFeed } from '../services/api.js'
@@ -83,18 +84,13 @@ export default function Home() {
           {Array.from({ length: 4 }).map((_, i) => <PostCardSkeleton key={i} />)}
         </Box>
       ) : !hasJoinedGroups ? (
-        <Box sx={{ textAlign: 'center', py: 10 }}>
-          <GroupsRounded sx={{ fontSize: 40, color: 'text.secondary', mb: 1.5 }} />
-          <Typography variant="body1" sx={{ fontWeight: 700, mb: 0.5 }}>
-            Henüz hiçbir gruba katılmadın
-          </Typography>
-          <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2.5 }}>
-            İlgilendiğin hastalık gruplarına katıl, ana sayfanda gönderilerini görmeye başla.
-          </Typography>
-          <Button variant="contained" onClick={() => navigate('/groups')} sx={{ minHeight: 44 }}>
-            Grupları Keşfet
-          </Button>
-        </Box>
+        <EmptyState
+          icon={GroupsRounded}
+          title="Henüz hiçbir gruba katılmadın"
+          description="İlgilendiğin hastalık gruplarına katıl, ana sayfanda gönderilerini görmeye başla."
+          actionLabel="Grupları Keşfet"
+          onAction={() => navigate('/groups')}
+        />
       ) : (
         <Box>
           {posts.map((post, i) => (
@@ -104,17 +100,13 @@ export default function Home() {
             </Box>
           ))}
           {posts.length === 0 && (
-            <Box sx={{ textAlign: 'center', py: 10 }}>
-              <Typography variant="body1" sx={{ color: 'text.secondary', mb: 1 }}>
-                Akışında henüz gönderi yok
-              </Typography>
-              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2.5 }}>
-                Katıldığın gruplarda henüz kimse paylaşım yapmamış.
-              </Typography>
-              <Button variant="outlined" onClick={() => navigate('/groups')} sx={{ minHeight: 44 }}>
-                Daha Fazla Grup Keşfet
-              </Button>
-            </Box>
+            <EmptyState
+              icon={DynamicFeedRounded}
+              title="Akışında henüz gönderi yok"
+              description="Katıldığın gruplarda henüz kimse paylaşım yapmamış."
+              actionLabel="Daha Fazla Grup Keşfet"
+              onAction={() => navigate('/groups')}
+            />
           )}
           {!last && posts.length > 0 && (
             <Box sx={{ textAlign: 'center', py: 3 }}>

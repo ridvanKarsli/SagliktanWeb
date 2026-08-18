@@ -13,6 +13,7 @@ import {
   listSentMessageRequests, cancelMessageRequest
 } from '../../services/api.js'
 import { initialsFrom } from '../../utils/format.js'
+import EmptyState from '../../components/EmptyState.jsx'
 
 // Faz 2 adım 6: bekleyen (PENDING) mesaj istekleri - "Gelen" sekmesi kabul/red,
 // "Giden" sekmesi kendi gönderdiklerimizi listeleyip iptal etmeyi sağlar.
@@ -140,12 +141,7 @@ export default function MessageRequests() {
           <CircularProgress size={28} />
         </Box>
       ) : list.length === 0 ? (
-        <Box sx={{ textAlign: 'center', py: 8 }}>
-          <MailOutlineRounded sx={{ fontSize: 40, color: 'text.secondary', mb: 1.5, opacity: 0.6 }} />
-          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-            {emptyText}
-          </Typography>
-        </Box>
+        <EmptyState icon={MailOutlineRounded} title={emptyText} />
       ) : (
         <Box sx={{ borderRadius: 2, border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
           <Stack divider={<Divider />}>

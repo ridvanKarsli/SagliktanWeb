@@ -8,6 +8,8 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { useNotification } from '../context/NotificationContext.jsx'
 import { useNavigate, Link as RouterLink } from 'react-router-dom'
 import { isValidName } from '../utils/validateName.js'
+import TrustBadges from '../components/TrustBadges.jsx'
+import PasswordStrengthMeter from '../components/PasswordStrengthMeter.jsx'
 
 export default function Register() {
   const { register } = useAuth()
@@ -243,19 +245,22 @@ export default function Register() {
                   slotProps={{ htmlInput: { 'data-testid': 'register-email' } }}
                 />
 
-                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                  <TextField
-                    label="Şifre"
-                    type="password"
-                    required
-                    helperText="En az 8 karakter"
-                    value={form.password}
-                    onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-                    autoComplete="new-password"
-                    fullWidth
-                    placeholder="••••••••"
-                    slotProps={{ htmlInput: { minLength: 8, 'data-testid': 'register-password' } }}
-                  />
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="flex-start">
+                  <Box sx={{ flex: 1, width: '100%', display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <TextField
+                      label="Şifre"
+                      type="password"
+                      required
+                      helperText="En az 8 karakter"
+                      value={form.password}
+                      onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+                      autoComplete="new-password"
+                      fullWidth
+                      placeholder="••••••••"
+                      slotProps={{ htmlInput: { minLength: 8, 'data-testid': 'register-password' } }}
+                    />
+                    <PasswordStrengthMeter password={form.password} />
+                  </Box>
 
                   <TextField
                     label="Şifre (tekrar)"
@@ -329,6 +334,9 @@ export default function Register() {
                   Giriş Yap
                 </Link>
               </Typography>
+              <Box sx={{ mt: 2.5 }}>
+                <TrustBadges />
+              </Box>
             </Box>
           </Box>
         </Box>

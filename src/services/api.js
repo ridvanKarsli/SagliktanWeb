@@ -155,6 +155,18 @@ export function deleteAccount(token, password) {
   return request('/users/me/delete-account', { method: 'POST', token, body: { password } });
 }
 
+// "Aktif Oturumlar" (Profile > Ayarlar) - hangi cihaz/tarayıcılarda oturum
+// açık olduğunu listeler, current: true olan şu an kullanılan oturum (bkz.
+// UserController#listSessions / JwtAuthenticationFilter sid attribute'u).
+export function listSessions(token) {
+  return request('/users/me/sessions', { token });
+}
+
+// id, RefreshSession.id (DB PK) - dönen listedeki "id" alanı, JWT sid DEĞİL.
+export function revokeSession(token, id) {
+  return request(`/users/me/sessions/${id}`, { method: 'DELETE', token });
+}
+
 export function getMyDiseaseGroups(token) {
   return request('/users/me/disease-groups', { token });
 }
