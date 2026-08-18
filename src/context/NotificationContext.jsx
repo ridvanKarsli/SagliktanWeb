@@ -42,25 +42,32 @@ export function NotificationProvider({ children }) {
   return (
     <NotificationContext.Provider value={{ showNotification, showError, showSuccess, showWarning, showInfo, removeNotification }}>
       {children}
-      {/* Notification Container */}
+      {/* Bildirim konteyneri - Apple'ın sistem toast'ları (ör. "Kopyalandı",
+          "AirPods bağlandı") gibi köşeye sabitlenmiş kutu yerine ekranın üst
+          ORTASINDA, içeriğe göre daralan hafif bir kapsül olarak beliriyor.
+          Önceden sağ üst köşede tam genişlik dikdörtgen olarak duruyordu -
+          bir hata mesajı için gereğinden agresif/"geliştirici uyarısı"
+          hissi veriyordu. */}
       <Box
         sx={{
           position: 'fixed',
           // Ana ekrana eklenip tam ekran açıldığında bildirim çentik/durum
           // çubuğunun altında kalmasın diye safe-area payı ekleniyor.
-          top: { xs: 'calc(12px + env(safe-area-inset-top))', sm: 'calc(20px + env(safe-area-inset-top))' },
-          right: { xs: 0, sm: 20 },
-          left: { xs: 0, sm: 'auto' },
+          top: { xs: 'calc(14px + env(safe-area-inset-top))', sm: 'calc(22px + env(safe-area-inset-top))' },
+          left: '50%',
+          transform: 'translateX(-50%)',
           zIndex: 9999,
           pointerEvents: 'none',
           display: 'flex',
           flexDirection: 'column',
-          alignItems: { xs: 'center', sm: 'flex-end' },
+          alignItems: 'center',
+          width: { xs: '100%', sm: 'auto' },
+          px: { xs: 2, sm: 0 },
         }}
       >
         <Stack
           spacing={1}
-          sx={{ width: { xs: '100%', sm: 420 }, pointerEvents: 'auto' }}
+          sx={{ alignItems: 'center', width: '100%', pointerEvents: 'auto' }}
         >
           {notifications.map((notification) => (
             <LumoNotification

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Box, Typography, IconButton, LinearProgress } from '@mui/material'
+import { Box, Typography, IconButton } from '@mui/material'
 import {
   CheckCircleOutline as SuccessIcon,
   ErrorOutline as ErrorIcon,
@@ -8,26 +8,26 @@ import {
   Close as CloseIcon
 } from '@mui/icons-material'
 
+// Apple'ın sistem toast'ları (ör. "Kopyalandı", "AirPods Bağlandı") gibi
+// hafif, tarafsız bir kapsül - önceki tasarımdaki renkli sol şerit + sert
+// gölge halkası + alt ilerleme çubuğu kaldırıldı. Anlam artık SADECE
+// ikonun rengiyle taşınıyor, kutunun kendisi her bildirim türünde aynı
+// nötr/koyu-camsı yüzeyde kalıyor - "hata kutusu" yerine "sistem bildirimi"
+// hissi veriyor. Giriş animasyonu da sertçe aşağıdan kaymak yerine hafifçe
+// yukarıdan süzülüp büyüyor (Apple'ın toast'larındaki yumuşak geliş gibi).
 export default function LumoNotification({ message, type = 'info', onClose, duration = 4000 }) {
   const [phase, setPhase] = useState('enter')   // enter | visible | exit
-  const [progress, setProgress] = useState(100)
 
   const triggerExit = useCallback(() => {
     setPhase('exit')
-    setTimeout(() => { onClose?.() }, 320)
+    setTimeout(() => { onClose?.() }, 260)
   }, [onClose])
 
-  /* ---------- Auto-dismiss timer + progress bar ---------- */
+  /* ---------- Auto-dismiss timer ---------- */
   useEffect(() => {
     if (duration <= 0) return
-    const start = Date.now()
-    const tick = setInterval(() => {
-      const elapsed = Date.now() - start
-      const pct = Math.max(0, 100 - (elapsed / duration) * 100)
-      setProgress(pct)
-      if (pct <= 0) { clearInterval(tick); triggerExit() }
-    }, 30)
-    return () => clearInterval(tick)
+    const t = setTimeout(triggerExit, duration)
+    return () => clearTimeout(t)
   }, [duration, triggerExit])
 
   /* ---------- Enter animation ---------- */
@@ -36,135 +36,91 @@ export default function LumoNotification({ message, type = 'info', onClose, dura
     return () => clearTimeout(t)
   }, [])
 
-  const cfg = {
-    success: {
-      icon: <SuccessIcon sx={{ fontSize: 23 }} />,
-      accent: '#3F9C87',
-      border: 'rgba(63, 156, 135, 0.35)',
-    },
-    error: {
-      icon: <ErrorIcon sx={{ fontSize: 23 }} />,
-      accent: '#C4554A',
-      border: 'rgba(196, 85, 74, 0.35)',
-    },
-    warning: {
-      icon: <WarningIcon sx={{ fontSize: 23 }} />,
-      accent: '#C98A3E',
-      border: 'rgba(201, 138, 62, 0.35)',
-    },
-    info: {
-      icon: <InfoIcon sx={{ fontSize: 23 }} />,
-      accent: '#5B8FA3',
-      border: 'rgba(91, 143, 163, 0.35)',
-    },
-  }[type] || {
-    icon: <InfoIcon sx={{ fontSize: 23 }} />,
-    accent: '#5B8FA3',
-    border: 'rgba(91, 143, 163, 0.35)',
-  }
+  const accent = {
+    success: '#4CB89F',
+    error: '#E08078',
+    warning: '#E0A85E',
+    info: '#7FAEBD',
+  }[type] || '#7FAEBD'
+
+  const icon = {
+    success: <SuccessIcon sx={{ fontSize: 20 }} />,
+    error: <ErrorIcon sx={{ fontSize: 20 }} />,
+    warning: <WarningIcon sx={{ fontSize: 20 }} />,
+    info: <InfoIcon sx={{ fontSize: 20 }} />,
+  }[type] || <InfoIcon sx={{ fontSize: 20 }} />
 
   const entering = phase === 'enter'
-  const exiting  = phase === 'exit'
+  const exiting = phase === 'exit'
 
   return (
     <Box
       role="alert"
       aria-live="assertive"
+      onClick={triggerExit}
       sx={{
         display: 'flex',
-        alignItems: 'stretch',
-        width: '100%',
-        maxWidth: { xs: 'calc(100vw - 32px)', sm: 420 },
+        alignItems: 'center',
+        gap: 1.25,
+        width: 'fit-content',
+        maxWidth: { xs: '100%', sm: 400 },
         mx: 'auto',
-        borderRadius: 2.5,
-        overflow: 'hidden',
-        bgcolor: '#2A241F',
-        backdropFilter: 'blur(16px) saturate(1.2)',
-        border: `1px solid ${cfg.border}`,
-        boxShadow: `0 8px 28px rgba(0, 0, 0, 0.4), 0 0 0 1px ${cfg.border}`,
+        borderRadius: '20px',
+        pl: 2,
+        pr: 1,
+        py: 1.25,
+        // Apple'ın camsı koyu toast yüzeyi - tür renginden bağımsız, tek
+        // tip nötr zemin.
+        bgcolor: 'rgba(26, 22, 18, 0.82)',
+        backdropFilter: 'blur(22px) saturate(1.6)',
+        WebkitBackdropFilter: 'blur(22px) saturate(1.6)',
+        border: '1px solid rgba(255, 255, 255, 0.09)',
+        boxShadow: '0 12px 32px rgba(0, 0, 0, 0.38), 0 2px 10px rgba(0, 0, 0, 0.22)',
+        cursor: 'pointer',
         opacity: entering || exiting ? 0 : 1,
-        transform: entering || exiting ? 'translateY(16px) scale(0.97)' : 'translateY(0) scale(1)',
-        transition: 'opacity 0.3s cubic-bezier(.4,0,.2,1), transform 0.3s cubic-bezier(.4,0,.2,1)',
-        position: 'relative',
+        transform: entering
+          ? 'translateY(-10px) scale(0.94)'
+          : exiting
+            ? 'translateY(-6px) scale(0.96)'
+            : 'translateY(0) scale(1)',
+        transition: 'opacity 0.32s cubic-bezier(.25,.9,.35,1), transform 0.32s cubic-bezier(.25,.9,.35,1)',
       }}
     >
-      {/* Accent stripe */}
-      <Box sx={{ width: 4, flexShrink: 0, bgcolor: cfg.accent, borderRadius: '8px 0 0 8px' }} />
+      <Box sx={{ display: 'flex', alignItems: 'center', color: accent, flexShrink: 0 }}>
+        {icon}
+      </Box>
 
-      {/* Icon */}
-      <Box
+      <Typography
         sx={{
-          display: 'flex',
-          alignItems: 'flex-start',
-          justifyContent: 'center',
-          pl: 1.75,
-          pr: 1.25,
-          py: 1.75,
-          color: cfg.accent,
-          flexShrink: 0,
+          fontSize: '0.875rem',
+          fontWeight: 500,
+          lineHeight: 1.45,
+          letterSpacing: 0.1,
+          color: '#F5F1EB',
+          wordBreak: 'break-word',
         }}
       >
-        {cfg.icon}
-      </Box>
+        {message}
+      </Typography>
 
-      {/* Message */}
-      <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', py: 1.5, pr: 0.5, minWidth: 0 }}>
-        <Typography
-          sx={{
-            fontSize: { xs: '0.875rem', sm: '0.9rem' },
-            fontWeight: 500,
-            lineHeight: 1.55,
-            letterSpacing: 0.1,
-            color: '#F8F5F0',
-            wordBreak: 'break-word',
-          }}
-        >
-          {message}
-        </Typography>
-      </Box>
-
-      {/* Close button */}
-      <Box sx={{ display: 'flex', alignItems: 'flex-start', pt: 0.75, pr: 0.75, flexShrink: 0 }}>
-        <IconButton
-          size="small"
-          onClick={triggerExit}
-          aria-label="Bildirimi kapat"
-          sx={{
-            color: 'rgba(242,237,230,0.45)',
-            width: 28,
-            height: 28,
-            '&:hover': { color: 'rgba(242,237,230,0.85)', bgcolor: 'rgba(242,237,230,0.08)' },
-          }}
-        >
-          <CloseIcon sx={{ fontSize: 16 }} />
-        </IconButton>
-      </Box>
-
-      {/* Progress bar - saf görsel geri sayım, toast zaten kendi mesajıyla
-          ve otomatik kapanmasıyla anlamı taşıyor; axe-core burada rakam/metin
-          değil rol (aria-progressbar-name) denetlediği ve bu ARIA-tabanlı bir
-          kural olduğu için (color-contrast'ın aksine) aria-hidden gerçekten
-          etkili: element erişilebilirlik ağacından tamamen çıkıyor. */}
-      {duration > 0 && (
-        <LinearProgress
-          variant="determinate"
-          value={progress}
-          aria-hidden="true"
-          sx={{
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: 2,
-            bgcolor: 'transparent',
-            '& .MuiLinearProgress-bar': {
-              bgcolor: cfg.accent,
-              transition: 'none',
-            },
-          }}
-        />
-      )}
+      {/* Apple'ın kendi toast'larında kapatma butonu yok (sadece otomatik
+          kayboluyor/dokununca kapanıyor) - ama WCAG 2.2.1 gereği
+          zaman-sınırlı içeriğin elle de kapatılabilmesi gerekiyor, bu
+          yüzden çok düşük kontrastlı/göze batmayan küçük bir 'x' bırakıldı. */}
+      <IconButton
+        size="small"
+        onClick={(e) => { e.stopPropagation(); triggerExit() }}
+        aria-label="Bildirimi kapat"
+        sx={{
+          color: 'rgba(245,241,235,0.4)',
+          width: 24,
+          height: 24,
+          flexShrink: 0,
+          '&:hover': { color: 'rgba(245,241,235,0.85)', bgcolor: 'rgba(245,241,235,0.08)' },
+        }}
+      >
+        <CloseIcon sx={{ fontSize: 14 }} />
+      </IconButton>
     </Box>
   )
 }
-
