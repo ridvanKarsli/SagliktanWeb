@@ -9,18 +9,43 @@ import { ErrorOutlineRounded, HomeRounded, RefreshRounded } from '@mui/icons-mat
 // hook karşılığı yok - bu yüzden fonksiyon component değil class kullanıyoruz.
 // Router hook'larına bağımlı olmasın diye (Router dışında da sarılabilsin)
 // gezinme için useNavigate yerine bilerek window.location kullanıyoruz.
+//
+// "Chunk yükleme hatası" özel durumu: route bazlı code splitting (App.jsx)
+// her lazy sayfayı hash'li bir dosya adıyla (ör. index-BqI1K_2i.js) ayrı bir
+// dosyada tutuyor. Bir kullanıcı sekmeyi AÇIK bıraktığında yeni bir deploy
+// yapılırsa, o sekmedeki React.lazy() eski hash'li dosyayı import etmeye
+// çalışır - o dosya artık yeni deploy'da yok, Vercel'in SPA fallback rewrite'ı
+// ("/(.*) -> /index.html", bkz. vercel.json) bu isteğe 404 yerine index.html
+// DÖNER, tarayıcı bunu JS olarak import etmeye çalışınca "Importing a module
+// script failed" / "Failed to fetch dynamically imported module" hatası
+// fırlatılır. Bu, kullanıcının gerçek bir hatayla karşılaşması değil - tek
+// çözümü taze index.html'i (ve dolayısıyla güncel chunk referanslarını) almak
+// için sayfayı yeniden yüklemek. Bu yüzden bu spesifik hata sınıfını
+// yakalayıp OTOMATİK (kullanıcıya "Sayfayı Yenile"ye bastırmadan) BİR KEZ
+// yeniden yüklüyoruz - sessionStorage bayrağı sonsuz yenileme döngüsünü
+// engelliyor (gerçekten kalıcı bir hataysa ikinci denemede normal hata
+// ekranı gösterilir).
+const CHUNK_LOAD_ERROR_PATTERN = /Failed to fetch dynamically imported module|error loading dynamically imported module|Importing a module script failed|Loading chunk .* failed/i
+const CHUNK_RELOAD_FLAG = 'sagliktan-chunk-reload-attempted'
+
 export default class ErrorBoundary extends Component {
   constructor(props) {
     super(props)
     this.state = { hasError: false }
   }
 
-  static getDerivedStateFromError() {
-    return { hasError: true }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, isChunkLoadError: CHUNK_LOAD_ERROR_PATTERN.test(error?.message || '') }
   }
 
   componentDidCatch(error, info) {
     console.error('Beklenmeyen render hatası:', error, info)
+
+    if (this.state.isChunkLoadError && !sessionStorage.getItem(CHUNK_RELOAD_FLAG)) {
+      sessionStorage.setItem(CHUNK_RELOAD_FLAG, '1')
+      window.location.reload()
+      return
+    }
     // @sentry/react artık burada da statik import DEĞİL - Lighthouse CI'ın
     // yakaladığı LCP ihlali (bkz. commit geçmişi) SDK'nın, DSN olsun ya da
     // olmasın, önceden bu dosya üzerinden ana JS paketine (initial render'ı
