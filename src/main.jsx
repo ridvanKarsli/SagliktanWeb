@@ -73,18 +73,24 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
     // açıyordu - reload() bile eski sw.js'i "taze" sanıp yeniden
     // kaydediyordu. 'none' ile her registration.update() çağrısı sw.js'i
     // gerçekten ağdan çeker.
+    // KRİTİK: 'controllerchange' event'i SADECE "eski bir SW yerini yeni
+    // birine bıraktı" durumunda değil, bu sayfanın HİÇ SW kontrolü olmadığı
+    // ilk ziyarette de (install + clients.claim() sonrası "kontrolsüz ->
+    // kontrollü" geçişinde) ateşleniyor - yani her ilk ziyarette de fırlıyor.
+    // İlk ziyarette reload etmenin hiçbir anlamı yok (sayfa zaten bu SW'nin
+    // sunduğu güncel assetlerle yüklendi) - üstelik E2E/Playwright gibi her
+    // testte taze (SW'siz) bir tarayıcı bağlamı kullanan ortamlarda gereksiz
+    // bir reload'a, dolayısıyla testin ortasında sayfa navigasyonuna
+    // (axe-core'un "Execution context was destroyed" hatasına) yol açtı.
+    // Bu yüzden register() ÇAĞRILMADAN ÖNCEKİ controller durumunu saklayıp
+    // sadece "zaten bir SW bu sayfayı kontrol ediyordu, şimdi BAŞKA biri
+    // devraldı" (= gerçek bir deploy güncellemesi) durumunda reload ediyoruz.
+    const hadControllerBeforeRegister = !!navigator.serviceWorker.controller
+
     navigator.serviceWorker.register(swUrl, { updateViaCache: 'none' }).catch(console.error)
 
-    // Yeni bir SW devreye girdiğinde (activate + clients.claim()) bu
-    // sekmenin kontrolü değişir - o an sayfada hâlâ ESKİ deploy'un JS'i
-    // çalışıyor olabilir (lazy route chunk'ları vb. eski hash'lere işaret
-    // ediyor olabilir). Bunu manuel "Sayfayı Yenile"ye ya da bir hatanın
-    // patlamasına bırakmak yerine BİR KEZ otomatik reload ediyoruz -
-    // ErrorBoundary.jsx'teki chunk-hatası reload guard'ıyla aynı
-    // sessionStorage bayrağını kullanıyoruz ki iki mekanizma birbiriyle
-    // çakışıp art arda reload döngüsüne girmesin.
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (hasAttemptedChunkReload()) return
+      if (!hadControllerBeforeRegister || hasAttemptedChunkReload()) return
       reloadOnceForChunkError()
     })
   })
