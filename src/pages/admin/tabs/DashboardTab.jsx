@@ -42,9 +42,21 @@ function StatCard({ label, value, icon, color = 'primary', highlight = false }) 
         {icon}
       </Box>
       <Box sx={{ minWidth: 0, flex: 1 }}>
+        {/* Faz6 düzeltmesi: tek satıra zorlayan whiteSpace:nowrap+ellipsis,
+            konteyner dar olduğunda (ör. ResponsiveShell'in eski 720px sınırı +
+            sağ panel birlikte) etiketleri "T..", "H.." gibi anlamsız tek
+            harfe kadar kırpıyordu. Etiketler zaten kısa (2-3 kelime) - tek
+            satıra sıkıştırmak yerine normal biçimde 2 satıra sarmasına izin
+            verilince hem PC'de hem mobilde (kart genişliği ne olursa olsun)
+            okunaklı kalıyor, -webkit-line-clamp sadece aşırı uç durumda
+            (çok dar + uzun etiket) üçüncü satırı keser. */}
         <Typography
           variant="caption"
-          sx={{ color: 'text.secondary', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+          sx={{
+            color: 'text.secondary', display: '-webkit-box',
+            WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+            lineHeight: 1.3
+          }}
         >
           {label}
         </Typography>

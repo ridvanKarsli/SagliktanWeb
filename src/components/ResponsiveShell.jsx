@@ -55,6 +55,7 @@ export default function ResponsiveShell({ children }) {
   const { logout, user } = useAuth()
   const { pendingRequestCount, unreadMessageCount } = useMessaging()
   const messagesBadgeCount = pendingRequestCount + unreadMessageCount
+  const isAdminRoute = location.pathname.startsWith('/admin')
 
   // Cmd/Ctrl+K ve "/" ile heryerden hızlı arama - bkz. useQuickSearchShortcut.js
   useQuickSearchShortcut()
@@ -310,7 +311,20 @@ export default function ResponsiveShell({ children }) {
           <Box
             key={location.pathname}
             className="page-transition"
-            sx={{ maxWidth: 720, mx: 'auto', width: '100%', px: { xs: 2, sm: 3 } }}
+            sx={{
+              // Admin paneli veri-yoğun tablolar/kartlar barındırıyor (bkz.
+              // AdminPanel'in alt sekmeleri) - akış sayfalarındaki 720px sınırı
+              // burada masaüstünde ciddi bir sıkışmaya yol açıyordu: Dashboard
+              // sekmesindeki 5 sütunlu istatistik grid'i etiketleri "T.."/"H.."
+              // diye kırpıyordu, Şikayetler/İçerik tabloları (900/760px minWidth)
+              // kendi konteynerlerinde gereksiz yatay kaydırmaya zorlanıyordu.
+              // Diğer tüm sayfalar (Home/Posts/Profile vb.) kasıtlı olarak dar
+              // kalıyor - okunabilirlik için (bkz. tipografi ölçeği notu,
+              // theme.js) - bu yüzden global sınırı değiştirmek yerine sadece
+              // /admin rotasında genişletiyoruz.
+              maxWidth: isAdminRoute ? 1100 : 720,
+              mx: 'auto', width: '100%', px: { xs: 2, sm: 3 }
+            }}
           >
             {children}
           </Box>
