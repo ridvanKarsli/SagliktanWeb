@@ -16,7 +16,6 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { useMessaging } from '../context/MessagingContext.jsx'
 import InstallPrompt from './InstallPrompt.jsx'
 import NotificationBell from './NotificationBell.jsx'
-import RightRail from './RightRail.jsx'
 
 const SIDEBAR_WIDTH = 240
 const MOBILE_NAV_HEIGHT = 64
@@ -246,12 +245,9 @@ export default function ResponsiveShell({ children }) {
         </Box>
       )}
 
-      {/* Content + sağ panel - X/Instagram web'in üç sütunlu masaüstü
-          düzeni: sol nav (sabit) + orta akış + geniş ekranlarda üçüncü bir
-          sütun (bkz. RightRail.jsx). Önceden içerik tek başına flexGrow:1 ile
-          tüm kalan genişliği kaplıyordu - çok geniş monitörlerde akış
-          alabildiğine gerilip okunabilirliği bozuyordu ve masaüstü boş/tek
-          düze görünüyordu. */}
+      {/* İçerik alanı - sol nav (sabit) + orta akış. Faz5'te eklenen üçüncü
+          sütun (RightRail: "Popüler Gruplar" paneli) kullanıcı isteğiyle
+          kaldırıldı - orta akış artık kalan tüm genişliği kaplıyor. */}
       <Box
         sx={{
           flexGrow: 1,
@@ -319,8 +315,6 @@ export default function ResponsiveShell({ children }) {
             {children}
           </Box>
         </Box>
-
-        <RightRail />
       </Box>
 
       {/* Mobile Bottom Navigation */}
