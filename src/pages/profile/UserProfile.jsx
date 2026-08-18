@@ -137,23 +137,17 @@ export default function UserProfile() {
 
       <Box sx={{ mb: 4, px: { xs: 0.5, md: 0 } }}>
         <Stack direction="row" spacing={{ xs: 2, md: 3 }} alignItems="center">
-          <Box
+          {/* Faz4: gradyan ring kaldırıldı - bkz. Profile.jsx/PostCard.jsx'teki
+              aynı karar, düz marka rengi çerçeveye indirgendi. */}
+          <Avatar
             sx={{
-              width: { xs: 78, md: 102 }, height: { xs: 78, md: 102 }, borderRadius: '50%', flexShrink: 0,
-              background: 'linear-gradient(135deg, #4CB89F 0%, #E08B6D 100%)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', p: '3px'
+              width: { xs: 78, md: 102 }, height: { xs: 78, md: 102 }, flexShrink: 0,
+              fontSize: { xs: 24, md: 32 }, fontWeight: 600,
+              border: '3px solid', borderColor: 'primary.main'
             }}
           >
-            <Avatar
-              sx={{
-                width: '100%', height: '100%',
-                fontSize: { xs: 24, md: 32 }, fontWeight: 600,
-                border: '3px solid', borderColor: 'background.default'
-              }}
-            >
-              {initialsFrom(fullName)}
-            </Avatar>
-          </Box>
+            {initialsFrom(fullName)}
+          </Avatar>
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap" useFlexGap>
               <Typography variant="h2" sx={{ fontWeight: 700, mb: 0.5, wordBreak: 'break-word' }}>

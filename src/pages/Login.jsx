@@ -48,25 +48,17 @@ export default function Login() {
         <Box
           sx={{
             flex: 1,
-            background: 'linear-gradient(160deg, #241F1A 0%, #1E1A16 100%)',
+            bgcolor: 'background.paper',
+            borderRight: '1px solid',
+            borderColor: 'divider',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'center',
             alignItems: 'center',
-            p: 6,
-            position: 'relative',
-            overflow: 'hidden'
+            p: 6
           }}
         >
-          <Box sx={{
-            position: 'absolute', top: '-10%', left: '-15%', width: 420, height: 420,
-            borderRadius: '50%', bgcolor: 'rgba(76, 184, 159, 0.18)', filter: 'blur(100px)', pointerEvents: 'none'
-          }} />
-          <Box sx={{
-            position: 'absolute', bottom: '-15%', right: '-10%', width: 380, height: 380,
-            borderRadius: '50%', bgcolor: 'rgba(224, 139, 109, 0.14)', filter: 'blur(100px)', pointerEvents: 'none'
-          }} />
-          <Box sx={{ maxWidth: 400, textAlign: 'center', position: 'relative' }}>
+          <Box sx={{ maxWidth: 400, textAlign: 'center' }}>
             <Box
               component="img"
               src="/sagliktanLogo.png"
@@ -75,8 +67,7 @@ export default function Login() {
                 width: 80,
                 height: 80,
                 borderRadius: '20px',
-                mb: 4,
-                boxShadow: '0 16px 48px rgba(44, 117, 98, 0.3)'
+                mb: 4
               }}
             />
             <Typography

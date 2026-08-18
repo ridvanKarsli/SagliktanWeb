@@ -183,24 +183,16 @@ export default function PostDetail() {
       <Box sx={{ mb: 1 }}>
       <Box sx={{ pb: { xs: 2, md: 2.5 } }}>
         <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2 }}>
-          {/* Gradyan ring avatar - bkz. PostCard.jsx, marka diliyle tutarlı */}
-          <Box
+          {/* Faz4: gradyan ring kaldırıldı - bkz. PostCard.jsx'teki aynı karar */}
+          <Avatar
             onClick={() => goToProfile(post.authorId)}
             sx={{
-              width: 48, height: 48, borderRadius: '50%', flexShrink: 0, cursor: 'pointer',
-              background: 'linear-gradient(135deg, #4CB89F 0%, #E08B6D 100%)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', p: '2.5px'
+              width: 48, height: 48, flexShrink: 0, cursor: 'pointer', fontWeight: 700,
+              border: '2px solid', borderColor: 'primary.main'
             }}
           >
-            <Avatar
-              sx={{
-                width: '100%', height: '100%', fontWeight: 700,
-                border: '2px solid', borderColor: 'background.default'
-              }}
-            >
-              {initialsFrom(post.authorName || '')}
-            </Avatar>
-          </Box>
+            {initialsFrom(post.authorName || '')}
+          </Avatar>
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <Typography
               variant="subtitle2"

@@ -56,9 +56,7 @@ export default function WelcomeScreen() {
           top: 0,
           left: 0,
           right: 0,
-          bgcolor: 'rgba(42, 36, 31, 0.86)',
-          backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)',
+          bgcolor: 'background.paper',
           zIndex: 1000,
           borderBottom: '1px solid',
           borderColor: 'divider'
@@ -120,29 +118,18 @@ export default function WelcomeScreen() {
         </Container>
       </Box>
 
-      {/* Hero Section - dekoratif bulanık glow toplarıyla derinlik (bkz.
-          body'deki ambient mesh, theme.js) - düz gradyan zemin siteyi tek
-          düze/amatör gösteriyordu, burada da aynı dile devam ediyoruz. */}
+      {/* Hero Section - Faz4: dekoratif blur glow topları kaldırıldı, düz
+          zemine geçildi (bkz. theme.js/index.css'teki aynı karar) - X.com
+          tarzı olgun ürünlerde hero de dahil tüm sayfa tek, düz bir zeminde
+          durur; içerik kendi ağırlığıyla öne çıkar. */}
       <Box
         sx={{
-          position: 'relative',
-          overflow: 'hidden',
           pt: { xs: 14, md: 18 },
           pb: { xs: 8, md: 12 },
-          background: 'linear-gradient(180deg, #1E1A16 0%, #2A241F 100%)'
+          bgcolor: 'background.default'
         }}
       >
-        <Box sx={{
-          position: 'absolute', top: '-15%', left: '-10%', width: 480, height: 480,
-          borderRadius: '50%', bgcolor: 'rgba(76, 184, 159, 0.16)', filter: 'blur(90px)',
-          pointerEvents: 'none'
-        }} />
-        <Box sx={{
-          position: 'absolute', bottom: '-20%', right: '-8%', width: 420, height: 420,
-          borderRadius: '50%', bgcolor: 'rgba(224, 139, 109, 0.14)', filter: 'blur(100px)',
-          pointerEvents: 'none'
-        }} />
-        <Container maxWidth="lg" sx={{ position: 'relative' }}>
+        <Container maxWidth="lg">
           <Grid container spacing={4} alignItems="center">
             <Grid item xs={12} md={6}>
               <Box sx={{ textAlign: { xs: 'center', md: 'left' } }}>
@@ -231,13 +218,16 @@ export default function WelcomeScreen() {
                   position: 'relative'
                 }}
               >
-                {/* Logo illüstrasyon alanı */}
+                {/* Logo illüstrasyon alanı - Faz4: gradyan dolgu ve rozetlerdeki
+                    renkli glow gölgeleri kaldırıldı, düz zemin + ince kenarlık */}
                 <Box
                   sx={{
                     width: { xs: 280, md: 400 },
                     height: { xs: 280, md: 400 },
                     borderRadius: '50%',
-                    background: 'linear-gradient(135deg, rgba(63, 156, 135, 0.14) 0%, rgba(217, 119, 87, 0.10) 100%)',
+                    bgcolor: 'background.paper',
+                    border: '1px solid',
+                    borderColor: 'divider',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -251,8 +241,7 @@ export default function WelcomeScreen() {
                     sx={{
                       width: { xs: 120, md: 160 },
                       height: { xs: 120, md: 160 },
-                      borderRadius: '24px',
-                      boxShadow: '0 16px 48px rgba(44, 117, 98, 0.18)'
+                      borderRadius: '24px'
                     }}
                   />
                   {/* Yüzen ikon rozetleri */}
@@ -266,8 +255,7 @@ export default function WelcomeScreen() {
                     bgcolor: 'secondary.main',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center',
-                    boxShadow: '0 8px 24px rgba(217, 119, 87, 0.3)'
+                    justifyContent: 'center'
                   }}>
                     <Groups2Rounded sx={{ color: 'white', fontSize: 28 }} />
                   </Box>
@@ -281,8 +269,7 @@ export default function WelcomeScreen() {
                     bgcolor: 'primary.main',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center',
-                    boxShadow: '0 8px 24px rgba(63, 156, 135, 0.25)'
+                    justifyContent: 'center'
                   }}>
                     <Forum sx={{ color: 'white', fontSize: 24 }} />
                   </Box>
@@ -321,14 +308,11 @@ export default function WelcomeScreen() {
                     height: '100%',
                     borderRadius: 3,
                     bgcolor: 'background.default',
-                    transition: 'all 0.3s ease',
+                    transition: 'border-color 0.15s ease',
                     border: '1px solid',
                     borderColor: 'divider',
                     '&:hover': {
-                      bgcolor: 'background.paper',
-                      borderColor: 'rgba(76, 184, 159, 0.35)',
-                      transform: 'translateY(-4px)',
-                      boxShadow: '0 12px 32px rgba(0, 0, 0, 0.32)'
+                      borderColor: 'rgba(76, 184, 159, 0.35)'
                     }
                   }}
                 >
@@ -415,52 +399,40 @@ export default function WelcomeScreen() {
         </Container>
       </Box>
 
-      {/* CTA Section - eskiden düz parlak yeşil bir blok olarak siteden kopuk
-          duruyordu (bkz. görüşme geçmişi: "tasarım çok kötü"); geri kalan
-          sıcak koyu tema diliyle uyumlu, kenarlıklı/glow'lu bir kart haline
-          getirildi - vurgu artık dolgu renginden değil kenarlık+glow'dan geliyor. */}
+      {/* CTA Section - Faz4: gradyan dolgu + glow blur kaldırıldı, düz zemin
+          üzerinde tek bir ince kenarlıklı kart olarak sadeleştirildi. */}
       <Box sx={{ py: { xs: 8, md: 10 }, bgcolor: 'background.default' }}>
         <Container maxWidth="md">
           <Box
             sx={{
-              position: 'relative',
-              overflow: 'hidden',
               textAlign: 'center',
               px: { xs: 3, md: 8 },
               py: { xs: 6, md: 8 },
               borderRadius: 4,
               border: '1px solid',
-              borderColor: 'rgba(76, 184, 159, 0.28)',
-              background: 'linear-gradient(160deg, rgba(63, 156, 135, 0.16) 0%, rgba(42, 36, 31, 0.6) 55%)',
-              boxShadow: '0 24px 64px rgba(0, 0, 0, 0.35)'
+              borderColor: 'divider',
+              bgcolor: 'background.paper'
             }}
           >
-            <Box sx={{
-              position: 'absolute', top: '-30%', left: '50%', transform: 'translateX(-50%)',
-              width: 380, height: 380, borderRadius: '50%',
-              bgcolor: 'rgba(76, 184, 159, 0.22)', filter: 'blur(90px)', pointerEvents: 'none'
-            }} />
-            <Box sx={{ position: 'relative' }}>
-              <Typography variant="h2" sx={{ color: 'primary.main', mb: 2 }}>
-                Sağlık Topluluğuna Katılın
-              </Typography>
-              <Typography
-                variant="body1"
-                sx={{ color: 'text.secondary', mb: 4, maxWidth: 480, mx: 'auto' }}
-              >
-                Sağlık yolculuğunuzda yalnız değilsiniz. Aramıza katılın, sizi anlayan
-                bir topluluğun parçası olun.
-              </Typography>
-              <Button
-                variant="contained"
-                size="large"
-                onClick={() => navigate("/register")}
-                endIcon={<ArrowForward />}
-                sx={{ minWidth: 220 }}
-              >
-                Ücretsiz Kayıt Ol
-              </Button>
-            </Box>
+            <Typography variant="h2" sx={{ color: 'primary.main', mb: 2 }}>
+              Sağlık Topluluğuna Katılın
+            </Typography>
+            <Typography
+              variant="body1"
+              sx={{ color: 'text.secondary', mb: 4, maxWidth: 480, mx: 'auto' }}
+            >
+              Sağlık yolculuğunuzda yalnız değilsiniz. Aramıza katılın, sizi anlayan
+              bir topluluğun parçası olun.
+            </Typography>
+            <Button
+              variant="contained"
+              size="large"
+              onClick={() => navigate("/register")}
+              endIcon={<ArrowForward />}
+              sx={{ minWidth: 220 }}
+            >
+              Ücretsiz Kayıt Ol
+            </Button>
           </Box>
         </Container>
       </Box>

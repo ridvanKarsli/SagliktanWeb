@@ -213,7 +213,7 @@ export default function DiseaseGroups() {
                     sx={{
                       width: 46, height: 46, borderRadius: '50%', flexShrink: 0,
                       display: 'grid', placeItems: 'center',
-                      background: 'linear-gradient(135deg, rgba(76,184,159,0.22), rgba(224,139,109,0.14))',
+                      bgcolor: 'rgba(76,184,159,0.16)',
                       color: 'primary.main'
                     }}
                   >

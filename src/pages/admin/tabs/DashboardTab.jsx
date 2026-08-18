@@ -35,7 +35,7 @@ function StatCard({ label, value, icon, color = 'primary', highlight = false }) 
         sx={{
           width: { xs: 40, sm: 48 }, height: { xs: 40, sm: 48 }, borderRadius: 2.5, flexShrink: 0,
           display: 'grid', placeItems: 'center',
-          background: (t) => `linear-gradient(135deg, ${t.palette[color].main}33, ${t.palette[color].main}14)`,
+          bgcolor: (t) => `${t.palette[color].main}1F`,
           color: `${color}.main`
         }}
       >

@@ -58,24 +58,18 @@ export default function PostCard({ post, onClick, token, highlightQuery }) {
       }}
     >
       <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1.25 }}>
-        {/* Gradyan "ring" avatar - IG'nin hikaye halkasından esinlenildi,
-            burada marka rengiyle (yeşil->mercan) sabit bir dekoratif çerçeve. */}
-        <Box
+        {/* Faz4: gradyan "story ring" kaldırıldı - düz marka rengi ince bir
+            çerçeveye indirgendi. Akışta onlarca kart art arda göründüğünde
+            her birinin kendi gradyanı görsel gürültü yaratıyordu; sabit tek
+            renk daha sakin ve X'in nötr avatar diline daha yakın. */}
+        <Avatar
           sx={{
-            width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
-            background: 'linear-gradient(135deg, #4CB89F 0%, #E08B6D 100%)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', p: '2.5px'
+            width: 44, height: 44, fontSize: 15, fontWeight: 700, flexShrink: 0,
+            border: '2px solid', borderColor: 'primary.main'
           }}
         >
-          <Avatar
-            sx={{
-              width: '100%', height: '100%', fontSize: 15, fontWeight: 700,
-              border: '2px solid', borderColor: 'background.default'
-            }}
-          >
-            {initialsFrom(authorName || '')}
-          </Avatar>
-        </Box>
+          {initialsFrom(authorName || '')}
+        </Avatar>
         <Box sx={{ minWidth: 0, flex: 1 }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.primary' }} noWrap>
             {authorName || 'Kullanıcı'}

@@ -146,7 +146,7 @@ export default function SubGroups() {
                   sx={{
                     width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
                     display: 'grid', placeItems: 'center',
-                    background: 'linear-gradient(135deg, rgba(224,139,109,0.24), rgba(76,184,159,0.10))',
+                    bgcolor: 'rgba(224,139,109,0.14)',
                     color: 'secondary.main'
                   }}
                 >

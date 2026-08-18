@@ -192,20 +192,27 @@ const theme = createTheme({
     },
   },
   shape: {
-    borderRadius: 14,
+    borderRadius: 12,
   },
+  // Faz4: X.com/Linear gibi olgun ürünler yüzey ayrımını gölgeyle değil
+  // kenarlıkla (border) yapar - gölge sadece gerçekten "yükselen" katmanlarda
+  // (menü, dialog, tooltip) kullanılır. Önceki ölçek her karta/butona
+  // varsayılan olarak belirgin bir gölge veriyordu, bu da "kağıt üstünde
+  // kart" hissini abartıp siteyi daha "dekoratif" gösteriyordu. Yeni ölçek
+  // çok daha hafif - üst seviyeler (menu/dialog gibi) hâlâ ayırt edilebilir
+  // ama taban seviyeler (kart, buton) neredeyse gölgesiz.
   shadows: [
     'none',
-    '0 1px 2px rgba(0, 0, 0, 0.22)',
-    '0 2px 6px rgba(0, 0, 0, 0.26)',
-    '0 4px 10px rgba(0, 0, 0, 0.30)',
-    '0 6px 14px rgba(0, 0, 0, 0.34)',
-    '0 8px 18px rgba(0, 0, 0, 0.38)',
-    '0 12px 24px rgba(0, 0, 0, 0.42)',
-    '0 16px 32px rgba(0, 0, 0, 0.46)',
-    '0 20px 40px rgba(0, 0, 0, 0.50)',
-    '0 24px 48px rgba(0, 0, 0, 0.54)',
-    ...Array(15).fill('0 24px 48px rgba(0, 0, 0, 0.54)'),
+    '0 1px 2px rgba(0, 0, 0, 0.18)',
+    '0 1px 3px rgba(0, 0, 0, 0.20)',
+    '0 2px 4px rgba(0, 0, 0, 0.22)',
+    '0 2px 6px rgba(0, 0, 0, 0.24)',
+    '0 4px 8px rgba(0, 0, 0, 0.26)',
+    '0 4px 10px rgba(0, 0, 0, 0.28)',
+    '0 6px 14px rgba(0, 0, 0, 0.30)',
+    '0 8px 18px rgba(0, 0, 0, 0.32)',
+    '0 10px 22px rgba(0, 0, 0, 0.34)',
+    ...Array(15).fill('0 10px 22px rgba(0, 0, 0, 0.34)'),
   ],
   components: {
     MuiCssBaseline: {
@@ -215,18 +222,11 @@ const theme = createTheme({
           WebkitFontSmoothing: 'antialiased',
           MozOsxFontSmoothing: 'grayscale',
         },
-        // index.css'teki gradyanla birebir aynı - orada JS yüklenmeden önceki
-        // ilk boyama için, burada CssBaseline'ın kendi reset'i body arkaplanını
-        // ezmesin diye tekrarlanıyor.
+        // Faz4: köşe glow'ları kaldırıldı - bkz. index.css'teki aynı karar
+        // gerekçesi. Düz zemin, tutarlı olsun diye burada da tekrarlanıyor
+        // (CssBaseline'ın kendi reset'i body arkaplanını ezmesin diye).
         body: {
           backgroundColor: colors.background,
-          backgroundImage: [
-            'radial-gradient(ellipse 900px 600px at 8% -5%, rgba(76, 184, 159, 0.13), transparent 60%)',
-            'radial-gradient(ellipse 700px 500px at 100% 8%, rgba(224, 139, 109, 0.10), transparent 60%)',
-            'radial-gradient(ellipse 800px 700px at 92% 92%, rgba(44, 117, 98, 0.14), transparent 60%)',
-            'radial-gradient(ellipse 600px 500px at -5% 85%, rgba(224, 139, 109, 0.07), transparent 55%)',
-          ].join(', '),
-          backgroundRepeat: 'no-repeat',
           color: colors.text.primary,
         },
         '::selection': {
@@ -250,26 +250,23 @@ const theme = createTheme({
     MuiButton: {
       styleOverrides: {
         root: {
-          borderRadius: 12,
+          borderRadius: 10,
           padding: '12px 24px',
           fontSize: '0.9375rem',
           minHeight: 48,
           boxShadow: 'none',
-          transition: 'all 0.2s ease',
+          transition: 'background-color 0.15s ease, border-color 0.15s ease',
           '&:hover': {
             boxShadow: 'none',
           },
         },
-        // Instagram'ın buton dili düz/tek renk, parlak "SaaS gradyanı" değil
-        // - burada da öyle: hover'da hafif renk koyulaşması + minik kalkma,
-        // ama dolgu her zaman tek düz renk.
+        // Faz4: X.com'un buton dili tek düz renk + kalkma/glow YOK, hover
+        // sadece rengi bir tık koyulaştırır/açar - burada da öyle. Önceki
+        // translateY + renkli glow gölgesi "pazarlama sitesi" hissi
+        // veriyordu; kaldırıldı, sadece renk geçişi kaldı.
         contained: {
           '&:hover': {
-            transform: 'translateY(-1px)',
-            boxShadow: '0 6px 18px rgba(76, 184, 159, 0.24)',
-          },
-          '&:active': {
-            transform: 'translateY(0)',
+            boxShadow: 'none',
           },
         },
         containedPrimary: {
@@ -329,7 +326,7 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           '& .MuiOutlinedInput-root': {
-            borderRadius: 12,
+            borderRadius: 10,
             backgroundColor: colors.surfaceAlt,
             // 16px ALTINA İNMEMELİ: iOS Safari, 16px'ten küçük yazı tipi olan
             // bir input'a odaklanıldığında sayfayı otomatik yakınlaştırıyor
@@ -358,16 +355,20 @@ const theme = createTheme({
         },
       },
     },
+    // Faz4: kart ayrımı artık ağır gölgeyle değil kenarlıkla yapılıyor (bkz.
+    // shadows ölçeği üstündeki not) - X.com'daki timeline öğeleri de aynı
+    // mantıkla çalışır: kalkma animasyonu/parlak gölge yok, sadece hover'da
+    // kenarlık/zemin bir tık belirginleşir.
     MuiCard: {
       styleOverrides: {
         root: {
-          borderRadius: 16,
-          boxShadow: '0 2px 10px rgba(0, 0, 0, 0.28)',
+          borderRadius: 14,
+          boxShadow: 'none',
           border: `1px solid ${colors.border}`,
           backgroundColor: colors.surface,
-          transition: 'box-shadow 0.2s ease, transform 0.2s ease',
+          transition: 'border-color 0.15s ease, background-color 0.15s ease',
           '&:hover': {
-            boxShadow: '0 10px 28px rgba(0, 0, 0, 0.36)',
+            borderColor: 'rgba(242, 237, 230, 0.18)',
           },
         },
       },
@@ -379,7 +380,7 @@ const theme = createTheme({
           backgroundColor: colors.surface,
         },
         rounded: {
-          borderRadius: 16,
+          borderRadius: 14,
         },
       },
     },
@@ -411,30 +412,25 @@ const theme = createTheme({
         },
       },
     },
-    // Nav yüzeyleri (AppBar/Drawer/BottomNav) camsı yarı saydam + blur -
-    // arkadaki ambient glow'un hafifçe sızmasına izin verir, tamamen opak
-    // düz panellerden daha "modern ürün" hissi verir (bkz. body gradyanı).
+    // Faz4: nav yüzeylerindeki (AppBar/Drawer/BottomNav) yarı saydamlık +
+    // blur kaldırıldı - X.com'un kendi app kabuğu tamamen OPAK'tır, camsı
+    // blur paneller "pazarlama sitesi/iOS widget" hissi veriyordu ve ayrıca
+    // mobilde backdrop-filter maliyeti vardı (bkz. eski ResponsiveShell
+    // notu). Artık düz opak yüzey + tek kenarlık ile ayrım yapılıyor.
     MuiAppBar: {
       styleOverrides: {
         root: {
-          backgroundColor: 'rgba(42, 36, 31, 0.86)',
-          // bkz. ResponsiveShell.jsx'teki aynı optimizasyon notu - 16px'ten
-          // 10px'e düşürüldü, mobilde scroll performansı için.
-          backdropFilter: 'blur(10px)',
-          WebkitBackdropFilter: 'blur(10px)',
+          backgroundColor: colors.surface,
           color: colors.text.primary,
-          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.3)',
+          boxShadow: 'none',
+          borderBottom: `1px solid ${colors.divider}`,
         },
       },
     },
     MuiDrawer: {
       styleOverrides: {
         paper: {
-          backgroundColor: 'rgba(42, 36, 31, 0.86)',
-          // bkz. ResponsiveShell.jsx'teki aynı optimizasyon notu - 16px'ten
-          // 10px'e düşürüldü, mobilde scroll performansı için.
-          backdropFilter: 'blur(10px)',
-          WebkitBackdropFilter: 'blur(10px)',
+          backgroundColor: colors.surface,
           borderRight: `1px solid ${colors.border}`,
         },
       },
@@ -442,11 +438,7 @@ const theme = createTheme({
     MuiBottomNavigation: {
       styleOverrides: {
         root: {
-          backgroundColor: 'rgba(42, 36, 31, 0.86)',
-          // bkz. ResponsiveShell.jsx'teki aynı optimizasyon notu - 16px'ten
-          // 10px'e düşürüldü, mobilde scroll performansı için.
-          backdropFilter: 'blur(10px)',
-          WebkitBackdropFilter: 'blur(10px)',
+          backgroundColor: colors.surface,
           borderTop: `1px solid ${colors.border}`,
           height: 64,
         },
@@ -595,7 +587,7 @@ const theme = createTheme({
     MuiMenu: {
       styleOverrides: {
         paper: {
-          borderRadius: 12,
+          borderRadius: 10,
           boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)',
           border: `1px solid ${colors.border}`,
           backgroundColor: colors.surface,
@@ -617,7 +609,7 @@ const theme = createTheme({
       styleOverrides: {
         paper: {
           backgroundColor: colors.surface,
-          borderRadius: 16,
+          borderRadius: 14,
           border: `1px solid ${colors.border}`,
         },
       },

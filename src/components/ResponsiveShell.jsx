@@ -83,21 +83,11 @@ export default function ResponsiveShell({ children }) {
             top: 0,
             left: 0,
             bottom: 0,
-            // Camsı yarı saydam + blur - arkadaki ambient glow (bkz. body
-            // arkaplanı, theme.js) hafifçe sızsın diye düz opak yüzey yerine.
-            bgcolor: 'rgba(42, 36, 31, 0.86)',
-            // Blur radius 16px'ten 10px'e düşürüldü - "kasma" şikayeti
-            // sonrası mobil performans denetiminde bulundu: scroll sırasında
-            // sürekli ekranda kalan (fixed/sticky) camsı yüzeylerde yüksek
-            // blur radius'u GPU'ya sürekli iş yüklüyordu, özellikle orta/alt
-            // segment Android cihazlarda hissedilir jank'e yol açabiliyordu.
-            // 10px görsel olarak neredeyse ayırt edilemez ama compositing
-            // maliyeti belirgin düşüyor - kurumsal ürünlerin (Twitter/X,
-            // LinkedIn vb.) çoğu da persistent nav yüzeylerinde 8-12px
-            // aralığını kullanıyor, 16px+ genelde tek seferlik/geçici
-            // yüzeylerde (modal, toast) tercih ediliyor.
-            backdropFilter: 'blur(10px)',
-            WebkitBackdropFilter: 'blur(10px)',
+            // Faz4: camsı yarı saydam + blur kaldırıldı - X.com'un kendi
+            // sol nav'ı da tamamen opaktır, blur hem performans maliyeti
+            // hem de gereksiz "widget" hissi katıyordu. Düz opak yüzey +
+            // sağdaki kenarlık (üstte zaten var) yeterli ayrımı sağlıyor.
+            bgcolor: 'background.paper',
             display: 'flex',
             flexDirection: 'column',
             py: 3,
@@ -124,8 +114,7 @@ export default function ResponsiveShell({ children }) {
                 sx={{
                   width: 40,
                   height: 40,
-                  borderRadius: '12px',
-                  boxShadow: '0 2px 8px rgba(44, 117, 98, 0.12)'
+                  borderRadius: '12px'
                 }}
               />
               <Typography
@@ -160,11 +149,11 @@ export default function ResponsiveShell({ children }) {
                     borderRadius: 2.5,
                     cursor: 'pointer',
                     color: active ? 'primary.main' : 'text.secondary',
-                    background: active
-                      ? 'linear-gradient(90deg, rgba(76, 184, 159, 0.16) 0%, rgba(76, 184, 159, 0.05) 100%)'
-                      : 'transparent',
+                    // Faz4: köşegen gradyan dolgu yerine düz, tek tonlu tint -
+                    // X'in aktif sekme dilinde de dolgu her zaman düz renktir.
+                    bgcolor: active ? 'rgba(76, 184, 159, 0.12)' : 'transparent',
                     fontWeight: active ? 600 : 500,
-                    transition: 'all 0.2s ease',
+                    transition: 'background-color 0.15s ease, color 0.15s ease',
                     // Aktif satırın solunda ince bir vurgu çubuğu - hangi
                     // sekmede olduğunu arka plan tonundan daha net anlatır.
                     '&::before': {
@@ -180,9 +169,7 @@ export default function ResponsiveShell({ children }) {
                       transition: 'opacity 0.2s ease'
                     },
                     '&:hover': {
-                      background: active
-                        ? 'linear-gradient(90deg, rgba(76, 184, 159, 0.20) 0%, rgba(76, 184, 159, 0.07) 100%)'
-                        : 'rgba(76, 184, 159, 0.06)',
+                      bgcolor: active ? 'rgba(76, 184, 159, 0.16)' : 'rgba(242, 237, 230, 0.06)',
                       color: 'primary.main'
                     }
                   }}
@@ -286,9 +273,8 @@ export default function ResponsiveShell({ children }) {
               px: 2,
               pt: 'calc(10px + env(safe-area-inset-top))',
               pb: 1.25,
-              bgcolor: 'rgba(42, 36, 31, 0.86)',
-              backdropFilter: 'blur(10px)',
-              WebkitBackdropFilter: 'blur(10px)',
+              // Faz4: blur/yarı saydamlık kaldırıldı - opak yüzey + kenarlık.
+              bgcolor: 'background.paper',
               borderBottom: '1px solid',
               borderColor: 'divider'
             }}
@@ -329,13 +315,12 @@ export default function ResponsiveShell({ children }) {
             left: 0,
             right: 0,
             bottom: 0,
-            bgcolor: 'rgba(42, 36, 31, 0.86)',
-            backdropFilter: 'blur(10px)',
-            WebkitBackdropFilter: 'blur(10px)',
+            // Faz4: blur + renkli glow gölgesi kaldırıldı - opak yüzey + tek
+            // üst kenarlık, X'in alt nav'ı da aynı şekilde düz/opaktır.
+            bgcolor: 'background.paper',
             borderTop: '1px solid',
             borderColor: 'divider',
-            zIndex: theme.zIndex.appBar + 1,
-            boxShadow: '0 -4px 20px rgba(44, 117, 98, 0.10)'
+            zIndex: theme.zIndex.appBar + 1
           }}
         >
           <BottomNavigation
@@ -345,14 +330,6 @@ export default function ResponsiveShell({ children }) {
             sx={{
               height: MOBILE_NAV_HEIGHT,
               bgcolor: 'transparent',
-              // Blur zaten sarmalayan Box'ta uygulanıyor (yukarıda) - MUI'nin
-              // MuiBottomNavigation tema varsayılanı (bkz. theme.js) burada
-              // AYRICA blur(16px) uyguluyordu, şeffaf bir katmanın üstüne
-              // ikinci bir blur bindirmek görsel olarak hiçbir fark
-              // yaratmıyor ama mobilde scroll sırasında GPU'ya iki kat iş
-              // yüklüyordu - kaldırıldı.
-              backdropFilter: 'none',
-              WebkitBackdropFilter: 'none',
               '& .MuiBottomNavigationAction-root': {
                 color: 'text.secondary',
                 minWidth: 0,
