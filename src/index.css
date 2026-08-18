@@ -15,9 +15,16 @@ html, body, #root {
    JS yüklenmeden önce de (index.css) theme.js'teki CssBaseline body
    override'ı ile birebir aynı tutulmalı. */
 body {
-  background-color: #1E1A16; /* Sıcak espresso zemin */
+  background-color: #1E1A16; /* Sıcak espresso zemin (koyu tema varsayılan) */
   margin: 0;
   position: relative;
+}
+
+/* Faz6: açık tema - index.html'deki inline script, React yüklenmeden ÖNCE
+   localStorage'dan okuyup <html data-theme> yazıyor ki bu kural JS
+   çalışmadan önce de doğru zeminle boyansın (bkz. index.html'deki not). */
+html[data-theme='light'] body {
+  background-color: #FAF8F5; /* Sıcak kırık beyaz zemin - theme.js lightColors.background ile aynı */
 }
 
 :root {

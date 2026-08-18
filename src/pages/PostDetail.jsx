@@ -3,7 +3,8 @@ import {
   Alert, Avatar, Box, Button, CircularProgress, Divider, IconButton, Skeleton, Stack, TextField, Typography
 } from '@mui/material'
 import {
-  ArrowBack, DeleteOutline, EditOutlined, FlagOutlined, InfoOutlined, IosShareRounded, SendOutlined
+  ArrowBack, DeleteOutline, EditOutlined, FlagOutlined, InfoOutlined, IosShareRounded, PushPinOutlined,
+  PushPinRounded, SendOutlined
 } from '@mui/icons-material'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
@@ -43,8 +44,8 @@ export default function PostDetail() {
   const {
     post, loading, error,
     editingPost, setEditingPost, editTitle, setEditTitle, editContent, setEditContent,
-    savingPost, deletingPost,
-    startEditing, savePostEdit, removePost
+    savingPost, deletingPost, togglingPin,
+    startEditing, savePostEdit, removePost, togglePin
   } = usePost(postId)
 
   const {
@@ -208,6 +209,23 @@ export default function PostDetail() {
           </Box>
           {!editingPost && (
             <Stack direction="row" spacing={0.5}>
+              {/* Faz6: sabitlenmiş gönderi - sadece gerçek sahip (admin dahil
+                  değil, bkz. PostServiceImpl.pin javadoc'u: bu bir moderasyon
+                  değil, kişisel profil kararı). */}
+              {isOwnPost && (
+                <IconButton
+                  size="small"
+                  onClick={togglePin}
+                  disabled={togglingPin}
+                  aria-label={post.pinned ? 'Sabitlemeyi kaldır' : 'Profile sabitle'}
+                  title={post.pinned ? 'Sabitlemeyi kaldır' : 'Profile sabitle'}
+                  sx={post.pinned ? { color: 'primary.main' } : undefined}
+                >
+                  {togglingPin
+                    ? <CircularProgress size={16} />
+                    : (post.pinned ? <PushPinRounded fontSize="small" /> : <PushPinOutlined fontSize="small" />)}
+                </IconButton>
+              )}
               {manageable && (
                 <>
                   <IconButton size="small" onClick={startEditing} aria-label="Düzenle">
@@ -231,6 +249,15 @@ export default function PostDetail() {
             </Stack>
           )}
         </Stack>
+
+        {post.pinned && (
+          <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mb: 1, color: 'primary.main' }}>
+            <PushPinRounded sx={{ fontSize: 15 }} />
+            <Typography variant="caption" sx={{ fontWeight: 600, color: 'inherit' }}>
+              Profile sabitlendi
+            </Typography>
+          </Stack>
+        )}
 
         {editingPost ? (
           <Stack spacing={2}>

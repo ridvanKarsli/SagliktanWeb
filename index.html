@@ -10,6 +10,25 @@
     <meta name="description" content="Kronik ve nadir hastalıklarla yaşayan bireyleri ve yakınlarını hastalık gruplarında bir araya getiren, deneyim paylaşımına dayalı güvenli bir topluluk platformu." />
     <meta name="theme-color" content="#1E1A16" />
     <link rel="manifest" href="/manifest.webmanifest" />
+    <!-- Faz6: açık tema desteği - React yüklenip AccessibilityProvider
+         çalışana kadar body varsayılan (koyu) zeminle boyanır, kullanıcı
+         açık temayı seçmişse bir anlığına koyu-sonra-açık "flaş" (FOUC)
+         görülür. Bunu önlemek için localStorage'daki tercih, herhangi bir
+         CSS/React kodu çalışmadan ÖNCE senkron biçimde okunup <html>'e
+         data-theme olarak yazılıyor - bkz. index.css'teki
+         html[data-theme='light'] body kuralı ve AccessibilityContext.jsx'in
+         aynı STORAGE_KEY'i kullanan kalıcı tercih mekanizması. -->
+    <script>
+      (function () {
+        try {
+          var raw = localStorage.getItem('sagliktan:accessibility');
+          var mode = raw && JSON.parse(raw).themeMode === 'light' ? 'light' : 'dark';
+          document.documentElement.dataset.theme = mode;
+        } catch (e) {
+          document.documentElement.dataset.theme = 'dark';
+        }
+      })();
+    </script>
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <!-- Safari'den "Ana Ekrana Ekle" ile açılınca tarayıcı arayüzü (adres
          çubuğu vb.) olmadan, gerçek bir uygulama gibi tam ekran çalışsın.

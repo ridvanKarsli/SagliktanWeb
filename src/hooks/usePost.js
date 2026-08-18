@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useNotification } from '../context/NotificationContext.jsx'
 import { useConfirm } from '../context/ConfirmContext.jsx'
-import { deletePost, getPost, updatePost } from '../services/api.js'
+import { deletePost, getPost, pinPost, unpinPost, updatePost } from '../services/api.js'
 
 // Bir gönderinin kendisini (yorumlar hariç) yükleme + düzenleme + silme
 // state/handler'larını sarmalar - PostDetail.jsx'ten taşındı (bkz.
@@ -21,6 +21,7 @@ export function usePost(postId) {
   const [editContent, setEditContent] = useState('')
   const [savingPost, setSavingPost] = useState(false)
   const [deletingPost, setDeletingPost] = useState(false)
+  const [togglingPin, setTogglingPin] = useState(false)
 
   const loadPost = useCallback(() => {
     if (!token || !postId) return
@@ -76,10 +77,32 @@ export function usePost(postId) {
     }
   }
 
+  // Faz6: sabitlenmiş gönderi - X'teki "hakkımda" niteliğindeki bir
+  // gönderiyi profilde öne çıkarma. save/unsave (SaveButton) ile aynı
+  // optimistic-olmayan desen: API yanıtını (zenginleştirilmiş PostResponse)
+  // doğrudan post state'ine yazıyoruz - backend zaten önceki sabitlenmiş
+  // postu otomatik kaldırdığı için burada ekstra bir senkronizasyona
+  // gerek yok (PostDetail sadece TEK bir postu gösteriyor, kullanıcının
+  // önceden sabitlediği BAŞKA bir post varsa onun pinned=false olduğunu
+  // profil listesi bir sonraki yüklemede zaten backend'den doğru alacak).
+  const togglePin = async () => {
+    if (!post) return
+    setTogglingPin(true)
+    try {
+      const updated = post.pinned ? await unpinPost(token, post.id) : await pinPost(token, post.id)
+      setPost(updated || { ...post, pinned: !post.pinned })
+      showSuccess(post.pinned ? 'Gönderinin sabiti kaldırıldı.' : 'Gönderi profiline sabitlendi.')
+    } catch (err) {
+      showError(err.message || 'İşlem gerçekleştirilemedi.')
+    } finally {
+      setTogglingPin(false)
+    }
+  }
+
   return {
     post, loading, error,
     editingPost, setEditingPost, editTitle, setEditTitle, editContent, setEditContent,
-    savingPost, deletingPost,
-    startEditing, savePostEdit, removePost
+    savingPost, deletingPost, togglingPin,
+    startEditing, savePostEdit, removePost, togglePin
   }
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Avatar, Box, Chip, IconButton, Stack, Typography } from '@mui/material'
-import { GroupsRounded, SendOutlined } from '@mui/icons-material'
+import { GroupsRounded, PushPinRounded, SendOutlined } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import ReactionButtons from './ReactionButtons.jsx'
 import SaveButton from './SaveButton.jsx'
@@ -25,13 +25,13 @@ function truncate(text = '', max = 180) {
  * dilinden esinlenen ama markaya özgü sıcak gradyan bir halka var. Veri
  * sözleşmesi değişmedi - sadece görsel/yapısal düzen.
  */
-export default function PostCard({ post, onClick, token, highlightQuery }) {
+export default function PostCard({ post, onClick, token, highlightQuery, showPinnedBadge = false }) {
   const [sendDialogOpen, setSendDialogOpen] = useState(false)
   const navigate = useNavigate()
   if (!post) return null
   const {
     id, subGroupId, subGroupName, diseaseGroupName, authorName, title, content, createdAt, updatedAt,
-    helpfulCount, notHelpfulCount, myReaction, saved, savedCount, attachments, flaggedSensitive
+    helpfulCount, notHelpfulCount, myReaction, saved, savedCount, attachments, flaggedSensitive, pinned
   } = post
 
   const dateLabel = createdAt
@@ -57,6 +57,19 @@ export default function PostCard({ post, onClick, token, highlightQuery }) {
         '&:hover': onClick ? { bgcolor: 'action.hover' } : undefined
       }}
     >
+      {/* Faz6: sabitlenmiş gönderi - sadece profilin "Gönderiler" sekmesinde
+          gösterilen kartlarda anlamlı (bkz. Profile.jsx/UserProfile.jsx'te
+          showPinnedBadge geçilen tek yer) - genel akışta (Home/Posts/arama)
+          "sabitlendi" etiketi bağlamsız/kafa karıştırıcı olurdu, X de aynı
+          ayrımı yapıyor. */}
+      {showPinnedBadge && pinned && (
+        <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mb: 1, color: 'text.secondary' }}>
+          <PushPinRounded sx={{ fontSize: 14 }} />
+          <Typography variant="caption" sx={{ fontWeight: 600, color: 'inherit' }}>
+            Sabitlenmiş gönderi
+          </Typography>
+        </Stack>
+      )}
       <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1.25 }}>
         {/* Faz4: gradyan "story ring" kaldırıldı - düz marka rengi ince bir
             çerçeveye indirgendi. Akışta onlarca kart art arda göründüğünde

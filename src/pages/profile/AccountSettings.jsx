@@ -4,9 +4,9 @@ import {
   IconButton, Stack, Switch, TextField, ToggleButton, ToggleButtonGroup, Typography
 } from '@mui/material'
 import {
-  ArrowBackRounded, BlockRounded, DeleteForeverRounded, DescriptionOutlined, DevicesOutlined,
-  FileDownloadOutlined, FormatSizeRounded, GroupsRounded, HelpOutlineRounded, InfoOutlined,
-  LockOutlined, LogoutRounded, PrivacyTipOutlined, WarningAmberRounded
+  ArrowBackRounded, BlockRounded, DarkModeRounded, DeleteForeverRounded, DescriptionOutlined,
+  DevicesOutlined, FileDownloadOutlined, FormatSizeRounded, GroupsRounded, HelpOutlineRounded,
+  InfoOutlined, LightModeRounded, LockOutlined, LogoutRounded, PrivacyTipOutlined, WarningAmberRounded
 } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
@@ -34,7 +34,9 @@ export default function AccountSettings() {
   const { token, logout } = useAuth()
   const { showError, showSuccess } = useNotification()
   const navigate = useNavigate()
-  const { fontScale, highContrast, fontScaleOptions, setFontScale, setHighContrast } = useAccessibility()
+  const {
+    fontScale, highContrast, themeMode, fontScaleOptions, setFontScale, setHighContrast, setThemeMode
+  } = useAccessibility()
 
   /* ---- Şifre değiştirme ---- */
   const [pwOpen, setPwOpen] = useState(false)
@@ -207,6 +209,30 @@ export default function AccountSettings() {
         <Section title="Erişilebilirlik">
           <Box sx={{ borderRadius: 2, border: '1px solid', borderColor: 'divider', p: 2.5 }}>
             <Stack spacing={2.5}>
+              <Box>
+                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
+                  {themeMode === 'light'
+                    ? <LightModeRounded sx={{ fontSize: 20, color: 'text.secondary' }} />
+                    : <DarkModeRounded sx={{ fontSize: 20, color: 'text.secondary' }} />}
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>Tema</Typography>
+                </Stack>
+                <ToggleButtonGroup
+                  value={themeMode}
+                  exclusive
+                  size="small"
+                  onChange={(_, v) => v && setThemeMode(v)}
+                  fullWidth
+                >
+                  <ToggleButton value="dark">Koyu</ToggleButton>
+                  <ToggleButton value="light">Açık</ToggleButton>
+                </ToggleButtonGroup>
+                <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 1 }}>
+                  Açık zemin bazı kullanıcılar için daha rahat okunur
+                </Typography>
+              </Box>
+
+              <Divider />
+
               <Box>
                 <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
                   <FormatSizeRounded sx={{ fontSize: 20, color: 'text.secondary' }} />

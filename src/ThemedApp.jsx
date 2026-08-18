@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { ThemeProvider, CssBaseline } from '@mui/material'
 import { BrowserRouter } from 'react-router-dom'
 import App from './App.jsx'
-import theme, { createAccessibleTheme } from './theme.js'
+import { darkTheme, lightTheme, createAccessibleTheme } from './theme.js'
 import { AuthProvider } from './context/AuthContext.jsx'
 import { NotificationProvider } from './context/NotificationContext.jsx'
 import { NotificationsFeedProvider } from './context/NotificationsFeedContext.jsx'
@@ -18,8 +18,11 @@ import ErrorBoundary from './components/ErrorBoundary.jsx'
 // DIŞINDA değil İÇİNDE render edilmesi gerekiyor - main.jsx bu yüzden
 // AccessibilityProvider'ı en dışta tutup ThemedApp'i onun içine koyuyor.
 export default function ThemedApp() {
-  const { highContrast } = useAccessibility()
-  const activeTheme = useMemo(() => createAccessibleTheme(theme, { highContrast }), [highContrast])
+  const { highContrast, themeMode } = useAccessibility()
+  const activeTheme = useMemo(() => {
+    const baseTheme = themeMode === 'light' ? lightTheme : darkTheme
+    return createAccessibleTheme(baseTheme, { highContrast })
+  }, [highContrast, themeMode])
 
   return (
     <ThemeProvider theme={activeTheme}>

@@ -242,8 +242,8 @@ export function createPost(token, subGroupId, { title, content, attachmentKeys }
 
 // Ana sayfa akışı: kullanıcının üye olduğu tüm gruplardaki gönderiler, tek
 // bir zaman sıralı akışta (bkz. Home.jsx, backend PostController.feed).
-export function getMyFeed(token, { page = 0, size, signal } = {}) {
-  return request('/posts/feed', { token, params: { page, size }, signal });
+export function getMyFeed(token, { page = 0, size, sort, signal } = {}) {
+  return request('/posts/feed', { token, params: { page, size, sort }, signal });
 }
 
 export function searchPosts(token, q, { page = 0, size, signal } = {}) {
@@ -339,6 +339,16 @@ export function savePost(token, postId) {
 
 export function unsavePost(token, postId) {
   return request(`/posts/${postId}/saved`, { method: 'DELETE', token });
+}
+
+// --- Sabitlenmiş gönderi - Faz6 ---
+
+export function pinPost(token, postId) {
+  return request(`/posts/${postId}/pin`, { method: 'PUT', token });
+}
+
+export function unpinPost(token, postId) {
+  return request(`/posts/${postId}/pin`, { method: 'DELETE', token });
 }
 
 // --- Medya (gönderi fotoğrafları) - Faz 2 adım 4 ---

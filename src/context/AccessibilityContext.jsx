@@ -12,7 +12,10 @@ const FONT_SCALES = {
   large: { label: 'Büyük', rootFontSize: '112.5%' },    // ~18px taban
 }
 
-const DEFAULT_STATE = { fontScale: 'medium', highContrast: false }
+// Faz6: themeMode ('dark' | 'light') - bkz. theme.js'teki buildTheme notu.
+// Aynı localStorage anahtarı/deseni kullanılıyor, fontScale/highContrast ile
+// birlikte tek bir tercih objesi olarak saklanıyor.
+const DEFAULT_STATE = { fontScale: 'medium', highContrast: false, themeMode: 'dark' }
 
 function loadState() {
   try {
@@ -22,6 +25,7 @@ function loadState() {
     return {
       fontScale: FONT_SCALES[parsed.fontScale] ? parsed.fontScale : 'medium',
       highContrast: !!parsed.highContrast,
+      themeMode: parsed.themeMode === 'light' ? 'light' : 'dark',
     }
   } catch {
     return DEFAULT_STATE
@@ -41,14 +45,24 @@ export function AccessibilityProvider({ children }) {
     }
     document.documentElement.style.fontSize = FONT_SCALES[state.fontScale].rootFontSize
     document.documentElement.dataset.contrast = state.highContrast ? 'high' : 'normal'
+    document.documentElement.dataset.theme = state.themeMode
+    // Mobil tarayıcı adres çubuğu/durum çubuğu rengi (PWA'da da kullanılıyor,
+    // bkz. manifest.webmanifest theme_color) - temayla uyumsuz kalırsa
+    // sistem çubuğu ile sayfa arasında göze batan bir renk sıçraması olur.
+    const themeColorMeta = document.querySelector('meta[name="theme-color"]')
+    if (themeColorMeta) {
+      themeColorMeta.setAttribute('content', state.themeMode === 'light' ? '#FAF8F5' : '#1E1A16')
+    }
   }, [state])
 
   const value = useMemo(() => ({
     fontScale: state.fontScale,
     highContrast: state.highContrast,
+    themeMode: state.themeMode,
     fontScaleOptions: FONT_SCALES,
     setFontScale: (fontScale) => setState(s => ({ ...s, fontScale })),
     setHighContrast: (highContrast) => setState(s => ({ ...s, highContrast })),
+    setThemeMode: (themeMode) => setState(s => ({ ...s, themeMode })),
   }), [state])
 
   return (

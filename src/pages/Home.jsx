@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Alert, Box, Button, CircularProgress, Divider } from '@mui/material'
+import { Alert, Box, Button, CircularProgress, Divider, Stack, ToggleButton, ToggleButtonGroup } from '@mui/material'
 import { DynamicFeedRounded, GroupsRounded } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import PostCard from '../components/PostCard.jsx'
@@ -33,6 +33,12 @@ export default function Home() {
   const [hasJoinedGroups, setHasJoinedGroups] = useState(true)
   const [checkingGroups, setCheckingGroups] = useState(true)
 
+  // Faz6: en çok kullanılan ekranda (bkz. kullanıcı geri bildirimi) sıralama
+  // seçeneği yoktu - Posts.jsx'teki alt grup akışıyla aynı Yeni/Popüler
+  // deseni burada da. Backend tarafı PostController.feed'de aynı
+  // PostSortOption (RECENT/POPULAR) ile karşılanıyor.
+  const [sort, setSort] = useState('recent')
+
   useEffect(() => {
     if (!token) { setCheckingGroups(false); return }
     getMyDiseaseGroups(token)
@@ -41,12 +47,12 @@ export default function Home() {
       .finally(() => setCheckingGroups(false))
   }, [token])
 
-  const fetchPage = useCallback((page) => getMyFeed(token, { page }), [token])
+  const fetchPage = useCallback((page) => getMyFeed(token, { page, sort }), [token, sort])
   const {
     items: posts, loading, loadingMore, last, loadMore, reload: reloadFeed
   } = usePaginatedList(fetchPage, {
     enabled: !!token,
-    deps: [token],
+    deps: [token, sort],
     onError: (err, phase) => {
       if (phase === 'initial') setError(err.message || 'Akış alınamadı.')
       else showError(err.message || 'Akış alınamadı.')
@@ -78,6 +84,20 @@ export default function Home() {
       </Box>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+
+      {!checkingGroups && hasJoinedGroups && (
+        <Stack direction="row" justifyContent="flex-end" sx={{ mb: 1.5 }}>
+          <ToggleButtonGroup
+            size="small"
+            value={sort}
+            exclusive
+            onChange={(_, v) => v && setSort(v)}
+          >
+            <ToggleButton value="recent">Yeni</ToggleButton>
+            <ToggleButton value="popular">Popüler</ToggleButton>
+          </ToggleButtonGroup>
+        </Stack>
+      )}
 
       {(loading || checkingGroups) ? (
         <Box>

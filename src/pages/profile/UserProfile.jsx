@@ -230,7 +230,7 @@ export default function UserProfile() {
           {posts.map((p, i) => (
             <Box key={p.id}>
               {i > 0 && <Divider />}
-              <PostCard post={p} token={token} onClick={() => navigate(`/post/${p.id}`)} />
+              <PostCard post={p} token={token} onClick={() => navigate(`/post/${p.id}`)} showPinnedBadge />
             </Box>
           ))}
           {!postsLast && (
