@@ -211,11 +211,16 @@ export default function ResponsiveShell({ children }) {
                       Sadece masaüstü sidebar'da: mobilde klavye kısayolunun
                       bir anlamı yok. */}
                   {item.to === '/search' && (
+                    // NOT: metin rengi TAM opaklıkta 'text.secondary' - önceden
+                    // inactive durumda opacity: 0.6 ile soluklaştırılıyordu, bu da
+                    // axe-core'un WCAG AA color-contrast kuralını ihlal ediyordu
+                    // (bkz. accessibility.spec.js CI hatası). Soluklaştırma yerine
+                    // sadece border'ı hafif belirginleştiriyoruz, metin okunur kalıyor.
                     <Box
                       sx={{
                         fontSize: '0.6875rem', fontWeight: 600, color: 'text.secondary',
                         border: '1px solid', borderColor: 'divider', borderRadius: 1,
-                        px: 0.75, py: 0.125, opacity: active ? 0.9 : 0.6
+                        px: 0.75, py: 0.125
                       }}
                     >
                       ⌘K
