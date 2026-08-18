@@ -1,6 +1,7 @@
 import { Component } from 'react'
 import { Box, Button, Stack, Typography } from '@mui/material'
 import { ErrorOutlineRounded, HomeRounded, RefreshRounded } from '@mui/icons-material'
+import { hasAttemptedChunkReload, reloadOnceForChunkError } from '../utils/chunkReloadGuard.js'
 
 // React'in render sırasında yakaladığı beklenmedik hatalara karşı güvenlik
 // ağı - bu olmadan bir bileşende fırlatılan hata (örn. beklenmeyen null,
@@ -26,7 +27,6 @@ import { ErrorOutlineRounded, HomeRounded, RefreshRounded } from '@mui/icons-mat
 // engelliyor (gerçekten kalıcı bir hataysa ikinci denemede normal hata
 // ekranı gösterilir).
 const CHUNK_LOAD_ERROR_PATTERN = /Failed to fetch dynamically imported module|error loading dynamically imported module|Importing a module script failed|Loading chunk .* failed/i
-const CHUNK_RELOAD_FLAG = 'sagliktan-chunk-reload-attempted'
 
 export default class ErrorBoundary extends Component {
   constructor(props) {
@@ -41,9 +41,8 @@ export default class ErrorBoundary extends Component {
   componentDidCatch(error, info) {
     console.error('Beklenmeyen render hatası:', error, info)
 
-    if (this.state.isChunkLoadError && !sessionStorage.getItem(CHUNK_RELOAD_FLAG)) {
-      sessionStorage.setItem(CHUNK_RELOAD_FLAG, '1')
-      window.location.reload()
+    if (this.state.isChunkLoadError && !hasAttemptedChunkReload()) {
+      reloadOnceForChunkError()
       return
     }
     // @sentry/react artık burada da statik import DEĞİL - Lighthouse CI'ın

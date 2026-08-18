@@ -68,10 +68,19 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Sayfa navigasyonlarında network-first (güncel HTML al); offline ise cache'e düş
+  // Sayfa navigasyonlarında network-first (güncel HTML al); offline ise cache'e düş.
+  // { cache: 'no-store' } KRİTİK: sade fetch(request) tarayıcının kendi HTTP
+  // cache'ini (SW cache'inden AYRI, Safari'de özellikle agresif) atlamayı
+  // garanti ETMEZ - "network-first" dediğimiz dal, index.html tarayıcı disk
+  // cache'inde varsa sessizce ESKİ bir kopyayı "ağdan" gelmiş gibi
+  // dönebiliyordu. Bu da yeni deploy sonrası eski hash'li chunk referansları
+  // taşıyan index.html'in sonsuza kadar servis edilmesine (ve dolayısıyla
+  // "Importing a module script failed" hatasının reload'lara rağmen
+  // tekrarlanmasına) yol açıyordu - bkz. ErrorBoundary.jsx'teki chunk hatası
+  // notu, bu satır o notun kök nedenlerinden biri.
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request)
+      fetch(request, { cache: 'no-store' })
         .then((response) => {
           const copy = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put('/', copy));
