@@ -30,6 +30,7 @@ const Posts = lazy(() => import('./pages/Posts.jsx'))
 const PostDetail = lazy(() => import('./pages/PostDetail.jsx'))
 const Search = lazy(() => import('./pages/Search.jsx'))
 const Profile = lazy(() => import('./pages/profile/Profile.jsx'))
+const AccountSettings = lazy(() => import('./pages/profile/AccountSettings.jsx'))
 const UserProfile = lazy(() => import('./pages/profile/UserProfile.jsx'))
 const Conversations = lazy(() => import('./pages/messages/Conversations.jsx'))
 const Chat = lazy(() => import('./pages/messages/Chat.jsx'))
@@ -85,6 +86,7 @@ export default function App() {
           <Route path="/post/:postId" element={<PostDetail />} />
           <Route path="/search" element={<Search />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/profile/settings" element={<AccountSettings />} />
           <Route path="/users/:userId" element={<UserProfile />} />
           <Route path="/messages" element={<Conversations />} />
           <Route path="/messages/requests" element={<MessageRequests />} />

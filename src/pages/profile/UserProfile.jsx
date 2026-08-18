@@ -136,7 +136,7 @@ export default function UserProfile() {
       </Button>
 
       <Box sx={{ mb: 4, px: { xs: 0.5, md: 0 } }}>
-        <Stack direction="row" spacing={{ xs: 2, md: 3 }} alignItems="center">
+        <Stack direction="row" spacing={{ xs: 2, md: 3 }} alignItems="flex-start">
           {/* Faz4: gradyan ring kaldırıldı - bkz. Profile.jsx/PostCard.jsx'teki
               aynı karar, düz marka rengi çerçeveye indirgendi. */}
           <Avatar
@@ -149,11 +149,27 @@ export default function UserProfile() {
             {initialsFrom(fullName)}
           </Avatar>
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap" useFlexGap>
-              <Typography variant="h2" sx={{ fontWeight: 700, mb: 0.5, wordBreak: 'break-word' }}>
-                {fullName}
-              </Typography>
-              {profile.emailVerified && <VerifiedBadge />}
+            {/* X/IG deseni: takip/mesaj eylem butonu isim satırıyla aynı
+                hizada, sağda - önceden bio'nun altında tam genişlikte
+                duruyordu ve profilin "eylem alanı" gibi değil, ayrı bir
+                bileşen gibi görünüyordu. */}
+            <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={1} flexWrap="wrap" useFlexGap>
+              <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap" useFlexGap>
+                <Typography variant="h2" sx={{ fontWeight: 700, mb: 0.5, wordBreak: 'break-word' }}>
+                  {fullName}
+                </Typography>
+                {profile.emailVerified && <VerifiedBadge />}
+              </Stack>
+              <Button
+                variant={requestSent ? 'outlined' : 'contained'}
+                size="small"
+                startIcon={sendingRequest ? <CircularProgress size={14} color="inherit" /> : <MailOutlineRounded />}
+                onClick={handleSendMessageRequest}
+                disabled={sendingRequest || requestSent}
+                sx={{ minHeight: 36, flexShrink: 0 }}
+              >
+                {requestSent ? 'İstek Gönderildi' : 'Mesaj Gönder'}
+              </Button>
             </Stack>
             <Stack direction="row" spacing={{ xs: 2, md: 3 }} flexWrap="wrap" useFlexGap>
               <Box>
@@ -196,21 +212,13 @@ export default function UserProfile() {
             {profile.bio}
           </Typography>
         )}
-        <Button
-          variant={requestSent ? 'outlined' : 'contained'}
-          size="small"
-          startIcon={sendingRequest ? <CircularProgress size={14} color="inherit" /> : <MailOutlineRounded />}
-          onClick={handleSendMessageRequest}
-          disabled={sendingRequest || requestSent}
-          sx={{ mt: 2, minHeight: 40 }}
-        >
-          {requestSent ? 'İstek Gönderildi' : 'Mesaj Gönder'}
-        </Button>
       </Box>
 
-      <Typography variant="h3" sx={{ mb: 2, px: { xs: 0.5, md: 0 }, color: 'text.primary' }}>
-        Gönderileri
-      </Typography>
+      <Box sx={{ mb: 2, px: { xs: 0.5, md: 0 }, pb: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}>
+        <Typography variant="h3" sx={{ color: 'text.primary' }}>
+          Gönderiler
+        </Typography>
+      </Box>
       {postsLoading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
           <CircularProgress size={22} />

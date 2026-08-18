@@ -2,13 +2,14 @@ import { test, expect } from '@playwright/test'
 import { registerAndLogin, uniqueUser } from './helpers.js'
 
 // Rapor: KVKK veri taşınabilirliği (veri dışa aktarma) ve hesap silme
-// (anonimleştirme) self-servis akışları - bkz. Profile.jsx "Ayarlar"
-// bölümündeki "Verilerimi İndir" / "Hesabımı Sil" satırları.
+// (anonimleştirme) self-servis akışları - bkz. AccountSettings.jsx (Faz5'te
+// Profile.jsx'ten ayrı bir /profile/settings sayfasına taşındı, bkz.
+// Profile.jsx'teki dişli ikonu) "Verilerimi İndir" / "Hesabımı Sil" satırları.
 test.describe('Hesap: veri dışa aktarma ve hesap silme', () => {
   test('Verilerimi İndir kendi verisini JSON dosyası olarak indirir', async ({ page }) => {
     const user = uniqueUser('export')
     await registerAndLogin(page, user)
-    await page.goto('/profile')
+    await page.goto('/profile/settings')
 
     const downloadPromise = page.waitForEvent('download')
     await page.getByText('Verilerimi İndir').click()
@@ -21,7 +22,7 @@ test.describe('Hesap: veri dışa aktarma ve hesap silme', () => {
   test('Hesabımı Sil hesabı anonimleştirir, oturumu kapatır ve eski bilgilerle giriş engellenir', async ({ page }) => {
     const user = uniqueUser('delacc')
     await registerAndLogin(page, user)
-    await page.goto('/profile')
+    await page.goto('/profile/settings')
 
     await page.getByText('Hesabımı Sil').click()
     await page.getByTestId('delete-account-password').fill(user.password)

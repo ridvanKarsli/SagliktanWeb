@@ -16,6 +16,7 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { useMessaging } from '../context/MessagingContext.jsx'
 import InstallPrompt from './InstallPrompt.jsx'
 import NotificationBell from './NotificationBell.jsx'
+import RightRail from './RightRail.jsx'
 
 const SIDEBAR_WIDTH = 240
 const MOBILE_NAV_HEIGHT = 64
@@ -245,66 +246,81 @@ export default function ResponsiveShell({ children }) {
         </Box>
       )}
 
-      {/* Content */}
+      {/* Content + sağ panel - X/Instagram web'in üç sütunlu masaüstü
+          düzeni: sol nav (sabit) + orta akış + geniş ekranlarda üçüncü bir
+          sütun (bkz. RightRail.jsx). Önceden içerik tek başına flexGrow:1 ile
+          tüm kalan genişliği kaplıyordu - çok geniş monitörlerde akış
+          alabildiğine gerilip okunabilirliği bozuyordu ve masaüstü boş/tek
+          düze görünüyordu. */}
       <Box
         sx={{
           flexGrow: 1,
           ml: { md: `${SIDEBAR_WIDTH}px` },
-          pb: { xs: `calc(${MOBILE_NAV_HEIGHT}px + env(safe-area-inset-bottom) + 8px)`, md: 0 },
+          display: 'flex',
           minHeight: '100vh'
         }}
       >
-        {/* Mobil üst bar - sabit, logo + marka adı. Native app'lerdeki üst
-            bar + alt sekme çubuğu ikilisini taklit ediyor. Ana ekrana
-            eklenip tam ekran açıldığında çentik/durum çubuğu alanını da
-            bu bar karşılıyor (safe-area-inset-top); normal tarayıcı
-            sekmesinde bu değer 0 olduğu için görünüm değişmiyor. */}
-        {!isMdUp && (
-          <Box
-            component="header"
-            sx={{
-              position: 'sticky',
-              top: 0,
-              zIndex: theme.zIndex.appBar,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 1.25,
-              px: 2,
-              pt: 'calc(10px + env(safe-area-inset-top))',
-              pb: 1.25,
-              // Faz4: blur/yarı saydamlık kaldırıldı - opak yüzey + kenarlık.
-              bgcolor: 'background.paper',
-              borderBottom: '1px solid',
-              borderColor: 'divider'
-            }}
-          >
-            <Box
-              onClick={() => navigate('/home')}
-              sx={{ display: 'flex', alignItems: 'center', gap: 1.25, cursor: 'pointer' }}
-            >
-              <Avatar
-                src="/sagliktanLogo.png"
-                alt="Sağlıktan"
-                sx={{ width: 28, height: 28, borderRadius: '8px' }}
-              />
-              <Typography
-                sx={{ fontWeight: 700, fontSize: '0.9375rem', color: 'primary.main', letterSpacing: '-0.01em' }}
-              >
-                Sağlıktan
-              </Typography>
-            </Box>
-            <NotificationBell />
-          </Box>
-        )}
-
         <Box
-          key={location.pathname}
-          className="page-transition"
-          sx={{ maxWidth: 720, mx: 'auto', width: '100%', px: { xs: 2, sm: 3 } }}
+          sx={{
+            flex: 1,
+            minWidth: 0,
+            pb: { xs: `calc(${MOBILE_NAV_HEIGHT}px + env(safe-area-inset-bottom) + 8px)`, md: 0 }
+          }}
         >
-          {children}
+          {/* Mobil üst bar - sabit, logo + marka adı. Native app'lerdeki üst
+              bar + alt sekme çubuğu ikilisini taklit ediyor. Ana ekrana
+              eklenip tam ekran açıldığında çentik/durum çubuğu alanını da
+              bu bar karşılıyor (safe-area-inset-top); normal tarayıcı
+              sekmesinde bu değer 0 olduğu için görünüm değişmiyor. */}
+          {!isMdUp && (
+            <Box
+              component="header"
+              sx={{
+                position: 'sticky',
+                top: 0,
+                zIndex: theme.zIndex.appBar,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 1.25,
+                px: 2,
+                pt: 'calc(10px + env(safe-area-inset-top))',
+                pb: 1.25,
+                // Faz4: blur/yarı saydamlık kaldırıldı - opak yüzey + kenarlık.
+                bgcolor: 'background.paper',
+                borderBottom: '1px solid',
+                borderColor: 'divider'
+              }}
+            >
+              <Box
+                onClick={() => navigate('/home')}
+                sx={{ display: 'flex', alignItems: 'center', gap: 1.25, cursor: 'pointer' }}
+              >
+                <Avatar
+                  src="/sagliktanLogo.png"
+                  alt="Sağlıktan"
+                  sx={{ width: 28, height: 28, borderRadius: '8px' }}
+                />
+                <Typography
+                  sx={{ fontWeight: 700, fontSize: '0.9375rem', color: 'primary.main', letterSpacing: '-0.01em' }}
+                >
+                  Sağlıktan
+                </Typography>
+              </Box>
+              <NotificationBell />
+            </Box>
+          )}
+
+          <Box
+            key={location.pathname}
+            className="page-transition"
+            sx={{ maxWidth: 720, mx: 'auto', width: '100%', px: { xs: 2, sm: 3 } }}
+          >
+            {children}
+          </Box>
         </Box>
+
+        <RightRail />
       </Box>
 
       {/* Mobile Bottom Navigation */}

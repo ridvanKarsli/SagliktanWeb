@@ -312,36 +312,40 @@ export default function Search() {
 
   return (
     <Box sx={{ py: { xs: 2, md: 4 } }}>
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h2" sx={{ fontWeight: 700, mb: 0.5 }}>
-          Ara
-        </Typography>
-        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-          Gönderilerde, yorumlarda ve kişilerde arama yapın.
-        </Typography>
-      </Box>
-
+      {/* X'in arama sayfası deseni: büyük başlık yerine üstte sabit, tam
+          yuvarlak (pill) bir arama kutusu - kutunun kendisi zaten sayfanın
+          ne işe yaradığını anlatıyor, ayrı bir "Ara" başlığına gerek yok. */}
       <ClickAwayListener onClickAway={() => setSuggestOpen(false)}>
-        <Box sx={{ position: 'relative', mb: activeQuery.trim() ? 2 : 3 }}>
-          <Box component="form" onSubmit={onSubmit}>
-            <TextField
-              fullWidth
-              inputRef={inputRef}
-              placeholder="Ara..."
-              value={q}
-              onChange={e => { setQ(e.target.value); setSuggestOpen(true) }}
-              onFocus={() => setSuggestOpen(true)}
-              onKeyDown={onInputKeyDown}
-              InputProps={{
-                startAdornment: <SearchRounded sx={{ color: 'text.secondary', mr: 1 }} />,
-                endAdornment: q ? (
-                  <IconButton size="small" aria-label="Aramayı temizle" onClick={clearQuery} edge="end">
-                    <CloseRounded fontSize="small" />
-                  </IconButton>
-                ) : null,
-              }}
-            />
-          </Box>
+        <Box sx={{ position: 'sticky', top: 0, zIndex: 5, bgcolor: 'background.default', pt: { xs: 0, md: 1 }, pb: 1 }}>
+          <Box sx={{ position: 'relative', mb: activeQuery.trim() ? 1 : 2 }}>
+            <Box component="form" onSubmit={onSubmit}>
+              <TextField
+                fullWidth
+                inputRef={inputRef}
+                placeholder="Ara..."
+                value={q}
+                onChange={e => { setQ(e.target.value); setSuggestOpen(true) }}
+                onFocus={() => setSuggestOpen(true)}
+                onKeyDown={onInputKeyDown}
+                InputProps={{
+                  startAdornment: <SearchRounded sx={{ color: 'text.secondary', mr: 1 }} />,
+                  endAdornment: q ? (
+                    <IconButton size="small" aria-label="Aramayı temizle" onClick={clearQuery} edge="end">
+                      <CloseRounded fontSize="small" />
+                    </IconButton>
+                  ) : null,
+                }}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 999,
+                    bgcolor: 'background.paper',
+                    '& fieldset': { borderColor: 'transparent' },
+                    '&:hover fieldset': { borderColor: 'divider' },
+                    '&.Mui-focused': { bgcolor: 'background.default' }
+                  }
+                }}
+              />
+            </Box>
 
           <Fade in={suggestOpen && (q.trim().length >= 2 || (q.trim().length === 0 && recentSearches.length > 0))}>
             <Paper
@@ -496,6 +500,7 @@ export default function Search() {
               )}
             </Paper>
           </Fade>
+          </Box>
         </Box>
       </ClickAwayListener>
 
