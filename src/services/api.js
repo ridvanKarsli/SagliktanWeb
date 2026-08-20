@@ -114,8 +114,22 @@ async function request(path, { method = 'GET', token, body, params, signal, _ret
   }
 
   if (!res.ok) {
-    const message = (data && data.message) || friendlyFallbackMessage(res.status);
-    throw new ApiError(message, res.status, data?.fieldErrors);
+    // Faz8-10: backend @Valid hataları (bkz. GlobalExceptionHandler.handleValidation)
+    // gövdede her zaman genel "Girdi doğrulama hatası" mesajını dönüyor, asıl
+    // sebep (ör. ValidName -> "Geçerli bir isim giriniz") ayrı bir fieldErrors
+    // map'inde geliyor. Bu detay ApiError.fieldErrors'a önceden de taşınıyordu
+    // ama hiçbir çağrı noktası onu okumuyordu - her yerde sadece err.message
+    // kullanıldığından kullanıcı "girdi doğrulama hatası" görüp NEDEN
+    // reddedildiğini asla öğrenemiyordu (bkz. admin panelinde rakam içeren bir
+    // isimle kayıt denemesi). Tek merkezi noktada (burada) varsa alan
+    // mesaj(lar)ını asıl mesajın yerine geçiriyoruz ki her mevcut
+    // showError(err.message) çağrısı otomatik olarak anlamlı hale gelsin.
+    const fieldErrors = data?.fieldErrors || null;
+    const specificMessage = fieldErrors && Object.keys(fieldErrors).length
+      ? Object.values(fieldErrors).join(' ')
+      : null;
+    const message = specificMessage || (data && data.message) || friendlyFallbackMessage(res.status);
+    throw new ApiError(message, res.status, fieldErrors);
   }
   return data;
 }
