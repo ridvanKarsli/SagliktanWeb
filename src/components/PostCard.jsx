@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Avatar, Box, Chip, IconButton, Stack, Typography } from '@mui/material'
-import { GroupsRounded, PushPinRounded, SendOutlined } from '@mui/icons-material'
+import { FlagOutlined, GroupsRounded, PushPinRounded, SendOutlined } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import ReactionButtons from './ReactionButtons.jsx'
 import SaveButton from './SaveButton.jsx'
@@ -8,7 +8,10 @@ import HighlightText from './HighlightText.jsx'
 import PostGallery from './PostGallery.jsx'
 import SendPostDialog from './SendPostDialog.jsx'
 import SensitiveContentBanner from './SensitiveContentBanner.jsx'
-import { reactToPost, removePostReaction, savePost, unsavePost } from '../services/api.js'
+import ReportDialog from './comments/ReportDialog.jsx'
+import { useAuth } from '../context/AuthContext.jsx'
+import { useNotification } from '../context/NotificationContext.jsx'
+import { reactToPost, removePostReaction, reportPost, savePost, unsavePost } from '../services/api.js'
 import { initialsFrom } from '../utils/format.js'
 
 function truncate(text = '', max = 180) {
@@ -27,10 +30,14 @@ function truncate(text = '', max = 180) {
  */
 export default function PostCard({ post, onClick, token, highlightQuery, showPinnedBadge = false }) {
   const [sendDialogOpen, setSendDialogOpen] = useState(false)
+  const [reportOpen, setReportOpen] = useState(false)
+  const [reportSubmitting, setReportSubmitting] = useState(false)
   const navigate = useNavigate()
+  const { user: currentUser } = useAuth()
+  const { showError, showSuccess } = useNotification()
   if (!post) return null
   const {
-    id, subGroupId, subGroupName, diseaseGroupName, authorName, title, content, createdAt, updatedAt,
+    id, subGroupId, subGroupName, diseaseGroupName, authorId, authorName, title, content, createdAt, updatedAt,
     helpfulCount, notHelpfulCount, myReaction, saved, savedCount, attachments, flaggedSensitive, pinned
   } = post
 
@@ -38,6 +45,20 @@ export default function PostCard({ post, onClick, token, highlightQuery, showPin
     ? new Date(createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })
     : ''
   const edited = !!(updatedAt && createdAt && updatedAt !== createdAt)
+  const isOwnPost = currentUser && String(currentUser.id) === String(authorId)
+
+  const submitReport = async (reason) => {
+    setReportSubmitting(true)
+    try {
+      await reportPost(token, id, reason)
+      showSuccess('Şikayetiniz alındı, teşekkür ederiz.')
+      setReportOpen(false)
+    } catch (err) {
+      showError(err.message || 'Şikayet gönderilemedi.')
+    } finally {
+      setReportSubmitting(false)
+    }
+  }
 
   return (
     <Box
@@ -160,11 +181,30 @@ export default function PostCard({ post, onClick, token, highlightQuery, showPin
             >
               <SendOutlined fontSize="small" />
             </IconButton>
+            {/* Faz7-10: önceden şikayet sadece PostDetail'de mümkündü - akıştan
+                (Home/Posts/profil) bir gönderiyi görüp anında şikayet etmek
+                için detay sayfasını açmak gerekiyordu. */}
+            {!isOwnPost && (
+              <IconButton
+                size="small"
+                onClick={(e) => { e.stopPropagation(); setReportOpen(true) }}
+                aria-label="Şikayet et"
+                title="Şikayet et"
+              >
+                <FlagOutlined fontSize="small" />
+              </IconButton>
+            )}
           </Stack>
         </Stack>
       )}
 
       <SendPostDialog open={sendDialogOpen} onClose={() => setSendDialogOpen(false)} post={post} />
+      <ReportDialog
+        open={reportOpen}
+        onClose={() => setReportOpen(false)}
+        onSubmit={submitReport}
+        submitting={reportSubmitting}
+      />
     </Box>
   )
 }

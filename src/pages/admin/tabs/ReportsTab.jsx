@@ -12,6 +12,9 @@ import { listAdminReports, resolveAdminReport } from '../../../services/api.js'
 
 const REPORT_STATUS_LABEL = { PENDING: 'Bekliyor', REVIEWED: 'İncelendi', REJECTED: 'Reddedildi' }
 const REPORT_STATUS_COLOR = { PENDING: 'warning', REVIEWED: 'success', REJECTED: 'default' }
+// Faz7-8: USER eklendi - önceden burada sadece POST/Yorum ayrımı vardı,
+// MESSAGE tipi şikayetler de yanlışlıkla "Yorum" etiketiyle gösteriliyordu.
+const TARGET_TYPE_LABEL = { POST: 'Gönderi', COMMENT: 'Yorum', MESSAGE: 'Mesaj', USER: 'Kullanıcı' }
 
 function ReportActions({ r, actingId, act, deleteContent }) {
   if (r.status !== 'PENDING') return null
@@ -23,9 +26,14 @@ function ReportActions({ r, actingId, act, deleteContent }) {
       <Button size="small" color="inherit" disabled={actingId === r.id} onClick={() => act(r.id, 'REJECTED')}>
         Reddet
       </Button>
-      <Button size="small" color="error" disabled={actingId === r.id} onClick={() => deleteContent(r)}>
-        İçeriği Sil
-      </Button>
+      {/* USER şikayetlerinde silinecek tek bir içerik yok - kullanıcının
+          kendisiyle ilgili aksiyon (deaktive/sil) UsersTab.jsx'te bilinçli
+          ayrı bir admin akışı (bkz. AdminServiceImpl.resolveReport). */}
+      {r.targetType !== 'USER' && (
+        <Button size="small" color="error" disabled={actingId === r.id} onClick={() => deleteContent(r)}>
+          İçeriği Sil
+        </Button>
+      )}
     </Stack>
   )
 }
@@ -42,7 +50,7 @@ function ReportCard({ r, actingId, act, deleteContent }) {
       }}
     >
       <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1} sx={{ mb: 1 }}>
-        <Chip size="small" label={r.targetType === 'POST' ? 'Gönderi' : 'Yorum'} />
+        <Chip size="small" label={TARGET_TYPE_LABEL[r.targetType] || r.targetType} />
         <Chip size="small" label={REPORT_STATUS_LABEL[r.status] || r.status} color={REPORT_STATUS_COLOR[r.status] || 'default'} />
       </Stack>
       <Typography variant="body2" sx={{ mb: 1, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>{r.targetPreview}</Typography>
@@ -64,7 +72,13 @@ function ReportCard({ r, actingId, act, deleteContent }) {
 
 export default function ReportsTab({ token }) {
   const theme = useTheme()
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
+  // Kart görünümüne geçiş eşiği, aşağıdaki tablonun minWidth:900 değeriyle
+  // eşleşiyor - önceden down('sm') (<600px) kullanılıyordu ama tablo 900px'in
+  // altında hep yatay kaydırma gerektiriyordu, yani 600-900px arası (tablet,
+  // yarım genişlik masaüstü) kullanıcılar ne düzgün tablo ne de kart
+  // görünümü alıyordu. down('md') (<900px) ile eşik tablonun kendi genişlik
+  // ihtiyacına uyuyor.
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
   const [status, setStatus] = useState('PENDING')
   const [reports, setReports] = useState([])
   const [loading, setLoading] = useState(true)
@@ -152,7 +166,7 @@ export default function ReportsTab({ token }) {
               )}
               {reports.map(r => (
                 <TableRow key={r.id}>
-                  <TableCell>{r.targetType === 'POST' ? 'Gönderi' : 'Yorum'}</TableCell>
+                  <TableCell>{TARGET_TYPE_LABEL[r.targetType] || r.targetType}</TableCell>
                   <TableCell sx={{ maxWidth: 240, whiteSpace: 'normal', wordBreak: 'break-word' }}>{r.targetPreview}</TableCell>
                   <TableCell>{r.targetOwnerName || '—'}</TableCell>
                   <TableCell>{r.reporterName}</TableCell>

@@ -363,8 +363,8 @@ export default function Chat() {
                       aria-label="Mesajı şikayet et"
                       className="report-message-btn"
                       sx={{
-                        position: 'absolute', top: -10, right: -10,
-                        width: { xs: 30, sm: 24 }, height: { xs: 30, sm: 24 },
+                        position: 'absolute', top: { xs: -16, sm: -10 }, right: { xs: -16, sm: -10 },
+                        width: { xs: 44, sm: 24 }, height: { xs: 44, sm: 24 },
                         bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider',
                         // Hover, dokunmatik cihazlarda tetiklenmiyor - "hover'da
                         // görün" davranışı masaüstünde temiz dursun diye
@@ -417,8 +417,8 @@ export default function Chat() {
               size="small" onClick={removeAttachment}
               aria-label="Eki kaldır"
               sx={{
-                position: 'absolute', top: 2, right: 2,
-                width: { xs: 26, sm: 18 }, height: { xs: 26, sm: 18 },
+                position: 'absolute', top: { xs: -6, sm: 2 }, right: { xs: -6, sm: 2 },
+                width: { xs: 44, sm: 18 }, height: { xs: 44, sm: 18 },
                 fontSize: { xs: '1.05rem', sm: '0.875rem' },
                 bgcolor: 'rgba(0,0,0,0.55)', color: '#fff', '&:hover': { bgcolor: 'rgba(0,0,0,0.75)' }
               }}

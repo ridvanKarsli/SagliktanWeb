@@ -1,13 +1,23 @@
 import { useEffect, useState } from 'react'
-import { Avatar, Box, Button, CircularProgress, Divider, Stack, Typography } from '@mui/material'
-import { ArrowBack, DynamicFeedRounded, MailOutlineRounded } from '@mui/icons-material'
+import {
+  Avatar, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogContentText,
+  DialogTitle, Divider, IconButton, ListItemText, Menu, MenuItem, Stack, TextField, Typography
+} from '@mui/material'
+import {
+  ArrowBack, BlockRounded, DynamicFeedRounded, FlagOutlined, LockOpenRounded, MailOutlineRounded,
+  MoreVertRounded
+} from '@mui/icons-material'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
+import { useConfirm } from '../../context/ConfirmContext.jsx'
 import PostCard from '../../components/PostCard.jsx'
 import VerifiedBadge from '../../components/VerifiedBadge.jsx'
 import EmptyState from '../../components/EmptyState.jsx'
-import { getUserPublicProfile, getUserPosts, sendMessageRequest } from '../../services/api.js'
+import {
+  getUserPublicProfile, getUserPosts, sendMessageRequest,
+  blockUser, unblockUser, listBlockedUsers, reportUser
+} from '../../services/api.js'
 import { initialsFrom } from '../../utils/format.js'
 
 // Başka bir kullanıcının herkese açık profili - arama sonuçlarında ya da bir
@@ -19,10 +29,21 @@ export default function UserProfile() {
   const navigate = useNavigate()
   const { token, user: currentUser } = useAuth()
   const { showError, showSuccess } = useNotification()
+  const confirm = useConfirm()
 
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+
+  /* ---- Engelle / Şikayet et - Chat.jsx'teki handleBlock ile aynı desen.
+     Önceden bu aksiyonlara sadece bir sohbet içindeyken ulaşılabiliyordu -
+     rahatsız edici bir profille daha ilk temasta (mesaj göndermeden önce)
+     karşılaşan biri engelleyip şikayet edebilmek için önce mesaj isteği
+     göndermek zorunda kalıyordu (bkz. Faz7-8 UX bulgusu). ---- */
+  const [menuAnchor, setMenuAnchor] = useState(null)
+  const [isBlocked, setIsBlocked] = useState(false)
+  const [reportOpen, setReportOpen] = useState(false)
+  const [reportReason, setReportReason] = useState('')
 
   const [posts, setPosts] = useState([])
   const [postsLoading, setPostsLoading] = useState(true)
@@ -56,6 +77,13 @@ export default function UserProfile() {
 
   useEffect(() => {
     if (!token || !userId) return
+    listBlockedUsers(token)
+      .then(list => setIsBlocked((Array.isArray(list) ? list : []).some(b => String(b.userId) === String(userId))))
+      .catch(() => {})
+  }, [token, userId])
+
+  useEffect(() => {
+    if (!token || !userId) return
     let mounted = true
     setPostsLoading(true)
     setPostsPage(0)
@@ -83,6 +111,46 @@ export default function UserProfile() {
       showError(err.message || 'Gönderiler alınamadı.')
     } finally {
       setPostsLoadingMore(false)
+    }
+  }
+
+  const handleBlock = async () => {
+    setMenuAnchor(null)
+    const name = [profile?.firstName, profile?.lastName].filter(Boolean).join(' ') || 'Bu kullanıcıyı'
+    const ok = await confirm(
+      `${name} kullanıcısını engellemek istiyor musun? Birbirinize mesaj gönderemezsiniz.`,
+      { title: 'Kullanıcıyı engelle' }
+    )
+    if (!ok) return
+    try {
+      await blockUser(token, userId)
+      setIsBlocked(true)
+      showSuccess('Kullanıcı engellendi.')
+    } catch (err) {
+      showError(err.message || 'Kullanıcı engellenemedi.')
+    }
+  }
+
+  const handleUnblock = async () => {
+    setMenuAnchor(null)
+    try {
+      await unblockUser(token, userId)
+      setIsBlocked(false)
+      showSuccess('Engel kaldırıldı.')
+    } catch (err) {
+      showError(err.message || 'Engel kaldırılamadı.')
+    }
+  }
+
+  const submitReport = async () => {
+    try {
+      await reportUser(token, userId, reportReason.trim() || null)
+      showSuccess('Şikayetiniz alındı, teşekkür ederiz.')
+    } catch (err) {
+      showError(err.message || 'Şikayet gönderilemedi.')
+    } finally {
+      setReportOpen(false)
+      setReportReason('')
     }
   }
 
@@ -131,9 +199,31 @@ export default function UserProfile() {
 
   return (
     <Box sx={{ width: '100%', maxWidth: 680, mx: 'auto', py: { xs: 2, md: 4 } }}>
-      <Button startIcon={<ArrowBack />} onClick={() => navigate(-1)} sx={{ mb: 2, color: 'text.secondary' }}>
-        Geri
-      </Button>
+      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+        <Button startIcon={<ArrowBack />} onClick={() => navigate(-1)} sx={{ color: 'text.secondary' }}>
+          Geri
+        </Button>
+        <IconButton onClick={(e) => setMenuAnchor(e.currentTarget)} aria-label="Seçenekler">
+          <MoreVertRounded />
+        </IconButton>
+        <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={() => setMenuAnchor(null)}>
+          {isBlocked ? (
+            <MenuItem onClick={handleUnblock}>
+              <LockOpenRounded fontSize="small" sx={{ mr: 1.5 }} />
+              <ListItemText primary="Engeli Kaldır" />
+            </MenuItem>
+          ) : (
+            <MenuItem onClick={handleBlock} sx={{ color: 'error.main' }}>
+              <BlockRounded fontSize="small" sx={{ mr: 1.5 }} />
+              <ListItemText primary="Kullanıcıyı Engelle" />
+            </MenuItem>
+          )}
+          <MenuItem onClick={() => { setMenuAnchor(null); setReportOpen(true) }}>
+            <FlagOutlined fontSize="small" sx={{ mr: 1.5 }} />
+            <ListItemText primary="Şikayet Et" />
+          </MenuItem>
+        </Menu>
+      </Stack>
 
       <Box sx={{ mb: 4, px: { xs: 0.5, md: 0 } }}>
         <Stack direction="row" spacing={{ xs: 2, md: 3 }} alignItems="flex-start">
@@ -208,7 +298,7 @@ export default function UserProfile() {
           </Box>
         </Stack>
         {profile.bio && (
-          <Typography variant="body2" sx={{ color: 'text.primary', mt: 1.5 }}>
+          <Typography variant="body2" sx={{ color: 'text.primary', mt: 1.5, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
             {profile.bio}
           </Typography>
         )}
@@ -247,6 +337,26 @@ export default function UserProfile() {
           )}
         </>
       )}
+
+      {/* Kullanıcı şikayet dialogu - Chat.jsx'teki mesaj şikayet dialoguyla aynı desen. */}
+      <Dialog open={reportOpen} onClose={() => setReportOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Kullanıcıyı Şikayet Et</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mb: 1.5 }}>
+            {fullName} kullanıcısını neden şikayet ediyorsun? (isteğe bağlı)
+          </DialogContentText>
+          <TextField
+            value={reportReason}
+            onChange={(e) => setReportReason(e.target.value)}
+            placeholder="Açıklama..."
+            fullWidth multiline minRows={2} size="small"
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setReportOpen(false)}>Vazgeç</Button>
+          <Button variant="contained" color="error" onClick={submitReport}>Şikayet Et</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   )
 }

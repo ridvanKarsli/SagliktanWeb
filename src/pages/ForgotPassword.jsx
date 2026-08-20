@@ -79,7 +79,7 @@ export default function ForgotPassword() {
               alt="Sağlıktan"
               sx={{ width: 80, height: 80, borderRadius: '20px', mb: 4 }}
             />
-            <Typography variant="h2" sx={{ color: 'primary.main', mb: 2, fontWeight: 700 }}>
+            <Typography variant="h2" component="p" sx={{ color: 'primary.main', mb: 2, fontWeight: 700 }}>
               Şifreni Sıfırla
             </Typography>
             <Typography variant="body1" sx={{ color: 'text.secondary', lineHeight: 1.8 }}>
@@ -111,7 +111,7 @@ export default function ForgotPassword() {
             {step === 'done' ? (
               <Box sx={{ textAlign: 'center' }}>
                 <CheckCircleOutline sx={{ fontSize: 56, color: 'primary.main', mb: 2 }} />
-                <Typography variant="h2" sx={{ color: 'primary.main', mb: 1 }}>
+                <Typography variant="h2" component="h1" sx={{ color: 'primary.main', mb: 1 }}>
                   Şifren Sıfırlandı
                 </Typography>
                 <Typography variant="body1" sx={{ color: 'text.secondary', mb: 4 }}>
@@ -124,7 +124,7 @@ export default function ForgotPassword() {
             ) : step === 'request' ? (
               <>
                 <Box sx={{ mb: 4, textAlign: { xs: 'center', md: 'left' } }}>
-                  <Typography variant="h2" sx={{ color: 'primary.main', mb: 1 }}>
+                  <Typography variant="h2" component="h1" sx={{ color: 'primary.main', mb: 1 }}>
                     Şifremi Unuttum
                   </Typography>
                   <Typography variant="body1" sx={{ color: 'text.secondary' }}>
@@ -168,7 +168,7 @@ export default function ForgotPassword() {
             ) : (
               <>
                 <Box sx={{ mb: 4, textAlign: { xs: 'center', md: 'left' } }}>
-                  <Typography variant="h2" sx={{ color: 'primary.main', mb: 1 }}>
+                  <Typography variant="h2" component="h1" sx={{ color: 'primary.main', mb: 1 }}>
                     Kodu Gir
                   </Typography>
                   <Typography variant="body1" sx={{ color: 'text.secondary' }}>

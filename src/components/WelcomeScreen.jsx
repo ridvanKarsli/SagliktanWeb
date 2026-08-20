@@ -131,7 +131,7 @@ export default function WelcomeScreen() {
       >
         <Container maxWidth="lg">
           <Grid container spacing={4} alignItems="center">
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Box sx={{ textAlign: { xs: 'center', md: 'left' } }}>
                 <Typography
                   variant="h1"
@@ -209,7 +209,7 @@ export default function WelcomeScreen() {
                 </Stack>
               </Box>
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Box
                 sx={{
                   display: 'flex',
@@ -301,7 +301,7 @@ export default function WelcomeScreen() {
 
           <Grid container spacing={3}>
             {features.map((feature, index) => (
-              <Grid item xs={12} sm={6} md={3} key={index}>
+              <Grid size={{ xs: 12, sm: 6, md: 3 }} key={index}>
                 <Box
                   sx={{
                     p: 3,
@@ -330,7 +330,7 @@ export default function WelcomeScreen() {
                   >
                     <feature.icon sx={{ color: 'secondary.main', fontSize: 28 }} />
                   </Box>
-                  <Typography variant="h6" sx={{ mb: 1, color: 'primary.main' }}>
+                  <Typography variant="h3" sx={{ mb: 1, color: 'primary.main', fontSize: '1.125rem', fontWeight: 700 }}>
                     {feature.title}
                   </Typography>
                   <Typography variant="body2" sx={{ color: 'text.secondary', lineHeight: 1.7 }}>
@@ -357,7 +357,7 @@ export default function WelcomeScreen() {
 
           <Grid container spacing={4} justifyContent="center">
             {steps.map((step, index) => (
-              <Grid item xs={12} sm={4} key={index}>
+              <Grid size={{ xs: 12, sm: 4 }} key={index}>
                 <Box sx={{ textAlign: 'center' }}>
                   {/* axe-core (bkz. e2e/accessibility.spec.js) bu rakamları
                       color-contrast ihlali olarak işaretledi. Önceki düzeltme
@@ -386,7 +386,7 @@ export default function WelcomeScreen() {
                   >
                     {step.number}
                   </Typography>
-                  <Typography variant="h5" sx={{ color: 'primary.main', mb: 1 }}>
+                  <Typography variant="h3" sx={{ color: 'primary.main', mb: 1, fontSize: '1.25rem', fontWeight: 700 }}>
                     {step.title}
                   </Typography>
                   <Typography variant="body2" sx={{ color: 'text.secondary' }}>

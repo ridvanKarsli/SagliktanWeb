@@ -72,6 +72,7 @@ export default function Login() {
             />
             <Typography
               variant="h2"
+              component="p"
               sx={{ color: 'primary.main', mb: 2, fontWeight: 700 }}
             >
               Tekrar Hoş Geldiniz
@@ -132,7 +133,7 @@ export default function Login() {
 
             {/* Header */}
             <Box sx={{ mb: 4, textAlign: { xs: 'center', md: 'left' } }}>
-              <Typography variant="h2" sx={{ color: 'primary.main', mb: 1 }}>
+              <Typography variant="h2" component="h1" sx={{ color: 'primary.main', mb: 1 }}>
                 Giriş Yap
               </Typography>
               <Typography variant="body1" sx={{ color: 'text.secondary' }}>

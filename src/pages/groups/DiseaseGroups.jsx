@@ -6,6 +6,7 @@ import { GroupsRounded, PeopleAltRounded, SearchOffRounded, SearchRounded } from
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
+import { useConfirm } from '../../context/ConfirmContext.jsx'
 import {
   listDiseaseGroups, getMyDiseaseGroups, joinDiseaseGroup, leaveDiseaseGroup
 } from '../../services/api.js'
@@ -18,6 +19,7 @@ import EmptyState from '../../components/EmptyState.jsx'
 export default function DiseaseGroups() {
   const { token } = useAuth()
   const { showError, showSuccess } = useNotification()
+  const confirm = useConfirm()
   const navigate = useNavigate()
 
   const [groups, setGroups] = useState([])
@@ -94,9 +96,14 @@ export default function DiseaseGroups() {
     }
   }
 
-  const handleLeave = async (e, groupId) => {
+  const handleLeave = async (e, groupId, groupName) => {
     e.stopPropagation()
     if (!token) return
+    const ok = await confirm(
+      `"${groupName}" grubundan ayrılmak istiyor musun? Bu gruba özel gönderi/yorum akışını tekrar görebilmek için yeniden katılman gerekir.`,
+      { title: 'Gruptan ayrıl' }
+    )
+    if (!ok) return
     setPendingId(groupId)
     try {
       await leaveDiseaseGroup(token, groupId)
@@ -251,7 +258,7 @@ export default function DiseaseGroups() {
                     variant={joined ? 'text' : 'contained'}
                     size="small"
                     disabled={pending}
-                    onClick={(e) => (joined ? handleLeave(e, group.id) : handleJoin(e, group.id))}
+                    onClick={(e) => (joined ? handleLeave(e, group.id, group.name) : handleJoin(e, group.id))}
                     sx={{
                       flexShrink: 0, borderRadius: 5, minHeight: 40, minWidth: 72,
                       px: 1.75, alignSelf: 'center',

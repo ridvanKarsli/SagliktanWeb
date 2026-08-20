@@ -221,7 +221,7 @@ export default function Profile() {
           </Box>
         </Stack>
         {user.bio && (
-          <Typography variant="body2" sx={{ color: 'text.primary', mt: 1.5 }}>
+          <Typography variant="body2" sx={{ color: 'text.primary', mt: 1.5, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
             {user.bio}
           </Typography>
         )}

@@ -41,6 +41,22 @@ function authHeaders(token) {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+// Faz7-9: backend HER ZAMAN bir `message` gövdesi dönmüyor (ör. bir proxy/LB
+// hatası, beklenmeyen bir 500, ya da CORS/network katmanında oluşan bir yanıt)
+// - bu durumda önceden ham "İstek başarısız (HTTP 500)" gibi bir geliştirici
+// mesajı doğrudan showError(...) ile kullanıcıya gösteriliyordu (bkz.
+// api.js hata yutma konvansiyonu - kullanıcı tetikli aksiyonlarda mesaj HER
+// ZAMAN görünür olmalı, ama görünen mesaj anlaşılır olmalı). Durum koduna
+// göre en azından kaba bir kategori veren, teknik jargon içermeyen bir
+// yedek metin kullanılıyor.
+function friendlyFallbackMessage(status) {
+  if (status === 401 || status === 403) return 'Bu işlem için yetkin yok. Sayfayı yenileyip tekrar giriş yapmayı dene.';
+  if (status === 404) return 'Aradığın şey bulunamadı.';
+  if (status === 429) return 'Çok fazla istek gönderildi. Lütfen biraz bekleyip tekrar dene.';
+  if (status >= 500) return 'Sunucuda bir sorun oluştu. Lütfen biraz sonra tekrar dene.';
+  return 'İşlem tamamlanamadı. Lütfen tekrar dene.';
+}
+
 // Backend'in ErrorResponse zarfı: { status, error, message, timestamp, fieldErrors }
 async function request(path, { method = 'GET', token, body, params, signal, _retried = false } = {}) {
   let url = `${API_BASE}${path}`;
@@ -84,7 +100,7 @@ async function request(path, { method = 'GET', token, body, params, signal, _ret
   }
 
   if (!res.ok) {
-    const message = (data && data.message) || `İstek başarısız (HTTP ${res.status})`;
+    const message = (data && data.message) || friendlyFallbackMessage(res.status);
     throw new ApiError(message, res.status, data?.fieldErrors);
   }
   return data;
@@ -319,6 +335,11 @@ export function reportPost(token, postId, reason) {
 
 export function reportComment(token, commentId, reason) {
   return request(`/comments/${commentId}/report`, { method: 'POST', token, body: { reason: reason || null } });
+}
+
+// Faz7-8: profilden doğrudan kullanıcı şikayeti (sohbete girmeden de erişilebilir).
+export function reportUser(token, userId, reason) {
+  return request(`/users/${userId}/report`, { method: 'POST', token, body: { reason: reason || null } });
 }
 
 // --- Reaksiyonlar (beğeni yerine: Faydalı / Faydalı Değil) ---

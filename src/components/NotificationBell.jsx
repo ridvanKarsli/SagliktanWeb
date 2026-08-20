@@ -39,7 +39,7 @@ export default function NotificationBell() {
       <IconButton
         onClick={handleOpen}
         aria-label="Bildirimler"
-        size="small"
+        size="medium"
         data-ws-connected={wsConnected ? 'true' : 'false'}
       >
         <Badge badgeContent={unreadCount} color="error" max={99}>

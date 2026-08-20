@@ -475,8 +475,10 @@ export default function AccountSettings() {
                     <Alert severity="warning" sx={{ mb: 0 }}>
                       <Stack spacing={1.5}>
                         <Typography variant="body2">
-                          Hesabını deaktive edersen oturumun kapatılır ve tekrar giriş yapamazsın.
-                          Bu işlem geri alınamaz.
+                          Hesabını deaktive edersen oturumun hemen kapatılır ve tekrar giriş
+                          yapamazsın. Verilerin silinmez - hesabını yeniden aktifleştirmek
+                          istersen destek ekibimizle iletişime geçmen yeterli (şu an kendi
+                          kendine yeniden aktifleştirme seçeneği yok).
                         </Typography>
                         <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                           <Button

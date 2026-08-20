@@ -17,7 +17,7 @@ export default function StaticPageShell({ title, subtitle, children, maxWidth = 
       </Box>
 
       <Container maxWidth={maxWidth} sx={{ pb: 8 }}>
-        <Typography variant="h2" sx={{ color: 'primary.main', mb: 1 }}>
+        <Typography variant="h2" component="h1" sx={{ color: 'primary.main', mb: 1 }}>
           {title}
         </Typography>
         {subtitle && (

@@ -6,7 +6,7 @@ import { Box, Divider, Typography } from '@mui/material'
 export default function StaticPageSections({ sections }) {
   return sections.map((section, i) => (
     <Box key={section.title} sx={{ mb: 4 }}>
-      <Typography variant="h5" sx={{ fontWeight: 700, mb: 1.5, color: 'text.primary' }}>
+      <Typography variant="h5" component="h2" sx={{ fontWeight: 700, mb: 1.5, color: 'text.primary' }}>
         {section.title}
       </Typography>
       <Typography

@@ -151,7 +151,7 @@ export default function UsersTab({ token }) {
               {users.map(u => (
                 <TableRow key={u.id}>
                   <TableCell>{u.firstName} {u.lastName}</TableCell>
-                  <TableCell>{u.email}</TableCell>
+                  <TableCell sx={{ maxWidth: 220, whiteSpace: 'normal', wordBreak: 'break-word' }}>{u.email}</TableCell>
                   <TableCell><Chip size="small" label={u.role} color={u.role === 'ADMIN' ? 'primary' : 'default'} /></TableCell>
                   <TableCell>{u.emailVerified ? 'Evet' : 'Hayır'}</TableCell>
                   <TableCell>
