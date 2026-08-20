@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   Alert, Box, Button, Chip, CircularProgress, Collapse, Divider, FormControlLabel,
-  IconButton, Stack, Switch, TextField, ToggleButton, ToggleButtonGroup, Typography
+  IconButton, Stack, Switch, ToggleButton, ToggleButtonGroup, Typography
 } from '@mui/material'
 import {
   ArrowBackRounded, BlockRounded, DarkModeRounded, DeleteForeverRounded, DescriptionOutlined,
@@ -12,7 +12,9 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useAccessibility } from '../../context/AccessibilityContext.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
+import { useConfirm } from '../../context/ConfirmContext.jsx'
 import PasswordStrengthMeter from '../../components/PasswordStrengthMeter.jsx'
+import PasswordField from '../../components/PasswordField.jsx'
 import {
   changePassword, deactivateAccount, deleteAccount, exportMyData,
   listBlockedUsers, listSessions, revokeSession, unblockUser
@@ -33,6 +35,7 @@ import { prettyDate } from '../../utils/format.js'
 export default function AccountSettings() {
   const { token, logout } = useAuth()
   const { showError, showSuccess } = useNotification()
+  const confirm = useConfirm()
   const navigate = useNavigate()
   const {
     fontScale, highContrast, themeMode, fontScaleOptions, setFontScale, setHighContrast, setThemeMode
@@ -174,6 +177,11 @@ export default function AccountSettings() {
   }, [sessionsOpen, sessionsLoaded, token, showError])
 
   const handleRevokeSession = async (sessionRowId) => {
+    // Faz8-8: diğer cihazlardaki oturumu sonlandırmak geri alınamaz bir
+    // aksiyon (o cihazda anında oturum düşer) - hesap silme/deaktive gibi
+    // hassas aksiyonlarla aynı useConfirm() konvansiyonuna alındı.
+    const ok = await confirm('Bu cihazdaki oturumu sonlandırmak istiyor musun?', { title: 'Oturumu sonlandır' })
+    if (!ok) return
     setRevokingSessionId(sessionRowId)
     try {
       await revokeSession(token, sessionRowId)
@@ -288,13 +296,13 @@ export default function AccountSettings() {
                 <Collapse in={pwOpen} unmountOnExit>
                   <Box component="form" onSubmit={savePassword} sx={{ p: 2.5, pt: 0.5 }}>
                     <Stack spacing={2}>
-                      <TextField
-                        label="Mevcut Şifre" type="password" value={currentPassword}
+                      <PasswordField
+                        label="Mevcut Şifre" value={currentPassword}
                         onChange={e => setCurrentPassword(e.target.value)} fullWidth required size="small"
                       />
                       <Box>
-                        <TextField
-                          label="Yeni Şifre" type="password" value={newPassword}
+                        <PasswordField
+                          label="Yeni Şifre" value={newPassword}
                           onChange={e => setNewPassword(e.target.value)} fullWidth required size="small"
                           helperText="En az 8 karakter"
                         />
@@ -515,8 +523,8 @@ export default function AccountSettings() {
                           Gönderi/yorumların, topluluk tartışmaları bozulmasın diye kaldırılmadan
                           kalır ama artık sana ait görünmez.
                         </Typography>
-                        <TextField
-                          label="Şifreni gir" type="password" value={deleteAccountPassword}
+                        <PasswordField
+                          label="Şifreni gir" value={deleteAccountPassword}
                           onChange={e => setDeleteAccountPassword(e.target.value)}
                           fullWidth required size="small"
                           slotProps={{ htmlInput: { 'data-testid': 'delete-account-password' } }}

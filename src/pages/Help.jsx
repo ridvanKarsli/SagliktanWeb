@@ -40,7 +40,7 @@ export default function Help() {
         {faqs.map((item) => (
           <Accordion key={item.q} disableGutters sx={{ '&:before': { display: 'none' } }}>
             <AccordionSummary expandIcon={<ExpandMore />}>
-              <Typography sx={{ fontWeight: 600 }}>{item.q}</Typography>
+              <Typography sx={{ fontWeight: 600, fontSize: '0.95rem' }}>{item.q}</Typography>
             </AccordionSummary>
             <AccordionDetails>
               <Typography variant="body2" sx={{ color: 'text.secondary', lineHeight: 1.8 }}>

@@ -104,7 +104,7 @@ function PersonResultCard({ person, onClick, query }) {
 
 const emptyTabState = {
   results: [], page: 0, totalPages: 1, totalElements: 0, last: true,
-  loading: false, searched: false, loadedKey: null
+  loading: false, loadingMore: false, searched: false, loadedKey: null
 }
 
 export default function Search() {
@@ -162,26 +162,32 @@ export default function Search() {
   const activeState = states[activeTab.key]
 
   // Ana sekmeli sonuçlar: sadece görüntülenen sekme için, gerektiğinde tembel yüklenir.
+  // Faz8-8: numaralı sayfalama (Önceki/Sonraki) yerine sitenin geri kalanıyla
+  // tutarlı "Daha Fazla Yükle" deseni - page 0 baştan yükler (sonuçları
+  // değiştirir), page > 0 ("Daha Fazla Yükle" tıklaması) sonuçların sonuna ekler.
   useEffect(() => {
     if (!token || !activeQuery.trim()) return
     const key = activeTab.key
     const requestKey = `${activeQuery.trim()}:${activeState.page}`
     if (activeState.loadedKey === requestKey) return
 
+    const isLoadMore = activeState.page > 0
     let mounted = true
-    setStates(prev => ({ ...prev, [key]: { ...prev[key], loading: true } }))
+    setStates(prev => ({ ...prev, [key]: { ...prev[key], loading: !isLoadMore, loadingMore: isLoadMore } }))
     activeTab.fetcher(token, activeQuery.trim(), { page: activeState.page })
       .then(res => {
         if (!mounted) return
+        const newResults = Array.isArray(res?.content) ? res.content : []
         setStates(prev => ({
           ...prev,
           [key]: {
-            results: Array.isArray(res?.content) ? res.content : [],
+            results: isLoadMore ? [...prev[key].results, ...newResults] : newResults,
             page: activeState.page,
             totalPages: res?.totalPages ?? 1,
             totalElements: res?.totalElements ?? 0,
             last: res?.last ?? true,
             loading: false,
+            loadingMore: false,
             searched: true,
             loadedKey: requestKey,
           }
@@ -190,7 +196,7 @@ export default function Search() {
       .catch(err => {
         if (!mounted) return
         showError(err.message || 'Arama başarısız.')
-        setStates(prev => ({ ...prev, [key]: { ...prev[key], loading: false } }))
+        setStates(prev => ({ ...prev, [key]: { ...prev[key], loading: false, loadingMore: false } }))
       })
     return () => { mounted = false }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -363,10 +369,19 @@ export default function Search() {
                     <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700 }}>
                       SON ARAMALAR
                     </Typography>
+                    {/* Faz8-6: bir aksiyon tetikleyen tıklanabilir Typography
+                        yerine gerçek <button> - component="button" native
+                        buton semantiğini (klavye/screen reader erişimi)
+                        korurken görsel olarak caption metni gibi kalıyor. */}
                     <Typography
+                      component="button"
+                      type="button"
                       variant="caption"
                       onClick={onClearRecentSearches}
-                      sx={{ color: 'text.secondary', cursor: 'pointer', '&:hover': { color: 'primary.main' } }}
+                      sx={{
+                        color: 'text.secondary', cursor: 'pointer', '&:hover': { color: 'primary.main' },
+                        bgcolor: 'transparent', border: 0, font: 'inherit', p: 1, m: -1
+                      }}
                     >
                       Tümünü temizle
                     </Typography>
@@ -562,26 +577,15 @@ export default function Search() {
                 <PersonResultCard key={p.id} person={p} onClick={() => goToProfile(p.id)} query={activeQuery} />
               ))}
 
-              {activeState.totalPages > 1 && (
-                <Stack direction="row" spacing={2} justifyContent="center" alignItems="center" sx={{ py: 3 }}>
+              {!activeState.last && (
+                <Stack alignItems="center" sx={{ py: 3 }}>
                   <Button
                     variant="outlined"
-                    size="small"
-                    disabled={activeState.page <= 0}
-                    onClick={() => setPageForActiveTab(p => Math.max(0, p - 1))}
-                  >
-                    Önceki
-                  </Button>
-                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                    Sayfa {activeState.page + 1} / {activeState.totalPages}
-                  </Typography>
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    disabled={activeState.last}
+                    disabled={activeState.loadingMore}
                     onClick={() => setPageForActiveTab(p => p + 1)}
+                    sx={{ minWidth: 168, minHeight: 44 }}
                   >
-                    Sonraki
+                    {activeState.loadingMore ? <CircularProgress size={18} color="inherit" /> : 'Daha Fazla Yükle'}
                   </Button>
                 </Stack>
               )}

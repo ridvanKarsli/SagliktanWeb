@@ -1,5 +1,5 @@
-import { Box, Button, Typography, Container, Grid, Stack, Tooltip, useMediaQuery, useTheme } from "@mui/material"
-import { useNavigate } from "react-router-dom"
+import { Box, Button, Typography, Container, Grid, Link, Stack, Tooltip, useMediaQuery, useTheme } from "@mui/material"
+import { Link as RouterLink, useNavigate } from "react-router-dom"
 import {
   Forum,
   Groups2Rounded,
@@ -47,7 +47,7 @@ export default function WelcomeScreen() {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
 
   return (
-    <Box sx={{ bgcolor: "background.default", minHeight: "100vh" }}>
+    <Box sx={{ bgcolor: "background.default", minHeight: "100dvh" }}>
       {/* Header */}
       <Box
         component="header"
@@ -110,6 +110,12 @@ export default function WelcomeScreen() {
                 variant="contained"
                 onClick={() => navigate("/register")}
                 size={isMobile ? "small" : "medium"}
+                // Faz8-2: theme.js'in MuiButton.sizeSmall override'ı (kompakt
+                // admin tablo aksiyonları için minHeight:38 veriyor) bu
+                // sekmeyi hiç görmemiş kullanıcının karşılaştığı EN görünür
+                // dönüşüm CTA'sını da küçültüyordu - 44px dokunma hedefi
+                // altına düşmesin diye burada özel olarak override ediliyor.
+                sx={isMobile ? { minHeight: 44 } : undefined}
               >
                 Başla
               </Button>
@@ -476,18 +482,24 @@ export default function WelcomeScreen() {
                 { label: 'Gizlilik Politikası', path: '/gizlilik-politikasi' },
                 { label: 'Yardım', path: '/yardim' }
               ].map((link) => (
-                <Typography
+                // Faz8-6: önceden tıklanabilir Typography'ydi - klavye/screen
+                // reader ile erişilemiyordu ve WelcomeScreen'den Gizlilik/
+                // Kullanım Şartları/Yardım'a giden TEK yol buydu. Gerçek
+                // Link'e çevrildi.
+                <Link
                   key={link.path}
+                  component={RouterLink}
+                  to={link.path}
                   variant="body2"
-                  onClick={() => navigate(link.path)}
+                  underline="none"
                   sx={{
                     color: 'text.secondary',
-                    cursor: 'pointer',
+                    display: 'inline-block', py: 1, my: -1,
                     '&:hover': { color: 'primary.main' }
                   }}
                 >
                   {link.label}
-                </Typography>
+                </Link>
               ))}
             </Stack>
           </Box>

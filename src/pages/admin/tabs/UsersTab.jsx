@@ -6,6 +6,7 @@ import {
 } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
 import { useNotification } from '../../../context/NotificationContext.jsx'
+import { useConfirm } from '../../../context/ConfirmContext.jsx'
 import { listAdminUsers, updateAdminUser } from '../../../services/api.js'
 
 // AdminPanel.jsx'ten ayrı bir dosyaya taşındı (bkz. clean-code audit).
@@ -18,9 +19,29 @@ function EditUserDialog({ user, onClose, onSaved, token }) {
   const [active, setActive] = useState(!!user.active)
   const [saving, setSaving] = useState(false)
   const { showError, showSuccess } = useNotification()
+  const confirm = useConfirm()
 
   const save = async () => {
     if (!firstName.trim() || !lastName.trim()) { showError('Ad ve soyad zorunludur.'); return }
+    // Faz8-5: rol/aktiflik burada tek dokunuşla değişip kaydediliyordu -
+    // uygulamanın her yerinde yıkıcı/hassas aksiyonlar useConfirm() ile
+    // onaylatılırken, dokunmatik ekranda kolayca yanlışlıkla tıklanabilecek
+    // bir Switch/Select ile yetki yükseltme ya da hesap pasifleştirme
+    // istisnaydı. Sadece GERÇEKTEN değişen hassas alanlar için soruyoruz -
+    // ad/soyad/bio düzenlemesi her seferinde onay istemeyi gereksiz
+    // yorucu hale getirmesin diye.
+    const roleChanged = role !== (user.role || 'USER')
+    const activeChanged = active !== !!user.active
+    if (roleChanged || activeChanged) {
+      const parts = []
+      if (roleChanged) parts.push(role === 'ADMIN' ? 'rolünü ADMIN yapmak' : 'admin yetkisini kaldırmak')
+      if (activeChanged) parts.push(active ? 'hesabını yeniden aktifleştirmek' : 'hesabını pasifleştirmek')
+      const ok = await confirm(
+        `${user.email} kullanıcısının ${parts.join(' ve ')} istiyor musun?`,
+        { title: 'Hassas değişikliği onayla' }
+      )
+      if (!ok) return
+    }
     setSaving(true)
     try {
       const updated = await updateAdminUser(token, user.id, {
@@ -95,7 +116,11 @@ function UserCard({ u, onEdit }) {
 
 export default function UsersTab({ token }) {
   const theme = useTheme()
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
+  // Faz8-5: ReportsTab.jsx'teki aynı fix - eşik tablonun minWidth'iyle
+  // eşleşsin diye down('md') (900px) kullanılıyor. Önceden down('sm')
+  // (600px) idi ve tabloda minWidth yoktu - 600-900px arası (tablet)
+  // kullanıcılar 6 sütunu yatay kaydırmadan okuyamıyordu.
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
   const [q, setQ] = useState('')
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
@@ -132,8 +157,8 @@ export default function UsersTab({ token }) {
           ))}
         </Stack>
       ) : (
-        <TableContainer sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-          <Table size="small">
+        <TableContainer sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflowX: 'auto' }}>
+          <Table size="small" sx={{ minWidth: 700 }}>
             <TableHead>
               <TableRow>
                 <TableCell>Ad Soyad</TableCell>

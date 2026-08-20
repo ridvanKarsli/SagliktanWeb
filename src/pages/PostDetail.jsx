@@ -24,6 +24,7 @@ import {
 import { initialsFrom, prettyDate } from '../utils/format.js'
 import { canManage } from '../utils/permissions.js'
 import { goToUserProfile } from '../utils/navigation.js'
+import { clickableProps } from '../utils/clickable.js'
 import { usePost } from '../hooks/usePost.js'
 import { usePostComments } from '../hooks/usePostComments.js'
 
@@ -186,7 +187,8 @@ export default function PostDetail() {
         <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2 }}>
           {/* Faz4: gradyan ring kaldırıldı - bkz. PostCard.jsx'teki aynı karar */}
           <Avatar
-            onClick={() => goToProfile(post.authorId)}
+            {...clickableProps(() => goToProfile(post.authorId))}
+            aria-label={`${post.authorName || 'Kullanıcı'} profiline git`}
             sx={{
               width: 48, height: 48, flexShrink: 0, cursor: 'pointer', fontWeight: 700,
               border: '2px solid', borderColor: 'primary.main'
@@ -197,7 +199,7 @@ export default function PostDetail() {
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <Typography
               variant="subtitle2"
-              onClick={() => goToProfile(post.authorId)}
+              {...clickableProps(() => goToProfile(post.authorId))}
               sx={{ fontWeight: 600, display: 'inline-block', cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}
             >
               {post.authorName || 'Kullanıcı'}
@@ -242,7 +244,7 @@ export default function PostDetail() {
                 </>
               )}
               {!isOwnPost && (
-                <IconButton size="small" onClick={() => openReportDialog('post', post.id)} title="Şikayet Et">
+                <IconButton size="small" onClick={() => openReportDialog('post', post.id)} title="Şikayet Et" aria-label="Şikayet Et">
                   <FlagOutlined fontSize="small" />
                 </IconButton>
               )}
@@ -320,10 +322,10 @@ export default function PostDetail() {
                 onUnsave={() => unsavePost(token, post.id)}
                 size="medium"
               />
-              <IconButton onClick={() => setShareCardOpen(true)} title="Hikaye olarak paylaş">
+              <IconButton onClick={() => setShareCardOpen(true)} title="Hikaye olarak paylaş" aria-label="Hikaye olarak paylaş">
                 <IosShareRounded fontSize="small" />
               </IconButton>
-              <IconButton onClick={() => setSendDialogOpen(true)} title="Mesajla gönder">
+              <IconButton onClick={() => setSendDialogOpen(true)} title="Mesajla gönder" aria-label="Mesajla gönder">
                 <SendOutlined fontSize="small" />
               </IconButton>
             </Stack>

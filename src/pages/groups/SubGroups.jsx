@@ -11,6 +11,7 @@ import { getDiseaseGroup, listSubGroups, listDiseaseGroupMembers } from '../../s
 import { initialsFrom } from '../../utils/format.js'
 import { usePaginatedList } from '../../hooks/usePaginatedList.js'
 import EmptyState from '../../components/EmptyState.jsx'
+import { clickableProps } from '../../utils/clickable.js'
 
 export default function SubGroups() {
   const { groupId } = useParams()
@@ -203,7 +204,8 @@ export default function SubGroups() {
                     direction="row"
                     spacing={1.5}
                     alignItems="center"
-                    onClick={() => goToProfile(m.id)}
+                    {...clickableProps(() => goToProfile(m.id))}
+                    aria-label={`${fullName} profiline git`}
                     sx={{ px: 2, py: 1.25, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
                   >
                     <Avatar sx={{ width: 36, height: 36, fontSize: 14, fontWeight: 600 }}>

@@ -71,7 +71,7 @@ export default function ResponsiveShell({ children }) {
   )
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
+    <Box sx={{ display: 'flex', minHeight: '100dvh', bgcolor: 'background.default' }}>
       {/* Sidebar - Desktop */}
       {isMdUp && (
         <Box
@@ -254,7 +254,7 @@ export default function ResponsiveShell({ children }) {
           flexGrow: 1,
           ml: { md: `${SIDEBAR_WIDTH}px` },
           display: 'flex',
-          minHeight: '100vh'
+          minHeight: '100dvh'
         }}
       >
         <Box

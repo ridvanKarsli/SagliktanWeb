@@ -12,6 +12,7 @@ import SensitiveContentBanner from '../SensitiveContentBanner.jsx'
 import { deleteComment, reactToComment, removeCommentReaction, updateComment } from '../../services/api.js'
 import { initialsFrom, prettyDate } from '../../utils/format.js'
 import { canManage } from '../../utils/permissions.js'
+import { clickableProps } from '../../utils/clickable.js'
 
 // Tek bir yorum (ya da yanıt) satırı - PostDetail.jsx'ten ayrı bir dosyaya
 // taşındı (bkz. clean-code audit). token/showError/showSuccess/user artık
@@ -120,7 +121,8 @@ export default function CommentRow({
     >
       <Stack direction="row" spacing={1.5}>
         <Avatar
-          onClick={!isDeleted ? () => onAuthorClick(comment.authorId) : undefined}
+          {...(!isDeleted ? clickableProps(() => onAuthorClick(comment.authorId)) : {})}
+          aria-label={!isDeleted ? `${comment.authorName || 'Kullanıcı'} profiline git` : undefined}
           sx={{
             width: 32, height: 32, fontSize: 13,
             fontWeight: 700, flexShrink: 0,
@@ -137,7 +139,7 @@ export default function CommentRow({
             <Box>
               <Typography
                 variant="subtitle2"
-                onClick={!isDeleted ? () => onAuthorClick(comment.authorId) : undefined}
+                {...(!isDeleted ? clickableProps(() => onAuthorClick(comment.authorId)) : {})}
                 sx={{
                   fontWeight: 600, display: 'inline-block',
                   cursor: isDeleted ? 'default' : 'pointer',

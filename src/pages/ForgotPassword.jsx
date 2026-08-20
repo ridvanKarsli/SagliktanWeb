@@ -6,6 +6,7 @@ import { ArrowBack, CheckCircleOutline } from '@mui/icons-material'
 import { useNavigate, Link as RouterLink } from 'react-router-dom'
 import { useNotification } from '../context/NotificationContext.jsx'
 import { forgotPassword, resetPassword } from '../services/api.js'
+import PasswordField from '../components/PasswordField.jsx'
 
 // Şifre sıfırlama backend'de kod tabanlı (link değil - bkz. SmtpEmailService.
 // sendPasswordResetCode): kullanıcı e-postasına gelen 6 haneli kodu elle
@@ -57,7 +58,7 @@ export default function ForgotPassword() {
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', display: 'flex' }}>
+    <Box sx={{ minHeight: '100dvh', display: 'flex' }}>
       {!isMobile && (
         <Box
           sx={{
@@ -159,7 +160,7 @@ export default function ForgotPassword() {
                 <Box sx={{ mt: 4, textAlign: 'center' }}>
                   <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                     Şifreni hatırladın mı?{' '}
-                    <Link component={RouterLink} to="/login" sx={{ color: 'secondary.main', fontWeight: 600, '&:hover': { color: 'primary.main' } }}>
+                    <Link component={RouterLink} to="/login" sx={{ color: 'secondary.main', fontWeight: 600, '&:hover': { color: 'primary.main' }, display: 'inline-block', py: 1.5, px: 0.5, my: -1.5, mx: -0.5 }}>
                       Giriş Yap
                     </Link>
                   </Typography>
@@ -188,18 +189,16 @@ export default function ForgotPassword() {
                       placeholder="123456"
                       inputProps={{ maxLength: 10 }}
                     />
-                    <TextField
+                    <PasswordField
                       label="Yeni Şifre"
-                      type="password"
                       value={newPassword}
                       onChange={e => setNewPassword(e.target.value)}
                       required
                       fullWidth
                       helperText="En az 8 karakter"
                     />
-                    <TextField
+                    <PasswordField
                       label="Yeni Şifre (Tekrar)"
-                      type="password"
                       value={confirmPassword}
                       onChange={e => setConfirmPassword(e.target.value)}
                       required

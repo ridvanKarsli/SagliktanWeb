@@ -9,7 +9,7 @@ export default function StaticPageShell({ title, subtitle, children, maxWidth = 
   const navigate = useNavigate()
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+    <Box sx={{ minHeight: '100dvh', bgcolor: 'background.default' }}>
       <Box sx={{ p: { xs: 2, sm: 3 } }}>
         <Button startIcon={<ArrowBack />} onClick={() => navigate(-1)} sx={{ color: 'text.secondary' }}>
           Geri

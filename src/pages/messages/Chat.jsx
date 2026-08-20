@@ -18,6 +18,7 @@ import {
   requestPresignedUpload, uploadToPresignedUrl, blockUser, unblockUser, listBlockedUsers, reportMessage
 } from '../../services/api.js'
 import { initialsFrom } from '../../utils/format.js'
+import { clickableProps } from '../../utils/clickable.js'
 
 // Faz 2 adım 6: tek bir konuşmanın mesaj akışı. Backend sayfaları en yeni
 // mesaj önce (DESC) döndürüyor - bu bileşen kronolojik (eski üstte, yeni
@@ -237,14 +238,16 @@ export default function Chat() {
         </IconButton>
         <Avatar
           sx={{ width: 36, height: 36, fontWeight: 600, cursor: 'pointer' }}
-          onClick={() => conversation && navigate(`/users/${conversation.otherUserId}`)}
+          {...clickableProps(() => conversation && navigate(`/users/${conversation.otherUserId}`))}
+          aria-label={`${conversation?.otherUserName || 'Kullanıcı'} profiline git`}
         >
           {initialsFrom(conversation?.otherUserName)}
         </Avatar>
         <Typography
           variant="subtitle1"
-          sx={{ fontWeight: 700, flex: 1, cursor: 'pointer' }}
-          onClick={() => conversation && navigate(`/users/${conversation.otherUserId}`)}
+          sx={{ fontWeight: 700, flex: 1, minWidth: 0, cursor: 'pointer' }}
+          noWrap
+          {...clickableProps(() => conversation && navigate(`/users/${conversation.otherUserId}`))}
         >
           {conversation?.otherUserName}
         </Typography>

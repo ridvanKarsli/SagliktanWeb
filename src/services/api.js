@@ -76,7 +76,21 @@ async function request(path, { method = 'GET', token, body, params, signal, _ret
     payload = JSON.stringify(body);
   }
 
-  const res = await fetch(url, { method, headers, body: payload, signal });
+  // Faz8-1: `fetch()` kendisi de reject edebilir - HTTP durum kodu bile
+  // dönmeden (uçuş modu, kopan mobil bağlantı, DNS hatası vb.). Bu durumda
+  // tarayıcının ham "Failed to fetch" gibi İngilizce/teknik hatası hiç
+  // yakalanmadan showError(err.message) ile doğrudan kullanıcıya
+  // gösteriliyordu - tam olarak en olası (mobil veri kesintisi) anda kafa
+  // karıştırıcı bir İngilizce mesajla karşılaşmak. AbortError kasıtlı iptal
+  // (ör. bileşen unmount olurken devam eden bir istek) - kullanıcıya
+  // gösterilecek bir hata değil, olduğu gibi yeniden fırlatılıyor.
+  let res;
+  try {
+    res = await fetch(url, { method, headers, body: payload, signal });
+  } catch (err) {
+    if (err?.name === 'AbortError') throw err;
+    throw new ApiError('İnternet bağlantını kontrol edip tekrar dene.', 0, null);
+  }
 
   // Access token süresi dolmuşsa (401) ve bu bir login/refresh isteği değilse,
   // bir kere refresh deneyip isteği yeni token'la tekrar et.

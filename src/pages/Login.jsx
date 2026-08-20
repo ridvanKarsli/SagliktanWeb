@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { useNotification } from '../context/NotificationContext.jsx'
 import { useNavigate, Link as RouterLink } from 'react-router-dom'
 import TrustBadges from '../components/TrustBadges.jsx'
+import PasswordField from '../components/PasswordField.jsx'
 
 export default function Login() {
   const { login } = useAuth()
@@ -42,7 +43,7 @@ export default function Login() {
   }, [error, showError])
 
   return (
-    <Box sx={{ minHeight: '100vh', display: 'flex' }}>
+    <Box sx={{ minHeight: '100dvh', display: 'flex' }}>
       {/* Left side - Branding (hidden on mobile) */}
       {!isMobile && (
         <Box
@@ -157,9 +158,8 @@ export default function Login() {
                   slotProps={{ htmlInput: { 'data-testid': 'login-email' } }}
                 />
 
-                <TextField
+                <PasswordField
                   label="Şifre"
-                  type="password"
                   value={form.pw}
                   onChange={e => setForm(f => ({ ...f, pw: e.target.value }))}
                   required
@@ -200,7 +200,14 @@ export default function Login() {
                   <Link
                     component={RouterLink}
                     to="/forgot-password"
-                    sx={{ fontSize: '0.875rem', color: 'secondary.main', fontWeight: 600, '&:hover': { color: 'primary.main' } }}
+                    sx={{
+                      fontSize: '0.875rem', color: 'secondary.main', fontWeight: 600, '&:hover': { color: 'primary.main' },
+                      // Faz8-3: metin linki doğal satır yüksekliğinde (~19px)
+                      // dokunma hedefi olarak çok küçük kalıyordu - görünmez
+                      // padding + eşit negatif margin ile çevredeki
+                      // düzeni bozmadan hit-box'ı ~44px'e çıkarıyoruz.
+                      display: 'inline-block', py: 1.5, px: 0.5, my: -1.5, mx: -0.5
+                    }}
                   >
                     Şifremi Unuttum
                   </Link>
@@ -228,13 +235,14 @@ export default function Login() {
             <Box sx={{ mt: 4, textAlign: 'center' }}>
               <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                 Hesabınız yok mu?{' '}
-                <Link 
-                  component={RouterLink} 
-                  to="/register" 
-                  sx={{ 
-                    color: 'secondary.main', 
+                <Link
+                  component={RouterLink}
+                  to="/register"
+                  sx={{
+                    color: 'secondary.main',
                     fontWeight: 600,
-                    '&:hover': { color: 'primary.main' }
+                    '&:hover': { color: 'primary.main' },
+                    display: 'inline-block', py: 1.5, px: 0.5, my: -1.5, mx: -0.5
                   }}
                 >
                   Kayıt Ol

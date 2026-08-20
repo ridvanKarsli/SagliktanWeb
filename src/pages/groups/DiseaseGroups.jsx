@@ -260,7 +260,7 @@ export default function DiseaseGroups() {
                     disabled={pending}
                     onClick={(e) => (joined ? handleLeave(e, group.id, group.name) : handleJoin(e, group.id))}
                     sx={{
-                      flexShrink: 0, borderRadius: 5, minHeight: 40, minWidth: 72,
+                      flexShrink: 0, borderRadius: 5, minHeight: 44, minWidth: 72,
                       px: 1.75, alignSelf: 'center',
                       ...(joined ? { color: 'text.secondary' } : {})
                     }}

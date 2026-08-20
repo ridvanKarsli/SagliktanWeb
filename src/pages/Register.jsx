@@ -10,6 +10,7 @@ import { useNavigate, Link as RouterLink } from 'react-router-dom'
 import { isValidName } from '../utils/validateName.js'
 import TrustBadges from '../components/TrustBadges.jsx'
 import PasswordStrengthMeter from '../components/PasswordStrengthMeter.jsx'
+import PasswordField from '../components/PasswordField.jsx'
 
 export default function Register() {
   const { register } = useAuth()
@@ -84,7 +85,7 @@ export default function Register() {
   // Kayıt başarılı: backend e-posta doğrulaması zorunlu tutuyor, otomatik giriş yok.
   if (registeredEmail) {
     return (
-      <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 3, bgcolor: 'background.default' }}>
+      <Box sx={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 3, bgcolor: 'background.default' }}>
         <Box sx={{ maxWidth: 440, textAlign: 'center' }}>
           <MarkEmailReadOutlined sx={{ fontSize: 64, color: 'secondary.main', mb: 2 }} />
           <Typography variant="h2" sx={{ color: 'primary.main', mb: 2 }}>
@@ -104,7 +105,7 @@ export default function Register() {
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', display: 'flex' }}>
+    <Box sx={{ minHeight: '100dvh', display: 'flex' }}>
       {/* Left side - Branding (hidden on mobile) */}
       {!isMobile && (
         <Box
@@ -238,9 +239,8 @@ export default function Register() {
 
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="flex-start">
                   <Box sx={{ flex: 1, width: '100%', display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    <TextField
+                    <PasswordField
                       label="Şifre"
-                      type="password"
                       required
                       helperText="En az 8 karakter"
                       value={form.password}
@@ -253,9 +253,8 @@ export default function Register() {
                     <PasswordStrengthMeter password={form.password} />
                   </Box>
 
-                  <TextField
+                  <PasswordField
                     label="Şifre (tekrar)"
-                    type="password"
                     required
                     value={form.confirmPassword}
                     onChange={e => setForm(f => ({ ...f, confirmPassword: e.target.value }))}
@@ -319,7 +318,8 @@ export default function Register() {
                   sx={{
                     color: 'secondary.main',
                     fontWeight: 600,
-                    '&:hover': { color: 'primary.main' }
+                    '&:hover': { color: 'primary.main' },
+                    display: 'inline-block', py: 1.5, px: 0.5, my: -1.5, mx: -0.5
                   }}
                 >
                   Giriş Yap

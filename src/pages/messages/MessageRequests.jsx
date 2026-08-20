@@ -13,6 +13,7 @@ import {
   listSentMessageRequests, cancelMessageRequest
 } from '../../services/api.js'
 import { initialsFrom } from '../../utils/format.js'
+import { clickableProps } from '../../utils/clickable.js'
 import EmptyState from '../../components/EmptyState.jsx'
 
 // Faz 2 adım 6: bekleyen (PENDING) mesaj istekleri - "Gelen" sekmesi kabul/red,
@@ -163,14 +164,15 @@ export default function MessageRequests() {
                   <Stack direction="row" alignItems="center" spacing={1.5} sx={{ minWidth: 0, flex: 1 }}>
                     <Avatar
                       sx={{ width: 44, height: 44, fontWeight: 600, flexShrink: 0, cursor: 'pointer' }}
-                      onClick={() => navigate(`/users/${otherId}`)}
+                      {...clickableProps(() => navigate(`/users/${otherId}`))}
+                      aria-label={`${otherName || 'Kullanıcı'} profiline git`}
                     >
                       {initialsFrom(otherName)}
                     </Avatar>
                     <Typography
                       variant="subtitle2"
                       sx={{ fontWeight: 600, minWidth: 0, wordBreak: 'break-word', cursor: 'pointer' }}
-                      onClick={() => navigate(`/users/${otherId}`)}
+                      {...clickableProps(() => navigate(`/users/${otherId}`))}
                     >
                       {otherName}
                     </Typography>

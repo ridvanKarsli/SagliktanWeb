@@ -4,6 +4,7 @@ import {
   TableCell, TableContainer, TableHead, TableRow, TextField, ToggleButton, ToggleButtonGroup,
   Typography, useMediaQuery
 } from '@mui/material'
+import { useTheme } from '@mui/material/styles'
 import Lightbox from 'yet-another-react-lightbox'
 import Zoom from 'yet-another-react-lightbox/plugins/zoom'
 import 'yet-another-react-lightbox/styles.css'
@@ -118,11 +119,12 @@ function ContentCard({ item, type, deletingId, remove }) {
 }
 
 export default function ContentTab({ token }) {
-  // Kart görünümüne geçiş eşiği aşağıdaki tablonun minWidth:760 değeriyle
-  // eşleşsin diye özel bir breakpoint kullanılıyor (bkz. ReportsTab.jsx'teki
-  // aynı düzeltme) - önceden down('sm') (<600px) idi, 600-760px arası
-  // (tablet) kullanıcılar tabloyu yatay kaydırmak zorunda kalıyordu.
-  const isMobile = useMediaQuery('(max-width:800px)')
+  // Faz8-8: theme.js'in "breakpoint değerleri her zaman theme.breakpoints'ten
+  // gelmeli" konvansiyonuna uymayan tek istisnaydı (elle yazılmış piksel
+  // medya sorgusu) - diğer admin tabları (UsersTab/ReportsTab) gibi down('md')
+  // kullanacak şekilde hizalandı.
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
   const [type, setType] = useState('posts') // 'posts' | 'comments'
   const [q, setQ] = useState('')
   // Tehlikeli/uygunsuz görsel içerik denetimi: sadece fotoğraflı gönderileri
