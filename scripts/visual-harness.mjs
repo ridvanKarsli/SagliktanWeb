@@ -53,7 +53,7 @@ function route(url, method) {
   const p = url.pathname.replace(/^\/api/, '')
   const m = (re) => p.match(re)
   if (p === '/users/me') return me
-  if (p === '/users/me/disease-groups') return groups.slice(0, 1)
+  if (p === '/users/me/disease-groups') return groups
   if (p === '/users/me/posts') return page([post(0), post(1), post(2)])
   if (p === '/users/me/saved-posts') return page([post(0), post(2)])
   if (p === '/users/me/sessions') return [{ id: 1, deviceLabel: 'iPhone · Safari', ipAddress: '85.1.2.3', lastUsedAt: iso(1), createdAt: iso(999), current: true }, { id: 2, deviceLabel: 'Mac · Chrome', ipAddress: '85.1.2.4', lastUsedAt: iso(300), createdAt: iso(5000), current: false }]
@@ -92,7 +92,7 @@ function route(url, method) {
 
 const shots = [
   ['home', '/home'], ['groups', '/groups'], ['subgroups', '/groups/1'], ['posts', '/sub-groups/2'], ['post-detail', '/post/1'],
-  ['search', '/search?q=gece'], ['profile', '/profile'], ['user-profile', '/users/11'], ['settings', '/profile/settings'],
+  ['search', '/search?q=gece'], ['profile', '/profile'], ['profile-groups', '/profile?tab=groups'], ['profile-groups-menu', '/profile?tab=groups'], ['profile-leave-confirm', '/profile?tab=groups'], ['profile-left', '/profile?tab=groups'], ['profile-edit', '/profile'], ['user-profile', '/users/11'], ['settings', '/profile/settings'],
   ['messages', '/messages'], ['chat', '/messages/1'], ['requests', '/messages/requests'],
   ['admin-dashboard', '/admin'], ['admin-reports', '/admin?tab=reports'], ['admin-users', '/admin?tab=users'], ['admin-content', '/admin?tab=content'], ['admin-groups', '/admin?tab=groups'],
 ]
@@ -133,7 +133,14 @@ for (const [vpName, vp] of Object.entries(viewports)) {
         for (const btn of await pg.getByRole('button', { name: /^\d+ yanıt$/ }).all()) { try { await btn.click({ timeout: 500 }); await pg.waitForTimeout(250) } catch { /* yok */ } }
         await pg.waitForTimeout(400)
       }
-      await pg.screenshot({ path: `${OUT}/${vpName}-${name}.png`, fullPage: true })
+      if (name.startsWith('profile-groups-menu') || name === 'profile-leave-confirm' || name === 'profile-left') {
+        await pg.getByRole('button', { name: /için seçenekler$/ }).first().click(); await pg.waitForTimeout(400)
+        if (name !== 'profile-groups-menu') { await pg.getByRole('menuitem', { name: 'Gruptan ayrıl' }).click(); await pg.waitForTimeout(400) }
+        if (name === 'profile-left') { await pg.getByRole('button', { name: 'Ayrıl', exact: true }).click(); await pg.waitForTimeout(800) }
+      }
+      if (name === 'profile-edit') { await pg.getByRole('button', { name: 'Profili düzenle' }).click(); await pg.waitForTimeout(500) }
+      const fullPage = !['profile-groups-menu', 'profile-leave-confirm'].includes(name)
+      await pg.screenshot({ path: `${OUT}/${vpName}-${name}.png`, fullPage })
       console.log('ok', vpName, name)
     } catch (e) { console.log('FAIL', vpName, name, e.message.split('\n')[0]) }
   }

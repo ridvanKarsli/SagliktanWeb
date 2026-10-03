@@ -5,11 +5,8 @@ import {
 import { GroupsRounded, PeopleAltRounded, SearchOffRounded, SearchRounded } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
-import { useNotification } from '../../context/NotificationContext.jsx'
-import { useConfirm } from '../../context/ConfirmContext.jsx'
-import {
-  listDiseaseGroups, getMyDiseaseGroups, joinDiseaseGroup, leaveDiseaseGroup
-} from '../../services/api.js'
+import { listDiseaseGroups, getMyDiseaseGroups } from '../../services/api.js'
+import { useGroupMembership } from '../../hooks/useGroupMembership.js'
 import EmptyState from '../../components/EmptyState.jsx'
 
 /**
@@ -18,8 +15,7 @@ import EmptyState from '../../components/EmptyState.jsx'
  */
 export default function DiseaseGroups() {
   const { token } = useAuth()
-  const { showError, showSuccess } = useNotification()
-  const confirm = useConfirm()
+  const { join, leave, pendingId } = useGroupMembership()
   const navigate = useNavigate()
 
   const [groups, setGroups] = useState([])
@@ -33,7 +29,6 @@ export default function DiseaseGroups() {
   const [initialLoading, setInitialLoading] = useState(true)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [pendingId, setPendingId] = useState(null)
 
   // Arama kutusu: Posts.jsx'teki gönderi aramasıyla aynı desen - backend'in
   // prefix + pg_trgm fuzzy (yazım hatası toleranslı) tam metin aramasına
@@ -91,42 +86,27 @@ export default function DiseaseGroups() {
 
   useEffect(() => { load() }, [load])
 
-  const handleJoin = async (e, groupId) => {
+  const adjustCount = (groupId, delta) => setGroups(prev => prev.map(g => (
+    g.id === groupId ? { ...g, memberCount: Math.max(0, (g.memberCount ?? 0) + delta) } : g
+  )))
+
+  const handleJoin = async (e, group) => {
     e.stopPropagation()
-    if (!token) return
-    setPendingId(groupId)
-    try {
-      await joinDiseaseGroup(token, groupId)
-      setJoinedIds(prev => new Set(prev).add(groupId))
-      showSuccess('Gruba katıldınız.')
-    } catch (err) {
-      showError(err.message || 'Gruba katılınamadı.')
-    } finally {
-      setPendingId(null)
+    if (await join(group)) {
+      setJoinedIds(prev => new Set(prev).add(group.id))
+      adjustCount(group.id, 1)
     }
   }
 
-  const handleLeave = async (e, groupId, groupName) => {
+  const handleLeave = async (e, group) => {
     e.stopPropagation()
-    if (!token) return
-    const ok = await confirm(
-      `"${groupName}" grubundan ayrılmak istiyor musun? Bu gruba özel gönderi/yorum akışını tekrar görebilmek için yeniden katılman gerekir.`,
-      { title: 'Gruptan ayrıl' }
-    )
-    if (!ok) return
-    setPendingId(groupId)
-    try {
-      await leaveDiseaseGroup(token, groupId)
+    if (await leave(group)) {
       setJoinedIds(prev => {
         const next = new Set(prev)
-        next.delete(groupId)
+        next.delete(group.id)
         return next
       })
-      showSuccess('Gruptan ayrıldınız.')
-    } catch (err) {
-      showError(err.message || 'Gruptan ayrılınamadı.')
-    } finally {
-      setPendingId(null)
+      adjustCount(group.id, -1)
     }
   }
 
@@ -268,7 +248,7 @@ export default function DiseaseGroups() {
                     variant={joined ? 'outlined' : 'contained'}
                     size="small"
                     disabled={pending}
-                    onClick={(e) => (joined ? handleLeave(e, group.id, group.name) : handleJoin(e, group.id))}
+                    onClick={(e) => (joined ? handleLeave(e, group) : handleJoin(e, group))}
                     sx={{
                       flexShrink: 0, borderRadius: 999, minHeight: 40, minWidth: 84,
                       px: 1.75, alignSelf: 'center',

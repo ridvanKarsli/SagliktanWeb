@@ -3,11 +3,12 @@ import {
   Alert, Avatar, Box, Button, Chip, CircularProgress, Dialog, DialogContent, DialogTitle,
   IconButton, Stack, Typography
 } from '@mui/material'
-import { ArrowBack, ChatBubbleOutlineRounded, CloseRounded, ForumRounded, PeopleAltRounded } from '@mui/icons-material'
+import { ArrowBack, ChatBubbleOutlineRounded, CheckRounded, CloseRounded, ForumRounded, PeopleAltRounded } from '@mui/icons-material'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
-import { getDiseaseGroup, listSubGroups, listDiseaseGroupMembers } from '../../services/api.js'
+import { getDiseaseGroup, getMyDiseaseGroups, listSubGroups, listDiseaseGroupMembers } from '../../services/api.js'
+import { useGroupMembership } from '../../hooks/useGroupMembership.js'
 import { initialsFrom } from '../../utils/format.js'
 import { usePaginatedList } from '../../hooks/usePaginatedList.js'
 import EmptyState from '../../components/EmptyState.jsx'
@@ -23,6 +24,10 @@ export default function SubGroups() {
   const [subGroups, setSubGroups] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  // null = üyelik bilinmiyor (istek düştü) - buton hiç gösterilmez, yanlış
+  // durum göstermektense eylemi saklamak daha güvenli.
+  const [joined, setJoined] = useState(null)
+  const { join, leave, pendingId } = useGroupMembership()
 
   // Gruba kayıtlı üyelerin listesi - "Üyeleri Gör" tıklanınca yükleniyor.
   // Kalabalık gruplarda (1000+ kullanıcı hedefi) tek seferde tüm üyeleri
@@ -50,12 +55,14 @@ export default function SubGroups() {
     setError('')
     Promise.all([
       getDiseaseGroup(token, groupId),
-      listSubGroups(token, groupId)
+      listSubGroups(token, groupId),
+      getMyDiseaseGroups(token).catch(() => null)
     ])
-      .then(([groupData, subs]) => {
+      .then(([groupData, subs, mine]) => {
         if (!mounted) return
         setGroup(groupData)
         setSubGroups(Array.isArray(subs) ? subs : [])
+        setJoined(Array.isArray(mine) ? mine.some(g => String(g.id) === String(groupId)) : null)
       })
       .catch(err => {
         if (!mounted) return
@@ -75,6 +82,16 @@ export default function SubGroups() {
   }
 
   const openMembers = () => setMembersOpen(true)
+
+  const toggleMembership = async () => {
+    if (!group) return
+    const ok = joined ? await leave(group) : await join(group)
+    if (!ok) return
+    const delta = joined ? -1 : 1
+    setJoined(!joined)
+    setGroup(g => ({ ...g, memberCount: Math.max(0, (g.memberCount ?? 0) + delta) }))
+  }
+  const membershipPending = group && pendingId === group.id
 
   if (loading) {
     return (
@@ -101,9 +118,27 @@ export default function SubGroups() {
 
       {group && (
         <Box sx={{ mb: 3 }}>
-          <Typography variant="h2" sx={{ fontWeight: 700, mb: 0.5 }}>
-            {group.name}
-          </Typography>
+          <Stack direction="row" spacing={1.5} alignItems="flex-start" sx={{ mb: 0.5 }}>
+            <Typography variant="h2" sx={{ fontWeight: 700, flex: 1, minWidth: 0, wordBreak: 'break-word' }}>
+              {group.name}
+            </Typography>
+            {joined !== null && (
+              <Button
+                variant={joined ? 'outlined' : 'contained'}
+                size="small"
+                disabled={membershipPending}
+                onClick={toggleMembership}
+                startIcon={joined && !membershipPending ? <CheckRounded /> : undefined}
+                aria-label={joined ? `${group.name} grubundan ayrıl` : `${group.name} grubuna katıl`}
+                sx={{
+                  flexShrink: 0, borderRadius: 999, minHeight: 40, minWidth: 96, px: 2,
+                  ...(joined ? { color: 'text.secondary', borderColor: 'divider' } : {})
+                }}
+              >
+                {membershipPending ? <CircularProgress size={16} color="inherit" /> : (joined ? 'Üyesin' : 'Katıl')}
+              </Button>
+            )}
+          </Stack>
           {group.description && (
             <Typography variant="body1" sx={{ color: 'text.secondary', mb: 1 }}>
               {group.description}
@@ -154,7 +189,7 @@ export default function SubGroups() {
                   <ForumRounded sx={{ fontSize: 22 }} />
                 </Box>
                 <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'text.primary' }} noWrap>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'text.primary', lineHeight: 1.3, overflowWrap: 'anywhere' }}>
                     {sub.name}
                   </Typography>
                   {sub.description && (

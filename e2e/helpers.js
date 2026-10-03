@@ -104,7 +104,7 @@ export async function joinSeedGroup(page) {
   const joinButton = card.getByRole('button', { name: 'Katıl' })
   if (await joinButton.isVisible().catch(() => false)) {
     await joinButton.click()
-    await expect(page.getByText('Gruba katıldınız.')).toBeVisible()
+    await expect(page.getByText(/grubuna katıldın\.$/)).toBeVisible()
   }
 }
 

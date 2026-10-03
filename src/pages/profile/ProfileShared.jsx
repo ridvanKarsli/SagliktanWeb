@@ -6,47 +6,6 @@ import { ChevronRightRounded } from '@mui/icons-material'
 // kopyalanmıştı).
 export { prettyDate } from '../../utils/format.js'
 
-export function SectionList({ items, renderItem, getKey, emptyText }) {
-  if (!Array.isArray(items) || items.length === 0) {
-    return (
-      <Typography variant="body2" sx={{ color: 'text.secondary', py: 2 }}>
-        {emptyText}
-      </Typography>
-    )
-  }
-  return (
-    <Stack spacing={1.5}>
-      {items.map((it, i) => (
-        <Box key={getKey?.(it, i) ?? i}>
-          {renderItem(it, i)}
-        </Box>
-      ))}
-    </Stack>
-  )
-}
-
-export function SubRow({ label, value, icon }) {
-  return (
-    <Stack direction="row" spacing={1.5} alignItems="center" sx={{ py: 0.5 }}>
-      {icon && (
-        <Box sx={{ color: 'text.secondary', display: 'flex' }}>
-          {icon}
-        </Box>
-      )}
-      <Box sx={{ flex: 1 }}>
-        {label && (
-          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
-            {label}
-          </Typography>
-        )}
-        <Typography variant="body2" sx={{ color: 'text.primary' }}>
-          {value || '—'}
-        </Typography>
-      </Box>
-    </Stack>
-  )
-}
-
 // Ayarlar sayfasındaki (AccountSettings.jsx) her satır (şifre, gizlilik,
 // çıkış, hesap silme) için ortak tıklanabilir satır bileşeni - eskiden
 // Profile.jsx içindeydi, Faz5'te Ayarlar kendi sayfasına taşınınca (X/IG'de

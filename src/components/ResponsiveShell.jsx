@@ -278,6 +278,11 @@ export default function ResponsiveShell({ children }) {
       <Box
         sx={{
           flexGrow: 1,
+          // Flex öğelerinin varsayılan min-width'i "auto" (= içeriğin
+          // min-content genişliği). Bu olmadan uzun bir başlık + buton gibi
+          // içerikler tüm sayfayı ekran dışına itip mobilde yatay kaydırma
+          // açıyordu (ör. /groups/:id 390px ekranda 421px oluyordu).
+          minWidth: 0,
           ml: { md: `${SIDEBAR_WIDTH}px` },
           display: 'flex',
           minHeight: '100dvh'
