@@ -1,29 +1,25 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
-  Alert, Avatar, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent,
-  DialogTitle, Divider, Fab, IconButton, Stack, TextField, ToggleButton, ToggleButtonGroup,
-  Typography, useMediaQuery, useTheme
+  Alert, Box, Button, CircularProgress, Divider, Fab, IconButton, Stack, TextField, ToggleButton, ToggleButtonGroup, Typography
 } from '@mui/material'
-import { Add, ArrowBack, CloseRounded, DynamicFeedRounded, InfoOutlined, SearchOffRounded, SearchRounded } from '@mui/icons-material'
+import { Add, ArrowBack, CloseRounded, DynamicFeedRounded, SearchOffRounded, SearchRounded } from '@mui/icons-material'
 import { useNavigate, useParams } from 'react-router-dom'
 import PostCard from '../components/PostCard.jsx'
 import PostCardSkeleton from '../components/PostCardSkeleton.jsx'
-import PhotoUploadField from '../components/PhotoUploadField.jsx'
+import NewPostDialog from '../components/NewPostDialog.jsx'
+import ComposerPrompt from '../components/ComposerPrompt.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useNotification } from '../context/NotificationContext.jsx'
-import { createPost, getSubGroup, listPostsBySubGroup, searchPostsInSubGroup } from '../services/api.js'
-import { initialsFrom } from '../utils/format.js'
+import { getSubGroup, listPostsBySubGroup, searchPostsInSubGroup } from '../services/api.js'
 import { usePaginatedList } from '../hooks/usePaginatedList.js'
 import { usePullToRefresh } from '../hooks/usePullToRefresh.js'
 
 export default function Posts() {
   const { subGroupId } = useParams()
   const navigate = useNavigate()
-  const { token, user } = useAuth()
-  const { showError, showSuccess } = useNotification()
-  const theme = useTheme()
-  const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'))
+  const { token } = useAuth()
+  const { showError } = useNotification()
 
   const [subGroup, setSubGroup] = useState(null)
   const [error, setError] = useState('')
@@ -39,18 +35,6 @@ export default function Posts() {
   const isSearching = debouncedQuery.length > 0
 
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [title, setTitle] = useState('')
-  const [content, setContent] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-  // Faz 2 adım 4: her giriş {id, status, previewUrl, storageKey, errorMessage}
-  // - bkz. PhotoUploadField.jsx.
-  const [attachments, setAttachments] = useState([])
-  const photosBusy = attachments.some(a => a.status === 'compressing' || a.status === 'uploading')
-
-  const resetAttachments = () => {
-    attachments.forEach(a => { if (a.previewUrl) URL.revokeObjectURL(a.previewUrl) })
-    setAttachments([])
-  }
 
   useEffect(() => {
     if (!token || !subGroupId) return
@@ -100,31 +84,7 @@ export default function Posts() {
     reloadPosts, { disabled: dialogOpen }
   )
 
-  const openDialog = () => { setTitle(''); setContent(''); resetAttachments(); setDialogOpen(true) }
-  const closeDialog = () => { if (!submitting) { resetAttachments(); setDialogOpen(false) } }
-
-  const onSubmit = async (e) => {
-    e.preventDefault()
-    if (!title.trim()) { showError('Başlık zorunludur.'); return }
-    if (title.trim().length > 255) { showError('Başlık en fazla 255 karakter olabilir.'); return }
-    if (!content.trim()) { showError('İçerik zorunludur.'); return }
-    if (photosBusy) { showError('Fotoğraflar hâlâ yükleniyor, birazdan tekrar deneyin.'); return }
-
-    const attachmentKeys = attachments.filter(a => a.status === 'done').map(a => a.storageKey)
-
-    setSubmitting(true)
-    try {
-      await createPost(token, subGroupId, { title: title.trim(), content: content.trim(), attachmentKeys })
-      showSuccess('Gönderi oluşturuldu.')
-      setDialogOpen(false)
-      resetAttachments()
-      await reloadPosts()
-    } catch (err) {
-      showError(err.message || 'Gönderi oluşturulamadı.')
-    } finally {
-      setSubmitting(false)
-    }
-  }
+  const openDialog = () => setDialogOpen(true)
 
   return (
     <Box sx={{ py: { xs: 2, md: 4 } }}>
@@ -182,26 +142,7 @@ export default function Posts() {
           oluşturmanın tek yolu sağ altta gizli kalan bir FAB'dı, akışın en
           üstünde görünür bir davet yoktu. FAB mobilde hızlı erişim için
           duruyor. */}
-      {token && (
-        <Box
-          onClick={openDialog}
-          className="tap-scale"
-          sx={{
-            display: 'flex', alignItems: 'center', gap: 1.5,
-            p: { xs: 1.5, md: 2 }, mb: 2.5, borderRadius: 3,
-            bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider',
-            cursor: 'pointer', transition: 'border-color 0.2s ease, background-color 0.2s ease',
-            '&:hover': { borderColor: 'primary.main', bgcolor: 'action.hover' }
-          }}
-        >
-          <Avatar sx={{ width: 36, height: 36, fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
-            {initialsFrom([user?.firstName, user?.lastName].filter(Boolean).join(' '))}
-          </Avatar>
-          <Typography variant="body2" sx={{ color: 'text.secondary', flex: 1 }}>
-            Ne paylaşmak istersin?
-          </Typography>
-        </Box>
-      )}
+      {token && <ComposerPrompt onClick={openDialog} sx={{ mb: 2.5 }} />}
 
       <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1.5 }}>
         <TextField
@@ -294,63 +235,12 @@ export default function Posts() {
         <Add />
       </Fab>
 
-      {/* Gönderi yazma kutusu mobilde tam ekran açılıyor: telefonda klavye
-          açıldığında ekranın yarısı kaybolduğu için, ortada yüzen küçük bir
-          diyalogda çok satırlı metin yazmak sıkışık ve rahatsız oluyordu.
-          Tam ekran, yazma alanına tüm yüksekliği veriyor. */}
-      <Dialog open={dialogOpen} onClose={closeDialog} maxWidth="sm" fullWidth fullScreen={isSmallScreen}>
-        <DialogTitle>Yeni Gönderi</DialogTitle>
-        <Box component="form" id="new-post-form" onSubmit={onSubmit}>
-          <DialogContent>
-            <Stack spacing={2.5}>
-              {/* Hukuki risk azaltma (bkz. plan madde 3): PostDetail.jsx'te
-                  OKUYANA gösterilen uyarının yazma anındaki karşılığı -
-                  paylaşımın tıbbi tavsiye yerine geçmediğini ve okuyanların
-                  danışmadan bir sağlık ürünü/tedavi uygulamaması gerektiğini
-                  yazan kişiye de hatırlatıyor. */}
-              <Stack
-                direction="row"
-                spacing={1}
-                alignItems="flex-start"
-                sx={{ px: 0.5, color: 'text.secondary' }}
-              >
-                <InfoOutlined sx={{ fontSize: 16, mt: '2px', flexShrink: 0 }} />
-                <Typography variant="caption" sx={{ lineHeight: 1.5 }}>
-                  Paylaşımın kişisel deneyimin olarak görünecek, tıbbi tavsiye yerine geçmez.
-                  Okuyanların sana danışmadan hiçbir ilaç, tedavi ya da sağlık ürünü kullanmaması
-                  gerektiğini unutma - sağlık kararları için her zaman bir uzmana danışılmalı.
-                </Typography>
-              </Stack>
-              <TextField
-                label="Başlık"
-                value={title}
-                onChange={e => setTitle(e.target.value)}
-                required
-                fullWidth
-                slotProps={{ htmlInput: { maxLength: 255, 'data-testid': 'post-title' } }}
-                autoFocus
-              />
-              <TextField
-                label="İçerik"
-                value={content}
-                onChange={e => setContent(e.target.value)}
-                required
-                fullWidth
-                multiline
-                minRows={isSmallScreen ? 10 : 5}
-                slotProps={{ htmlInput: { 'data-testid': 'post-content' } }}
-              />
-              <PhotoUploadField value={attachments} onChange={setAttachments} token={token} disabled={submitting} />
-            </Stack>
-          </DialogContent>
-          <DialogActions sx={{ px: 3, pb: 2.5 }}>
-            <Button onClick={closeDialog} disabled={submitting}>İptal</Button>
-            <Button type="submit" variant="contained" disabled={submitting || photosBusy}>
-              {submitting ? <CircularProgress size={18} color="inherit" /> : 'Paylaş'}
-            </Button>
-          </DialogActions>
-        </Box>
-      </Dialog>
+      <NewPostDialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        presetSubGroup={subGroup ? { id: subGroup.id, name: subGroup.name, diseaseGroupId: subGroup.diseaseGroupId } : null}
+        onCreated={() => { setQuery(''); reloadPosts() }}
+      />
     </Box>
   )
 }

@@ -12,6 +12,8 @@ import { useGroupMembership } from '../../hooks/useGroupMembership.js'
 import { initialsFrom } from '../../utils/format.js'
 import { usePaginatedList } from '../../hooks/usePaginatedList.js'
 import EmptyState from '../../components/EmptyState.jsx'
+import NewPostDialog from '../../components/NewPostDialog.jsx'
+import ComposerPrompt from '../../components/ComposerPrompt.jsx'
 import { clickableProps } from '../../utils/clickable.js'
 
 export default function SubGroups() {
@@ -28,6 +30,7 @@ export default function SubGroups() {
   // durum göstermektense eylemi saklamak daha güvenli.
   const [joined, setJoined] = useState(null)
   const { join, leave, pendingId } = useGroupMembership()
+  const [composerOpen, setComposerOpen] = useState(false)
 
   // Gruba kayıtlı üyelerin listesi - "Üyeleri Gör" tıklanınca yükleniyor.
   // Kalabalık gruplarda (1000+ kullanıcı hedefi) tek seferde tüm üyeleri
@@ -155,6 +158,10 @@ export default function SubGroups() {
         </Box>
       )}
 
+      {group && joined === true && (
+        <ComposerPrompt onClick={() => setComposerOpen(true)} hint={`${group.name} grubunda paylaş…`} sx={{ mb: 3 }} />
+      )}
+
       <Typography variant="h4" sx={{ fontWeight: 600, mb: 1.5 }}>
         Alt Gruplar
       </Typography>
@@ -263,6 +270,17 @@ export default function SubGroups() {
           )}
         </DialogContent>
       </Dialog>
+      {group && (
+        <NewPostDialog
+          open={composerOpen}
+          onClose={() => setComposerOpen(false)}
+          presetDiseaseGroupId={group.id}
+          presetDiseaseGroupName={group.name}
+          onCreated={(_, target) => setSubGroups(prev => prev.map(sg => (
+            String(sg.id) === String(target.subGroupId) ? { ...sg, postCount: (sg.postCount ?? 0) + 1 } : sg
+          )))}
+        />
+      )}
     </Box>
   )
 }

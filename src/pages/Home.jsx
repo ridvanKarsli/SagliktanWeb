@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Alert, Box, Button, CircularProgress, Divider, Stack, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
-import { DynamicFeedRounded, GroupsRounded } from '@mui/icons-material'
+import { Alert, Box, Button, CircularProgress, Divider, Fab, Stack, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
+import { Add, DynamicFeedRounded, GroupsRounded } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import PostCard from '../components/PostCard.jsx'
 import PostCardSkeleton from '../components/PostCardSkeleton.jsx'
 import EmptyState from '../components/EmptyState.jsx'
+import NewPostDialog from '../components/NewPostDialog.jsx'
+import ComposerPrompt from '../components/ComposerPrompt.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useNotification } from '../context/NotificationContext.jsx'
 import { getMyDiseaseGroups, getMyFeed } from '../services/api.js'
@@ -38,6 +40,7 @@ export default function Home() {
   // deseni burada da. Backend tarafı PostController.feed'de aynı
   // PostSortOption (RECENT/POPULAR) ile karşılanıyor.
   const [sort, setSort] = useState('recent')
+  const [composerOpen, setComposerOpen] = useState(false)
 
   useEffect(() => {
     if (!token) { setCheckingGroups(false); return }
@@ -61,7 +64,18 @@ export default function Home() {
 
   // Kontrol listesi "Pull-to-refresh desteği" maddesi - Posts.jsx'teki
   // aynı desen.
-  const { pullDistance, refreshing: pullRefreshing, threshold: pullThreshold } = usePullToRefresh(reloadFeed)
+  const { pullDistance, refreshing: pullRefreshing, threshold: pullThreshold } = usePullToRefresh(
+    reloadFeed, { disabled: composerOpen }
+  )
+
+  // Yeni gönderi en üstte görünsün: "Popüler" sıralamadaysak "Yeni"ye geç
+  // (sort değişimi akışı zaten yeniden yükler), değilse akışı tazele.
+  const onPostCreated = () => {
+    if (sort !== 'recent') setSort('recent')
+    else reloadFeed()
+    try { document.getElementById('root')?.scrollTo({ top: 0, behavior: 'smooth' }); window.scrollTo({ top: 0, behavior: 'smooth' }) } catch { /* yoksay */ }
+  }
+  const canPost = !checkingGroups && hasJoinedGroups
 
   return (
     <Box sx={{ py: { xs: 2, md: 4 } }}>
@@ -105,6 +119,8 @@ export default function Home() {
       )}
       </Stack>
 
+      {canPost && <ComposerPrompt onClick={() => setComposerOpen(true)} hint="Gruplarına bir şey paylaş…" sx={{ mb: 2 }} />}
+
       {(loading || checkingGroups) ? (
         <Box>
           {Array.from({ length: 4 }).map((_, i) => <PostCardSkeleton key={i} />)}
@@ -129,9 +145,9 @@ export default function Home() {
             <EmptyState
               icon={DynamicFeedRounded}
               title="Akışında henüz gönderi yok"
-              description="Katıldığın gruplarda henüz kimse paylaşım yapmamış."
-              actionLabel="Daha Fazla Grup Keşfet"
-              onAction={() => navigate('/groups')}
+              description="Katıldığın gruplarda henüz kimse paylaşım yapmamış. İlk adımı sen at!"
+              actionLabel="İlk gönderiyi paylaş"
+              onAction={() => setComposerOpen(true)}
             />
           )}
           {!last && posts.length > 0 && (
@@ -148,6 +164,24 @@ export default function Home() {
           )}
         </Box>
       )}
+
+      {canPost && (
+        <Fab
+          color="primary"
+          aria-label="Yeni gönderi"
+          onClick={() => setComposerOpen(true)}
+          sx={{
+            position: 'fixed',
+            right: { xs: 16, md: 24 },
+            bottom: { xs: 'calc(64px + env(safe-area-inset-bottom, 0px) + 16px)', md: 24 },
+            zIndex: (t) => t.zIndex.appBar + 3
+          }}
+        >
+          <Add />
+        </Fab>
+      )}
+
+      <NewPostDialog open={composerOpen} onClose={() => setComposerOpen(false)} onCreated={onPostCreated} />
     </Box>
   )
 }

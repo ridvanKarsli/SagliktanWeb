@@ -92,7 +92,7 @@ function route(url, method) {
 
 const shots = [
   ['home', '/home'], ['groups', '/groups'], ['subgroups', '/groups/1'], ['posts', '/sub-groups/2'], ['post-detail', '/post/1'],
-  ['search', '/search?q=gece'], ['profile', '/profile'], ['profile-groups', '/profile?tab=groups'], ['profile-groups-menu', '/profile?tab=groups'], ['profile-leave-confirm', '/profile?tab=groups'], ['profile-left', '/profile?tab=groups'], ['profile-edit', '/profile'], ['user-profile', '/users/11'], ['settings', '/profile/settings'],
+  ['search', '/search?q=gece'], ['profile', '/profile'], ['profile-groups', '/profile?tab=groups'], ['profile-groups-menu', '/profile?tab=groups'], ['profile-leave-confirm', '/profile?tab=groups'], ['profile-left', '/profile?tab=groups'], ['profile-edit', '/profile'], ['home-compose', '/home'], ['home-compose-picked', '/home'], ['subgroups-compose', '/groups/1'], ['posts-compose', '/sub-groups/2'], ['user-profile', '/users/11'], ['settings', '/profile/settings'],
   ['messages', '/messages'], ['chat', '/messages/1'], ['requests', '/messages/requests'],
   ['admin-dashboard', '/admin'], ['admin-reports', '/admin?tab=reports'], ['admin-users', '/admin?tab=users'], ['admin-content', '/admin?tab=content'], ['admin-groups', '/admin?tab=groups'],
 ]
@@ -138,8 +138,19 @@ for (const [vpName, vp] of Object.entries(viewports)) {
         if (name !== 'profile-groups-menu') { await pg.getByRole('menuitem', { name: 'Gruptan ayrıl' }).click(); await pg.waitForTimeout(400) }
         if (name === 'profile-left') { await pg.getByRole('button', { name: 'Ayrıl', exact: true }).click(); await pg.waitForTimeout(800) }
       }
+      if (name.endsWith('-compose') || name === 'home-compose-picked') {
+        await pg.evaluate(() => { try { localStorage.removeItem('sagliktan:post-draft'); localStorage.removeItem('sagliktan:last-post-target') } catch { /* */ } })
+        await pg.getByRole('button', { name: /paylaş…$|Ne paylaşmak istersin\?/ }).first().click(); await pg.waitForTimeout(700)
+        if (name === 'home-compose-picked') {
+          await pg.getByRole('radio', { name: 'Retinitis Pigmentosa' }).click(); await pg.waitForTimeout(500)
+          await pg.getByRole('radio', { name: 'Soru-Cevap' }).click()
+          await pg.getByTestId('post-title').fill('Gece körlüğü için gözlük önerisi')
+          await pg.getByTestId('post-content').fill('Akşamları dışarı çıkarken zorlanıyorum, kullandığınız bir şey var mı?')
+          await pg.waitForTimeout(300)
+        }
+      }
       if (name === 'profile-edit') { await pg.getByRole('button', { name: 'Profili düzenle' }).click(); await pg.waitForTimeout(500) }
-      const fullPage = !['profile-groups-menu', 'profile-leave-confirm'].includes(name)
+      const fullPage = !['profile-groups-menu', 'profile-leave-confirm'].includes(name) && !name.includes('compose')
       await pg.screenshot({ path: `${OUT}/${vpName}-${name}.png`, fullPage })
       console.log('ok', vpName, name)
     } catch (e) { console.log('FAIL', vpName, name, e.message.split('\n')[0]) }

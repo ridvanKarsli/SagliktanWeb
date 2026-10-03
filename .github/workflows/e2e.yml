@@ -8,7 +8,39 @@ on:
   workflow_dispatch:
 
 jobs:
+  # Her push'ta calisan hizli kontrol: lint + production build. Backend'e
+  # ihtiyac duymaz, token olmasa da frontend'in kirilmadigini gosterir.
+  lint-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      has_backend_token: ${{ steps.token.outputs.has }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+      # Secret'lar job-seviyesi `if:` icinde dogrudan kullanilamiyor; varligini
+      # burada output'a cevirip e2e job'unu ona bagliyoruz.
+      - id: token
+        env:
+          T: ${{ secrets.BACKEND_REPO_TOKEN }}
+        run: |
+          if [ -n "$T" ]; then
+            echo "has=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=E2E atlandi::BACKEND_REPO_TOKEN secret'i tanimli degil; private backend checkout edilemedigi icin E2E calistirilmadi."
+          fi
+
   e2e:
+    needs: lint-build
+    # Token yoksa kirmizi bir hata yerine "skipped" gorunur.
+    if: needs.lint-build.outputs.has_backend_token == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
