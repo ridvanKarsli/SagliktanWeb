@@ -144,7 +144,7 @@ const shots = [
   ['home', '/home'], ['groups', '/groups'],
   // [akış] iskelet çekimleri + bildirim menüsü + boş arama
   ['home-loading', '/home'], ['groups-loading', '/groups'], ['subgroups-loading', '/groups/1'], ['posts-loading', '/sub-groups/2'], ['post-detail-loading', '/post/1'], ['search-loading', '/search?q=gece'], ['notifications', '/home'], ['search-empty', '/search'], ['subgroups', '/groups/1'], ['posts', '/sub-groups/2'], ['post-detail', '/post/1'],
-  ['search', '/search?q=gece'], ['profile', '/profile'], ['profile-groups', '/profile?tab=groups'], ['profile-groups-menu', '/profile?tab=groups'], ['profile-leave-confirm', '/profile?tab=groups'], ['profile-left', '/profile?tab=groups'], ['profile-edit', '/profile'], ['home-compose', '/home'], ['home-questions', '/home?tab=questions'], ['compose-poll', '/home'], ['post-poll', '/post/4'], ['post-question', '/post/1'], ['onboarding-role', '/hosgeldin'], ['onboarding-groups', '/hosgeldin'], ['onboarding-details', '/hosgeldin'], ['settings-matching', '/profile/settings#eslesme'], ['home-compose-picked', '/home'], ['subgroups-compose', '/groups/1'], ['posts-compose', '/sub-groups/2'], ['user-profile', '/users/11'], ['settings', '/profile/settings'],
+  ['search', '/search?q=gece'], ['profile', '/profile'], ['profile-groups', '/profile?tab=groups'], ['profile-groups-menu', '/profile?tab=groups'], ['profile-leave-confirm', '/profile?tab=groups'], ['profile-left', '/profile?tab=groups'], ['profile-edit', '/profile'], ['home-compose', '/home'], ['home-questions', '/home?tab=questions'], ['compose-poll', '/home'], ['post-poll', '/post/4'], ['post-question', '/post/1'], ['onboarding-role', '/hosgeldin'], ['onboarding-groups', '/hosgeldin'], ['onboarding-details', '/hosgeldin'], ['settings-matching', '/profile/settings#eslesme'], ['home-compose-picked', '/home'], ['home-compose-topic', '/home'], ['subgroups-compose', '/groups/1'], ['posts-compose', '/sub-groups/2'], ['user-profile', '/users/11'], ['settings', '/profile/settings'],
   ['messages', '/messages'], ['chat', '/messages/1'], ['requests', '/messages/requests'],
   ['profile-avatar', '/profile'], ['profile-unlock', '/profile'], ['settings-blocked', '/profile/settings'], ['profile-loading', '/profile'], ['user-profile-loading', '/users/11'], ['messages-loading', '/messages'], ['chat-loading', '/messages/1'], ['requests-loading', '/messages/requests'], ['onboarding-loading', '/hosgeldin'], ['onboarding-done', '/hosgeldin'],
   ['form-profile-city', '/profile'], ['form-profile-errors', '/profile'], ['form-compose-errors', '/sub-groups/2'], ['form-poll-dup', '/home'], ['form-password', '/profile/settings'],
@@ -252,9 +252,12 @@ for (const [vpName, vp] of Object.entries(viewports)) {
         if (name !== 'profile-groups-menu') { await pg.getByRole('menuitem', { name: 'Gruptan ayrıl' }).click(); await pg.waitForTimeout(400) }
         if (name === 'profile-left') { await pg.getByRole('button', { name: 'Ayrıl', exact: true }).click(); await pg.waitForTimeout(800) }
       }
-      if (name.endsWith('-compose') || name === 'home-compose-picked') {
+      if (name.endsWith('-compose') || name === 'home-compose-picked' || name === 'home-compose-topic') {
         await pg.evaluate(() => { try { localStorage.removeItem('sagliktan:post-draft'); localStorage.removeItem('sagliktan:last-post-target') } catch { /* */ } })
         await pg.getByRole('button', { name: /paylaş…$|Ne paylaşmak istersin\?|küçük bir sevinç…$/ }).first().click(); await pg.waitForTimeout(700)
+        if (name === 'home-compose-topic') {
+          await pg.getByRole('radio', { name: 'Retinitis Pigmentosa' }).click(); await pg.waitForTimeout(600)
+        }
         if (name === 'home-compose-picked') {
           await pg.getByRole('radio', { name: 'Retinitis Pigmentosa' }).click(); await pg.waitForTimeout(500)
           await pg.getByRole('radio', { name: 'Soru-Cevap' }).click()
