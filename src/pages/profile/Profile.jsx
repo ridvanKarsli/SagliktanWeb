@@ -195,19 +195,11 @@ export default function Profile() {
                 </Typography>
               </Box>
               <Box>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700, lineHeight: 1.3, color: 'success.main' }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, lineHeight: 1.3, color: 'primary.main' }}>
                   {stats.likesReceived}
                 </Typography>
                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                   Faydalı
-                </Typography>
-              </Box>
-              <Box>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700, lineHeight: 1.3, color: 'error.main' }}>
-                  {stats.dislikesReceived}
-                </Typography>
-                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                  Faydalı Değil
                 </Typography>
               </Box>
             </Stack>

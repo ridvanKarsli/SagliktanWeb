@@ -40,3 +40,18 @@ export function prettyDate(d) {
   const dt = parseServerDate(d)
   return dt ? dt.toLocaleDateString('tr-TR') : null
 }
+
+// Göreli zaman: "az önce", "5 dk", "3 sa", "2 gün", sonrası kısa tarih.
+// Sosyal akışlarda mutlak tarih ("03.10.2026") yerine bu okunur; yoğun
+// listelerde (yorum, bildirim, sohbet) yer kazandırır.
+export function relativeTime(value, now = new Date()) {
+  const dt = parseServerDate(value)
+  if (!dt) return ''
+  const diff = Math.max(0, (now.getTime() - dt.getTime()) / 1000)
+  if (diff < 45) return 'az önce'
+  if (diff < 3600) return `${Math.round(diff / 60)} dk`
+  if (diff < 86400) return `${Math.round(diff / 3600)} sa`
+  if (diff < 7 * 86400) return `${Math.round(diff / 86400)} gün`
+  const sameYear = dt.getFullYear() === now.getFullYear()
+  return dt.toLocaleDateString('tr-TR', sameYear ? { day: 'numeric', month: 'short' } : { day: 'numeric', month: 'short', year: 'numeric' })
+}

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Alert, Box, Button, CircularProgress, Divider, Stack, ToggleButton, ToggleButtonGroup } from '@mui/material'
+import { Alert, Box, Button, CircularProgress, Divider, Stack, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
 import { DynamicFeedRounded, GroupsRounded } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import PostCard from '../components/PostCard.jsx'
@@ -85,8 +85,14 @@ export default function Home() {
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
+      {/* Sayfa başlığı: diğer sayfalarla (Gruplar, Mesajlar, Profil) aynı
+          başlık dili; sıralama anahtarı başlığın karşısında, tek satırda. */}
+      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.5 }}>
+        <Box>
+          <Typography variant="h4" component="h1" sx={{ fontWeight: 700, lineHeight: 1.2 }}>Akış</Typography>
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>Gruplarından son paylaşımlar</Typography>
+        </Box>
       {!checkingGroups && hasJoinedGroups && (
-        <Stack direction="row" justifyContent="flex-end" sx={{ mb: 1.5 }}>
           <ToggleButtonGroup
             size="small"
             value={sort}
@@ -96,8 +102,8 @@ export default function Home() {
             <ToggleButton value="recent">Yeni</ToggleButton>
             <ToggleButton value="popular">Popüler</ToggleButton>
           </ToggleButtonGroup>
-        </Stack>
       )}
+      </Stack>
 
       {(loading || checkingGroups) ? (
         <Box>

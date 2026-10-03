@@ -265,14 +265,14 @@ export default function DiseaseGroups() {
                     )}
                   </Box>
                   <Button
-                    variant={joined ? 'text' : 'contained'}
+                    variant={joined ? 'outlined' : 'contained'}
                     size="small"
                     disabled={pending}
                     onClick={(e) => (joined ? handleLeave(e, group.id, group.name) : handleJoin(e, group.id))}
                     sx={{
-                      flexShrink: 0, borderRadius: 5, minHeight: 44, minWidth: 72,
+                      flexShrink: 0, borderRadius: 999, minHeight: 40, minWidth: 84,
                       px: 1.75, alignSelf: 'center',
-                      ...(joined ? { color: 'text.secondary' } : {})
+                      ...(joined ? { color: 'text.secondary', borderColor: 'divider' } : {})
                     }}
                   >
                     {pending ? <CircularProgress size={16} color="inherit" /> : (joined ? 'Ayrıl' : 'Katıl')}

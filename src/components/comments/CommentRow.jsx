@@ -3,23 +3,32 @@ import {
   Avatar, Box, Button, CircularProgress, IconButton, Menu, MenuItem, ListItemIcon, ListItemText,
   Stack, SwipeableDrawer, TextField, Typography, useMediaQuery, useTheme
 } from '@mui/material'
-import { ChevronRightRounded, DeleteOutline, EditOutlined, FlagOutlined, MoreVertRounded, ReplyOutlined } from '@mui/icons-material'
+import { DeleteOutline, EditOutlined, ExpandLessRounded, ExpandMoreRounded, FlagOutlined, MoreHorizRounded, SubdirectoryArrowRightRounded } from '@mui/icons-material'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
 import { useConfirm } from '../../context/ConfirmContext.jsx'
 import ReactionButtons from '../ReactionButtons.jsx'
 import SensitiveContentBanner from '../SensitiveContentBanner.jsx'
 import { deleteComment, reactToComment, removeCommentReaction, updateComment } from '../../services/api.js'
-import { initialsFrom, prettyDate } from '../../utils/format.js'
+import { initialsFrom, relativeTime } from '../../utils/format.js'
 import { canManage } from '../../utils/permissions.js'
 import { clickableProps } from '../../utils/clickable.js'
 
-// Tek bir yorum (ya da yanıt) satırı - PostDetail.jsx'ten ayrı bir dosyaya
-// taşındı (bkz. clean-code audit). token/showError/showSuccess/user artık
-// prop olarak alınmıyor, doğrudan context'ten okunuyor - önceden 12 prop
-// alıyordu, bu üç context değeri + user'ın kaldırılmasıyla 8'e indi.
+// Tek bir yorum ya da yanıt satırı. Girinti/bağlantı çizgisi BURADA değil,
+// PostDetail'deki thread bloğunda çizilir - bu bileşen hiçbir zaman kendi
+// içinde başka bir satır render etmez (iç içe geçme tasarım gereği imkânsız).
+//
+// Props:
+//   comment       - CommentResponse
+//   isReply       - girintili blokta mı (avatar/ölçüler küçülür)
+//   replyingTo    - bir başka yanıta verilmiş yanıt ise o kişinin adı
+//   canReply      - kullanıcı gruba üye mi
+//   thread        - { expanded, loading } (sadece replyCount > 0 ise anlamlı)
+//   onToggleThread(comment), onReplySubmitted(comment, text), onUpdated(updated),
+//   onReport(id), onAuthorClick(authorId)
 export default function CommentRow({
-  comment, isReply = false, canReply, onUpdated, onReplySubmitted, onReport, onAuthorClick, onOpenThread
+  comment, isReply = false, replyingTo = null, canReply, thread,
+  onUpdated, onReplySubmitted, onReport, onAuthorClick, onToggleThread
 }) {
   const { token, user } = useAuth()
   const { showError, showSuccess } = useNotification()
@@ -30,21 +39,16 @@ export default function CommentRow({
   const [replyOpen, setReplyOpen] = useState(false)
   const [replyText, setReplyText] = useState('')
   const [replySubmitting, setReplySubmitting] = useState(false)
-  // Düzenle/Sil/Şikayet Et önceden her biri kendi ikonuyla başlıkta yan yana
-  // duruyordu - üç ayrı ikon + avatar + isim aynı satırda dar ekranlarda
-  // sıkışık/karmaşık görünüyordu. Artık tek bir "..." menüsünde toplanıyor
-  // (bkz. kullanıcı geri bildirimi: "yorum kısımları karmaşık").
   const [menuAnchor, setMenuAnchor] = useState(null)
   const confirm = useConfirm()
   const theme = useTheme()
-  // Mobilde satır içi yanıt kutusu, üstteki/alttaki yorumları aşağı itip
-  // parmakla ulaşması zor bir alana taşıyordu - alttan açılan bir Drawer,
-  // klavyeyle birlikte ekranın en erişilebilir bölgesinde kalıyor.
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
 
   const isDeleted = !!comment.deleted
   const manageable = !isDeleted && canManage(user, comment.authorId)
   const isOwnComment = user?.id === comment.authorId
+  const replyCount = comment.replyCount ?? 0
+  const expanded = !!thread?.expanded
 
   const saveEdit = async () => {
     if (!text.trim()) { showError('Yorum boş olamaz.'); return }
@@ -66,9 +70,7 @@ export default function CommentRow({
     setDeleting(true)
     try {
       await deleteComment(token, comment.id)
-      // Backend soft delete yapıyor (satır kalıyor, içerik placeholder'a
-      // dönüyor) ki altındaki yanıt zinciri kopmasın - aynısını burada da
-      // uyguluyoruz, ağaçtan çıkarmıyoruz.
+      // Backend soft delete yapıyor; yanıt zinciri kopmasın diye ağaçtan çıkarmıyoruz.
       onUpdated({ ...comment, deleted: true, content: '[Bu yorum silindi]' })
       showSuccess('Yorum silindi.')
     } catch (err) {
@@ -82,13 +84,9 @@ export default function CommentRow({
     if (!replyText.trim()) { showError('Yanıt boş olamaz.'); return }
     setReplySubmitting(true)
     try {
-      await onReplySubmitted(comment.id, replyText.trim())
+      await onReplySubmitted(comment, replyText.trim())
       setReplyText('')
       setReplyOpen(false)
-      // Az önce eklediği yanıtı hemen görsün diye - bu yorumun thread
-      // görünümünü açıyoruz (zaten açıksa no-op), "N yanıtı görüntüle"
-      // arkasında saklı kalıp kafa karıştırmasın.
-      onOpenThread(comment)
       showSuccess('Yanıt eklendi.')
     } catch (err) {
       showError(err.message || 'Yanıt eklenemedi.')
@@ -97,85 +95,106 @@ export default function CommentRow({
     }
   }
 
+  const avatarSize = isReply ? 28 : 36
+  const authorName = comment.authorName || 'Kullanıcı'
+  const when = relativeTime(comment.createdAt)
+
+  const replyComposer = (
+    <Stack spacing={1.5}>
+      <TextField
+        value={replyText}
+        onChange={e => setReplyText(e.target.value)}
+        placeholder={`${authorName} kişisine yanıt yaz…`}
+        multiline
+        minRows={isMobile ? 3 : 2}
+        maxRows={8}
+        fullWidth
+        size="small"
+        autoFocus={replyOpen}
+        inputProps={{ maxLength: 3000 }}
+      />
+      <Stack direction="row" spacing={1} justifyContent={isMobile ? 'stretch' : 'flex-end'}>
+        <Button
+          fullWidth={isMobile} size={isMobile ? 'medium' : 'small'}
+          onClick={() => setReplyOpen(false)} disabled={replySubmitting}
+          sx={{ minHeight: isMobile ? 44 : undefined, order: isMobile ? 1 : 0 }}
+        >
+          Vazgeç
+        </Button>
+        <Button
+          fullWidth={isMobile} size={isMobile ? 'medium' : 'small'} variant="contained"
+          onClick={submitReply} disabled={replySubmitting || !replyText.trim()}
+          sx={{ minHeight: isMobile ? 44 : undefined, order: isMobile ? 2 : 1 }}
+        >
+          {replySubmitting ? <CircularProgress size={16} color="inherit" /> : 'Yanıtla'}
+        </Button>
+      </Stack>
+    </Stack>
+  )
+
   return (
     <Box
       sx={{
-        // 2 -> 1.5: aksiyon menüsü tekilleşip (bkz. "..." menüsü) ve yanıt
-        // sayısı aynı satıra taşındıktan sonra kart içeriği azaldı, aynı
-        // dolgu artık gereğinden ferah duruyordu - biraz sıkılaştırıldı.
-        p: 1.5,
-        borderRadius: 2,
-        // Instagram'ın yorum satırları borderless - burada da üst seviye
-        // yorum düz zemin üstünde duruyor, sadece yanıtlar (isReply) hafif
-        // bir zemin farkı + sol vurgu çizgisiyle ayrışıyor (hangi yorumun
-        // altına yazıldığı belli olsun diye - bu kısım IG'de yok ama
-        // hiyerarşi netliği için tutuldu).
-        bgcolor: isReply ? 'action.hover' : 'transparent',
-        // Yanıtlar tek bir sabit girinti alıyor - bu satır hiçbir zaman
-        // kendi içinde bir yanıt render etmiyor (bkz. thread-drill
-        // navigasyonu), o yüzden girinti asla üst üste binip büyüyemiyor.
-        ...(isReply
-          ? { ml: { xs: 1.5, sm: 2.5 }, borderLeft: '2px solid', borderLeftColor: 'primary.main' }
-          : {})
+        py: isReply ? 1 : 1.5,
+        // Satırlar düz zemin üstünde, kutusuz: kutu/zemin katmanları
+        // "iç içe geçmiş" hissini yaratan şeydi. Hiyerarşiyi girinti ve
+        // avatar ölçüsü taşıyor, kart kenarları değil.
       }}
     >
-      <Stack direction="row" spacing={1.5}>
+      <Stack direction="row" spacing={isReply ? 1.25 : 1.5} alignItems="flex-start">
         <Avatar
           {...(!isDeleted ? clickableProps(() => onAuthorClick(comment.authorId)) : {})}
-          aria-label={!isDeleted ? `${comment.authorName || 'Kullanıcı'} profiline git` : undefined}
+          aria-label={!isDeleted ? `${authorName} profiline git` : undefined}
           sx={{
-            width: 32, height: 32, fontSize: 13,
-            fontWeight: 700, flexShrink: 0,
-            cursor: isDeleted ? 'default' : 'pointer'
+            width: avatarSize, height: avatarSize, fontSize: isReply ? 11 : 13, fontWeight: 700,
+            flexShrink: 0, cursor: isDeleted ? 'default' : 'pointer', mt: '2px',
+            ...(isDeleted ? { bgcolor: 'action.disabledBackground', color: 'text.disabled' } : {})
           }}
         >
-          {initialsFrom(comment.authorName || '')}
+          {isDeleted ? '·' : initialsFrom(authorName)}
         </Avatar>
+
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Stack
-            direction="row" spacing={1} alignItems="center" justifyContent="space-between"
-            flexWrap="wrap" useFlexGap
-          >
-            <Box>
-              <Typography
-                variant="subtitle2"
-                {...(!isDeleted ? clickableProps(() => onAuthorClick(comment.authorId)) : {})}
-                sx={{
-                  fontWeight: 600, display: 'inline-block',
-                  cursor: isDeleted ? 'default' : 'pointer',
-                  '&:hover': isDeleted ? {} : { textDecoration: 'underline' }
-                }}
-              >
-                {comment.authorName || 'Kullanıcı'}
+          {/* Başlık: ad · zaman — tek satır, menü sağda */}
+          <Stack direction="row" alignItems="center" spacing={0.5} sx={{ minHeight: 28 }}>
+            <Typography
+              component="span"
+              variant="subtitle2"
+              {...(!isDeleted ? clickableProps(() => onAuthorClick(comment.authorId)) : {})}
+              noWrap
+              sx={{
+                fontWeight: 600, lineHeight: 1.3, cursor: isDeleted ? 'default' : 'pointer',
+                color: isDeleted ? 'text.disabled' : 'text.primary',
+                '&:hover': isDeleted ? {} : { textDecoration: 'underline' }
+              }}
+            >
+              {isDeleted ? 'Silinmiş yorum' : authorName}
+            </Typography>
+            {when && (
+              <Typography component="span" variant="caption" sx={{ color: 'text.secondary', flexShrink: 0 }}>
+                · {when}
               </Typography>
-              <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
-                {prettyDate(comment.createdAt) || ''}
-              </Typography>
-            </Box>
+            )}
+            <Box sx={{ flex: 1 }} />
             {!editing && !isDeleted && (manageable || !isOwnComment) && (
               <>
                 <IconButton
                   size="small"
                   onClick={(e) => setMenuAnchor(e.currentTarget)}
-                  aria-label="Diğer seçenekler"
-                  sx={{ flexShrink: 0 }}
+                  aria-label="Yorum seçenekleri"
+                  sx={{ flexShrink: 0, color: 'text.secondary', mr: -1 }}
                 >
-                  <MoreVertRounded fontSize="small" />
+                  <MoreHorizRounded fontSize="small" />
                 </IconButton>
                 <Menu anchorEl={menuAnchor} open={!!menuAnchor} onClose={() => setMenuAnchor(null)}>
                   {manageable && (
-                    <MenuItem
-                      onClick={() => { setMenuAnchor(null); setText(comment.content); setEditing(true) }}
-                    >
+                    <MenuItem onClick={() => { setMenuAnchor(null); setText(comment.content); setEditing(true) }}>
                       <ListItemIcon><EditOutlined fontSize="small" /></ListItemIcon>
                       <ListItemText>Düzenle</ListItemText>
                     </MenuItem>
                   )}
                   {manageable && (
-                    <MenuItem
-                      onClick={() => { setMenuAnchor(null); remove() }}
-                      disabled={deleting}
-                    >
+                    <MenuItem onClick={() => { setMenuAnchor(null); remove() }} disabled={deleting}>
                       <ListItemIcon>
                         {deleting ? <CircularProgress size={16} /> : <DeleteOutline fontSize="small" />}
                       </ListItemIcon>
@@ -185,7 +204,7 @@ export default function CommentRow({
                   {!isOwnComment && (
                     <MenuItem onClick={() => { setMenuAnchor(null); onReport(comment.id) }}>
                       <ListItemIcon><FlagOutlined fontSize="small" /></ListItemIcon>
-                      <ListItemText>Şikayet Et</ListItemText>
+                      <ListItemText>Şikayet et</ListItemText>
                     </MenuItem>
                   )}
                 </Menu>
@@ -193,108 +212,85 @@ export default function CommentRow({
             )}
           </Stack>
 
+          {/* Bir başka yanıta verilmiş yanıt: bağlamı küçük bir satırla göster */}
+          {replyingTo && !isDeleted && (
+            <Stack direction="row" spacing={0.5} alignItems="center" sx={{ color: 'text.secondary', mb: 0.25 }}>
+              <SubdirectoryArrowRightRounded sx={{ fontSize: 14 }} />
+              <Typography variant="caption" noWrap>{replyingTo} kişisine yanıt</Typography>
+            </Stack>
+          )}
+
           {editing ? (
-            <Stack spacing={1} sx={{ mt: 1 }}>
+            <Stack spacing={1} sx={{ mt: 0.5 }}>
               <TextField
-                value={text}
-                onChange={e => setText(e.target.value)}
-                multiline
-                minRows={2}
-                fullWidth
-                size="small"
+                value={text} onChange={e => setText(e.target.value)}
+                multiline minRows={2} maxRows={8} fullWidth size="small" autoFocus
+                inputProps={{ maxLength: 3000 }}
               />
-              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+              <Stack direction="row" spacing={1} justifyContent="flex-end">
+                <Button size="small" onClick={() => setEditing(false)} disabled={saving}>Vazgeç</Button>
                 <Button size="small" variant="contained" onClick={saveEdit} disabled={saving}>
                   {saving ? <CircularProgress size={14} color="inherit" /> : 'Kaydet'}
                 </Button>
-                <Button size="small" onClick={() => setEditing(false)} disabled={saving}>İptal</Button>
               </Stack>
             </Stack>
           ) : (
             <>
-              {/* Yorumlar da okunacak asıl içerik - gövde ölçüsünde (body1),
-                  ikincil metin ölçüsünde değil. */}
               <Typography
                 variant="body1"
                 sx={{
-                  mt: 0.5, whiteSpace: 'pre-line', wordBreak: 'break-word',
-                  ...(isDeleted ? { fontStyle: 'italic', color: 'text.secondary' } : {})
+                  whiteSpace: 'pre-line', wordBreak: 'break-word', lineHeight: 1.5,
+                  fontSize: isReply ? '0.9375rem' : '1rem',
+                  ...(isDeleted ? { fontStyle: 'italic', color: 'text.disabled' } : {})
                 }}
               >
-                {comment.content}
+                {isDeleted ? 'Bu yorum silindi.' : comment.content}
               </Typography>
               {!isDeleted && comment.flaggedSensitive && <SensitiveContentBanner sx={{ mt: 1, mb: 0 }} />}
-              <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap sx={{ mt: 0.5 }}>
-                <ReactionButtons
-                  helpfulCount={comment.helpfulCount}
-                  notHelpfulCount={comment.notHelpfulCount}
-                  myReaction={comment.myReaction}
-                  onReact={(value) => reactToComment(token, comment.id, value)}
-                  onRemove={() => removeCommentReaction(token, comment.id)}
-                />
-                {canReply && (
-                  <Button
-                    size="small"
-                    startIcon={<ReplyOutlined fontSize="small" />}
-                    onClick={() => setReplyOpen(o => !o)}
-                    sx={{ color: 'text.secondary' }}
-                  >
-                    Yanıtla
-                  </Button>
-                )}
-                {/* Önceden reaksiyon/Yanıtla satırının ALTINDA, kendi
-                    mt:1.5'i olan ayrı bir satırdı - her yorum iki ayrı
-                    aksiyon satırı gibi görünüyordu. Tek satıra taşındı,
-                    tek bir aksiyon şeridi hissi versin diye. */}
-                {(comment.replyCount ?? 0) > 0 && (
-                  <Button
-                    size="small"
-                    onClick={() => onOpenThread(comment)}
-                    endIcon={<ChevronRightRounded fontSize="small" />}
-                    sx={{ color: 'primary.main', fontWeight: 600 }}
-                  >
-                    {comment.replyCount} yanıtı görüntüle
-                  </Button>
-                )}
-              </Stack>
+
+              {!isDeleted && (
+                <Stack direction="row" spacing={0.5} alignItems="center" flexWrap="wrap" useFlexGap sx={{ mt: 0.25, ml: -0.75 }}>
+                  <ReactionButtons
+                    helpfulCount={comment.helpfulCount}
+                    notHelpfulCount={comment.notHelpfulCount}
+                    myReaction={comment.myReaction}
+                    onReact={(value) => reactToComment(token, comment.id, value)}
+                    onRemove={() => removeCommentReaction(token, comment.id)}
+                  />
+                  {canReply && (
+                    <Button
+                      size="small"
+                      onClick={() => setReplyOpen(o => !o)}
+                      sx={{ color: 'text.secondary', fontWeight: 600, minHeight: 36, px: 1 }}
+                    >
+                      Yanıtla
+                    </Button>
+                  )}
+                </Stack>
+              )}
+
+              {replyCount > 0 && (
+                <Button
+                  size="small"
+                  onClick={() => onToggleThread(comment)}
+                  disabled={!!thread?.loading}
+                  startIcon={thread?.loading
+                    ? <CircularProgress size={12} />
+                    : expanded ? <ExpandLessRounded fontSize="small" /> : <ExpandMoreRounded fontSize="small" />}
+                  sx={{ color: 'primary.main', fontWeight: 600, minHeight: 36, px: 1, ml: -1, mt: 0.25 }}
+                  aria-expanded={expanded}
+                >
+                  {expanded ? 'Yanıtları gizle' : `${replyCount} yanıt`}
+                </Button>
+              )}
             </>
           )}
 
-          {replyOpen && !isMobile && (
-            <Stack spacing={1} sx={{ mt: 1.5 }}>
-              <TextField
-                value={replyText}
-                onChange={e => setReplyText(e.target.value)}
-                placeholder={`${comment.authorName || 'Kullanıcı'} kişisine yanıt yaz...`}
-                multiline
-                minRows={2}
-                fullWidth
-                size="small"
-                autoFocus
-              />
-              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                <Button size="small" variant="contained" onClick={submitReply} disabled={replySubmitting}>
-                  {replySubmitting ? <CircularProgress size={14} color="inherit" /> : 'Yanıtla'}
-                </Button>
-                <Button size="small" onClick={() => setReplyOpen(false)} disabled={replySubmitting}>İptal</Button>
-              </Stack>
-            </Stack>
-          )}
+          {replyOpen && !isMobile && <Box sx={{ mt: 1.5 }}>{replyComposer}</Box>}
         </Box>
       </Stack>
 
       {isMobile && (
-        // Apple'ın "fluid interfaces" ilkesi: bir sheet parmakla açıldıysa
-        // parmakla da 1:1 kapanabilmeli, sadece buton/backdrop ile değil.
-        // Düz Drawer'da sürükleyerek kapatma yoktu. Bunun için ayrı bir
-        // spring kütüphanesi eklemek yerine (yeni bağımlılık = bundle +
-        // sandbox'ta lockfile riski) MUI'nin zaten pakette olan
-        // SwipeableDrawer'ı kullanıyoruz - aşağı sürüklerken paper parmağı
-        // 1:1 takip ediyor, bırakınca hız/mesafeye göre açık kalıp
-        // kalmayacağına karar veriyor (aynı ilke, hazır implementasyon).
-        // disableSwipeToOpen: açılış hep "Yanıtla" butonuyla, kenardan
-        // sürükleyerek açma davranışını istemiyoruz - sadece kapatma
-        // jesti kalsın.
         <SwipeableDrawer
           anchor="bottom"
           open={replyOpen}
@@ -304,37 +300,18 @@ export default function CommentRow({
           slotProps={{
             paper: {
               sx: {
-                borderTopLeftRadius: 16,
-                borderTopRightRadius: 16,
-                p: 2,
+                borderTopLeftRadius: 16, borderTopRightRadius: 16, p: 2,
                 pb: 'calc(16px + env(safe-area-inset-bottom, 0px))'
               }
             }
           }}
         >
-          <Typography variant="subtitle2" sx={{ mb: 1.5 }}>
-            {comment.authorName || 'Kullanıcı'} kişisine yanıt yaz
+          <Box sx={{ width: 36, height: 4, borderRadius: 2, bgcolor: 'divider', mx: 'auto', mb: 1.5 }} />
+          <Typography variant="subtitle2" sx={{ mb: 0.5 }}>{authorName} kişisine yanıt</Typography>
+          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1.5 }} noWrap>
+            “{(comment.content || '').slice(0, 80)}{(comment.content || '').length > 80 ? '…' : ''}”
           </Typography>
-          <Stack spacing={1.5}>
-            <TextField
-              value={replyText}
-              onChange={e => setReplyText(e.target.value)}
-              placeholder="Yanıtını yaz..."
-              multiline
-              minRows={3}
-              fullWidth
-              size="small"
-              autoFocus={replyOpen}
-            />
-            <Stack direction="row" spacing={1}>
-              <Button fullWidth variant="contained" onClick={submitReply} disabled={replySubmitting} sx={{ minHeight: 44 }}>
-                {replySubmitting ? <CircularProgress size={16} color="inherit" /> : 'Yanıtla'}
-              </Button>
-              <Button fullWidth onClick={() => setReplyOpen(false)} disabled={replySubmitting} sx={{ minHeight: 44 }}>
-                İptal
-              </Button>
-            </Stack>
-          </Stack>
+          {replyComposer}
         </SwipeableDrawer>
       )}
     </Box>

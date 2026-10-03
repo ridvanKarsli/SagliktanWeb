@@ -206,8 +206,14 @@ const typography = {
   },
 }
 
+// 4 = MUI varsayılanı. Önceden 12 idi; bu, sx içindeki `borderRadius: 2/3`
+// gibi ölçek değerlerini (MUI bunları shape.borderRadius ile ÇARPAR)
+// 24px/36px'e şişiriyor, kartları ve istatistik kutularını hap gibi
+// gösteriyordu (bkz. admin paneli ekran görüntüsü). Bileşen düzeyindeki
+// açık px değerleri (Button 10, Paper/Dialog 14, Chip 8, TextField 10)
+// aşağıda zaten tanımlı; bu değer sadece sx ölçeğini normalleştirir.
 const shape = {
-  borderRadius: 12,
+  borderRadius: 4,
 }
 
 // Faz4: X.com/Linear gibi olgun ürünler yüzey ayrımını gölgeyle değil
@@ -454,12 +460,32 @@ function buildTheme(mode) {
             fontWeight: 500,
             fontSize: '0.8125rem',
           },
+          // Önceden `filled` kuralı her renkteki dolu chip'i (success/
+          // warning/error dahil) tek tip teal'e boyuyordu - durum rozetleri
+          // ("Bekliyor", "Pasif", "Silinmiş") anlamını kaybediyordu. Artık
+          // sadece varsayılan renk teal tint; semantik renkler yumuşak
+          // tint + kendi metin rengiyle (okunur, tutarlı rozet sistemi).
           filled: {
-            backgroundColor: colors.chipFilled.bg,
-            color: colors.primary,
-            '&:hover': {
-              backgroundColor: colors.chipFilled.bgHover,
+            '&.MuiChip-colorDefault': {
+              backgroundColor: colors.chipFilled.bg,
+              color: colors.primary,
+              '&:hover': { backgroundColor: colors.chipFilled.bgHover },
             },
+          },
+          colorSuccess: {
+            '&.MuiChip-filled': { backgroundColor: colors.alert.success.bg, color: colors.alert.success.icon },
+            '&.MuiChip-outlined': { borderColor: `${colors.alert.success.icon}80`, color: colors.alert.success.icon },
+          },
+          colorWarning: {
+            '&.MuiChip-filled': { backgroundColor: colors.alert.warning.bg, color: colors.alert.warning.icon },
+            '&.MuiChip-outlined': { borderColor: `${colors.alert.warning.icon}80`, color: colors.alert.warning.icon },
+          },
+          colorError: {
+            '&.MuiChip-filled': { backgroundColor: colors.alert.error.bg, color: colors.alert.error.icon },
+            '&.MuiChip-outlined': { borderColor: `${colors.alert.error.icon}80`, color: colors.alert.error.icon },
+          },
+          colorPrimary: {
+            '&.MuiChip-filled': { backgroundColor: colors.primary, color: colors.background },
           },
           outlined: {
             borderColor: colors.border,

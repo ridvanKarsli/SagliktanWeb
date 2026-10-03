@@ -172,7 +172,7 @@ export default function SubGroups() {
                   icon={<ChatBubbleOutlineRounded sx={{ fontSize: '15px !important' }} />}
                   label={`${sub.postCount ?? 0} sohbet`}
                   data-testid={`subgroup-chat-count-${sub.name}`}
-                  sx={{ flexShrink: 0, color: 'text.secondary', borderColor: 'divider', borderRadius: 5, fontWeight: 500 }}
+                  sx={{ flexShrink: 0, color: 'text.secondary', borderColor: 'divider', borderRadius: 999, fontWeight: 500 }}
                 />
               </Stack>
             </Box>

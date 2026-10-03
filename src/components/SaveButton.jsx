@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Box, IconButton, Tooltip, Typography } from '@mui/material'
+import { Box, Button, Tooltip } from '@mui/material'
 import BookmarkBorderRoundedIcon from '@mui/icons-material/BookmarkBorderRounded'
 import BookmarkRoundedIcon from '@mui/icons-material/BookmarkRounded'
 
@@ -61,37 +61,31 @@ export default function SaveButton({
   const shownSaved = local.saved
   const shownCount = local.count
 
+  // ReactionButtons ile aynı dil: ikon + sayı tek satırda, pill buton.
+  const iconFs = size === 'medium' ? 20 : 18
   return (
-    <Box onClick={(e) => e.stopPropagation()}>
-      <Tooltip title={shownSaved ? 'Kaydı kaldır' : 'Kaydet'}>
-        <span>
-          <IconButton
-            size={size}
-            disabled={disabled}
-            onClick={handleClick}
-            color={shownSaved ? 'primary' : 'default'}
-            aria-label={shownSaved ? 'Kaydı kaldır' : 'Kaydet'}
-          >
-            {shownSaved ? <BookmarkRoundedIcon fontSize="inherit" /> : <BookmarkBorderRoundedIcon fontSize="inherit" />}
-          </IconButton>
-        </span>
-      </Tooltip>
-      <Typography
-        variant="caption"
-        component="div"
-        sx={{
-          fontWeight: 700,
-          color: 'text.primary',
-          px: 0.5,
-          textAlign: 'center',
-          ...(shownCount > 0 ? {} : { height: 0, overflow: 'hidden' })
-        }}
-      >
-        <Box component="span" sx={shownCount > 0 ? null : visuallyHidden}>
-          <Box component="span" data-testid="saved-count">{shownCount}</Box>
-          {' kaydedildi'}
-        </Box>
-      </Typography>
-    </Box>
+    <Tooltip title={shownSaved ? 'Kaydı kaldır' : 'Kaydet'}>
+      <span onClick={(e) => e.stopPropagation()}>
+        <Button
+          size={size}
+          disabled={disabled}
+          onClick={handleClick}
+          aria-label={shownSaved ? 'Kaydı kaldır' : 'Kaydet'}
+          aria-pressed={shownSaved}
+          sx={{
+            minWidth: 0, minHeight: size === 'medium' ? 40 : 36, px: 1, py: 0.5, gap: 0.5, borderRadius: 999,
+            color: shownSaved ? 'primary.main' : 'text.secondary',
+            fontWeight: 700, fontSize: size === 'medium' ? '0.875rem' : '0.8125rem',
+            '&:hover': { bgcolor: 'action.hover' }
+          }}
+        >
+          {shownSaved ? <BookmarkRoundedIcon sx={{ fontSize: iconFs }} /> : <BookmarkBorderRoundedIcon sx={{ fontSize: iconFs }} />}
+          <Box component="span" sx={shownCount > 0 ? { lineHeight: 1 } : visuallyHidden}>
+            <Box component="span" data-testid="saved-count">{shownCount}</Box>
+            <Box component="span" sx={visuallyHidden}>{' kaydedildi'}</Box>
+          </Box>
+        </Button>
+      </span>
+    </Tooltip>
   )
 }

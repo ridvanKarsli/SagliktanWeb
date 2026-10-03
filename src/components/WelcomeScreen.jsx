@@ -93,7 +93,7 @@ export default function WelcomeScreen() {
                   sx={{
                     display: { xs: 'none', sm: 'flex' },
                     alignItems: 'center', gap: 0.5, ml: 0.5,
-                    px: 1, py: 0.375, borderRadius: 5,
+                    px: 1, py: 0.375, borderRadius: 999,
                     border: '1px solid', borderColor: 'divider'
                   }}
                 >

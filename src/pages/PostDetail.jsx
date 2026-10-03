@@ -3,7 +3,7 @@ import {
   Alert, Avatar, Box, Button, CircularProgress, Divider, IconButton, Skeleton, Stack, TextField, Typography
 } from '@mui/material'
 import {
-  ArrowBack, DeleteOutline, EditOutlined, FlagOutlined, InfoOutlined, IosShareRounded, PushPinOutlined,
+  ArrowBack, ChatBubbleOutlineRounded, DeleteOutline, EditOutlined, FlagOutlined, InfoOutlined, IosShareRounded, PushPinOutlined,
   PushPinRounded, SendOutlined
 } from '@mui/icons-material'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -18,6 +18,7 @@ import CommentRow from '../components/comments/CommentRow.jsx'
 import CommentRowSkeleton from '../components/comments/CommentRowSkeleton.jsx'
 import ReportDialog from '../components/comments/ReportDialog.jsx'
 import SensitiveContentBanner from '../components/SensitiveContentBanner.jsx'
+import EmptyState from '../components/EmptyState.jsx'
 import {
   getMyDiseaseGroups, reactToPost, removePostReaction, reportComment, reportPost, savePost, unsavePost
 } from '../services/api.js'
@@ -26,15 +27,15 @@ import { canManage } from '../utils/permissions.js'
 import { goToUserProfile } from '../utils/navigation.js'
 import { clickableProps } from '../utils/clickable.js'
 import { usePost } from '../hooks/usePost.js'
-import { usePostComments } from '../hooks/usePostComments.js'
+import { usePostComments, flattenThread } from '../hooks/usePostComments.js'
 
 // Gönderi detay sayfası. Önceden 1000+ satırlık tek dosyaydı (post + yorum
 // CRUD + thread-drill navigasyonu + rapor dialogu + CommentRow hepsi burada
 // tanımlıydı) - bkz. clean-code audit. Artık:
 //   - usePost(postId): gönderinin kendisi (yükle/düzenle/sil)
-//   - usePostComments(postId): yorum ağacı + thread-drill navigasyonu
+//   - usePostComments(postId): yorum ağacı + yerinde açılan yanıt blokları
 //   - components/comments/{CommentRow,CommentRowSkeleton,ReportDialog}: UI parçaları
-//   - utils/{commentTree,permissions,navigation}: saf yardımcı fonksiyonlar
+//   - utils/{permissions,navigation,format}: saf yardımcı fonksiyonlar
 // Bu dosya artık sadece sayfa düzenini ve bu parçaların birbirine bağlanmasını taşıyor.
 export default function PostDetail() {
   const { postId } = useParams()
@@ -50,11 +51,10 @@ export default function PostDetail() {
   } = usePost(postId)
 
   const {
-    comments, commentsLoading, commentsLoadingMore, last,
-    currentThread, focusedComment,
+    comments, commentsLoading, commentsLoadingMore, last, threads,
     newComment, setNewComment, postingComment,
     loadMoreComments, submitComment, submitReply, saveCommentUpdate,
-    openThread, goBackThread, loadMoreThreadReplies
+    toggleThread, loadMoreReplies
   } = usePostComments(postId)
 
   // { open, type: 'post' | 'comment', targetId }
@@ -337,144 +337,135 @@ export default function PostDetail() {
       <ShareStoryCardDialog open={shareCardOpen} onClose={() => setShareCardOpen(false)} post={post} />
       <SendPostDialog open={sendDialogOpen} onClose={() => setSendDialogOpen(false)} post={post} />
 
-      <Typography variant="h4" sx={{ fontWeight: 600, mb: 2 }}>
-        {focusedComment ? 'Yanıtlar' : 'Yorumlar'}
+      <Typography variant="h6" component="h2" sx={{ fontWeight: 700, mb: 1.5 }}>
+        Yorumlar
       </Typography>
 
-      {/* Bir yorumun thread'i açıkken üst-seviye yorum kutusu yerine odak
-          yorumun kendi "Yanıtla" butonu kullanılıyor - hangi seviyeye yazdığı
-          karışmasın diye. */}
-      {!focusedComment && (
-        myGroupIds != null && !isMember ? (
-          <Alert
-            severity="info"
-            sx={{ mb: 3 }}
-            action={
-              <Button color="inherit" size="small" onClick={() => navigate(`/groups/${post.diseaseGroupId}`)}>
-                Gruba Git
-              </Button>
-            }
-          >
-            Yorum yapabilmek için bu hastalık grubuna üye olmalısın.
-          </Alert>
-        ) : (
-          // Önceden: çok satırlı textarea + altında ayrı hizalanmış bir
-          // "Yorum Yap" butonu - tek bir yorum yazmak için iki satırlık
-          // dikey alan kaplıyordu. Artık tek satırlık (yazdıkça büyüyen)
-          // kutu + yanında gönder ikonu - sohbet composer'larındaki
-          // standart kompakt desen, mesaj kutusuyla (bkz. Chat.jsx) da
-          // görsel dilde tutarlı.
-          <Box component="form" onSubmit={submitComment} sx={{ mb: 3 }}>
-            <Stack direction="row" spacing={1} alignItems="flex-end">
-              <TextField
-                placeholder="Yorumunu yaz..."
-                value={newComment}
-                onChange={e => setNewComment(e.target.value)}
-                multiline
-                minRows={1}
-                maxRows={6}
-                fullWidth
-                size="small"
-                disabled={!isMember}
-              />
-              <IconButton
-                type="submit"
-                color="primary"
-                disabled={postingComment || !isMember}
-                aria-label="Yorum Yap"
-                sx={{ flexShrink: 0, mb: 0.25 }}
-              >
-                {postingComment ? <CircularProgress size={20} /> : <SendOutlined />}
-              </IconButton>
-            </Stack>
-          </Box>
-        )
+      {myGroupIds != null && !isMember ? (
+        <Alert
+          severity="info"
+          sx={{ mb: 2 }}
+          action={
+            <Button color="inherit" size="small" onClick={() => navigate(`/groups/${post.diseaseGroupId}`)}>
+              Gruba git
+            </Button>
+          }
+        >
+          Yorum yapmak için bu hastalık grubuna katılman gerekiyor.
+        </Alert>
+      ) : (
+        <Box component="form" onSubmit={submitComment} sx={{ mb: 1 }}>
+          <Stack direction="row" spacing={1} alignItems="flex-end">
+            <Avatar sx={{ width: 36, height: 36, fontSize: 13, fontWeight: 700, flexShrink: 0, display: { xs: 'none', sm: 'flex' } }}>
+              {initialsFrom(`${user?.firstName || ''} ${user?.lastName || ''}`)}
+            </Avatar>
+            <TextField
+              placeholder="Deneyimini ya da sorunu yaz…"
+              value={newComment}
+              onChange={e => setNewComment(e.target.value)}
+              multiline
+              minRows={1}
+              maxRows={6}
+              fullWidth
+              size="small"
+              disabled={!isMember}
+              inputProps={{ maxLength: 3000, 'aria-label': 'Yorum' }}
+            />
+            <IconButton
+              type="submit"
+              color="primary"
+              disabled={postingComment || !isMember || !newComment.trim()}
+              aria-label="Yorumu gönder"
+              sx={{ flexShrink: 0, mb: 0.25, width: 44, height: 44 }}
+            >
+              {postingComment ? <CircularProgress size={20} /> : <SendOutlined />}
+            </IconButton>
+          </Stack>
+        </Box>
       )}
 
       {commentsLoading ? (
-        <Stack spacing={1}>
+        <Stack>
           <CommentRowSkeleton />
           <CommentRowSkeleton />
           <CommentRowSkeleton />
         </Stack>
-      ) : focusedComment ? (
+      ) : comments.length === 0 ? (
+        <EmptyState
+          icon={ChatBubbleOutlineRounded}
+          title="Henüz yorum yok"
+          description={isMember ? 'İlk yorumu sen yaz; deneyimin başka birine yol gösterebilir.' : 'Gruba katılınca ilk yorumu sen yazabilirsin.'}
+          dense
+        />
+      ) : (
         <Box>
-          <Button
-            size="small"
-            onClick={goBackThread}
-            startIcon={<ArrowBack fontSize="small" />}
-            sx={{ color: 'text.secondary', mb: 1.5 }}
-          >
-            Geri
-          </Button>
-          <CommentRow
-            comment={focusedComment}
-            isReply={false}
-            canReply={isMember}
-            onUpdated={saveCommentUpdate}
-            onReplySubmitted={submitReply}
-            onReport={id => openReportDialog('comment', id)}
-            onAuthorClick={goToProfile}
-            onOpenThread={openThread}
-          />
-          {currentThread?.repliesLoading ? (
-            <Stack spacing={1} sx={{ mt: 1.5 }}>
-              <CommentRowSkeleton />
-              <CommentRowSkeleton />
-            </Stack>
-          ) : currentThread?.replies.length > 0 ? (
-            <Stack spacing={1} sx={{ mt: 1.5 }}>
-              {currentThread.replies.map(reply => (
+          {comments.map(c => {
+            const items = flattenThread(c, threads)
+            return (
+              <Box key={c.id} sx={{ borderBottom: '1px solid', borderColor: 'divider', '&:last-of-type': { borderBottom: 'none' } }}>
                 <CommentRow
-                  key={reply.id}
-                  comment={reply}
-                  isReply
+                  comment={c}
                   canReply={isMember}
+                  thread={threads[c.id]}
                   onUpdated={saveCommentUpdate}
                   onReplySubmitted={submitReply}
                   onReport={id => openReportDialog('comment', id)}
                   onAuthorClick={goToProfile}
-                  onOpenThread={openThread}
+                  onToggleThread={toggleThread}
                 />
-              ))}
-              {currentThread && !currentThread.last && (
-                <Box sx={{ textAlign: 'center', py: 1 }}>
-                  <Button
-                    variant="outlined"
-                    onClick={loadMoreThreadReplies}
-                    disabled={currentThread.repliesLoadingMore}
-                    sx={{ minWidth: 180, minHeight: 44 }}
+                {items.length > 0 && (
+                  // Yanıt bloğu: TEK girinti (kök avatarının altından başlayan
+                  // ince bir bağlantı çizgisi) - içindeki tüm yanıtlar, derinliği
+                  // ne olursa olsun aynı hizada. İç içe geçme yok.
+                  <Box
+                    sx={{
+                      ml: { xs: '18px', sm: '18px' },
+                      pl: { xs: 2, sm: 3.25 },
+                      borderLeft: '2px solid',
+                      borderColor: 'divider',
+                      mb: 1
+                    }}
                   >
-                    {currentThread.repliesLoadingMore ? <CircularProgress size={18} /> : 'Daha Fazla Yükle'}
-                  </Button>
-                </Box>
-              )}
-            </Stack>
-          ) : null}
-        </Box>
-      ) : (
-        <Stack spacing={1}>
-          {comments.length === 0 ? (
-            <Typography variant="body2" sx={{ color: 'text.secondary', textAlign: 'center', py: 4 }}>
-              Henüz yorum yok. İlk yorumu sen yap!
-            </Typography>
-          ) : (
-            comments.map(c => (
-              <CommentRow
-                key={c.id}
-                comment={c}
-                isReply={false}
-                canReply={isMember}
-                onUpdated={saveCommentUpdate}
-                onReplySubmitted={submitReply}
-                onReport={id => openReportDialog('comment', id)}
-                onAuthorClick={goToProfile}
-                onOpenThread={openThread}
-              />
-            ))
-          )}
+                    {items.map(item => {
+                      if (item.kind === 'loading') {
+                        return <Box key={item.key}><CommentRowSkeleton compact /></Box>
+                      }
+                      if (item.kind === 'more') {
+                        return (
+                          <Button
+                            key={item.key}
+                            size="small"
+                            onClick={() => loadMoreReplies(item.parent)}
+                            disabled={item.loadingMore}
+                            sx={{ color: 'text.secondary', fontWeight: 600, my: 0.5, minHeight: 36 }}
+                          >
+                            {item.loadingMore ? <CircularProgress size={14} /> : 'Daha fazla yanıt'}
+                          </Button>
+                        )
+                      }
+                      return (
+                        <CommentRow
+                          key={item.key}
+                          comment={item.comment}
+                          isReply
+                          replyingTo={item.replyingTo}
+                          canReply={isMember}
+                          thread={threads[item.comment.id]}
+                          onUpdated={saveCommentUpdate}
+                          onReplySubmitted={submitReply}
+                          onReport={id => openReportDialog('comment', id)}
+                          onAuthorClick={goToProfile}
+                          onToggleThread={toggleThread}
+                        />
+                      )
+                    })}
+                  </Box>
+                )}
+              </Box>
+            )
+          })}
 
-          {!last && comments.length > 0 && (
+          {!last && (
             <Box sx={{ textAlign: 'center', py: 2 }}>
               <Button
                 variant="outlined"
@@ -482,11 +473,11 @@ export default function PostDetail() {
                 disabled={commentsLoadingMore}
                 sx={{ minWidth: 180, minHeight: 44 }}
               >
-                {commentsLoadingMore ? <CircularProgress size={18} /> : 'Daha Fazla Yükle'}
+                {commentsLoadingMore ? <CircularProgress size={18} /> : 'Daha fazla yorum'}
               </Button>
             </Box>
           )}
-        </Stack>
+        </Box>
       )}
 
       <ReportDialog

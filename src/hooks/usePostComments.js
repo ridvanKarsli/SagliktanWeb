@@ -1,18 +1,23 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useNotification } from '../context/NotificationContext.jsx'
 import { createComment, listComments, listCommentReplies } from '../services/api.js'
-import { bumpReplyCount, updateCommentEverywhere } from '../utils/commentTree.js'
 
-// Bir gönderinin yorum ağacı: kök liste + X/Twitter tarzı thread-drill
-// navigasyonu (threadStack) - PostDetail.jsx'ten taşındı (bkz. clean-code
-// audit, "god component" bölünmesi). Yorum yazma (newComment/submitComment)
-// de burada, çünkü başarılı gönderim doğrudan bu hook'un state'ini (comments
-// listesini) etkiliyor.
+// Bir gönderinin yorum ağacı - YERİNDE AÇILAN thread modeli.
 //
-// threadStack: her frame { comment, replies, repliesLoading,
-// repliesLoadingMore, page, last }. Yalnızca en üstteki (son) frame ekrana
-// basılır; geri gitmek sadece stack'ten pop eder (yeniden fetch gerekmez).
+// Önceki model "thread-drill" idi: "N yanıtı görüntüle" tüm yorum listesini
+// kaldırıp sadece o yorumu + yanıtlarını gösteriyor, kullanıcı "Geri" ile
+// dönüyordu. Mobilde bu, bağlamı kaybettiren ve "iç içe geçmiş" hissi veren
+// bir deneyimdi (bkz. kullanıcı geri bildirimi). Yeni model Instagram/
+// YouTube'un yaptığı gibi: yanıtlar ebeveynin ALTINDA, TEK girinti ile açılır;
+// daha derin yanıtlar da aynı girintili blokta, "↳ Ad kişisine yanıt"
+// başlığıyla DÜZ (flat) listelenir - ekranda hiçbir zaman ikinci bir
+// girinti seviyesi oluşmaz, dar ekranda metin sıkışmaz.
+//
+// Veri: backend her yorum için sadece doğrudan yanıt SAYISINI (replyCount)
+// döner, yanıtlar tıklanınca sayfalı çekilir. `threads` sözlüğü yorum id ->
+// { replies, loading, loadingMore, page, last, expanded } tutar; render
+// tarafı bir kök yorumun altındaki bloğu flattenThread() ile düzleştirir.
 export function usePostComments(postId) {
   const { token } = useAuth()
   const { showError, showSuccess } = useNotification()
@@ -22,88 +27,93 @@ export function usePostComments(postId) {
   const [commentsLoadingMore, setCommentsLoadingMore] = useState(false)
   const [page, setPage] = useState(0)
   const [last, setLast] = useState(true)
-  const [threadStack, setThreadStack] = useState([])
+  const [threads, setThreads] = useState({})
 
   const [newComment, setNewComment] = useState('')
   const [postingComment, setPostingComment] = useState(false)
 
+  // Eski yanıt (başka bir gönderiye geçildikten sonra gelen) geçerli listeyi
+  // ezmesin diye istek sıra numarası.
+  const loadSeqRef = useRef(0)
+
   const loadComments = useCallback(() => {
     if (!token || !postId) return
+    const seq = ++loadSeqRef.current
     setCommentsLoading(true)
     setPage(0)
-    setThreadStack([])
+    setThreads({})
     listComments(token, postId, { page: 0 })
       .then(res => {
+        if (seq !== loadSeqRef.current) return
         setComments(Array.isArray(res?.content) ? res.content : [])
         setLast(res?.last ?? true)
       })
-      .catch(err => showError(err.message || 'Yorumlar alınamadı.'))
-      .finally(() => setCommentsLoading(false))
+      .catch(err => { if (seq === loadSeqRef.current) showError(err.message || 'Yorumlar alınamadı.') })
+      .finally(() => { if (seq === loadSeqRef.current) setCommentsLoading(false) })
   }, [token, postId, showError])
 
   useEffect(() => { loadComments() }, [loadComments])
 
-  // Bir yorumun thread'ini aç: o yorum "odak" olur, doğrudan yanıtları
-  // backend'den (ilk sayfa) çekilir. Zaten açık olan bir thread'i tekrar
-  // açmak (ör. az önce ona bir yanıt eklendiğinde) yeni bir seviye
-  // EKLEMEZ, ama yanıtları YENİDEN çeker ki yeni eklenen yanıt görünsün.
-  const openThread = useCallback(async (comment) => {
-    setThreadStack(prev => {
-      if (prev.length > 0 && prev[prev.length - 1].comment.id === comment.id) return prev
-      return [...prev, { comment, replies: [], repliesLoading: true, repliesLoadingMore: false, page: 0, last: true }]
-    })
+  const patchThread = useCallback((id, patch) => {
+    setThreads(prev => ({ ...prev, [id]: { ...(prev[id] || { replies: [], page: 0, last: true, expanded: false, loading: false, loadingMore: false }), ...patch } }))
+  }, [])
+
+  // Bir yorumun yanıtlarını (ilk sayfa) çek ve bloğu aç. force=true ise
+  // zaten yüklüyse de yeniden çeker (az önce yanıt eklendiğinde).
+  const fetchReplies = useCallback(async (comment, { force = false } = {}) => {
+    const existing = threads[comment.id]
+    if (existing && existing.replies.length > 0 && !force) {
+      patchThread(comment.id, { expanded: true })
+      return
+    }
+    patchThread(comment.id, { expanded: true, loading: true })
     try {
       const res = await listCommentReplies(token, comment.id, { page: 0 })
-      setThreadStack(prev => {
-        const idx = prev.findIndex(f => f.comment.id === comment.id)
-        if (idx === -1) return prev
-        const next = [...prev]
-        next[idx] = {
-          ...next[idx],
-          replies: Array.isArray(res?.content) ? res.content : [],
-          repliesLoading: false,
-          page: 0,
-          last: res?.last ?? true
-        }
-        return next
+      patchThread(comment.id, {
+        replies: Array.isArray(res?.content) ? res.content : [],
+        loading: false, page: 0, last: res?.last ?? true, expanded: true
       })
     } catch (err) {
       showError(err.message || 'Yanıtlar alınamadı.')
-      setThreadStack(prev => prev.map(f => (f.comment.id === comment.id ? { ...f, repliesLoading: false } : f)))
+      patchThread(comment.id, { loading: false })
     }
-  }, [token, showError])
+  }, [threads, token, showError, patchThread])
 
-  const goBackThread = () => setThreadStack(prev => prev.slice(0, -1))
+  const toggleThread = useCallback((comment) => {
+    const t = threads[comment.id]
+    if (t?.expanded) { patchThread(comment.id, { expanded: false }); return }
+    fetchReplies(comment)
+  }, [threads, fetchReplies, patchThread])
 
-  // Açık olan thread seviyesinde "Daha Fazla Yükle" - o yorumun bir sonraki
-  // yanıt sayfasını mevcut listeye ekler.
-  const loadMoreThreadReplies = async () => {
-    const frame = threadStack[threadStack.length - 1]
-    if (!frame) return
-    const nextPage = frame.page + 1
-    setThreadStack(prev => prev.map((f, i) => (i === prev.length - 1 ? { ...f, repliesLoadingMore: true } : f)))
+  const loadMoreReplies = useCallback(async (comment) => {
+    const t = threads[comment.id]
+    if (!t || t.loadingMore) return
+    const nextPage = t.page + 1
+    patchThread(comment.id, { loadingMore: true })
     try {
-      const res = await listCommentReplies(token, frame.comment.id, { page: nextPage })
-      setThreadStack(prev => prev.map((f, i) => (i === prev.length - 1 ? {
-        ...f,
-        replies: [...f.replies, ...(Array.isArray(res?.content) ? res.content : [])],
-        last: res?.last ?? true,
-        page: nextPage,
-        repliesLoadingMore: false
-      } : f)))
+      const res = await listCommentReplies(token, comment.id, { page: nextPage })
+      setThreads(prev => {
+        const cur = prev[comment.id]
+        if (!cur) return prev
+        const known = new Set(cur.replies.map(r => r.id))
+        const added = (Array.isArray(res?.content) ? res.content : []).filter(r => !known.has(r.id))
+        return { ...prev, [comment.id]: { ...cur, replies: [...cur.replies, ...added], last: res?.last ?? true, page: nextPage, loadingMore: false } }
+      })
     } catch (err) {
       showError(err.message || 'Yanıtlar alınamadı.')
-      setThreadStack(prev => prev.map((f, i) => (i === prev.length - 1 ? { ...f, repliesLoadingMore: false } : f)))
+      patchThread(comment.id, { loadingMore: false })
     }
-  }
+  }, [threads, token, showError, patchThread])
 
-  // Sayfa numaralı gezinme yerine mevcut listeye ekleyen "Daha Fazla Yükle".
   const loadMoreComments = async () => {
     const nextPage = page + 1
     setCommentsLoadingMore(true)
     try {
       const res = await listComments(token, postId, { page: nextPage })
-      setComments(prev => [...prev, ...(Array.isArray(res?.content) ? res.content : [])])
+      setComments(prev => {
+        const known = new Set(prev.map(c => c.id))
+        return [...prev, ...(Array.isArray(res?.content) ? res.content : []).filter(c => !known.has(c.id))]
+      })
       setLast(res?.last ?? true)
       setPage(nextPage)
     } catch (err) {
@@ -129,31 +139,59 @@ export function usePostComments(postId) {
     }
   }
 
-  const submitReply = async (parentCommentId, content) => {
-    await createComment(token, postId, content, parentCommentId)
-    // Yanıtın kendisi CommentRow.submitReply'de ardından onOpenThread(comment)
-    // çağrılarak (o dalın taze verisiyle) gösterilecek - burada sadece
-    // ebeveynin "N yanıtı görüntüle" sayacını, nerede gösteriliyorsa orada
-    // bir artırıyoruz.
-    const { comments: nextComments, threadStack: nextStack } = bumpReplyCount(comments, threadStack, parentCommentId, 1)
-    setComments(nextComments)
-    setThreadStack(nextStack)
+  // Bir alanı (content/deleted/replyCount) yorum nerede duruyorsa orada
+  // güncelle: kök liste + tüm thread blokları.
+  const patchEverywhere = useCallback((id, fn) => {
+    setComments(prev => prev.map(c => (c.id === id ? fn(c) : c)))
+    setThreads(prev => {
+      let changed = false
+      const next = {}
+      for (const [k, t] of Object.entries(prev)) {
+        const replies = t.replies.map(r => { if (r.id === id) { changed = true; return fn(r) } return r })
+        next[k] = changed ? { ...t, replies } : t
+      }
+      return changed ? next : prev
+    })
+  }, [])
+
+  const submitReply = async (parentComment, content) => {
+    await createComment(token, postId, content, parentComment.id)
+    patchEverywhere(parentComment.id, c => ({ ...c, replyCount: (c.replyCount ?? 0) + 1 }))
+    // Yeni yanıt hemen görünsün: ebeveynin bloğunu taze veriyle aç.
+    await fetchReplies(parentComment, { force: true })
   }
 
   const saveCommentUpdate = (updated) => {
-    const { comments: nextComments, threadStack: nextStack } = updateCommentEverywhere(comments, threadStack, updated)
-    setComments(nextComments)
-    setThreadStack(nextStack)
+    // update() uç noktası replyCount'u bilmez (0 döner) - sadece değişen
+    // alanları yazıyoruz.
+    patchEverywhere(updated.id, c => ({ ...c, content: updated.content, deleted: updated.deleted }))
   }
-
-  const currentThread = threadStack.length > 0 ? threadStack[threadStack.length - 1] : null
-  const focusedComment = currentThread?.comment ?? null
 
   return {
-    comments, commentsLoading, commentsLoadingMore, last,
-    currentThread, focusedComment,
+    comments, commentsLoading, commentsLoadingMore, last, threads,
     newComment, setNewComment, postingComment,
     loadMoreComments, submitComment, submitReply, saveCommentUpdate,
-    openThread, goBackThread, loadMoreThreadReplies
+    toggleThread, loadMoreReplies
   }
+}
+
+// Bir kök yorumun altındaki açık yanıt bloğunu DÜZ bir listeye çevirir.
+// Her öğe: { comment, replyingTo } - replyingTo, yanıtın doğrudan kök
+// yoruma değil bir başka yanıta verildiğini gösterir (Instagram'daki
+// "@ad" bağlamı). İç içe yanıtlar sırayla, ebeveyninden hemen sonra gelir;
+// ekranda ek girinti oluşmaz.
+export function flattenThread(rootComment, threads) {
+  const out = []
+  const walk = (parent, replyingTo) => {
+    const t = threads[parent.id]
+    if (!t?.expanded) return
+    for (const r of t.replies) {
+      out.push({ kind: 'reply', key: `r-${r.id}`, comment: r, replyingTo, parent })
+      walk(r, r.authorName)
+    }
+    if (t.loading) out.push({ kind: 'loading', key: `l-${parent.id}`, parent })
+    else if (!t.last) out.push({ kind: 'more', key: `m-${parent.id}`, parent, loadingMore: t.loadingMore })
+  }
+  walk(rootComment, null)
+  return out
 }

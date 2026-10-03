@@ -1,64 +1,44 @@
-import { useState } from 'react'
-import {
-  Box, Button, Chip, CircularProgress, FormControlLabel, Stack, Switch, Table, TableBody,
-  TableCell, TableContainer, TableHead, TableRow, TextField, ToggleButton, ToggleButtonGroup,
-  Typography, useMediaQuery
-} from '@mui/material'
-import { useTheme } from '@mui/material/styles'
+import { useEffect, useState } from 'react'
+import { Box, Button, Chip, CircularProgress, FormControlLabel, Stack, Switch, Typography } from '@mui/material'
+import { DeleteOutline, ForumOutlined, OpenInNewRounded } from '@mui/icons-material'
+import { useNavigate } from 'react-router-dom'
 import Lightbox from 'yet-another-react-lightbox'
 import Zoom from 'yet-another-react-lightbox/plugins/zoom'
 import 'yet-another-react-lightbox/styles.css'
 import { useNotification } from '../../../context/NotificationContext.jsx'
 import { useConfirm } from '../../../context/ConfirmContext.jsx'
 import { deleteComment, deletePost, listAdminComments, listAdminPosts } from '../../../services/api.js'
-import { prettyDate } from '../../../utils/format.js'
+import { relativeTime } from '../../../utils/format.js'
 import { usePaginatedList } from '../../../hooks/usePaginatedList.js'
+import { AdminCard, AdminEmpty, AdminList, AdminLoading, AdminSearch, LoadMoreButton, SegmentedFilter } from '../AdminUi.jsx'
 
-// AdminPanel.jsx'ten ayrı bir dosyaya taşındı (bkz. clean-code audit).
-
-// Fotoğraf küçük resimleri (admin'in içeriği tıklamadan/indirmeden hızlıca
-// göz atıp tehlikeli/uygunsuz olanı fark edebilmesi için) - hem masaüstü
-// tablosunda hem mobil kartta kullanılıyor, tekrarı önlemek adına ayrı bileşen.
-// Önceden yeni sekmede ham dosyayı açıyordu (<a target="_blank">) - siteki
-// diğer görsellerle (bkz. PostGallery.jsx) tutarlı olsun diye artık aynı
-// yet-another-react-lightbox ile tıklayınca büyütülüyor/yakınlaştırılıyor.
 function AttachmentThumbnails({ attachments }) {
   const [lightboxIndex, setLightboxIndex] = useState(-1)
   if (!attachments || attachments.length === 0) return null
   return (
     <>
-      <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{ mt: 0.5, mb: 0.5 }}>
+      <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{ mt: 1 }}>
         {attachments.map((a, i) => (
           <Box
             key={a.id}
+            component="button"
+            type="button"
             onClick={() => setLightboxIndex(i)}
+            aria-label={`Fotoğraf ${i + 1}`}
             className="tap-scale"
-            sx={{ display: 'block', width: 56, height: 56, borderRadius: 1, overflow: 'hidden', flexShrink: 0, cursor: 'zoom-in' }}
+            sx={{ p: 0, border: 'none', display: 'block', width: 64, height: 64, borderRadius: 2, overflow: 'hidden', flexShrink: 0, cursor: 'zoom-in', bgcolor: 'action.hover' }}
           >
-            <Box
-              component="img"
-              src={a.url}
-              alt=""
-              loading="lazy"
-              sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-            />
+            <Box component="img" src={a.url} alt="" loading="lazy" sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
           </Box>
         ))}
       </Stack>
-
       <Lightbox
         open={lightboxIndex >= 0}
         close={() => setLightboxIndex(-1)}
         index={lightboxIndex}
         slides={attachments.map(a => ({ src: a.url }))}
         plugins={[Zoom]}
-        zoom={{
-          maxZoomPixelRatio: 4,
-          doubleTapDelay: 300,
-          doubleClickDelay: 300,
-          scrollToZoom: true
-        }}
-        // PostGallery.jsx ile aynı tutarlılık: aşağı sürükleyerek kapatma.
+        zoom={{ maxZoomPixelRatio: 4, doubleTapDelay: 300, doubleClickDelay: 300, scrollToZoom: true }}
         controller={{ closeOnBackdropClick: true, closeOnPullDown: true }}
         styles={{ container: { backgroundColor: 'rgba(20, 17, 14, 0.94)' } }}
       />
@@ -67,82 +47,74 @@ function AttachmentThumbnails({ attachments }) {
 }
 
 function ContentCard({ item, type, deletingId, remove }) {
+  const navigate = useNavigate()
+  const isPost = type === 'posts'
+  const removed = !isPost && item.deleted
+  const href = isPost ? `/post/${item.id}` : (item.postId ? `/post/${item.postId}` : null)
   return (
-    <Box
-      sx={{
-        p: 2, borderRadius: 2, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider',
-        // Kart, Stack'in stretch ile verdiği genişliği aşmasın diye açıkça
-        // sabitlendi + overflow:hidden eklendi. Gerçek gönderi metinleri
-        // (uzun kesintisiz kelime/URL içermese bile) bazı mobil
-        // motorlarda satır sonu vermeden kartın dışına taşıp overflow-x:
-        // hidden (bkz. index.css) yüzünden sağ tarafı sessizce kırpılıyordu
-        // (bkz. mobil tasarım hatası ekran görüntüsü) - width/minWidth/
-        // overflow üçlüsü bunu kart seviyesinde garanti altına alıyor.
-        width: '100%', minWidth: 0, boxSizing: 'border-box', overflow: 'hidden'
-      }}
-    >
-      {type === 'posts' && (
-        <Typography
-          variant="body2"
-          sx={{ fontWeight: 600, mb: 0.5, wordBreak: 'break-word', overflowWrap: 'anywhere' }}
-        >
+    <AdminCard sx={{ opacity: removed ? 0.6 : 1 }}>
+      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.75 }}>
+        <Typography variant="caption" sx={{ fontWeight: 600 }} noWrap>{item.authorName}</Typography>
+        <Typography variant="caption" sx={{ color: 'text.secondary' }}>· {relativeTime(item.createdAt)}</Typography>
+        <Box sx={{ flex: 1 }} />
+        {removed && <Chip size="small" label="Silinmiş" />}
+      </Stack>
+      {isPost && (
+        <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
           {item.title}
         </Typography>
       )}
       <Typography
         variant="body2"
         sx={{
-          mb: 1, wordBreak: 'break-word', overflowWrap: 'anywhere',
-          color: type === 'posts' ? 'text.secondary' : 'text.primary'
+          wordBreak: 'break-word', overflowWrap: 'anywhere', color: isPost ? 'text.secondary' : 'text.primary',
+          display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden'
         }}
       >
         {item.content}
       </Typography>
-      {type === 'posts' && <AttachmentThumbnails attachments={item.attachments} />}
-      <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1}>
-        <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
-          <Typography variant="caption" sx={{ color: 'text.secondary' }}>{item.authorName}</Typography>
-          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-            {prettyDate(item.createdAt) || ''}
-          </Typography>
-          {type === 'comments' && (
-            <Chip size="small" label={item.deleted ? 'Silinmiş' : 'Aktif'} color={item.deleted ? 'default' : 'success'} />
-          )}
-        </Stack>
-        {!(type === 'comments' && item.deleted) && (
-          <Button size="small" color="error" disabled={deletingId === item.id} onClick={() => remove(item)}>
+      {isPost && <AttachmentThumbnails attachments={item.attachments} />}
+      <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1.25 }}>
+        {href && (
+          <Button size="small" endIcon={<OpenInNewRounded sx={{ fontSize: 16 }} />} onClick={() => navigate(href)} sx={{ minHeight: 36, color: 'text.secondary' }}>
+            Aç
+          </Button>
+        )}
+        <Box sx={{ flex: 1 }} />
+        {!removed && (
+          <Button
+            size="small" color="error" startIcon={deletingId === item.id ? <CircularProgress size={14} color="inherit" /> : <DeleteOutline />}
+            disabled={deletingId === item.id} onClick={() => remove(item)} sx={{ minHeight: 36 }}
+          >
             Sil
           </Button>
         )}
       </Stack>
-    </Box>
+    </AdminCard>
   )
 }
 
 export default function ContentTab({ token }) {
-  // Faz8-8: theme.js'in "breakpoint değerleri her zaman theme.breakpoints'ten
-  // gelmeli" konvansiyonuna uymayan tek istisnaydı (elle yazılmış piksel
-  // medya sorgusu) - diğer admin tabları (UsersTab/ReportsTab) gibi down('md')
-  // kullanacak şekilde hizalandı.
-  const theme = useTheme()
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
   const [type, setType] = useState('posts') // 'posts' | 'comments'
   const [q, setQ] = useState('')
-  // Tehlikeli/uygunsuz görsel içerik denetimi: sadece fotoğraflı gönderileri
-  // filtreleme - sadece 'posts' tipinde anlamlı, yorumların fotoğrafı yok.
+  const [debouncedQ, setDebouncedQ] = useState('')
   const [onlyWithPhotos, setOnlyWithPhotos] = useState(false)
   const [deletingId, setDeletingId] = useState(null)
   const { showError, showSuccess } = useNotification()
   const confirm = useConfirm()
 
-  // Sayfalama: önceden sadece ilk 50 kayıt listeleniyordu (bkz. ReportsTab).
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQ(q.trim()), 300)
+    return () => clearTimeout(t)
+  }, [q])
+
   const {
     items, loading, loadingMore, last, totalCount, loadMore, reload: load,
   } = usePaginatedList(
     (pageNum) => (type === 'posts'
-      ? listAdminPosts(token, { q: q || undefined, hasPhotos: onlyWithPhotos || undefined, page: pageNum, size: 50 })
-      : listAdminComments(token, { q: q || undefined, page: pageNum, size: 50 })),
-    { deps: [token, type, q, onlyWithPhotos], onError: (err) => showError(err.message || 'İçerik alınamadı.') }
+      ? listAdminPosts(token, { q: debouncedQ || undefined, hasPhotos: onlyWithPhotos || undefined, page: pageNum, size: 30 })
+      : listAdminComments(token, { q: debouncedQ || undefined, page: pageNum, size: 30 })),
+    { deps: [token, type, debouncedQ, onlyWithPhotos], onError: (err) => showError(err.message || 'İçerik alınamadı.') }
   )
 
   const remove = async (item) => {
@@ -163,104 +135,33 @@ export default function ContentTab({ token }) {
   }
 
   return (
-    <Box sx={{ mt: 2 }}>
-      {/* NOT: spacing prop'u kaldırıldı - sx'teki gap:1 ile birlikte
-          kullanılınca (spacing kendi margin mekanizmasını, gap de CSS
-          gap'i uyguluyor) öğeler arası boşluk iki katına çıkıp dar
-          ekranlarda satırın toplam genişlik talebini gereksiz artırıyordu.
-          Arama kutusu da UsersTab.jsx'teki gibi xs'te tam genişliğe
-          çekildi - sabit 280px, çok dar telefonlarda (ör. iPhone SE)
-          tek başına bile satırın taşmasına yakın bir pay bırakıyordu. */}
-      <Stack direction="row" alignItems="center" sx={{ mb: 2, flexWrap: 'wrap', gap: 1 }}>
-        <ToggleButtonGroup size="small" value={type} exclusive onChange={(_, v) => v && setType(v)}>
-          <ToggleButton value="posts">Gönderiler</ToggleButton>
-          <ToggleButton value="comments">Yorumlar</ToggleButton>
-        </ToggleButtonGroup>
-        <TextField
-          size="small" placeholder="İçerikte ara..." value={q}
-          onChange={e => setQ(e.target.value)}
-          sx={{ width: { xs: '100%', sm: 280 } }}
+    <Stack spacing={2}>
+      <AdminSearch value={q} onChange={setQ} placeholder="İçerikte ara..." />
+      <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap" useFlexGap>
+        <SegmentedFilter
+          ariaLabel="İçerik türü"
+          value={type}
+          onChange={setType}
+          options={[{ value: 'posts', label: 'Gönderiler' }, { value: 'comments', label: 'Yorumlar' }]}
         />
         {type === 'posts' && (
           <FormControlLabel
-            control={
-              <Switch
-                size="small"
-                checked={onlyWithPhotos}
-                onChange={e => setOnlyWithPhotos(e.target.checked)}
-              />
-            }
-            label="Sadece fotoğraflı"
+            sx={{ ml: 'auto', mr: 0 }}
+            control={<Switch size="small" checked={onlyWithPhotos} onChange={e => setOnlyWithPhotos(e.target.checked)} />}
+            label={<Typography variant="body2">Sadece fotoğraflı</Typography>}
           />
         )}
       </Stack>
 
-      {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress size={22} /></Box>
-      ) : isMobile ? (
-        <Stack spacing={1.5}>
-          {items.length === 0 && (
-            <Typography variant="body2" sx={{ color: 'text.secondary', textAlign: 'center', py: 4 }}>Kayıt yok.</Typography>
-          )}
-          {items.map(item => (
-            <ContentCard key={item.id} item={item} type={type} deletingId={deletingId} remove={remove} />
-          ))}
-        </Stack>
+      {loading ? <AdminLoading /> : items.length === 0 ? (
+        <AdminEmpty icon={ForumOutlined} title="İçerik bulunamadı" description={debouncedQ ? 'Aramayı değiştirip tekrar dene.' : undefined} />
       ) : (
-        <TableContainer sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflowX: 'auto' }}>
-          {/* ReportsTab.jsx ile aynı fix: minWidth olmadan tablo dar
-              viewport'ta İçerik sütununu okunmaz şekilde sıkıştırıyordu. */}
-          <Table size="small" sx={{ minWidth: 760 }}>
-            <TableHead>
-              <TableRow>
-                {type === 'posts' && <TableCell>Başlık</TableCell>}
-                <TableCell>İçerik</TableCell>
-                <TableCell>Yazar</TableCell>
-                {type === 'comments' && <TableCell>Durum</TableCell>}
-                <TableCell>Tarih</TableCell>
-                <TableCell align="right">Aksiyon</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {items.length === 0 && (
-                <TableRow><TableCell colSpan={5} align="center">Kayıt yok.</TableCell></TableRow>
-              )}
-              {items.map(item => (
-                <TableRow key={item.id}>
-                  {type === 'posts' && (
-                    <TableCell sx={{ maxWidth: 160, whiteSpace: 'normal', wordBreak: 'break-word' }}>{item.title}</TableCell>
-                  )}
-                  <TableCell sx={{ maxWidth: 280, whiteSpace: 'normal', wordBreak: 'break-word' }}>
-                    {item.content}
-                    {type === 'posts' && <AttachmentThumbnails attachments={item.attachments} />}
-                  </TableCell>
-                  <TableCell>{item.authorName}</TableCell>
-                  {type === 'comments' && (
-                    <TableCell>
-                      <Chip size="small" label={item.deleted ? 'Silinmiş' : 'Aktif'} color={item.deleted ? 'default' : 'success'} />
-                    </TableCell>
-                  )}
-                  <TableCell>{prettyDate(item.createdAt) || ''}</TableCell>
-                  <TableCell align="right">
-                    {!(type === 'comments' && item.deleted) && (
-                      <Button size="small" color="error" disabled={deletingId === item.id} onClick={() => remove(item)}>
-                        Sil
-                      </Button>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+        <AdminList>
+          {items.map(item => <ContentCard key={item.id} item={item} type={type} deletingId={deletingId} remove={remove} />)}
+        </AdminList>
       )}
-      {!loading && !last && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
-          <Button variant="outlined" size="small" onClick={loadMore} disabled={loadingMore}>
-            {loadingMore ? 'Yükleniyor…' : `Daha fazla yükle (${items.length}/${totalCount})`}
-          </Button>
-        </Box>
-      )}
-    </Box>
+
+      {!loading && !last && <LoadMoreButton loading={loadingMore} shown={items.length} total={totalCount} onClick={loadMore} noun="içerik" />}
+    </Stack>
   )
 }

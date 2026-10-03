@@ -46,7 +46,8 @@ export default function Chat() {
   const [sending, setSending] = useState(false)
 
   const [menuAnchor, setMenuAnchor] = useState(null)
-  const [reportTarget, setReportTarget] = useState(null) // message id
+  const [reportTarget, setReportTarget] = useState(null)
+  const [selectedMessageId, setSelectedMessageId] = useState(null) // message id
   const [reportReason, setReportReason] = useState('')
   const [isBlocked, setIsBlocked] = useState(false) // ben onu engelledim
   const [blockedByOther, setBlockedByOther] = useState(false) // o beni engellemiş
@@ -298,9 +299,14 @@ export default function Chat() {
           {messages.map(m => {
             const mine = String(m.senderId) === String(currentUser?.id)
             return (
-              <Box key={m.id} sx={{ display: 'flex', justifyContent: mine ? 'flex-end' : 'flex-start' }}>
+              <Box key={m.id} sx={{ display: 'flex', flexDirection: 'column', alignItems: mine ? 'flex-end' : 'flex-start' }}>
                 <Box
                   onContextMenu={(e) => { if (!mine) { e.preventDefault(); setReportTarget(m.id) } }}
+                  // Mobilde her gelen baloncuğun köşesinde sürekli duran bayrak
+                  // ikonu sohbeti kalabalıklaştırıyordu; baloncuğa dokununca
+                  // altında tek bir "Şikayet et" eylemi beliriyor (WhatsApp/
+                  // iMessage'daki dokun-eylem göster deseni). Masaüstünde hover.
+                  onClick={() => { if (!mine) setSelectedMessageId(id => (id === m.id ? null : m.id)) }}
                   sx={{
                     maxWidth: '75%',
                     bgcolor: mine ? 'primary.main' : 'action.hover',
@@ -382,20 +388,30 @@ export default function Chat() {
                       aria-label="Mesajı şikayet et"
                       className="report-message-btn"
                       sx={{
-                        position: 'absolute', top: { xs: -16, sm: -10 }, right: { xs: -16, sm: -10 },
-                        width: { xs: 44, sm: 24 }, height: { xs: 44, sm: 24 },
+                        position: 'absolute', top: -10, right: -10, width: 24, height: 24,
                         bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider',
                         // Hover, dokunmatik cihazlarda tetiklenmiyor - "hover'da
                         // görün" davranışı masaüstünde temiz dursun diye
                         // korunuyor, ama mobilde buton hiç görünmez/erişilemez
                         // hale gelmesin diye orada her zaman görünür tutuluyor.
-                        opacity: { xs: 1, sm: 0 }, transition: 'opacity 0.15s'
+                        opacity: 0, transition: 'opacity 0.15s',
+                        display: { xs: 'none', sm: 'inline-flex' }
                       }}
                     >
-                      <FlagOutlined sx={{ fontSize: { xs: 16, sm: 13 } }} />
+                      <FlagOutlined sx={{ fontSize: 13 }} />
                     </IconButton>
                   )}
                 </Box>
+                {!mine && selectedMessageId === m.id && (
+                  <Button
+                    size="small"
+                    startIcon={<FlagOutlined sx={{ fontSize: 16 }} />}
+                    onClick={() => { setSelectedMessageId(null); setReportTarget(m.id) }}
+                    sx={{ mt: 0.5, minHeight: 36, color: 'text.secondary', display: { xs: 'inline-flex', sm: 'none' } }}
+                  >
+                    Mesajı şikayet et
+                  </Button>
+                )}
               </Box>
             )
           })}

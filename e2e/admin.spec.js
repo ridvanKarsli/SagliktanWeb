@@ -68,7 +68,7 @@ test.describe('Admin paneli', () => {
     await adminPage.goto('/admin')
     await adminPage.getByRole('tab', { name: 'Şikayetler' }).click()
 
-    const reportRow = adminPage.getByRole('row').filter({ hasText: reportReason })
+    const reportRow = adminPage.getByRole('listitem').filter({ hasText: reportReason })
     await expect(reportRow).toBeVisible()
     await reportRow.getByRole('button', { name: 'İçeriği Sil' }).click()
     await adminPage.getByRole('dialog').getByRole('button', { name: 'Sil', exact: true }).click()
@@ -98,7 +98,7 @@ test.describe('Admin paneli', () => {
     await adminPage.getByRole('tab', { name: 'Kullanıcılar' }).click()
 
     await adminPage.getByPlaceholder('Ad, soyad ya da e-posta ara...').fill(target.email)
-    const userRow = adminPage.getByRole('row').filter({ hasText: target.email })
+    const userRow = adminPage.getByRole('listitem').filter({ hasText: target.email })
     await expect(userRow).toBeVisible()
     await userRow.getByRole('button', { name: 'Düzenle' }).click()
 
@@ -138,7 +138,7 @@ test.describe('Admin paneli', () => {
     await adminPage.getByRole('tab', { name: 'İçerik' }).click()
     await adminPage.getByPlaceholder('İçerikte ara...').fill(postTitle)
 
-    const contentRow = adminPage.getByRole('row').filter({ hasText: postTitle })
+    const contentRow = adminPage.getByRole('listitem').filter({ hasText: postTitle })
     await expect(contentRow).toBeVisible()
     await contentRow.getByRole('button', { name: 'Sil' }).click()
     const confirmDialog = adminPage.getByRole('dialog')

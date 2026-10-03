@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Box, IconButton, Stack, Tooltip, Typography } from '@mui/material'
+import { Box, Button, Stack, Tooltip } from '@mui/material'
 import ThumbUpAltOutlinedIcon from '@mui/icons-material/ThumbUpAltOutlined'
 import ThumbUpAltIcon from '@mui/icons-material/ThumbUpAlt'
 import ThumbDownAltOutlinedIcon from '@mui/icons-material/ThumbDownAltOutlined'
@@ -104,78 +104,72 @@ export default function ReactionButtons({
   const shownHelpful = local.helpfulCount
   const shownNotHelpful = local.notHelpfulCount
   const shownReaction = local.myReaction
-  const hasAnyReaction = shownHelpful > 0 || shownNotHelpful > 0
 
-  // Instagram tarzı: aksiyon ikonları üstte tek satır (numara ikonun
-  // yanında değil - IG'de kalp/yorum/paylaş ikonları sade, sayı ayrı bir
-  // özet satırında), altında kalın bir "N faydalı · N faydalı değil" özet
-  // satırı. data-testid'ler ve buton aria-label'ları (E2E'nin dayandığı
-  // sözleşme) birebir korundu - sadece görsel yerleşim değişti.
+  // Tek satır, kompakt: [👍 12] [👎 1]. Önceki iki katmanlı yerleşim
+  // (ikonlar üstte, "N faydalı · N faydalı değil" altta) yorum satırlarında
+  // "Yanıtla" ile hizasızlık ve fazladan bir satır yüksekliği üretiyordu;
+  // sayı ikonun hemen yanında olunca hem daha az yer kaplıyor hem de hangi
+  // sayının hangi butona ait olduğu tartışmasız. data-testid'ler ve
+  // aria-label'lar (E2E sözleşmesi) korunuyor; sayı 0 iken görünmez ama
+  // DOM'da kalır.
+  const btnSx = (active, activeColor) => ({
+    minWidth: 0, minHeight: size === 'medium' ? 40 : 36, px: 1, py: 0.5,
+    borderRadius: 999, gap: 0.5,
+    color: active ? activeColor : 'text.secondary',
+    fontWeight: 700, fontSize: size === 'medium' ? '0.875rem' : '0.8125rem',
+    '&:hover': { bgcolor: 'action.hover' }
+  })
+  const countSx = (n) => (n > 0 ? { lineHeight: 1 } : visuallyHidden)
+  const iconFs = size === 'medium' ? 20 : 18
+
   return (
-    <Box onClick={(e) => e.stopPropagation()}>
-      <Stack
-        direction="row"
-        spacing={0.5}
-        alignItems="center"
-        // Tıklamayı ENGELLEMİYOR (bkz. handleClick - artık pending iken de
-        // tıklamaya izin veriliyor), sadece isteğin sürdüğüne dair hafif bir
-        // görsel ipucu. Bilerek `disabled` değil `opacity` - disabled olsaydı
-        // hızlı ikinci tıklamayı yine engellerdik (aynı race'e geri dönerdik).
-        sx={{ opacity: pending ? 0.7 : 1, transition: 'opacity 0.15s ease' }}
-      >
-        <Tooltip title="Faydalı">
-          <span>
-            <IconButton
-              size={size}
-              disabled={disabled}
-              onClick={(e) => handleClick(e, 'HELPFUL')}
-              color={shownReaction === 'HELPFUL' ? 'primary' : 'default'}
-              aria-label="Faydalı"
-            >
-              {shownReaction === 'HELPFUL' ? <ThumbUpAltIcon fontSize="inherit" /> : <ThumbUpAltOutlinedIcon fontSize="inherit" />}
-            </IconButton>
-          </span>
-        </Tooltip>
-        <Tooltip title="Faydalı Değil">
-          <span>
-            <IconButton
-              size={size}
-              disabled={disabled}
-              onClick={(e) => handleClick(e, 'NOT_HELPFUL')}
-              color={shownReaction === 'NOT_HELPFUL' ? 'error' : 'default'}
-              aria-label="Faydalı Değil"
-            >
-              {shownReaction === 'NOT_HELPFUL' ? <ThumbDownAltIcon fontSize="inherit" /> : <ThumbDownAltOutlinedIcon fontSize="inherit" />}
-            </IconButton>
-          </span>
-        </Tooltip>
-      </Stack>
-      {/* Sayı 0 iken metin GÖSTERİLMEZ: akıştaki her gönderinin altında
-          "0 faydalı · 0 faydalı değil" yazması, hiçbir bilgi vermeyen ama
-          her kartı kalabalıklaştıran bir gürültüydü (Instagram da "0 beğeni"
-          yazmaz). Ancak iki testid de sayı 0 olsa bile DOM'da KALMALI - E2E
-          başlangıçta "0" değerini okuyor (bkz. reactions.spec.js) - bu yüzden
-          gizlerken DOM'dan çıkarmıyor, görsel olarak saklıyoruz. */}
-      <Typography
-        variant="caption"
-        component="div"
-        sx={{
-          fontWeight: 700,
-          color: 'text.primary',
-          px: 0.5,
-          ...(hasAnyReaction ? {} : { height: 0, overflow: 'hidden' })
-        }}
-      >
-        <Box component="span" sx={shownHelpful > 0 ? null : visuallyHidden}>
-          <Box component="span" data-testid="reaction-helpful-count">{shownHelpful}</Box>
-          {' faydalı'}
-        </Box>
-        {shownHelpful > 0 && shownNotHelpful > 0 ? '  ·  ' : ''}
-        <Box component="span" sx={shownNotHelpful > 0 ? null : visuallyHidden}>
-          <Box component="span" data-testid="reaction-not-helpful-count">{shownNotHelpful}</Box>
-          {' faydalı değil'}
-        </Box>
-      </Typography>
-    </Box>
+    <Stack
+      direction="row"
+      spacing={0}
+      alignItems="center"
+      onClick={(e) => e.stopPropagation()}
+      sx={{ opacity: pending ? 0.7 : 1, transition: 'opacity 0.15s ease' }}
+    >
+      <Tooltip title="Faydalı">
+        <span>
+          <Button
+            size={size}
+            disabled={disabled}
+            onClick={(e) => handleClick(e, 'HELPFUL')}
+            aria-label="Faydalı"
+            aria-pressed={shownReaction === 'HELPFUL'}
+            sx={btnSx(shownReaction === 'HELPFUL', 'primary.main')}
+          >
+            {shownReaction === 'HELPFUL'
+              ? <ThumbUpAltIcon sx={{ fontSize: iconFs }} />
+              : <ThumbUpAltOutlinedIcon sx={{ fontSize: iconFs }} />}
+            <Box component="span" sx={countSx(shownHelpful)}>
+              <Box component="span" data-testid="reaction-helpful-count">{shownHelpful}</Box>
+              <Box component="span" sx={visuallyHidden}>{' faydalı'}</Box>
+            </Box>
+          </Button>
+        </span>
+      </Tooltip>
+      <Tooltip title="Faydalı değil">
+        <span>
+          <Button
+            size={size}
+            disabled={disabled}
+            onClick={(e) => handleClick(e, 'NOT_HELPFUL')}
+            aria-label="Faydalı Değil"
+            aria-pressed={shownReaction === 'NOT_HELPFUL'}
+            sx={btnSx(shownReaction === 'NOT_HELPFUL', 'error.main')}
+          >
+            {shownReaction === 'NOT_HELPFUL'
+              ? <ThumbDownAltIcon sx={{ fontSize: iconFs }} />
+              : <ThumbDownAltOutlinedIcon sx={{ fontSize: iconFs }} />}
+            <Box component="span" sx={countSx(shownNotHelpful)}>
+              <Box component="span" data-testid="reaction-not-helpful-count">{shownNotHelpful}</Box>
+              <Box component="span" sx={visuallyHidden}>{' faydalı değil'}</Box>
+            </Box>
+          </Button>
+        </span>
+      </Tooltip>
+    </Stack>
   )
 }

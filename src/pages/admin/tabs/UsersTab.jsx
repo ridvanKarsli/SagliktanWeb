@@ -1,16 +1,17 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
-  Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle,
-  FormControlLabel, MenuItem, Stack, Switch, Table, TableBody, TableCell, TableContainer,
-  TableHead, TableRow, TextField, Typography, useMediaQuery
+  Avatar, Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle,
+  FormControlLabel, MenuItem, Stack, Switch, TextField, Typography
 } from '@mui/material'
-import { useTheme } from '@mui/material/styles'
+import { PeopleAltOutlined, ShieldOutlined } from '@mui/icons-material'
+import { useNavigate } from 'react-router-dom'
 import { useNotification } from '../../../context/NotificationContext.jsx'
 import { useConfirm } from '../../../context/ConfirmContext.jsx'
 import { listAdminUsers, updateAdminUser } from '../../../services/api.js'
 import { usePaginatedList } from '../../../hooks/usePaginatedList.js'
-
-// AdminPanel.jsx'ten ayrı bir dosyaya taşındı (bkz. clean-code audit).
+import { initialsFrom, relativeTime } from '../../../utils/format.js'
+import { clickableProps } from '../../../utils/clickable.js'
+import { AdminCard, AdminEmpty, AdminList, AdminLoading, AdminSearch, LoadMoreButton, SegmentedFilter } from '../AdminUi.jsx'
 
 function EditUserDialog({ user, onClose, onSaved, token }) {
   const [firstName, setFirstName] = useState(user.firstName || '')
@@ -24,13 +25,7 @@ function EditUserDialog({ user, onClose, onSaved, token }) {
 
   const save = async () => {
     if (!firstName.trim() || !lastName.trim()) { showError('Ad ve soyad zorunludur.'); return }
-    // Faz8-5: rol/aktiflik burada tek dokunuşla değişip kaydediliyordu -
-    // uygulamanın her yerinde yıkıcı/hassas aksiyonlar useConfirm() ile
-    // onaylatılırken, dokunmatik ekranda kolayca yanlışlıkla tıklanabilecek
-    // bir Switch/Select ile yetki yükseltme ya da hesap pasifleştirme
-    // istisnaydı. Sadece GERÇEKTEN değişen hassas alanlar için soruyoruz -
-    // ad/soyad/bio düzenlemesi her seferinde onay istemeyi gereksiz
-    // yorucu hale getirmesin diye.
+    // Hassas alanlar (rol/aktiflik) sadece GERÇEKTEN değiştiyse onay ister.
     const roleChanged = role !== (user.role || 'USER')
     const activeChanged = active !== !!user.active
     if (roleChanged || activeChanged) {
@@ -39,7 +34,7 @@ function EditUserDialog({ user, onClose, onSaved, token }) {
       if (activeChanged) parts.push(active ? 'hesabını yeniden aktifleştirmek' : 'hesabını pasifleştirmek')
       const ok = await confirm(
         `${user.email} kullanıcısının ${parts.join(' ve ')} istiyor musun?`,
-        { title: 'Hassas değişikliği onayla' }
+        { title: 'Hassas değişikliği onayla', confirmLabel: 'Onayla' }
       )
       if (!ok) return
     }
@@ -59,22 +54,24 @@ function EditUserDialog({ user, onClose, onSaved, token }) {
 
   return (
     <Dialog open onClose={saving ? undefined : onClose} maxWidth="xs" fullWidth>
-      <DialogTitle>{user.email}</DialogTitle>
+      <DialogTitle sx={{ wordBreak: 'break-all' }}>{user.email}</DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ mt: 1 }}>
-          <TextField label="Ad" value={firstName} onChange={e => setFirstName(e.target.value)} fullWidth />
-          <TextField label="Soyad" value={lastName} onChange={e => setLastName(e.target.value)} fullWidth />
+          <Stack direction="row" spacing={1.5}>
+            <TextField label="Ad" value={firstName} onChange={e => setFirstName(e.target.value)} fullWidth />
+            <TextField label="Soyad" value={lastName} onChange={e => setLastName(e.target.value)} fullWidth />
+          </Stack>
           <TextField
             label="Biyografi" value={bio} onChange={e => setBio(e.target.value)}
-            fullWidth multiline minRows={2} slotProps={{ htmlInput: { 'data-testid': 'edit-user-bio' } }}
+            fullWidth multiline minRows={2} slotProps={{ htmlInput: { 'data-testid': 'edit-user-bio', maxLength: 500 } }}
           />
           <TextField select label="Rol" value={role} onChange={e => setRole(e.target.value)} fullWidth>
-            <MenuItem value="USER">USER</MenuItem>
-            <MenuItem value="ADMIN">ADMIN</MenuItem>
+            <MenuItem value="USER">Kullanıcı</MenuItem>
+            <MenuItem value="ADMIN">Admin</MenuItem>
           </TextField>
           <FormControlLabel
             control={<Switch checked={active} onChange={e => setActive(e.target.checked)} />}
-            label="Hesap aktif"
+            label={active ? 'Hesap aktif' : 'Hesap pasif - giriş yapamaz'}
           />
         </Stack>
       </DialogContent>
@@ -89,113 +86,86 @@ function EditUserDialog({ user, onClose, onSaved, token }) {
 }
 
 function UserCard({ u, onEdit }) {
+  const navigate = useNavigate()
+  const name = `${u.firstName || ''} ${u.lastName || ''}`.trim() || 'İsimsiz'
   return (
-    // width/minWidth/overflow üçlüsü: ContentTab.jsx#ContentCard ile aynı
-    // gerekçe - mobilde metin kart sınırını taşıp overflow-x:hidden (bkz.
-    // index.css) yüzünden sağ tarafın sessizce kırpılmasını önlüyor.
-    <Box
-      sx={{
-        p: 2, borderRadius: 2, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider',
-        width: '100%', minWidth: 0, boxSizing: 'border-box', overflow: 'hidden'
-      }}
-    >
-      <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
-        <Box sx={{ minWidth: 0 }}>
-          <Typography variant="body2" sx={{ fontWeight: 600 }}>{u.firstName} {u.lastName}</Typography>
-          <Typography variant="caption" sx={{ color: 'text.secondary', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>{u.email}</Typography>
+    <AdminCard sx={{ opacity: u.active ? 1 : 0.7 }}>
+      <Stack direction="row" spacing={1.5} alignItems="center">
+        <Avatar
+          {...clickableProps(() => navigate(`/users/${u.id}`))}
+          aria-label={`${name} profiline git`}
+          sx={{ width: 40, height: 40, fontSize: 14, fontWeight: 700, flexShrink: 0, cursor: 'pointer' }}
+        >
+          {initialsFrom(name)}
+        </Avatar>
+        <Box sx={{ minWidth: 0, flex: 1 }}>
+          <Stack direction="row" spacing={0.75} alignItems="center">
+            <Typography variant="body1" sx={{ fontWeight: 600, lineHeight: 1.25 }} noWrap>{name}</Typography>
+            {u.role === 'ADMIN' && <ShieldOutlined sx={{ fontSize: 16, color: 'primary.main' }} titleAccess="Admin" />}
+          </Stack>
+          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', wordBreak: 'break-all' }}>{u.email}</Typography>
         </Box>
-        <Button size="small" onClick={() => onEdit(u)} sx={{ flexShrink: 0 }}>Düzenle</Button>
+        <Button size="small" variant="outlined" onClick={() => onEdit(u)} sx={{ flexShrink: 0, minHeight: 36 }}>Düzenle</Button>
       </Stack>
-      <Stack direction="row" spacing={1} sx={{ mt: 1.5 }} flexWrap="wrap" useFlexGap>
-        <Chip size="small" label={u.role} color={u.role === 'ADMIN' ? 'primary' : 'default'} />
-        <Chip size="small" label={u.active ? 'Aktif' : 'Pasif'} color={u.active ? 'success' : 'default'} />
-        <Chip size="small" variant="outlined" label={u.emailVerified ? 'Doğrulanmış' : 'Doğrulanmamış'} />
+      <Stack direction="row" spacing={0.75} sx={{ mt: 1.25 }} flexWrap="wrap" useFlexGap alignItems="center">
+        {!u.active && <Chip size="small" label="Pasif" />}
+        {!u.emailVerified && <Chip size="small" label="Doğrulanmamış" color="warning" variant="outlined" />}
+        {u.active && u.emailVerified && <Chip size="small" label="Aktif" color="success" variant="outlined" />}
+        <Typography variant="caption" sx={{ color: 'text.secondary', ml: 'auto !important' }} noWrap>
+          {relativeTime(u.createdAt)} katıldı
+        </Typography>
       </Stack>
-    </Box>
+    </AdminCard>
   )
 }
 
 export default function UsersTab({ token }) {
-  const theme = useTheme()
-  // Faz8-5: ReportsTab.jsx'teki aynı fix - eşik tablonun minWidth'iyle
-  // eşleşsin diye down('md') (900px) kullanılıyor. Önceden down('sm')
-  // (600px) idi ve tabloda minWidth yoktu - 600-900px arası (tablet)
-  // kullanıcılar 6 sütunu yatay kaydırmadan okuyamıyordu.
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
   const [q, setQ] = useState('')
+  const [debouncedQ, setDebouncedQ] = useState('')
+  const [filter, setFilter] = useState('all') // all | admin | inactive | unverified
   const [editing, setEditing] = useState(null)
   const { showError } = useNotification()
 
-  // Sayfalama: önceden sadece ilk 50 kullanıcı listeleniyordu (bkz. ReportsTab).
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQ(q.trim()), 300)
+    return () => clearTimeout(t)
+  }, [q])
+
+  const params = filter === 'admin' ? { role: 'ADMIN' } : filter === 'inactive' ? { active: false } : {}
+
   const {
     items: users, setItems: setUsers, loading, loadingMore, last, totalCount, loadMore,
   } = usePaginatedList(
-    (pageNum) => listAdminUsers(token, { q: q || undefined, page: pageNum, size: 50 }),
-    { deps: [token, q], onError: (err) => showError(err.message || 'Kullanıcılar alınamadı.') }
+    (pageNum) => listAdminUsers(token, { q: debouncedQ || undefined, ...params, page: pageNum, size: 30 }),
+    { deps: [token, debouncedQ, filter], onError: (err) => showError(err.message || 'Kullanıcılar alınamadı.') }
   )
 
+  const shown = filter === 'unverified' ? users.filter(u => !u.emailVerified) : users
+
   return (
-    <Box sx={{ mt: 2 }}>
-      <TextField
-        size="small" placeholder="Ad, soyad ya da e-posta ara..." value={q}
-        onChange={e => setQ(e.target.value)}
-        sx={{ width: { xs: '100%', sm: 320 }, mb: 2 }}
+    <Stack spacing={2}>
+      <AdminSearch value={q} onChange={setQ} placeholder="Ad, soyad ya da e-posta ara..." />
+      <SegmentedFilter
+        ariaLabel="Kullanıcı filtresi"
+        value={filter}
+        onChange={setFilter}
+        options={[
+          { value: 'all', label: 'Tümü' },
+          { value: 'admin', label: 'Adminler' },
+          { value: 'inactive', label: 'Pasif' },
+          { value: 'unverified', label: 'Doğrulanmamış' },
+        ]}
       />
 
-      {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress size={22} /></Box>
-      ) : isMobile ? (
-        <Stack spacing={1.5}>
-          {users.length === 0 && (
-            <Typography variant="body2" sx={{ color: 'text.secondary', textAlign: 'center', py: 4 }}>Kayıt yok.</Typography>
-          )}
-          {users.map(u => (
-            <UserCard key={u.id} u={u} onEdit={setEditing} />
-          ))}
-        </Stack>
+      {loading ? <AdminLoading /> : shown.length === 0 ? (
+        <AdminEmpty icon={PeopleAltOutlined} title="Kullanıcı bulunamadı" description={debouncedQ ? 'Aramayı değiştirip tekrar dene.' : undefined} />
       ) : (
-        <TableContainer sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflowX: 'auto' }}>
-          <Table size="small" sx={{ minWidth: 700 }}>
-            <TableHead>
-              <TableRow>
-                <TableCell>Ad Soyad</TableCell>
-                <TableCell>E-posta</TableCell>
-                <TableCell>Rol</TableCell>
-                <TableCell>Doğrulanmış</TableCell>
-                <TableCell>Durum</TableCell>
-                <TableCell align="right">Aksiyon</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {users.length === 0 && (
-                <TableRow><TableCell colSpan={6} align="center">Kayıt yok.</TableCell></TableRow>
-              )}
-              {users.map(u => (
-                <TableRow key={u.id}>
-                  <TableCell>{u.firstName} {u.lastName}</TableCell>
-                  <TableCell sx={{ maxWidth: 220, whiteSpace: 'normal', wordBreak: 'break-word' }}>{u.email}</TableCell>
-                  <TableCell><Chip size="small" label={u.role} color={u.role === 'ADMIN' ? 'primary' : 'default'} /></TableCell>
-                  <TableCell>{u.emailVerified ? 'Evet' : 'Hayır'}</TableCell>
-                  <TableCell>
-                    <Chip size="small" label={u.active ? 'Aktif' : 'Pasif'} color={u.active ? 'success' : 'default'} />
-                  </TableCell>
-                  <TableCell align="right">
-                    <Button size="small" onClick={() => setEditing(u)}>Düzenle</Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+        <AdminList>
+          {shown.map(u => <UserCard key={u.id} u={u} onEdit={setEditing} />)}
+        </AdminList>
       )}
 
-      {!loading && !last && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
-          <Button variant="outlined" size="small" onClick={loadMore} disabled={loadingMore}>
-            {loadingMore ? 'Yükleniyor…' : `Daha fazla yükle (${users.length}/${totalCount})`}
-          </Button>
-        </Box>
-      )}
+      {!loading && !last && <LoadMoreButton loading={loadingMore} shown={users.length} total={totalCount} onClick={loadMore} noun="kullanıcı" />}
 
       {editing && (
         <EditUserDialog
@@ -208,6 +178,6 @@ export default function UsersTab({ token }) {
           }}
         />
       )}
-    </Box>
+    </Stack>
   )
 }

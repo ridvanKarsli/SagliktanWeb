@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Avatar, Box, Chip, IconButton, Stack, Typography } from '@mui/material'
-import { FlagOutlined, GroupsRounded, PushPinRounded, SendOutlined } from '@mui/icons-material'
+import { Avatar, Box, IconButton, Stack, Typography } from '@mui/material'
+import { FlagOutlined, PushPinRounded, SendOutlined } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import ReactionButtons from './ReactionButtons.jsx'
 import SaveButton from './SaveButton.jsx'
@@ -118,32 +118,37 @@ export default function PostCard({ post, onClick, token, highlightQuery, showPin
           {initialsFrom(authorName || '')}
         </Avatar>
         <Box sx={{ minWidth: 0, flex: 1 }}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.primary' }} noWrap>
-            {authorName || 'Kullanıcı'}
-          </Typography>
-          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-            {dateLabel}{edited ? ' · düzenlendi' : ''}
-          </Typography>
+          <Stack direction="row" alignItems="baseline" spacing={0.75} sx={{ minWidth: 0 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.primary' }} noWrap>
+              {authorName || 'Kullanıcı'}
+            </Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary', flexShrink: 0 }}>
+              · {dateLabel}{edited ? ' · düzenlendi' : ''}
+            </Typography>
+          </Stack>
+          {/* Grup bağlamı ikinci satırda, metin olarak: önceden sağda sıkışan
+              bir chip'ti ve "Retinitis Pigmentosa · …" diye kırpılıyordu.
+              Ana sayfa karışık akışında (bkz. Home.jsx) subGroupName dolu
+              gelir; tek-alt-grup bağlamlarında (Posts.jsx) backend bu alanı
+              doldurmaz, satır hiç render olmaz. */}
+          {subGroupName && (
+            <Typography
+              variant="caption"
+              component="button"
+              type="button"
+              onClick={(e) => { e.stopPropagation(); navigate(`/sub-groups/${subGroupId}`) }}
+              sx={{
+                display: 'block', maxWidth: '100%', p: 0, border: 'none', bgcolor: 'transparent',
+                font: 'inherit', fontSize: '0.8125rem', textAlign: 'left', cursor: 'pointer',
+                color: 'primary.main', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                '&:hover': { textDecoration: 'underline' },
+                '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 2, borderRadius: 1 }
+              }}
+            >
+              {diseaseGroupName ? `${diseaseGroupName} › ${subGroupName}` : subGroupName}
+            </Typography>
+          )}
         </Box>
-        {/* Ana sayfa karışık akışında (bkz. Home.jsx) subGroupName dolu
-            geliyor - hangi gruptan geldiği belli olmazsa, birbirinden çok
-            farklı hastalık gruplarının içerikleri karışınca kafa karıştırır.
-            Posts.jsx gibi tek-alt-grup bağlamlarında backend bu alanı hiç
-            doldurmuyor (bkz. PostResponseAssembler.assemble vs assembleFeed),
-            o yüzden orada rozet hiç render olmuyor. */}
-        {subGroupName && (
-          <Chip
-            size="small"
-            icon={<GroupsRounded sx={{ fontSize: '14px !important' }} />}
-            label={diseaseGroupName ? `${diseaseGroupName} · ${subGroupName}` : subGroupName}
-            onClick={(e) => { e.stopPropagation(); navigate(`/sub-groups/${subGroupId}`) }}
-            sx={{
-              flexShrink: 0, maxWidth: 180, color: 'text.secondary',
-              bgcolor: 'action.hover', fontWeight: 500,
-              '& .MuiChip-label': { overflow: 'hidden', textOverflow: 'ellipsis' }
-            }}
-          />
-        )}
       </Stack>
 
       {/* Okunabilirlik: başlık ve gövde metni, akışta göz yormadan

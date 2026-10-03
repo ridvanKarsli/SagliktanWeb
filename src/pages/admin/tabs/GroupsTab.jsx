@@ -3,15 +3,14 @@ import {
   Accordion, AccordionDetails, AccordionSummary, Box, Button, CircularProgress, Dialog,
   DialogActions, DialogContent, DialogTitle, IconButton, Stack, TextField, Typography
 } from '@mui/material'
-import { DeleteOutline, EditOutlined, ExpandMoreRounded } from '@mui/icons-material'
+import { AddRounded, DeleteOutline, EditOutlined, ExpandMoreRounded, GroupsOutlined } from '@mui/icons-material'
 import { useNotification } from '../../../context/NotificationContext.jsx'
 import { useConfirm } from '../../../context/ConfirmContext.jsx'
 import {
   createDiseaseGroup, createSubGroup, deleteDiseaseGroup, deleteSubGroup, listDiseaseGroups,
   listSubGroups, updateDiseaseGroup, updateSubGroup
 } from '../../../services/api.js'
-
-// AdminPanel.jsx'ten ayrı bir dosyaya taşındı (bkz. clean-code audit).
+import { AdminEmpty, AdminLoading, SectionTitle } from '../AdminUi.jsx'
 
 function GroupNameDialog({ title, initial, onClose, onSave }) {
   const [name, setName] = useState(initial?.name || '')
@@ -38,11 +37,12 @@ function GroupNameDialog({ title, initial, onClose, onSave }) {
         <Stack spacing={2} sx={{ mt: 1 }}>
           <TextField
             label="Ad" value={name} onChange={e => setName(e.target.value)} fullWidth autoFocus
-            slotProps={{ htmlInput: { 'data-testid': 'group-name' } }}
+            slotProps={{ htmlInput: { 'data-testid': 'group-name', maxLength: 100 } }}
           />
           <TextField
             label="Açıklama" value={description} onChange={e => setDescription(e.target.value)}
-            fullWidth multiline minRows={2}
+            fullWidth multiline minRows={2} slotProps={{ htmlInput: { maxLength: 500 } }}
+            helperText="Grup sayfasında ve arama sonuçlarında görünür."
           />
         </Stack>
       </DialogContent>
@@ -57,7 +57,7 @@ function GroupNameDialog({ title, initial, onClose, onSave }) {
 }
 
 function SubGroupRow({ subGroup, token, onChanged }) {
-  const [dialog, setDialog] = useState(null) // null | 'edit'
+  const [dialog, setDialog] = useState(null)
   const { showError, showSuccess } = useNotification()
   const confirm = useConfirm()
 
@@ -74,18 +74,13 @@ function SubGroupRow({ subGroup, token, onChanged }) {
   }
 
   return (
-    <Stack
-      direction="row" alignItems="center" justifyContent="space-between"
-      sx={{ py: 1, px: 2, borderTop: '1px solid', borderColor: 'divider' }}
-    >
-      <Box>
-        <Typography variant="body2" sx={{ fontWeight: 600 }}>{subGroup.name}</Typography>
-        <Typography variant="caption" sx={{ color: 'text.secondary' }}>{subGroup.postCount} sohbet</Typography>
+    <Stack direction="row" alignItems="center" spacing={1} sx={{ py: 1, pl: 2, pr: 1, borderTop: '1px solid', borderColor: 'divider' }}>
+      <Box sx={{ minWidth: 0, flex: 1 }}>
+        <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>{subGroup.name}</Typography>
+        <Typography variant="caption" sx={{ color: 'text.secondary' }}>{subGroup.postCount} gönderi</Typography>
       </Box>
-      <Stack direction="row" spacing={0.5}>
-        <IconButton size="small" aria-label="Alt Grubu Düzenle" onClick={() => setDialog('edit')}><EditOutlined fontSize="small" /></IconButton>
-        <IconButton size="small" aria-label="Alt Grubu Sil" onClick={remove}><DeleteOutline fontSize="small" /></IconButton>
-      </Stack>
+      <IconButton size="small" aria-label="Alt Grubu Düzenle" onClick={() => setDialog('edit')} sx={{ width: 40, height: 40 }}><EditOutlined fontSize="small" /></IconButton>
+      <IconButton size="small" aria-label="Alt Grubu Sil" onClick={remove} sx={{ width: 40, height: 40 }}><DeleteOutline fontSize="small" /></IconButton>
       {dialog === 'edit' && (
         <GroupNameDialog
           title="Alt Grubu Düzenle"
@@ -105,14 +100,11 @@ function SubGroupRow({ subGroup, token, onChanged }) {
 
 function DiseaseGroupAccordion({ group, token, onChanged }) {
   const [subGroups, setSubGroups] = useState(null)
-  const [dialog, setDialog] = useState(null) // null | 'edit' | 'newSub'
+  const [dialog, setDialog] = useState(null)
   const { showError, showSuccess } = useNotification()
   const confirm = useConfirm()
 
   const loadSubGroups = useCallback(() => {
-    // Başarısız olursa boş liste göster ("Henüz alt grup yok" gibi) - accordion
-    // zaten kullanıcının kendi açtığı ikincil bir görünüm, ayrı bir toast
-    // eklemek burada gürültü olurdu (bkz. api.js hata yutma konvansiyonu).
     listSubGroups(token, group.id).then(setSubGroups).catch(() => setSubGroups([]))
   }, [token, group.id])
 
@@ -130,16 +122,20 @@ function DiseaseGroupAccordion({ group, token, onChanged }) {
   }
 
   return (
-    <Accordion onChange={(_, expanded) => { if (expanded && subGroups === null) loadSubGroups() }}>
-      <AccordionSummary expandIcon={<ExpandMoreRounded />}>
-        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ width: '100%', pr: 1 }}>
-          <Box>
-            <Typography sx={{ fontWeight: 600 }}>{group.name}</Typography>
+    <Accordion
+      disableGutters
+      onChange={(_, expanded) => { if (expanded && subGroups === null) loadSubGroups() }}
+      sx={{ borderRadius: '12px !important', border: '1px solid', borderColor: 'divider', '&::before': { display: 'none' }, overflow: 'hidden' }}
+    >
+      <AccordionSummary expandIcon={<ExpandMoreRounded />} sx={{ minHeight: 56, px: 2 }}>
+        <Stack direction="row" alignItems="center" spacing={1} sx={{ width: '100%', pr: 1, minWidth: 0 }}>
+          <Box sx={{ minWidth: 0, flex: 1 }}>
+            <Typography sx={{ fontWeight: 600 }} noWrap>{group.name}</Typography>
             <Typography variant="caption" sx={{ color: 'text.secondary' }}>{group.memberCount} üye</Typography>
           </Box>
-          <Stack direction="row" spacing={0.5} onClick={e => e.stopPropagation()}>
-            <IconButton size="small" aria-label="Grubu Düzenle" onClick={() => setDialog('edit')}><EditOutlined fontSize="small" /></IconButton>
-            <IconButton size="small" aria-label="Grubu Sil" onClick={remove}><DeleteOutline fontSize="small" /></IconButton>
+          <Stack direction="row" spacing={0} onClick={e => e.stopPropagation()}>
+            <IconButton size="small" aria-label="Grubu Düzenle" onClick={() => setDialog('edit')} sx={{ width: 40, height: 40 }}><EditOutlined fontSize="small" /></IconButton>
+            <IconButton size="small" aria-label="Grubu Sil" onClick={remove} sx={{ width: 40, height: 40 }}><DeleteOutline fontSize="small" /></IconButton>
           </Stack>
         </Stack>
       </AccordionSummary>
@@ -148,11 +144,16 @@ function DiseaseGroupAccordion({ group, token, onChanged }) {
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}><CircularProgress size={18} /></Box>
         ) : (
           <>
+            {subGroups.length === 0 && (
+              <Typography variant="body2" sx={{ color: 'text.secondary', px: 2, py: 1.5, borderTop: '1px solid', borderColor: 'divider' }}>
+                Henüz alt grup yok.
+              </Typography>
+            )}
             {subGroups.map(sg => (
               <SubGroupRow key={sg.id} subGroup={sg} token={token} onChanged={loadSubGroups} />
             ))}
-            <Box sx={{ p: 1.5 }}>
-              <Button size="small" onClick={() => setDialog('newSub')}>+ Alt Grup Ekle</Button>
+            <Box sx={{ p: 1, borderTop: '1px solid', borderColor: 'divider' }}>
+              <Button size="small" startIcon={<AddRounded />} onClick={() => setDialog('newSub')} sx={{ minHeight: 40 }}>+ Alt Grup Ekle</Button>
             </Box>
           </>
         )}
@@ -203,22 +204,26 @@ export default function GroupsTab({ token }) {
 
   useEffect(() => { load() }, [load])
 
-  if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress size={22} /></Box>
+  if (loading) return <AdminLoading />
 
   return (
-    <Box sx={{ mt: 2 }}>
-      <Button variant="contained" size="small" sx={{ mb: 2 }} onClick={() => setCreating(true)}>
-        + Yeni Hastalık Grubu
-      </Button>
+    <Box>
+      <SectionTitle
+        action={
+          <Button variant="contained" size="small" startIcon={<AddRounded />} onClick={() => setCreating(true)} sx={{ minHeight: 40 }}>
+            + Yeni Hastalık Grubu
+          </Button>
+        }
+      >
+        {groups.length} hastalık grubu
+      </SectionTitle>
 
       <Stack spacing={1}>
         {groups.map(g => (
           <DiseaseGroupAccordion key={g.id} group={g} token={token} onChanged={load} />
         ))}
         {groups.length === 0 && (
-          <Typography variant="body2" sx={{ color: 'text.secondary', textAlign: 'center', py: 4 }}>
-            Henüz hastalık grubu yok.
-          </Typography>
+          <AdminEmpty icon={GroupsOutlined} title="Henüz hastalık grubu yok" description="İlk grubu oluşturup alt gruplarını ekle." actionLabel="Grup oluştur" onAction={() => setCreating(true)} />
         )}
       </Stack>
 

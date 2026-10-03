@@ -279,19 +279,11 @@ export default function UserProfile() {
                 </Typography>
               </Box>
               <Box>
-                <Typography variant="subtitle2" component="span" sx={{ fontWeight: 700, color: 'success.main' }}>
+                <Typography variant="subtitle2" component="span" sx={{ fontWeight: 700, color: 'primary.main' }}>
                   {profile.likesReceived ?? 0}
                 </Typography>
                 <Typography variant="caption" sx={{ color: 'text.secondary', ml: 0.5 }}>
                   Faydalı
-                </Typography>
-              </Box>
-              <Box>
-                <Typography variant="subtitle2" component="span" sx={{ fontWeight: 700, color: 'error.main' }}>
-                  {profile.dislikesReceived ?? 0}
-                </Typography>
-                <Typography variant="caption" sx={{ color: 'text.secondary', ml: 0.5 }}>
-                  Faydalı Değil
                 </Typography>
               </Box>
             </Stack>

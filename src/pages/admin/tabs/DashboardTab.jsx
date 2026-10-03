@@ -1,74 +1,44 @@
 import { useEffect, useState } from 'react'
-import { Box, CircularProgress, Typography } from '@mui/material'
-import { ChatBubbleOutlineRounded, DescriptionOutlined, FlagOutlined, GroupsRounded, PeopleAltRounded } from '@mui/icons-material'
+import { Box, Button, Stack, Typography } from '@mui/material'
+import {
+  ArrowForwardRounded, ChatBubbleOutlineRounded, DescriptionOutlined, FlagOutlined, GroupsRounded, PeopleAltRounded
+} from '@mui/icons-material'
 import { useNotification } from '../../../context/NotificationContext.jsx'
 import { getAdminStats, listDiseaseGroups } from '../../../services/api.js'
+import { AdminLoading } from '../AdminUi.jsx'
 
-// AdminPanel.jsx'ten ayrı bir dosyaya taşındı (bkz. clean-code audit) - her
-// sekme kendi verisini/state'ini yönetiyor, ortak olan sadece sayfa kabuğu
-// (bkz. AdminPanel.jsx).
-
-// Renk adı MUI theme palette anahtarına karşılık geliyor (ör. 'warning' ->
-// theme.palette.warning.main) - StatCard'ın arka plan/ikon rengini buradan
-// türetiyoruz ki bekleyen şikayet gibi "dikkat çekmesi gereken" kartlar
-// diğerlerinden görsel olarak ayrışsın.
-function StatCard({ label, value, icon, color = 'primary', highlight = false }) {
+// Genel bakış: dört sayı + tek bir "şimdi yapılacak" kartı. Dashboard'un
+// işi bilgi vermek değil moderatörü doğru sekmeye yönlendirmek; bu yüzden
+// bekleyen şikayet, istatistik kutusu değil eylem kartı olarak ayrılıyor.
+function StatTile({ label, value, icon, onClick }) {
+  const Icon = icon
+  const clickable = typeof onClick === 'function'
   return (
-    // Kök neden (mobil tasarım hatası): önceden bir Stack(row, flexWrap)
-    // içinde flex: '1 1 200px' idi - 5 kart 200px tabanla dar bir ekranda
-    // 2'şer sarıyor ama son kart TEK başına kalıp flex-grow:1 ile satırın
-    // tamamına gerilip diğerleriyle uyumsuz/"kayık" görünüyordu. Ayrıca
-    // width/minWidth sınırlaması olmadığı için büyük bir sayı (value) kartı
-    // kendi hücresinin dışına taşırabiliyordu (bkz. ContentTab.jsx
-    // ContentCard'daki aynı width/minWidth/overflow üçlüsü). Artık
-    // DashboardTab'daki CSS Grid sabit sütun sayısı veriyor - hiçbir kart
-    // yalnız kalıp gerilmiyor.
     <Box
+      component={clickable ? 'button' : 'div'}
+      onClick={onClick}
       sx={{
-        p: { xs: 2, sm: 2.5 }, borderRadius: 3, bgcolor: 'background.paper',
-        border: '1px solid', borderColor: highlight ? `${color}.main` : 'divider',
-        display: 'flex', alignItems: 'center', gap: { xs: 1.5, sm: 2 },
-        width: '100%', minWidth: 0, boxSizing: 'border-box', overflow: 'hidden'
+        textAlign: 'left', font: 'inherit', color: 'inherit',
+        p: { xs: 1.75, sm: 2 }, borderRadius: 3, bgcolor: 'background.paper',
+        border: '1px solid', borderColor: 'divider',
+        display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0,
+        cursor: clickable ? 'pointer' : 'default',
+        '&:hover': clickable ? { borderColor: 'text.secondary' } : undefined,
+        '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 2 }
       }}
     >
-      <Box
-        sx={{
-          width: { xs: 40, sm: 48 }, height: { xs: 40, sm: 48 }, borderRadius: 2.5, flexShrink: 0,
-          display: 'grid', placeItems: 'center',
-          bgcolor: (t) => `${t.palette[color].main}1F`,
-          color: `${color}.main`
-        }}
-      >
-        {icon}
-      </Box>
-      <Box sx={{ minWidth: 0, flex: 1 }}>
-        {/* Faz6 düzeltmesi: tek satıra zorlayan whiteSpace:nowrap+ellipsis,
-            konteyner dar olduğunda (ör. ResponsiveShell'in eski 720px sınırı +
-            sağ panel birlikte) etiketleri "T..", "H.." gibi anlamsız tek
-            harfe kadar kırpıyordu. Etiketler zaten kısa (2-3 kelime) - tek
-            satıra sıkıştırmak yerine normal biçimde 2 satıra sarmasına izin
-            verilince hem PC'de hem mobilde (kart genişliği ne olursa olsun)
-            okunaklı kalıyor, -webkit-line-clamp sadece aşırı uç durumda
-            (çok dar + uzun etiket) üçüncü satırı keser. */}
-        <Typography
-          variant="caption"
-          sx={{
-            color: 'text.secondary', display: '-webkit-box',
-            WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
-            lineHeight: 1.3
-          }}
-        >
-          {label}
-        </Typography>
-        <Typography variant="h4" sx={{ fontWeight: 700, mt: 0.25, fontSize: { xs: '1.5rem', sm: '2rem' } }}>
-          {value ?? '—'}
-        </Typography>
-      </Box>
+      <Stack direction="row" alignItems="center" spacing={1} sx={{ color: 'text.secondary' }}>
+        <Icon sx={{ fontSize: 18 }} />
+        <Typography variant="caption" sx={{ fontWeight: 600, lineHeight: 1.2 }}>{label}</Typography>
+      </Stack>
+      <Typography variant="h4" component="div" sx={{ fontWeight: 700, lineHeight: 1, fontSize: { xs: '1.75rem', sm: '2rem' }, fontVariantNumeric: 'tabular-nums' }}>
+        {value ?? '—'}
+      </Typography>
     </Box>
   )
 }
 
-export default function DashboardTab({ token }) {
+export default function DashboardTab({ token, onGo }) {
   const [stats, setStats] = useState(null)
   const [groupCount, setGroupCount] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -78,9 +48,7 @@ export default function DashboardTab({ token }) {
     setLoading(true)
     Promise.all([
       getAdminStats(token),
-      // İkincil veri: sadece "Hastalık Grubu" kart sayısı için kullanılıyor,
-      // başarısız olursa kart '—' gösterir, tüm dashboard'u bozmasın diye
-      // ayrı yutuluyor (bkz. api.js hata yutma konvansiyonu).
+      // İkincil veri: başarısız olursa '—' gösterilir, dashboard bozulmaz.
       listDiseaseGroups(token).catch(() => [])
     ])
       .then(([statsRes, groups]) => {
@@ -91,42 +59,46 @@ export default function DashboardTab({ token }) {
       .finally(() => setLoading(false))
   }, [token, showError])
 
-  if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress size={22} /></Box>
+  if (loading) return <AdminLoading />
 
   const pending = stats?.pendingReports ?? 0
+  const fmt = (n) => (n == null ? null : new Intl.NumberFormat('tr-TR').format(n))
 
   return (
-    <Box sx={{ mt: 2 }}>
-      <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
-        Platformun genel durumuna hızlı bir bakış.
-      </Typography>
-      {/* Sabit sütun sayılı CSS Grid - flex+flexWrap'in aksine son satırdaki
-          "yetim" kart asla satırın tamamına gerilip diğerleriyle uyumsuz
-          görünmüyor (bkz. StatCard yorumu). xs: 2 sütun, sm: 3, md+: 5 -
-          5 kart md+ ekranda tek satıra tam sığıyor. */}
+    <Stack spacing={2}>
+      {/* Şimdi yapılacak */}
       <Box
         sx={{
-          display: 'grid',
-          gap: 2,
-          gridTemplateColumns: {
-            xs: 'repeat(2, 1fr)',
-            sm: 'repeat(3, 1fr)',
-            md: 'repeat(5, 1fr)'
-          }
+          p: { xs: 2, sm: 2.5 }, borderRadius: 3,
+          border: '1px solid', borderColor: pending > 0 ? 'warning.main' : 'divider',
+          bgcolor: pending > 0 ? (t) => `${t.palette.warning.main}14` : 'background.paper',
+          display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap'
         }}
       >
-        <StatCard label="Toplam Kayıtlı Kişi" value={stats?.totalUsers} icon={<PeopleAltRounded />} color="primary" />
-        <StatCard label="Toplam Gönderi" value={stats?.totalPosts} icon={<DescriptionOutlined />} color="secondary" />
-        <StatCard label="Toplam Yorum" value={stats?.totalComments} icon={<ChatBubbleOutlineRounded />} color="secondary" />
-        <StatCard label="Hastalık Grubu" value={groupCount} icon={<GroupsRounded />} color="primary" />
-        <StatCard
-          label="Bekleyen Şikayet"
-          value={pending}
-          icon={<FlagOutlined />}
-          color={pending > 0 ? 'warning' : 'success'}
-          highlight={pending > 0}
-        />
+        <Box sx={{ width: 44, height: 44, borderRadius: 2, display: 'grid', placeItems: 'center', flexShrink: 0, bgcolor: (t) => `${t.palette.warning.main}22`, color: 'warning.main' }}>
+          <FlagOutlined />
+        </Box>
+        <Box sx={{ flex: 1, minWidth: 160 }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
+            {pending > 0 ? `${pending} şikayet inceleme bekliyor` : 'Bekleyen şikayet yok'}
+          </Typography>
+          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.25 }}>
+            {pending > 0 ? 'Topluluğun güveni için 24 saat içinde yanıt hedefi.' : 'Harika - moderasyon kuyruğu temiz.'}
+          </Typography>
+        </Box>
+        {pending > 0 && (
+          <Button variant="contained" color="warning" endIcon={<ArrowForwardRounded />} onClick={() => onGo?.('reports')} sx={{ minHeight: 44, flexShrink: 0 }}>
+            İncele
+          </Button>
+        )}
       </Box>
-    </Box>
+
+      <Box sx={{ display: 'grid', gap: 1.5, gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', md: 'repeat(4, minmax(0, 1fr))' } }}>
+        <StatTile label="Toplam Kayıtlı Kişi" value={fmt(stats?.totalUsers)} icon={PeopleAltRounded} onClick={() => onGo?.('users')} />
+        <StatTile label="Toplam Gönderi" value={fmt(stats?.totalPosts)} icon={DescriptionOutlined} onClick={() => onGo?.('content')} />
+        <StatTile label="Toplam Yorum" value={fmt(stats?.totalComments)} icon={ChatBubbleOutlineRounded} onClick={() => onGo?.('content')} />
+        <StatTile label="Hastalık Grubu" value={fmt(groupCount)} icon={GroupsRounded} onClick={() => onGo?.('groups')} />
+      </Box>
+    </Stack>
   )
 }
