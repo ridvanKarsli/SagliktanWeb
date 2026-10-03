@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import {
-  Avatar, Box, Button, CircularProgress, Divider, IconButton, Stack, Tab, Tabs, Typography
-} from '@mui/material'
+import { Avatar, Box, Button, CircularProgress, Divider, IconButton, Stack, Tab, Tabs, Typography } from '@mui/material'
 import { ArrowBackRounded, MailOutlineRounded } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
@@ -9,93 +7,106 @@ import { useNotification } from '../../context/NotificationContext.jsx'
 import { useConfirm } from '../../context/ConfirmContext.jsx'
 import { useMessaging } from '../../context/MessagingContext.jsx'
 import {
-  listMessageRequests, acceptMessageRequest, rejectMessageRequest,
-  listSentMessageRequests, cancelMessageRequest
+  listMessageRequests, acceptMessageRequest, rejectMessageRequest, listSentMessageRequests, cancelMessageRequest
 } from '../../services/api.js'
+import { usePaginatedList } from '../../hooks/usePaginatedList.js'
 import { initialsFrom } from '../../utils/format.js'
 import { clickableProps } from '../../utils/clickable.js'
 import EmptyState from '../../components/EmptyState.jsx'
+import CenteredSpinner from '../../components/common/CenteredSpinner.jsx'
+import LoadMoreButton from '../../components/common/LoadMoreButton.jsx'
 
-// Faz 2 adım 6: bekleyen (PENDING) mesaj istekleri - "Gelen" sekmesi kabul/red,
-// "Giden" sekmesi kendi gönderdiklerimizi listeleyip iptal etmeyi sağlar.
-// Kabul edilince backend bir Conversation oluşturup id'sini döner, biz de
-// kullanıcıyı doğrudan o sohbete yönlendiriyoruz (bkz. MessageRequestService.accept).
+const INCOMING = 0
+const OUTGOING = 1
+
+function RequestRow({ name, onOpenProfile, children }) {
+  return (
+    <Box
+      sx={{
+        display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' },
+        gap: 1.25, px: 2, py: 1.5
+      }}
+    >
+      <Stack direction="row" alignItems="center" spacing={1.5} sx={{ minWidth: 0, flex: 1 }}>
+        <Avatar
+          sx={{ width: 44, height: 44, fontWeight: 600, flexShrink: 0, cursor: 'pointer' }}
+          {...clickableProps(onOpenProfile)}
+          aria-label={`${name || 'Kullanıcı'} profiline git`}
+        >
+          {initialsFrom(name)}
+        </Avatar>
+        <Typography
+          variant="subtitle2"
+          sx={{ fontWeight: 600, minWidth: 0, wordBreak: 'break-word', cursor: 'pointer' }}
+          onClick={onOpenProfile}
+        >
+          {name}
+        </Typography>
+      </Stack>
+      {children}
+    </Box>
+  )
+}
+
+// Bekleyen mesaj istekleri: "Gelen" sekmesinde kabul/red, "Giden" sekmesinde
+// kendi gönderdiklerini geri çekme. Kabul edilince sohbete geçilir.
 export default function MessageRequests() {
   const { token } = useAuth()
   const { showError, showSuccess } = useNotification()
   const confirm = useConfirm()
-  const { decrementPendingCount, subscribeToMessageRequests } = useMessaging()
+  const { refreshPendingCount, subscribeToMessageRequests } = useMessaging()
   const navigate = useNavigate()
-
-  const [tab, setTab] = useState(0) // 0: gelen, 1: giden
-
-  const [incoming, setIncoming] = useState([])
-  const [incomingLoading, setIncomingLoading] = useState(true)
-
-  const [outgoing, setOutgoing] = useState([])
-  const [outgoingLoading, setOutgoingLoading] = useState(true)
-  const [outgoingLoaded, setOutgoingLoaded] = useState(false)
-
+  const [tab, setTab] = useState(INCOMING)
   const [actingId, setActingId] = useState(null)
 
-  const loadIncoming = useCallback(() => {
-    if (!token) return
-    setIncomingLoading(true)
-    listMessageRequests(token, { page: 0 })
-      .then(res => setIncoming(Array.isArray(res?.content) ? res.content : []))
-      .catch(err => showError(err.message || 'İstekler alınamadı.'))
-      .finally(() => setIncomingLoading(false))
-  }, [token, showError])
+  const incomingFetcher = useCallback((page) => listMessageRequests(token, { page }), [token])
+  const incoming = usePaginatedList(incomingFetcher, {
+    enabled: !!token,
+    deps: [token],
+    onError: err => showError(err.message || 'İstekler alınamadı.')
+  })
 
-  const loadOutgoing = useCallback(() => {
-    if (!token) return
-    setOutgoingLoading(true)
-    listSentMessageRequests(token, { page: 0 })
-      .then(res => setOutgoing(Array.isArray(res?.content) ? res.content : []))
-      .catch(err => showError(err.message || 'Giden istekler alınamadı.'))
-      .finally(() => { setOutgoingLoading(false); setOutgoingLoaded(true) })
-  }, [token, showError])
+  // Giden sekmesi ilk açıldığında yüklenir - baştan iki istek atılmaz.
+  const outgoingFetcher = useCallback((page) => listSentMessageRequests(token, { page }), [token])
+  const outgoing = usePaginatedList(outgoingFetcher, {
+    enabled: !!token && tab === OUTGOING,
+    once: true,
+    deps: [token],
+    onError: err => showError(err.message || 'Giden istekler alınamadı.')
+  })
 
-  useEffect(() => { loadIncoming() }, [loadIncoming])
+  const { setItems: setIncoming } = incoming
+  useEffect(() => subscribeToMessageRequests((req) => {
+    setIncoming(prev => (prev.some(r => r.id === req.id) ? prev : [req, ...prev]))
+  }), [subscribeToMessageRequests, setIncoming])
 
-  // Giden sekmesi ilk açıldığında yükle - baştan iki isteği birden atmıyoruz.
-  useEffect(() => {
-    if (tab === 1 && !outgoingLoaded) loadOutgoing()
-  }, [tab, outgoingLoaded, loadOutgoing])
-
-  useEffect(() => {
-    return subscribeToMessageRequests((req) => {
-      setIncoming(prev => (prev.some(r => r.id === req.id) ? prev : [req, ...prev]))
-    })
-  }, [subscribeToMessageRequests])
-
-  const handleAccept = async (req) => {
+  const act = async (req, action, { onSuccess, errorMessage }) => {
     setActingId(req.id)
     try {
-      const res = await acceptMessageRequest(token, req.id)
-      setIncoming(prev => prev.filter(r => r.id !== req.id))
-      decrementPendingCount()
-      navigate(`/messages/${res.conversationId}`)
+      const res = await action()
+      onSuccess(res)
     } catch (err) {
-      showError(err.message || 'İstek kabul edilemedi.')
+      showError(err.message || errorMessage)
     } finally {
       setActingId(null)
     }
   }
 
-  const handleReject = async (req) => {
-    setActingId(req.id)
-    try {
-      await rejectMessageRequest(token, req.id)
-      setIncoming(prev => prev.filter(r => r.id !== req.id))
-      decrementPendingCount()
-      showSuccess('İstek reddedildi.')
-    } catch (err) {
-      showError(err.message || 'İstek reddedilemedi.')
-    } finally {
-      setActingId(null)
-    }
+  const removeIncoming = (id) => {
+    incoming.setItems(prev => prev.filter(r => r.id !== id))
+    // Nav rozetini sunucudan tazele: yerel +1/-1 kolayca senkron dışı kalıyor.
+    refreshPendingCount()
   }
+
+  const handleAccept = (req) => act(req, () => acceptMessageRequest(token, req.id), {
+    errorMessage: 'İstek kabul edilemedi.',
+    onSuccess: (res) => { removeIncoming(req.id); navigate(`/messages/${res.conversationId}`) }
+  })
+
+  const handleReject = (req) => act(req, () => rejectMessageRequest(token, req.id), {
+    errorMessage: 'İstek reddedilemedi.',
+    onSuccess: () => { removeIncoming(req.id); showSuccess('İstek reddedildi.') }
+  })
 
   const handleCancel = async (req) => {
     const ok = await confirm(
@@ -103,21 +114,14 @@ export default function MessageRequests() {
       { title: 'İsteği geri çek', confirmLabel: 'Geri Çek' }
     )
     if (!ok) return
-    setActingId(req.id)
-    try {
-      await cancelMessageRequest(token, req.id)
-      setOutgoing(prev => prev.filter(r => r.id !== req.id))
-      showSuccess('İstek geri çekildi.')
-    } catch (err) {
-      showError(err.message || 'İstek geri çekilemedi.')
-    } finally {
-      setActingId(null)
-    }
+    act(req, () => cancelMessageRequest(token, req.id), {
+      errorMessage: 'İstek geri çekilemedi.',
+      onSuccess: () => { outgoing.setItems(prev => prev.filter(r => r.id !== req.id)); showSuccess('İstek geri çekildi.') }
+    })
   }
 
-  const loading = tab === 0 ? incomingLoading : outgoingLoading
-  const list = tab === 0 ? incoming : outgoing
-  const emptyText = tab === 0 ? 'Bekleyen mesaj isteğin yok.' : 'Gönderdiğin bekleyen mesaj isteği yok.'
+  const list = tab === INCOMING ? incoming : outgoing
+  const emptyText = tab === INCOMING ? 'Bekleyen mesaj isteğin yok.' : 'Gönderdiğin bekleyen mesaj isteği yok.'
 
   return (
     <Box sx={{ width: '100%', maxWidth: 680, mx: 'auto', py: { xs: 2, md: 4 } }}>
@@ -128,88 +132,50 @@ export default function MessageRequests() {
         <Typography variant="h2" sx={{ fontWeight: 700 }}>Mesaj İstekleri</Typography>
       </Stack>
 
-      <Tabs
-        value={tab}
-        onChange={(_, v) => setTab(v)}
-        sx={{ mb: 2, borderBottom: '1px solid', borderColor: 'divider' }}
-      >
+      <Tabs value={tab} onChange={(_, v) => setTab(v)} aria-label="Mesaj istekleri" sx={{ mb: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
         <Tab label="Gelen" />
         <Tab label="Giden" />
       </Tabs>
 
-      {loading ? (
-        <Box sx={{ display: 'grid', placeItems: 'center', py: 6 }}>
-          <CircularProgress size={28} />
-        </Box>
-      ) : list.length === 0 ? (
+      {list.loading ? (
+        <CenteredSpinner py={6} size={28} />
+      ) : list.items.length === 0 ? (
         <EmptyState icon={MailOutlineRounded} title={emptyText} />
       ) : (
         <Box sx={{ borderRadius: 2, border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
           <Stack divider={<Divider />}>
-            {list.map(r => {
-              const otherId = tab === 0 ? r.senderId : r.recipientId
-              const otherName = tab === 0 ? r.senderName : r.recipientName
+            {list.items.map(r => {
+              const busy = actingId === r.id
+              const isIncoming = tab === INCOMING
+              const otherId = isIncoming ? r.senderId : r.recipientId
+              const otherName = isIncoming ? r.senderName : r.recipientName
               return (
-                <Box
-                  key={r.id}
-                  sx={{
-                    display: 'flex',
-                    flexDirection: { xs: 'column', sm: 'row' },
-                    alignItems: { xs: 'stretch', sm: 'center' },
-                    gap: 1.25,
-                    px: 2,
-                    py: 1.5
-                  }}
-                >
-                  <Stack direction="row" alignItems="center" spacing={1.5} sx={{ minWidth: 0, flex: 1 }}>
-                    <Avatar
-                      sx={{ width: 44, height: 44, fontWeight: 600, flexShrink: 0, cursor: 'pointer' }}
-                      {...clickableProps(() => navigate(`/users/${otherId}`))}
-                      aria-label={`${otherName || 'Kullanıcı'} profiline git`}
-                    >
-                      {initialsFrom(otherName)}
-                    </Avatar>
-                    <Typography
-                      variant="subtitle2"
-                      sx={{ fontWeight: 600, minWidth: 0, wordBreak: 'break-word', cursor: 'pointer' }}
-                      {...clickableProps(() => navigate(`/users/${otherId}`))}
-                    >
-                      {otherName}
-                    </Typography>
-                  </Stack>
-                  {tab === 0 ? (
+                <RequestRow key={r.id} name={otherName} onOpenProfile={() => navigate(`/users/${otherId}`)}>
+                  {isIncoming ? (
                     <Stack direction="row" spacing={1} sx={{ justifyContent: { xs: 'flex-end', sm: 'flex-start' } }}>
-                      <Button
-                        size="small" variant="outlined" color="inherit"
-                        disabled={actingId === r.id}
-                        onClick={() => handleReject(r)}
-                      >
+                      <Button size="small" variant="outlined" color="inherit" disabled={busy} onClick={() => handleReject(r)} sx={{ minHeight: 40 }}>
                         Reddet
                       </Button>
-                      <Button
-                        size="small" variant="contained"
-                        disabled={actingId === r.id}
-                        onClick={() => handleAccept(r)}
-                      >
-                        {actingId === r.id ? <CircularProgress size={16} color="inherit" /> : 'Kabul Et'}
+                      <Button size="small" variant="contained" disabled={busy} onClick={() => handleAccept(r)} sx={{ minHeight: 40 }}>
+                        {busy ? <CircularProgress size={16} color="inherit" /> : 'Kabul Et'}
                       </Button>
                     </Stack>
                   ) : (
                     <Button
-                      size="small" variant="outlined" color="error"
-                      disabled={actingId === r.id}
-                      onClick={() => handleCancel(r)}
-                      sx={{ alignSelf: { xs: 'flex-end', sm: 'center' } }}
+                      size="small" variant="outlined" color="error" disabled={busy} onClick={() => handleCancel(r)}
+                      sx={{ alignSelf: { xs: 'flex-end', sm: 'center' }, minHeight: 40 }}
                     >
-                      {actingId === r.id ? <CircularProgress size={16} color="inherit" /> : 'Geri Çek'}
+                      {busy ? <CircularProgress size={16} color="inherit" /> : 'Geri Çek'}
                     </Button>
                   )}
-                </Box>
+                </RequestRow>
               )
             })}
           </Stack>
         </Box>
       )}
+
+      {!list.loading && !list.last && <LoadMoreButton loading={list.loadingMore} onClick={list.loadMore} />}
     </Box>
   )
 }

@@ -1,121 +1,104 @@
 import { useCallback, useEffect, useState } from 'react'
-import {
-  Alert, Avatar, Box, Button, Chip, CircularProgress, Dialog, DialogContent, DialogTitle,
-  IconButton, Stack, Typography
-} from '@mui/material'
-import { ArrowBack, ChatBubbleOutlineRounded, CheckRounded, CloseRounded, ForumRounded, PeopleAltRounded } from '@mui/icons-material'
+import { Alert, Box, Button, CircularProgress, Stack, Typography } from '@mui/material'
+import { CheckRounded, ForumRounded, PeopleAltRounded } from '@mui/icons-material'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
 import { getDiseaseGroup, getMyDiseaseGroups, listSubGroups, listDiseaseGroupMembers } from '../../services/api.js'
 import { useGroupMembership } from '../../hooks/useGroupMembership.js'
-import { initialsFrom } from '../../utils/format.js'
 import { usePaginatedList } from '../../hooks/usePaginatedList.js'
+import { goToUserProfile } from '../../utils/navigation.js'
 import EmptyState from '../../components/EmptyState.jsx'
 import NewPostDialog from '../../components/NewPostDialog.jsx'
 import ComposerPrompt from '../../components/ComposerPrompt.jsx'
-import { clickableProps } from '../../utils/clickable.js'
+import BackLink from '../../components/common/BackLink.jsx'
+import CenteredSpinner from '../../components/common/CenteredSpinner.jsx'
+import SubGroupCard from '../../components/groups/SubGroupCard.jsx'
+import GroupMembersDialog from '../../components/groups/GroupMembersDialog.jsx'
 
+// Grup, alt grupları ve kullanıcının üyeliği tek seferde yüklenir.
+// joined: null = üyelik bilinmiyor (istek düştü) - yanlış durum göstermek
+// yerine katıl/ayrıl düğmesi hiç gösterilmez.
+function useDiseaseGroupPage(groupId) {
+  const { token } = useAuth()
+  const [state, setState] = useState({ group: null, subGroups: [], joined: null, loading: true, error: '' })
+
+  useEffect(() => {
+    if (!token || !groupId) { setState(s => ({ ...s, loading: false })); return undefined }
+    let alive = true
+    setState(s => ({ ...s, loading: true, error: '' }))
+    Promise.all([
+      getDiseaseGroup(token, groupId),
+      listSubGroups(token, groupId),
+      getMyDiseaseGroups(token).catch(() => null)
+    ])
+      .then(([group, subs, mine]) => {
+        if (!alive) return
+        setState({
+          group,
+          subGroups: Array.isArray(subs) ? subs : [],
+          joined: Array.isArray(mine) ? mine.some(g => String(g.id) === String(groupId)) : null,
+          loading: false,
+          error: ''
+        })
+      })
+      .catch(err => { if (alive) setState(s => ({ ...s, loading: false, error: err.message || 'Alt gruplar alınamadı.' })) })
+    return () => { alive = false }
+  }, [token, groupId])
+
+  const update = useCallback((patch) => setState(s => ({ ...s, ...(typeof patch === 'function' ? patch(s) : patch) })), [])
+  return [state, update]
+}
+
+// Bir hastalık grubunun sayfası: açıklama, üyelik, üye listesi ve alt gruplar (forumlar).
 export default function SubGroups() {
   const { groupId } = useParams()
   const navigate = useNavigate()
   const { token, user: currentUser } = useAuth()
   const { showError } = useNotification()
-
-  const [group, setGroup] = useState(null)
-  const [subGroups, setSubGroups] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  // null = üyelik bilinmiyor (istek düştü) - buton hiç gösterilmez, yanlış
-  // durum göstermektense eylemi saklamak daha güvenli.
-  const [joined, setJoined] = useState(null)
   const { join, leave, pendingId } = useGroupMembership()
+  const [{ group, subGroups, joined, loading, error }, update] = useDiseaseGroupPage(groupId)
   const [composerOpen, setComposerOpen] = useState(false)
 
-  // Gruba kayıtlı üyelerin listesi - "Üyeleri Gör" tıklanınca yükleniyor.
-  // Kalabalık gruplarda (1000+ kullanıcı hedefi) tek seferde tüm üyeleri
-  // çekmemek için backend sayfalı dönüyor, burada "Daha Fazla Yükle" ile
-  // sayfa sayfa ekleniyor. once:true - dialog kapanıp tekrar açılınca
-  // yeniden çekmez, ilk açılışta bir kez yükler.
+  // Üye listesi "Üyeleri Gör" ile ilk açılışta yüklenir ve önbellekte kalır
+  // (kalabalık gruplarda sayfalı).
   const [membersOpen, setMembersOpen] = useState(false)
-  const membersFetcher = useCallback(
-    (page) => listDiseaseGroupMembers(token, groupId, { page }), [token, groupId]
-  )
-  const {
-    items: members, loading: membersLoading, loadingMore: membersLoadingMore, last: membersLast,
-    loadMore: loadMoreMembers
-  } = usePaginatedList(membersFetcher, {
+  const membersFetcher = useCallback((page) => listDiseaseGroupMembers(token, groupId, { page }), [token, groupId])
+  const members = usePaginatedList(membersFetcher, {
     enabled: membersOpen,
     once: true,
     deps: [token, groupId],
     onError: err => showError(err.message || 'Üyeler alınamadı.')
   })
 
-  useEffect(() => {
-    let mounted = true
-    if (!token || !groupId) { setLoading(false); return }
-    setLoading(true)
-    setError('')
-    Promise.all([
-      getDiseaseGroup(token, groupId),
-      listSubGroups(token, groupId),
-      getMyDiseaseGroups(token).catch(() => null)
-    ])
-      .then(([groupData, subs, mine]) => {
-        if (!mounted) return
-        setGroup(groupData)
-        setSubGroups(Array.isArray(subs) ? subs : [])
-        setJoined(Array.isArray(mine) ? mine.some(g => String(g.id) === String(groupId)) : null)
-      })
-      .catch(err => {
-        if (!mounted) return
-        setError(err.message || 'Alt gruplar alınamadı.')
-      })
-      .finally(() => { if (mounted) setLoading(false) })
-    return () => { mounted = false }
-  }, [token, groupId])
-
-  const goToProfile = (userId) => {
-    setMembersOpen(false)
-    if (currentUser && String(currentUser.id) === String(userId)) {
-      navigate('/profile')
-    } else {
-      navigate(`/users/${userId}`)
-    }
-  }
-
-  const openMembers = () => setMembersOpen(true)
-
   const toggleMembership = async () => {
     if (!group) return
     const ok = joined ? await leave(group) : await join(group)
     if (!ok) return
     const delta = joined ? -1 : 1
-    setJoined(!joined)
-    setGroup(g => ({ ...g, memberCount: Math.max(0, (g.memberCount ?? 0) + delta) }))
+    update(s => ({ joined: !s.joined, group: { ...s.group, memberCount: Math.max(0, (s.group.memberCount ?? 0) + delta) } }))
+    // Üye listesi (önbellekteyse) artık eksik/fazla: tazele.
+    members.reload()
   }
-  const membershipPending = group && pendingId === group.id
 
-  if (loading) {
-    return (
-      <Box sx={{ display: 'grid', placeItems: 'center', minHeight: 300, py: 6 }}>
-        <CircularProgress size={28} />
-      </Box>
-    )
+  const openProfile = (userId) => {
+    setMembersOpen(false)
+    goToUserProfile(navigate, currentUser, userId)
   }
+
+  const onPostCreated = (_, target) => update(s => ({
+    subGroups: s.subGroups.map(sg => (
+      String(sg.id) === String(target.subGroupId) ? { ...sg, postCount: (sg.postCount ?? 0) + 1 } : sg
+    ))
+  }))
+
+  if (loading) return <CenteredSpinner page />
+
+  const membershipPending = !!group && pendingId === group.id
 
   return (
     <Box sx={{ py: { xs: 2, md: 4 } }}>
-      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
-        {/* bkz. Posts.jsx aynı gerekçe - ikon-sadece buton + ayrı Typography,
-            aria-label olmadan axe-core "button-name" ihlali verir. */}
-        <IconButton onClick={() => navigate('/groups')} size="small" aria-label="Hastalık gruplarına dön">
-          <ArrowBack />
-        </IconButton>
-        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-          Hastalık Grupları
-        </Typography>
-      </Stack>
+      <BackLink to="/groups" ariaLabel="Hastalık gruplarına dön" label="Hastalık Grupları" />
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
@@ -150,7 +133,7 @@ export default function SubGroups() {
           <Button
             size="small"
             startIcon={<PeopleAltRounded />}
-            onClick={openMembers}
+            onClick={() => setMembersOpen(true)}
             sx={{ color: 'text.secondary', pl: 0, '&:hover': { bgcolor: 'transparent', color: 'primary.main' } }}
           >
             {group.memberCount ?? 0} üye · Üyeleri Gör
@@ -162,7 +145,7 @@ export default function SubGroups() {
         <ComposerPrompt onClick={() => setComposerOpen(true)} hint={`${group.name} grubunda paylaş…`} sx={{ mb: 3 }} />
       )}
 
-      <Typography variant="h4" sx={{ fontWeight: 600, mb: 1.5 }}>
+      <Typography variant="h4" component="h2" sx={{ fontWeight: 600, mb: 1.5 }}>
         Alt Gruplar
       </Typography>
 
@@ -171,114 +154,28 @@ export default function SubGroups() {
       ) : (
         <Stack spacing={1.5}>
           {subGroups.map(sub => (
-            <Box
-              key={sub.id}
-              onClick={() => navigate(`/sub-groups/${sub.id}`)}
-              className="tap-scale"
-              sx={{
-                p: { xs: 2, md: 2.5 },
-                borderRadius: 3,
-                bgcolor: 'background.paper',
-                cursor: 'pointer',
-                transition: 'background-color 0.2s ease, box-shadow 0.2s ease',
-                '&:hover': { bgcolor: 'action.hover', boxShadow: '0 4px 16px rgba(0,0,0,0.10)' }
-              }}
-            >
-              <Stack direction="row" spacing={2} alignItems="center">
-                <Box
-                  sx={{
-                    width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
-                    display: 'grid', placeItems: 'center',
-                    bgcolor: 'rgba(224,139,109,0.14)',
-                    color: 'secondary.main'
-                  }}
-                >
-                  <ForumRounded sx={{ fontSize: 22 }} />
-                </Box>
-                <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'text.primary', lineHeight: 1.3, overflowWrap: 'anywhere' }}>
-                    {sub.name}
-                  </Typography>
-                  {sub.description && (
-                    <Typography
-                      variant="body2"
-                      sx={{ color: 'text.secondary', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}
-                    >
-                      {sub.description}
-                    </Typography>
-                  )}
-                </Box>
-                <Chip
-                  size="small"
-                  variant="outlined"
-                  icon={<ChatBubbleOutlineRounded sx={{ fontSize: '15px !important' }} />}
-                  label={`${sub.postCount ?? 0} sohbet`}
-                  data-testid={`subgroup-chat-count-${sub.name}`}
-                  sx={{ flexShrink: 0, color: 'text.secondary', borderColor: 'divider', borderRadius: 999, fontWeight: 500 }}
-                />
-              </Stack>
-            </Box>
+            <SubGroupCard key={sub.id} subGroup={sub} onOpen={() => navigate(`/sub-groups/${sub.id}`)} />
           ))}
         </Stack>
       )}
 
-      <Dialog open={membersOpen} onClose={() => setMembersOpen(false)} fullWidth maxWidth="xs">
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          Üyeler
-          <IconButton size="small" onClick={() => setMembersOpen(false)} aria-label="Kapat">
-            <CloseRounded fontSize="small" />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent dividers sx={{ p: 0 }}>
-          {membersLoading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-              <CircularProgress size={22} />
-            </Box>
-          ) : members.length === 0 ? (
-            <EmptyState icon={PeopleAltRounded} title="Henüz üye yok." dense />
-          ) : (
-            <Stack divider={<Box sx={{ borderBottom: '1px solid', borderColor: 'divider' }} />}>
-              {members.map(m => {
-                const fullName = [m.firstName, m.lastName].filter(Boolean).join(' ') || 'Kullanıcı'
-                return (
-                  <Stack
-                    key={m.id}
-                    direction="row"
-                    spacing={1.5}
-                    alignItems="center"
-                    {...clickableProps(() => goToProfile(m.id))}
-                    aria-label={`${fullName} profiline git`}
-                    sx={{ px: 2, py: 1.25, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
-                  >
-                    <Avatar sx={{ width: 36, height: 36, fontSize: 14, fontWeight: 600 }}>
-                      {initialsFrom(fullName)}
-                    </Avatar>
-                    <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }} noWrap>
-                      {fullName}
-                    </Typography>
-                  </Stack>
-                )
-              })}
-            </Stack>
-          )}
-          {!membersLoading && !membersLast && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 1.5 }}>
-              <Button size="small" onClick={loadMoreMembers} disabled={membersLoadingMore}>
-                {membersLoadingMore ? <CircularProgress size={16} color="inherit" /> : 'Daha Fazla Yükle'}
-              </Button>
-            </Box>
-          )}
-        </DialogContent>
-      </Dialog>
+      <GroupMembersDialog
+        open={membersOpen}
+        onClose={() => setMembersOpen(false)}
+        members={members.items}
+        loading={members.loading}
+        loadingMore={members.loadingMore}
+        hasMore={!members.last}
+        onLoadMore={members.loadMore}
+        onOpenProfile={openProfile}
+      />
       {group && (
         <NewPostDialog
           open={composerOpen}
           onClose={() => setComposerOpen(false)}
           presetDiseaseGroupId={group.id}
           presetDiseaseGroupName={group.name}
-          onCreated={(_, target) => setSubGroups(prev => prev.map(sg => (
-            String(sg.id) === String(target.subGroupId) ? { ...sg, postCount: (sg.postCount ?? 0) + 1 } : sg
-          )))}
+          onCreated={onPostCreated}
         />
       )}
     </Box>

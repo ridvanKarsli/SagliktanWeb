@@ -1,18 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import {
-  Alert, Box, Button, Chip, CircularProgress, InputAdornment, Stack, TextField, Typography
-} from '@mui/material'
-import { GroupsRounded, PeopleAltRounded, SearchOffRounded, SearchRounded } from '@mui/icons-material'
+import { Alert, Box, CircularProgress, InputAdornment, TextField, Typography } from '@mui/material'
+import { GroupsRounded, SearchOffRounded, SearchRounded } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
-import { listDiseaseGroups, getMyDiseaseGroups } from '../../services/api.js'
+import { listDiseaseGroups } from '../../services/api.js'
 import { useGroupMembership } from '../../hooks/useGroupMembership.js'
+import { useDebouncedValue } from '../../hooks/useDebouncedValue.js'
+import { useMyDiseaseGroups } from '../../hooks/useMyDiseaseGroups.js'
 import EmptyState from '../../components/EmptyState.jsx'
+import CenteredSpinner from '../../components/common/CenteredSpinner.jsx'
+import DiseaseGroupCard from '../../components/groups/DiseaseGroupCard.jsx'
 
-/**
- * Uygulamanın giriş sonrası ana sayfası: tüm hastalık gruplarını listeler,
- * kullanıcının katıldığı grupları işaretler, katıl/ayrıl aksiyonu sunar.
- */
+// Tüm hastalık gruplarının listesi + arama (backend prefix/fuzzy tam metin
+// araması). Kullanıcının katıldıkları işaretlenir; katıl/ayrıl buradan da yapılır.
 export default function DiseaseGroups() {
   const { token } = useAuth()
   const { join, leave, pendingId } = useGroupMembership()
@@ -20,43 +20,22 @@ export default function DiseaseGroups() {
 
   const [groups, setGroups] = useState([])
   const [hasAnyGroup, setHasAnyGroup] = useState(true)
-  const [joinedIds, setJoinedIds] = useState(new Set())
-  // initialLoading: sadece İLK yüklemede tam sayfa spinner gösterir. Arama
-  // kutusuna yazarken tetiklenen sonraki fetch'lerde `loading` true olsa
-  // bile sayfa/arama kutusu DOM'dan sökülmemeli - aksi halde input focus
-  // kaybolur, kullanıcı her debounce sonrası tekrar kutuya tıklamak zorunda
-  // kalır (bkz. Posts.jsx'teki aynı desen - TextField loading dalının dışında).
+  // Tam sayfa spinner yalnızca İLK yüklemede: aramada arama kutusu DOM'dan
+  // sökülürse odak kaybolur.
   const [initialLoading, setInitialLoading] = useState(true)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-
-  // Arama kutusu: Posts.jsx'teki gönderi aramasıyla aynı desen - backend'in
-  // prefix + pg_trgm fuzzy (yazım hatası toleranslı) tam metin aramasına
-  // bağlı (bkz. DiseaseGroupController.listAll?q=...), istemci tarafı
-  // basit bir substring filtresi değil. 300ms debounce ile her tuş
-  // vuruşunda ayrı istek atılmıyor.
   const [query, setQuery] = useState('')
-  const [debouncedQuery, setDebouncedQuery] = useState('')
-  const searchDebounceRef = useRef(null)
+  const debouncedQuery = useDebouncedValue(query.trim(), 300)
 
+  // Katılınan gruplar sorgudan bağımsız: bir kez çekilir, sonra join/leave ile yerelde güncellenir.
+  const myGroups = useMyDiseaseGroups()
+  const [joinedIds, setJoinedIds] = useState(new Set())
   useEffect(() => {
-    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current)
-    searchDebounceRef.current = setTimeout(() => setDebouncedQuery(query.trim()), 300)
-    return () => clearTimeout(searchDebounceRef.current)
-  }, [query])
+    if (myGroups) setJoinedIds(new Set(myGroups.map(g => g.id)))
+  }, [myGroups])
 
-  // Katılınan gruplar arama sorgusundan bağımsız - bir kez çekiliyor,
-  // sonrası join/leave aksiyonlarıyla local state üzerinden güncelleniyor.
-  useEffect(() => {
-    if (!token) return
-    getMyDiseaseGroups(token)
-      .then(mine => setJoinedIds(new Set((Array.isArray(mine) ? mine : []).map(g => g.id))))
-      .catch(() => {})
-  }, [token])
-
-  // Yarış koruması: debounced sorgu hızla değişince ("di" -> "diyabet")
-  // yavaş gelen eski yanıt doğru listenin üzerine yazmasın. Her çağrı bir
-  // istek numarası alır; yalnızca en son numaralı yanıt uygulanır.
+  // Yalnızca en son isteğin yanıtı uygulanır ("di" -> "diyabet" yarışı).
   const requestSeqRef = useRef(0)
 
   const load = useCallback(async () => {
@@ -66,12 +45,10 @@ export default function DiseaseGroups() {
     setError('')
     try {
       const all = await listDiseaseGroups(token, { q: debouncedQuery || undefined })
-      if (seq !== requestSeqRef.current) return // daha yeni bir istek var
+      if (seq !== requestSeqRef.current) return
       const list = Array.isArray(all) ? all : []
       setGroups(list)
-      // "Hiç grup yok" ile "aramayla eşleşen yok" durumlarını ayırt etmek
-      // için: sadece arama yokken gelen sonuca bakılıyor, arama sırasında
-      // önceki değer korunuyor.
+      // "Hiç grup yok" ile "aramayla eşleşen yok" ayrımı: yalnızca aramasız sonuca bakılır.
       if (!debouncedQuery) setHasAnyGroup(list.length > 0)
     } catch (err) {
       if (seq !== requestSeqRef.current) return
@@ -84,22 +61,25 @@ export default function DiseaseGroups() {
     }
   }, [token, debouncedQuery])
 
-  useEffect(() => { load() }, [load])
+  const invalidatePending = useCallback(() => { requestSeqRef.current += 1 }, [])
+
+  useEffect(() => {
+    load()
+    return invalidatePending
+  }, [load, invalidatePending])
 
   const adjustCount = (groupId, delta) => setGroups(prev => prev.map(g => (
     g.id === groupId ? { ...g, memberCount: Math.max(0, (g.memberCount ?? 0) + delta) } : g
   )))
 
-  const handleJoin = async (e, group) => {
-    e.stopPropagation()
+  const handleJoin = async (group) => {
     if (await join(group)) {
       setJoinedIds(prev => new Set(prev).add(group.id))
       adjustCount(group.id, 1)
     }
   }
 
-  const handleLeave = async (e, group) => {
-    e.stopPropagation()
+  const handleLeave = async (group) => {
     if (await leave(group)) {
       setJoinedIds(prev => {
         const next = new Set(prev)
@@ -110,12 +90,33 @@ export default function DiseaseGroups() {
     }
   }
 
-  // Sadece İLK yüklemede tam sayfa spinner - sonraki arama fetch'lerinde
-  // arama kutusu (aşağıda) hep mounted kalır, bkz. initialLoading tanımı.
-  if (initialLoading) {
+  if (initialLoading) return <CenteredSpinner page />
+
+  const renderList = () => {
+    if (!hasAnyGroup && !error) return <EmptyState icon={GroupsRounded} title="Henüz hiç hastalık grubu yok." />
+    if (groups.length === 0 && !loading) {
+      if (error) return null
+      return (
+        <EmptyState
+          icon={SearchOffRounded}
+          title={`"${debouncedQuery}" ile eşleşen grup bulunamadı.`}
+          description="Farklı bir anahtar kelime deneyin."
+        />
+      )
+    }
     return (
-      <Box sx={{ display: 'grid', placeItems: 'center', minHeight: 300, py: 6 }}>
-        <CircularProgress size={28} />
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' }, gap: 1 }}>
+        {groups.map(group => (
+          <DiseaseGroupCard
+            key={group.id}
+            group={group}
+            joined={joinedIds.has(group.id)}
+            pending={pendingId === group.id}
+            onOpen={() => navigate(`/groups/${group.id}`)}
+            onJoin={handleJoin}
+            onLeave={handleLeave}
+          />
+        ))}
       </Box>
     )
   }
@@ -149,120 +150,17 @@ export default function DiseaseGroups() {
               ),
               endAdornment: loading ? (
                 <InputAdornment position="end">
-                  <CircularProgress size={16} />
+                  <CircularProgress size={16} aria-label="Aranıyor" />
                 </InputAdornment>
               ) : undefined
-            }
+            },
+            htmlInput: { 'aria-label': 'Grup ara' }
           }}
           sx={{ mb: 2 }}
         />
       )}
 
-      {!hasAnyGroup && !error ? (
-        <EmptyState icon={GroupsRounded} title="Henüz hiç hastalık grubu yok." />
-      ) : groups.length === 0 && !loading ? (
-        <EmptyState
-          icon={SearchOffRounded}
-          title={`"${debouncedQuery}" ile eşleşen grup bulunamadı.`}
-          description="Farklı bir anahtar kelime deneyin."
-        />
-      ) : (
-        /* KOMPAKTLIK NOTU: bu kartlar eskiden ~200px yükseklikteydi ve
-           telefonda ekrana ancak 2,5 grup sığıyordu - kullanıcı listeyi
-           tarayabilmek için sürekli kaydırmak zorundaydı. Asıl yer kaybı,
-           her kartın altındaki TAM GENİŞLİK Katıl/Ayrıl butonuydu: en
-           büyük, en dikkat çeken öğe "Ayrıl" oluyordu; oysa "Ayrıl" nadiren
-           kullanılan, yarı-yıkıcı bir aksiyon. Asıl birincil eylem (gruba
-           girip içeriğe bakmak) ise hiçbir görsel vurgusu olmayan kart
-           tıklamasıydı - hiyerarşi tamamen tersti. Artık: satır tıklaması
-           gruba girer (sağdaki ok bunu belli eder), katıl/ayrıl ise sağda
-           kompakt ikincil bir buton. */
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' },
-            gap: 1
-          }}
-        >
-          {groups.map(group => {
-            const joined = joinedIds.has(group.id)
-            const pending = pendingId === group.id
-            return (
-              <Box
-                key={group.id}
-                onClick={() => navigate(`/groups/${group.id}`)}
-                className="tap-scale"
-                sx={{
-                  p: { xs: 2, md: 2.5 },
-                  borderRadius: 3,
-                  bgcolor: 'background.paper',
-                  border: '1px solid',
-                  borderColor: joined ? 'primary.main' : 'transparent',
-                  cursor: 'pointer',
-                  position: 'relative',
-                  overflow: 'hidden',
-                  transition: 'background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease',
-                  '&:hover': { bgcolor: 'action.hover', boxShadow: '0 4px 16px rgba(0,0,0,0.10)' }
-                }}
-              >
-                <Stack direction="row" spacing={1.5} alignItems="center">
-                  <Box
-                    sx={{
-                      width: 46, height: 46, borderRadius: '50%', flexShrink: 0,
-                      display: 'grid', placeItems: 'center',
-                      bgcolor: 'rgba(76,184,159,0.16)',
-                      color: 'primary.main'
-                    }}
-                  >
-                    <GroupsRounded sx={{ fontSize: 24 }} />
-                  </Box>
-                  <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="wrap" useFlexGap>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'text.primary', wordBreak: 'break-word' }}>
-                        {group.name}
-                      </Typography>
-                      {joined && (
-                        <Chip label="Katıldın" size="small" color="primary" variant="filled" sx={{ height: 24 }} />
-                      )}
-                    </Stack>
-                    <Stack direction="row" spacing={0.5} alignItems="center">
-                      <PeopleAltRounded sx={{ fontSize: 14, color: 'text.secondary' }} />
-                      <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500 }}>
-                        {group.memberCount ?? 0} üye
-                      </Typography>
-                    </Stack>
-                    {group.description && (
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          color: 'text.secondary', mt: 0.25,
-                          overflow: 'hidden', textOverflow: 'ellipsis',
-                          display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical'
-                        }}
-                      >
-                        {group.description}
-                      </Typography>
-                    )}
-                  </Box>
-                  <Button
-                    variant={joined ? 'outlined' : 'contained'}
-                    size="small"
-                    disabled={pending}
-                    onClick={(e) => (joined ? handleLeave(e, group) : handleJoin(e, group))}
-                    sx={{
-                      flexShrink: 0, borderRadius: 999, minHeight: 40, minWidth: 84,
-                      px: 1.75, alignSelf: 'center',
-                      ...(joined ? { color: 'text.secondary', borderColor: 'divider' } : {})
-                    }}
-                  >
-                    {pending ? <CircularProgress size={16} color="inherit" /> : (joined ? 'Ayrıl' : 'Katıl')}
-                  </Button>
-                </Stack>
-              </Box>
-            )
-          })}
-        </Box>
-      )}
+      {renderList()}
     </Box>
   )
 }

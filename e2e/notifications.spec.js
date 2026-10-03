@@ -48,8 +48,8 @@ test.describe('Bildirimler (WebSocket)', () => {
     await joinSeedGroup(commenterPage)
     await commenterPage.goto(postUrl)
     const commentText = `Bildirim tetikleyen yorum ${Date.now()}`
-    await commenterPage.getByPlaceholder('Yorumunu yaz...').fill(commentText)
-    await commenterPage.getByRole('button', { name: 'Yorum Yap' }).click()
+    await commenterPage.getByPlaceholder(/Deneyimini ya da sorunu yaz/).fill(commentText)
+    await commenterPage.getByRole('button', { name: 'Yorumu gönder' }).click()
     await expect(commenterPage.getByText(commentText)).toBeVisible()
 
     // Yazarın sayfasında (herhangi bir sayfada olabilirdi - bildirim
@@ -101,8 +101,8 @@ test.describe('Bildirimler (WebSocket)', () => {
     const postUrl = authorPage.url()
 
     const commentText = `Yanıt alacak yorum ${Date.now()}`
-    await authorPage.getByPlaceholder('Yorumunu yaz...').fill(commentText)
-    await authorPage.getByRole('button', { name: 'Yorum Yap' }).click()
+    await authorPage.getByPlaceholder(/Deneyimini ya da sorunu yaz/).fill(commentText)
+    await authorPage.getByRole('button', { name: 'Yorumu gönder' }).click()
     await expect(authorPage.getByText(commentText)).toBeVisible()
     // STOMP aboneliği kurulana kadar bekle - bkz. yukarıdaki testteki aynı not.
     await waitForNotificationSocket(authorPage)

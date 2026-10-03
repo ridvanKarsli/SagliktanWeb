@@ -1,11 +1,6 @@
-// Faz8-6: uygulamada birçok yerde bir isim/avatar sadece onClick ile
-// tıklanabilir yapılıyordu (gerçek bir <a>/<button> değil) - bu hem klavyeyle
-// (Tab+Enter) hem de ekran okuyucuyla erişilemez, hem de tarayıcının "yeni
-// sekmede aç" gibi standart bağlantı davranışlarından yoksun kalıyordu.
-// Bu yardımcı, mevcut onClick tabanlı deseni bozmadan (halihazırda birçok
-// yerde prop olarak taşınıyor, tam bir Link'e çevirmek geniş bir yeniden
-// yapılandırma gerektirirdi) en azından klavye/screen-reader erişimini
-// asgari düzeyde sağlıyor: role="button" + tabIndex + Enter/Space desteği.
+// Bir isim/avatar gibi gerçek <button>/<a> olmayan bir öğeyi tıklanabilir
+// yaparken klavye ve ekran okuyucu erişimini sağlar: role="button" +
+// tabIndex + Enter/Space desteği.
 export function clickableProps(onClick) {
   return {
     role: 'button',
@@ -15,6 +10,27 @@ export function clickableProps(onClick) {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault()
         onClick(e)
+      }
+    }
+  }
+}
+
+// İçinde başka butonlar barındıran tıklanabilir kartlar için (ör. "Katıl"
+// butonlu grup kartı, eylem çubuklu gönderi kartı). Kökü role="button"
+// yapmak iç içe etkileşimli öğe üretir ve ekran okuyucuyu bozar; bunun
+// yerine kart odaklanabilir bir makale olur, Enter/Space yalnızca kartın
+// kendisi odaktayken (içerideki bir butondan gelmiyorsa) kartı açar.
+export function cardActivationProps(onActivate, label) {
+  return {
+    role: 'article',
+    tabIndex: 0,
+    'aria-label': label,
+    onClick: onActivate,
+    onKeyDown: (e) => {
+      if (e.target !== e.currentTarget) return
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault()
+        onActivate(e)
       }
     }
   }

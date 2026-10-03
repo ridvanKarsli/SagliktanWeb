@@ -1,33 +1,32 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Stack, Typography } from '@mui/material'
 import { CloseRounded, DownloadRounded, IosShareRounded } from '@mui/icons-material'
 import { generateStoryCardBlob } from '../utils/generateStoryCard.js'
 import { useNotification } from '../context/NotificationContext.jsx'
 
-// Faz 2 adım 5: gönderiyi Instagram/WhatsApp story olarak paylaşılabilir bir
-// görsele çeviren dialog. Kart üretimi (canvas -> PNG blob) burada değil
-// generateStoryCard.js'te - bu bileşen sadece onu tetikleyip önizleme +
-// paylaşma/indirme arayüzünü sağlıyor (tek sorumluluk ayrımı).
+// Gönderiyi Instagram/WhatsApp hikayesi olarak paylaşılabilir bir görsele
+// çeviren dialog. Kart üretimi (canvas -> PNG) generateStoryCard.js'te; bu
+// bileşen önizleme + paylaşma/indirme arayüzünü sağlar.
 export default function ShareStoryCardDialog({ open, onClose, post }) {
   const [loading, setLoading] = useState(true)
   const [blob, setBlob] = useState(null)
   const [previewUrl, setPreviewUrl] = useState(null)
   const [sharing, setSharing] = useState(false)
   const { showError } = useNotification()
-  // Dialog kapanırken önizleme URL'ini serbest bırakmak için (bkz. aşağıdaki
-  // cleanup effect) - object URL'ler tarayıcı tarafından otomatik toplanmıyor.
-  const urlRef = useRef(null)
 
+  // Dialog açıkken kartı üret; kapanınca, gönderi değişince ya da unmount'ta
+  // önizleme URL'ini serbest bırak (object URL'ler otomatik toplanmaz).
   useEffect(() => {
-    if (!open || !post) return
+    if (!open || !post) return undefined
     let cancelled = false
+    let url = null
     setLoading(true)
     setBlob(null)
+    setPreviewUrl(null)
     generateStoryCardBlob(post)
       .then(generated => {
         if (cancelled) return
-        const url = URL.createObjectURL(generated)
-        urlRef.current = url
+        url = URL.createObjectURL(generated)
         setBlob(generated)
         setPreviewUrl(url)
       })
@@ -37,16 +36,11 @@ export default function ShareStoryCardDialog({ open, onClose, post }) {
       .finally(() => {
         if (!cancelled) setLoading(false)
       })
-    return () => { cancelled = true }
-  }, [open, post, showError])
-
-  useEffect(() => {
-    if (!open && urlRef.current) {
-      URL.revokeObjectURL(urlRef.current)
-      urlRef.current = null
-      setPreviewUrl(null)
+    return () => {
+      cancelled = true
+      if (url) URL.revokeObjectURL(url)
     }
-  }, [open])
+  }, [open, post, showError])
 
   const share = async () => {
     if (!blob) return

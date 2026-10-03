@@ -4,18 +4,8 @@ import ThumbUpAltOutlinedIcon from '@mui/icons-material/ThumbUpAltOutlined'
 import ThumbUpAltIcon from '@mui/icons-material/ThumbUpAlt'
 import ThumbDownAltOutlinedIcon from '@mui/icons-material/ThumbDownAltOutlined'
 import ThumbDownAltIcon from '@mui/icons-material/ThumbDownAlt'
-
-// Öğeyi ekranda göstermeden DOM'da tutar. Burada amaç erişilebilirlik değil,
-// E2E sözleşmesi: reactions.spec.js sayaçları 0 iken de okuyor, bu yüzden
-// koşullu render (DOM'dan çıkarma) yapamıyoruz.
-const visuallyHidden = {
-  position: 'absolute',
-  width: 1,
-  height: 1,
-  overflow: 'hidden',
-  clipPath: 'inset(50%)',
-  whiteSpace: 'nowrap'
-}
+import { visuallyHidden } from '../utils/visuallyHidden.js'
+import { useServerSyncedState } from '../hooks/useServerSyncedState.js'
 
 /**
  * Beğeni yerine: "Faydalı" / "Faydalı Değil" reaksiyonu. Sağlık içerikli bir
@@ -25,10 +15,8 @@ const visuallyHidden = {
  * İyimser (optimistic) güncelleme yapar: tıklanır tıklanmaz sayaç/seçim
  * güncellenir, istek başarısız olursa eski haline geri alınır.
  *
- * Not: local state prop'lardan sadece ilk mount'ta türetilir - bu güvenli,
- * çünkü tüm kullanım yerleri PostCard/CommentItem'ı post/yorum id'sine göre
- * `key={...}` ile render ediyor (bkz. Posts.jsx, PostDetail.jsx), dolayısıyla
- * farklı bir içeriğe geçildiğinde React zaten sıfırdan yeni bir instance kurar.
+ * Yerel kopya, istek beklemezken sunucudan gelen yeni prop değerleriyle
+ * eşitlenir (bkz. useServerSyncedState).
  */
 export default function ReactionButtons({
   helpfulCount = 0,
@@ -40,19 +28,11 @@ export default function ReactionButtons({
   disabled = false
 }) {
   const [pending, setPending] = useState(false)
-  const [local, setLocal] = useState({ helpfulCount, notHelpfulCount, myReaction })
-  // Art arda hızlı tıklamalarda (bkz. reactions.spec.js - "Faydalı"ya basıp
-  // hemen "Faydalı Değil"e geçme) hangi isteğin EN GÜNCEL olduğunu izlemek
-  // için. `pending` tek başına ikinci tıklamayı tamamen ENGELLEMEK için
-  // kullanılıyordu - ama optimistic güncelleme network beklemeden anında
-  // DOM'a yansıdığı için (bkz. aşağıdaki setLocal), kullanıcı/test ikinci
-  // tıklamayı ilk isteğin backend round-trip'i bitmeden yapabiliyordu ve o
-  // tıklama sessizce hiçbir şey yapmadan yutuluyordu (CI'da Postgres+Spring
-  // Boot round-trip'i yerelden daha yavaş olduğu için burada gerçek bir
-  // race - bkz. 2026-08-07 reactions.spec.js CI başarısızlığı). Artık her
-  // tıklama kendi request id'sini alıyor; hata durumunda sadece HÂLÂ en
-  // güncel istek buysa eski haline dönülüyor - aksi halde daha yeni
-  // (başarılı ya da hâlâ süren) bir optimistic güncellemeyi ezmiş oluruz.
+  const [local, setLocal] = useServerSyncedState({ helpfulCount, notHelpfulCount, myReaction }, { paused: pending })
+  // Art arda hızlı tıklamalar engellenmiyor (optimistic güncelleme anında
+  // yansıdığı için ikinci tıklama ilk istek bitmeden gelebilir); her tıklama
+  // kendi istek numarasını alır ve hata durumunda yalnızca HÂLÂ en güncel
+  // istek buysa eski hale dönülür - daha yeni bir güncelleme ezilmesin.
   const requestIdRef = useRef(0)
 
   const handleClick = async (e, value) => {

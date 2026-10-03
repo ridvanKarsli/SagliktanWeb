@@ -45,6 +45,7 @@ export default function DashboardTab({ token, onGo }) {
   const { showError } = useNotification()
 
   useEffect(() => {
+    let alive = true
     setLoading(true)
     Promise.all([
       getAdminStats(token),
@@ -52,11 +53,13 @@ export default function DashboardTab({ token, onGo }) {
       listDiseaseGroups(token).catch(() => [])
     ])
       .then(([statsRes, groups]) => {
+        if (!alive) return
         setStats(statsRes)
         setGroupCount(Array.isArray(groups) ? groups.length : null)
       })
-      .catch(err => showError(err.message || 'İstatistikler alınamadı.'))
-      .finally(() => setLoading(false))
+      .catch(err => { if (alive) showError(err.message || 'İstatistikler alınamadı.') })
+      .finally(() => { if (alive) setLoading(false) })
+    return () => { alive = false }
   }, [token, showError])
 
   if (loading) return <AdminLoading />

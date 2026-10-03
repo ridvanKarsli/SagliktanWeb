@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useAuth } from './AuthContext.jsx'
 import { connectNotificationSocket } from '../services/notificationSocket.js'
 import {
@@ -84,11 +84,12 @@ export function NotificationsFeedProvider({ children }) {
     }
   }, [token, refresh])
 
-  return (
-    <NotificationsFeedContext.Provider value={{ items, unreadCount, markRead, markAllRead, refresh, wsConnected }}>
-      {children}
-    </NotificationsFeedContext.Provider>
+  const value = useMemo(
+    () => ({ items, unreadCount, markRead, markAllRead, refresh, wsConnected }),
+    [items, unreadCount, markRead, markAllRead, refresh, wsConnected]
   )
+
+  return <NotificationsFeedContext.Provider value={value}>{children}</NotificationsFeedContext.Provider>
 }
 
 export function useNotificationsFeed() {

@@ -50,10 +50,10 @@ test.describe('Gruplar, üyelik ve gönderi/yorum akışı', () => {
     const postUrl = page.url()
 
     // Üye olarak yorum kutusu görünür ve çalışır olmalı.
-    await expect(page.getByPlaceholder('Yorumunu yaz...')).toBeVisible()
+    await expect(page.getByPlaceholder(/Deneyimini ya da sorunu yaz/)).toBeVisible()
     const commentText = `Test yorumu ${Date.now()}`
-    await page.getByPlaceholder('Yorumunu yaz...').fill(commentText)
-    await page.getByRole('button', { name: 'Yorum Yap' }).click()
+    await page.getByPlaceholder(/Deneyimini ya da sorunu yaz/).fill(commentText)
+    await page.getByRole('button', { name: 'Yorumu gönder' }).click()
     await expect(page.getByText(commentText)).toBeVisible()
 
     // Yoruma yanıt ver (sınırsız derinlik özelliğinin temel doğrulaması).
@@ -73,14 +73,14 @@ test.describe('Gruplar, üyelik ve gönderi/yorum akışı', () => {
     await registerAndLogin(page, outsider)
     await page.goto(postUrl)
 
-    await expect(page.getByText('Yorum yapabilmek için bu hastalık grubuna üye olmalısın.')).toBeVisible()
-    await expect(page.getByPlaceholder('Yorumunu yaz...')).toHaveCount(0)
+    await expect(page.getByText('Yorum yapmak için bu hastalık grubuna katılman gerekiyor.')).toBeVisible()
+    await expect(page.getByPlaceholder(/Deneyimini ya da sorunu yaz/)).toHaveCount(0)
     // Daha önce eklenen yorum/yanıt yine de herkese görünür olmalı (okuma serbest).
     await expect(page.getByText(commentText)).toBeVisible()
     // Yanıtlar artık X/Twitter tarzı varsayılan olarak kapalı geliyor (bkz.
     // PostDetail.jsx repliesOpen) - taze bir sayfa yüklemesinde görmek için
     // önce "N yanıtı görüntüle" butonuna tıklamak gerekiyor.
-    await page.getByRole('button', { name: /yanıtı görüntüle/ }).click()
+    await page.getByRole('button', { name: /^\d+ yanıt$/ }).click()
     await expect(page.getByText(replyText)).toBeVisible()
   })
 

@@ -1,25 +1,18 @@
 // src/services/api.js
 //
-// SagliktanApi (Spring Boot) backend'ine ince bir fetch katmanı.
-// Eski (com.saglikAdimiAPI) backend'e özgü generated OpenAPI client'ı ve
-// doktor/uzmanlık/iş adresi/duyuru/reaksiyon gibi karşılığı olmayan
-// fonksiyonlar kaldırıldı. Backend'in gerçek endpoint/DTO şekli:
-// bkz. SagliktanApi controller/dto paketleri.
+// SagliktanApi (Spring Boot) backend'ine ince bir fetch katmanı. Endpoint ve
+// DTO şekilleri için bkz. SagliktanApi controller/dto paketleri.
 //
-// HATA YUTMA KONVANSİYONU (bu dosyadaki fonksiyonları çağıran her yerde
-// geçerli): bir `.catch(...)` bloğu YALNIZCA aşağıdaki iki durumdan birinde
-// sessiz kalmalı - aksi halde en azından `console.warn`/`console.error` ile
-// logla (bkz. ReactionButtons.jsx'teki örnek: sessizce yutulan bir hata,
-// arayüz eski haline dönse bile NEDEN başarısız olduğunu hiçbir yerde
-// görünmez kılıyor, teşhisi imkansızlaştırıyor):
-//   1) İkincil/arka plan verisi (bildirim sayacı, dashboard istatistiği,
-//      "opsiyonel" bir liste gibi) - sayfanın asıl işlevini engellemiyor,
-//      kullanıcıya toast ile rahatsız etmeye değmez. Yine de KISA bir
-//      yorumla "neden sessiz" belirtilmeli (bkz. Profile.jsx satır ~177).
-//   2) Zaten beklenen/anlamsız durumlar (WS mesaj parse hatası, kullanıcının
-//      kendi kapattığı bir prompt vb.) - bunlar da yorumla açıklanmalı.
-// Kullanıcının doğrudan tetiklediği bir aksiyonun (form gönderme, silme,
-// kaydetme vb.) hatası HER ZAMAN showError/setError ile görünür olmalı.
+// HATA YUTMA KONVANSİYONU (bu dosyadaki fonksiyonları çağıran her yerde):
+// bir `.catch(...)` bloğu YALNIZCA şu iki durumda sessiz kalabilir, aksi
+// halde en azından loglanmalı:
+//   1) İkincil/arka plan verisi (bildirim sayacı, istatistik, opsiyonel bir
+//      liste) - sayfanın asıl işlevini engellemez; kısa bir yorumla "neden
+//      sessiz" belirtilmeli.
+//   2) Beklenen/anlamsız durumlar (WS mesaj parse hatası, kullanıcının
+//      kapattığı bir prompt vb.) - bunlar da yorumla açıklanmalı.
+// Kullanıcının doğrudan tetiklediği bir aksiyonun (gönderme, silme,
+// kaydetme) hatası HER ZAMAN showError/setError ile görünür olmalı.
 const API_BASE = import.meta.env.VITE_API_BASE?.trim() || '/api';
 
 // Dinamik import: AuthContext bu modülü de import ettiği için döngüsel
@@ -41,14 +34,9 @@ function authHeaders(token) {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-// Faz7-9: backend HER ZAMAN bir `message` gövdesi dönmüyor (ör. bir proxy/LB
-// hatası, beklenmeyen bir 500, ya da CORS/network katmanında oluşan bir yanıt)
-// - bu durumda önceden ham "İstek başarısız (HTTP 500)" gibi bir geliştirici
-// mesajı doğrudan showError(...) ile kullanıcıya gösteriliyordu (bkz.
-// api.js hata yutma konvansiyonu - kullanıcı tetikli aksiyonlarda mesaj HER
-// ZAMAN görünür olmalı, ama görünen mesaj anlaşılır olmalı). Durum koduna
-// göre en azından kaba bir kategori veren, teknik jargon içermeyen bir
-// yedek metin kullanılıyor.
+// Backend her zaman bir `message` gövdesi dönmez (proxy/LB hatası, beklenmeyen
+// 500...). Kullanıcıya ham "HTTP 500" yerine durum koduna göre anlaşılır,
+// teknik jargonsuz bir yedek metin gösterilir.
 function friendlyFallbackMessage(status) {
   if (status === 401 || status === 403) return 'Bu işlem için yetkin yok. Sayfayı yenileyip tekrar giriş yapmayı dene.';
   if (status === 404) return 'Aradığın şey bulunamadı.';
@@ -76,14 +64,9 @@ async function request(path, { method = 'GET', token, body, params, signal, _ret
     payload = JSON.stringify(body);
   }
 
-  // Faz8-1: `fetch()` kendisi de reject edebilir - HTTP durum kodu bile
-  // dönmeden (uçuş modu, kopan mobil bağlantı, DNS hatası vb.). Bu durumda
-  // tarayıcının ham "Failed to fetch" gibi İngilizce/teknik hatası hiç
-  // yakalanmadan showError(err.message) ile doğrudan kullanıcıya
-  // gösteriliyordu - tam olarak en olası (mobil veri kesintisi) anda kafa
-  // karıştırıcı bir İngilizce mesajla karşılaşmak. AbortError kasıtlı iptal
-  // (ör. bileşen unmount olurken devam eden bir istek) - kullanıcıya
-  // gösterilecek bir hata değil, olduğu gibi yeniden fırlatılıyor.
+  // fetch() HTTP yanıtı bile almadan reject edebilir (uçuş modu, kopan mobil
+  // bağlantı, DNS). Tarayıcının İngilizce "Failed to fetch" metni yerine
+  // anlaşılır bir mesaj verilir. AbortError kasıtlı iptaldir, aynen iletilir.
   let res;
   try {
     res = await fetch(url, { method, headers, body: payload, signal });
@@ -114,16 +97,9 @@ async function request(path, { method = 'GET', token, body, params, signal, _ret
   }
 
   if (!res.ok) {
-    // Faz8-10: backend @Valid hataları (bkz. GlobalExceptionHandler.handleValidation)
-    // gövdede her zaman genel "Girdi doğrulama hatası" mesajını dönüyor, asıl
-    // sebep (ör. ValidName -> "Geçerli bir isim giriniz") ayrı bir fieldErrors
-    // map'inde geliyor. Bu detay ApiError.fieldErrors'a önceden de taşınıyordu
-    // ama hiçbir çağrı noktası onu okumuyordu - her yerde sadece err.message
-    // kullanıldığından kullanıcı "girdi doğrulama hatası" görüp NEDEN
-    // reddedildiğini asla öğrenemiyordu (bkz. admin panelinde rakam içeren bir
-    // isimle kayıt denemesi). Tek merkezi noktada (burada) varsa alan
-    // mesaj(lar)ını asıl mesajın yerine geçiriyoruz ki her mevcut
-    // showError(err.message) çağrısı otomatik olarak anlamlı hale gelsin.
+    // @Valid hatalarında gövdedeki genel mesaj ("Girdi doğrulama hatası")
+    // yerine alan bazlı asıl sebepler (fieldErrors) gösterilir - böylece her
+    // showError(err.message) çağrısı otomatik olarak anlamlı olur.
     const fieldErrors = data?.fieldErrors || null;
     const specificMessage = fieldErrors && Object.keys(fieldErrors).length
       ? Object.values(fieldErrors).join(' ')
@@ -149,10 +125,6 @@ export function loginUser({ email, password }) {
 
 export function refreshToken(refreshTokenValue) {
   return request('/auth/refresh', { method: 'POST', body: { refreshToken: refreshTokenValue } });
-}
-
-export function verifyEmail({ email, code }) {
-  return request('/auth/verify-email', { method: 'POST', body: { email, code } });
 }
 
 export function forgotPassword({ email }) {
@@ -246,7 +218,7 @@ export function getMyPosts(token, { page = 0, size, signal } = {}) {
   return request('/users/me/posts', { token, params: { page, size }, signal });
 }
 
-// Faz 2 adım 3: profildeki "Kaydedilenler" sekmesi.
+// Profildeki "Kaydedilenler" sekmesi.
 export function getMySavedPosts(token, { page = 0, size, signal } = {}) {
   return request('/users/me/saved-posts', { token, params: { page, size }, signal });
 }
@@ -303,8 +275,8 @@ export function listPostsBySubGroup(token, subGroupId, { page = 0, size, sort, s
   return request(`/sub-groups/${subGroupId}/posts`, { token, params: { page, size, sort }, signal });
 }
 
-// attachmentKeys: Faz 2 adım 4 - requestPresignedUpload + uploadToPresignedUrl
-// ile önceden R2'ye yüklenmiş storage key'leri (bkz. PhotoUploadField.jsx).
+// attachmentKeys: requestPresignedUpload + uploadToPresignedUrl ile önceden
+// R2'ye yüklenmiş storage key'leri (bkz. PhotoUploadField.jsx).
 // postType: 'DISCUSSION' (varsayılan) | 'QUESTION' | 'POLL'; POLL ise
 // pollOptions 2-6 dolu seçenek.
 export function createPost(token, subGroupId, { title, content, attachmentKeys, postType, pollOptions }) {
@@ -348,8 +320,7 @@ export function searchPosts(token, q, { page = 0, size, signal } = {}) {
   return request('/posts/search', { token, params: { q, page, size }, signal });
 }
 
-// Faz 2 adım 2: "Gönderiler" sayfasındaki alt gruba özel arama - searchPosts
-// (platform geneli) ile karıştırılmasın diye ayrı fonksiyon.
+// Alt gruba özel arama (bkz. Posts.jsx) - platform geneli searchPosts'tan ayrı.
 export function searchPostsInSubGroup(token, subGroupId, q, { page = 0, size, signal } = {}) {
   return request(`/sub-groups/${subGroupId}/posts/search`, { token, params: { q, page, size }, signal });
 }
@@ -419,7 +390,7 @@ export function reportComment(token, commentId, reason) {
   return request(`/comments/${commentId}/report`, { method: 'POST', token, body: { reason: reason || null } });
 }
 
-// Faz7-8: profilden doğrudan kullanıcı şikayeti (sohbete girmeden de erişilebilir).
+// Profilden doğrudan kullanıcı şikayeti (sohbete girmeden de erişilebilir).
 export function reportUser(token, userId, reason) {
   return request(`/users/${userId}/report`, { method: 'POST', token, body: { reason: reason || null } });
 }
@@ -434,7 +405,7 @@ export function removePostReaction(token, postId) {
   return request(`/posts/${postId}/reactions`, { method: 'DELETE', token });
 }
 
-// --- Kaydetme (yıldızlama) - Faz 2 adım 3 ---
+// --- Kaydetme (yer imi) ---
 
 export function savePost(token, postId) {
   return request(`/posts/${postId}/saved`, { method: 'PUT', token });
@@ -444,7 +415,7 @@ export function unsavePost(token, postId) {
   return request(`/posts/${postId}/saved`, { method: 'DELETE', token });
 }
 
-// --- Sabitlenmiş gönderi - Faz6 ---
+// --- Profile sabitlenmiş gönderi ---
 
 export function pinPost(token, postId) {
   return request(`/posts/${postId}/pin`, { method: 'PUT', token });
@@ -454,7 +425,7 @@ export function unpinPost(token, postId) {
   return request(`/posts/${postId}/pin`, { method: 'DELETE', token });
 }
 
-// --- Medya (gönderi fotoğrafları) - Faz 2 adım 4 ---
+// --- Medya (gönderi fotoğrafları) ---
 
 export function requestPresignedUpload(token, contentType) {
   return request('/media/presigned-upload-url', { method: 'POST', token, body: { contentType } });
@@ -471,7 +442,8 @@ export async function uploadToPresignedUrl(uploadUrl, file, contentType) {
     body: file
   });
   if (!res.ok) {
-    throw new Error(`Fotoğraf yüklenemedi (${res.status})`);
+    // Durum kodu teşhis için hatada saklanır, kullanıcıya teknik metin gösterilmez.
+    throw new ApiError('Fotoğraf yüklenemedi. Lütfen tekrar dene.', res.status, null);
   }
 }
 
@@ -501,7 +473,7 @@ export function markAllNotificationsRead(token) {
   return request('/notifications/read-all', { method: 'PUT', token });
 }
 
-// --- Mesajlaşma (Faz 2 adım 6) - WebSocket bağlantısı için bkz.
+// --- Mesajlaşma - WebSocket bağlantısı için bkz.
 // services/messagingSocket.js. Mesaj isteği kabul edilmeden serbest
 // mesajlaşma açılmıyor, bkz. backend MessageRequestService.
 

@@ -59,19 +59,18 @@ test.describe('Şikayet (rapor etme)', () => {
     const postUrl = page.url()
 
     const commentText = `Şikayet edilecek yorum ${Date.now()}`
-    await page.getByPlaceholder('Yorumunu yaz...').fill(commentText)
-    await page.getByRole('button', { name: 'Yorum Yap' }).click()
+    await page.getByPlaceholder(/Deneyimini ya da sorunu yaz/).fill(commentText)
+    await page.getByRole('button', { name: 'Yorumu gönder' }).click()
     await expect(page.getByText(commentText)).toBeVisible()
 
     // Kendi yorumunu şikayet edemezsin - ikinci bir kullanıcıyla dene.
-    // Reporter ne postun ne yorumun sahibi, bu yüzden hem postun hem
-    // yorumun "Şikayet Et" butonu görünür oluyor - .last() yorumunkini
-    // hedefliyor (DOM sırasına göre post bölümünden sonra geliyor).
+    // Yorum şikayeti yorumun "⋯" (Yorum seçenekleri) menüsünde.
     await page.evaluate(() => { localStorage.clear(); sessionStorage.clear() })
     await registerAndLogin(page, reporter)
     await page.goto(postUrl)
 
-    await page.getByRole('button', { name: 'Şikayet Et' }).last().click()
+    await page.getByRole('button', { name: 'Yorum seçenekleri' }).first().click()
+    await page.getByRole('menuitem', { name: 'Şikayet et' }).click()
     await expect(page.getByText('İçeriği Şikayet Et')).toBeVisible()
     await page.getByPlaceholder(/uygunsuz içerik/).fill('E2E testi tarafından gönderilen otomatik şikayet - yorum.')
     await page.getByRole('button', { name: 'Şikayet Et' }).last().click()

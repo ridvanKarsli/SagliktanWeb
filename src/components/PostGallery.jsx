@@ -1,22 +1,13 @@
 import { useState } from 'react'
-import { Box } from '@mui/material'
+import { Box, ButtonBase } from '@mui/material'
 import Lightbox from 'yet-another-react-lightbox'
 import Zoom from 'yet-another-react-lightbox/plugins/zoom'
 import 'yet-another-react-lightbox/styles.css'
 
 /**
- * Gönderi fotoğrafları - Faz 2 adım 4. `attachments` backend'den zaten
- * sortOrder'a göre sıralı geliyor (bkz. PostAttachmentResponse). Ayrı bir
- * carousel kütüphanesi eklemeden CSS scroll-snap ile yatay kaydırmalı bir
- * şerit - tek fotoğrafta da aynı bileşen kullanılabiliyor (width: 100%).
- *
- * Tıklayınca büyütme/yakınlaştırma (bkz. görüşme: "LinkedIn'in linki gibi
- * düşün") - yet-another-react-lightbox kullanıldı: pinch/scroll/çift-tık
- * zoom, klavye navigasyonu ve odak tuzağı (focus trap) hazır geliyor; bunu
- * elle (özellikle dokunmatik pinch-zoom) doğru yazmak kayda değer bir efor
- * ve WCAG denetiminde (bkz. e2e/accessibility.spec.js) risk olurdu. Sadece
- * PostCard/PostDetail üzerinden, her ikisi de lazy route (bkz. App.jsx),
- * kullanılıyor - kütüphane ana pakete hiç girmiyor, LCP'yi etkilemiyor.
+ * Gönderi fotoğrafları: CSS scroll-snap ile yatay kaydırmalı bir şerit
+ * (backend sortOrder'a göre sıralı döner). Dokununca/Enter ile büyütülür;
+ * lightbox pinch/çift-tık zoom, klavye gezinmesi ve odak tuzağını sağlar.
  */
 export default function PostGallery({ attachments }) {
   const [lightboxIndex, setLightboxIndex] = useState(-1)
@@ -39,26 +30,31 @@ export default function PostGallery({ attachments }) {
         }}
       >
         {attachments.map((a, i) => (
-          <Box
+          <ButtonBase
             key={a.id}
-            component="img"
-            src={a.url}
-            alt=""
-            loading="lazy"
-            className="tap-scale"
             onClick={() => setLightboxIndex(i)}
+            aria-label={attachments.length > 1 ? `Fotoğraf ${i + 1} / ${attachments.length} - büyüt` : 'Fotoğrafı büyüt'}
+            className="tap-scale"
             sx={{
               scrollSnapAlign: 'start',
               flex: '0 0 auto',
               width: attachments.length === 1 ? '100%' : '85%',
-              maxHeight: 420,
               borderRadius: 2,
-              objectFit: 'cover',
+              overflow: 'hidden',
               border: '1px solid',
               borderColor: 'divider',
-              cursor: 'zoom-in'
+              cursor: 'zoom-in',
+              '&.Mui-focusVisible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 2 }
             }}
-          />
+          >
+            <Box
+              component="img"
+              src={a.url}
+              alt=""
+              loading="lazy"
+              sx={{ display: 'block', width: '100%', maxHeight: 420, objectFit: 'cover' }}
+            />
+          </ButtonBase>
         ))}
       </Box>
 
@@ -74,10 +70,7 @@ export default function PostGallery({ attachments }) {
           doubleClickDelay: 300,
           scrollToZoom: true
         }}
-        // closeOnPullDown: iOS Fotoğraflar'daki gibi aşağı sürükleyerek
-        // kapatma - kütüphane bunu 1:1 parmak takibi + bırakma hızına göre
-        // karar (Apple'ın momentum/velocity ilkesiyle aynı fikir) ile zaten
-        // kendi içinde yapıyor, önceden kapalıydı (varsayılan false).
+        // closeOnPullDown: iOS Fotoğraflar'daki gibi aşağı sürükleyerek kapatma.
         controller={{ closeOnBackdropClick: true, closeOnPullDown: true }}
         styles={{ container: { backgroundColor: 'rgba(20, 17, 14, 0.94)' } }}
       />

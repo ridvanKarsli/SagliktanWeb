@@ -1,154 +1,25 @@
 import { useEffect, useRef, useState } from 'react'
-import {
-  Avatar, Box, Button, CircularProgress, ClickAwayListener, Divider, Fade, IconButton, Paper,
-  Stack, Tab, Tabs, TextField, Typography
-} from '@mui/material'
-import { SearchRounded, ChatBubbleOutlineRounded, CloseRounded, HistoryRounded } from '@mui/icons-material'
+import { Box, CircularProgress, ClickAwayListener, Fade, IconButton, Tab, Tabs, TextField, Typography } from '@mui/material'
+import { CloseRounded, SearchOffRounded, SearchRounded } from '@mui/icons-material'
 import { useLocation, useNavigate } from 'react-router-dom'
-import PostCard from '../components/PostCard.jsx'
-import HighlightText from '../components/HighlightText.jsx'
+import PostList from '../components/PostList.jsx'
+import EmptyState from '../components/EmptyState.jsx'
+import LoadMoreButton from '../components/common/LoadMoreButton.jsx'
+import SearchSuggestions from '../components/search/SearchSuggestions.jsx'
+import { CommentResultCard, PersonResultCard } from '../components/search/SearchResultCards.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useNotification } from '../context/NotificationContext.jsx'
-import { searchPosts, searchComments, searchUsers, quickSearch } from '../services/api.js'
-import { initialsFrom, prettyDate } from '../utils/format.js'
+import { useSearchSuggestions } from '../hooks/useSearchSuggestions.js'
+import { SEARCH_TABS, useTabbedSearch } from '../hooks/useTabbedSearch.js'
+import { goToUserProfile } from '../utils/navigation.js'
 import { loadRecentSearches, saveRecentSearch, removeRecentSearch, clearRecentSearches } from '../utils/recentSearches.js'
 
-const TABS = [
-  { key: 'posts', label: 'Gönderiler', fetcher: searchPosts },
-  { key: 'comments', label: 'Yorumlar', fetcher: searchComments },
-  { key: 'people', label: 'Kişiler', fetcher: searchUsers },
-]
-
-function truncate(text = '', max = 140) {
-  const clean = String(text || '').trim()
-  if (clean.length <= max) return clean
-  return `${clean.slice(0, max).trimEnd()}…`
-}
-
-function CommentResultCard({ comment, onClick, onAuthorClick, query }) {
-  return (
-    <Box
-      onClick={onClick}
-      className="tap-scale"
-      sx={{
-        p: { xs: 2, md: 2.5 },
-        mb: 1.5,
-        borderRadius: 2,
-        bgcolor: 'background.paper',
-        border: '1px solid',
-        borderColor: 'divider',
-        cursor: 'pointer',
-        transition: 'background-color 0.2s ease, border-color 0.2s ease',
-        '&:hover': { bgcolor: 'action.hover', borderColor: 'primary.main' }
-      }}
-    >
-      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-        <ChatBubbleOutlineRounded sx={{ fontSize: 15, color: 'text.secondary' }} />
-        <Typography
-          variant="caption"
-          onClick={(e) => { e.stopPropagation(); onAuthorClick?.(comment.authorId) }}
-          sx={{ color: 'text.secondary', fontWeight: 600, cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}
-        >
-          {comment.authorName || 'Kullanıcı'}
-        </Typography>
-        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-          · {prettyDate(comment.createdAt) || ''}
-        </Typography>
-      </Stack>
-      <Typography
-        variant="body2"
-        sx={{ color: 'text.primary', whiteSpace: 'pre-line', wordBreak: 'break-word' }}
-      >
-        {query ? <HighlightText text={comment.content} query={query} /> : comment.content}
-      </Typography>
-    </Box>
-  )
-}
-
-function PersonResultCard({ person, onClick, query }) {
-  const fullName = `${person.firstName || ''} ${person.lastName || ''}`.trim()
-  return (
-    <Box
-      onClick={onClick}
-      className="tap-scale"
-      sx={{
-        p: { xs: 2, md: 2.5 },
-        mb: 1.5,
-        borderRadius: 2,
-        bgcolor: 'background.paper',
-        border: '1px solid',
-        borderColor: 'divider',
-        cursor: 'pointer',
-        transition: 'background-color 0.2s ease, border-color 0.2s ease',
-        '&:hover': { bgcolor: 'action.hover', borderColor: 'primary.main' }
-      }}
-    >
-      <Stack direction="row" spacing={1.5} alignItems="center">
-        <Avatar sx={{ width: 40, height: 40, fontSize: 15, fontWeight: 700, flexShrink: 0 }}>
-          {initialsFrom(fullName)}
-        </Avatar>
-        <Box sx={{ minWidth: 0 }}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.primary' }} noWrap>
-            {query ? <HighlightText text={fullName || 'Kullanıcı'} query={query} /> : (fullName || 'Kullanıcı')}
-          </Typography>
-          {person.bio && (
-            <Typography variant="caption" sx={{ color: 'text.secondary' }} noWrap>
-              {person.bio}
-            </Typography>
-          )}
-        </Box>
-      </Stack>
-    </Box>
-  )
-}
-
-const emptyTabState = {
-  results: [], page: 0, totalPages: 1, totalElements: 0, last: true,
-  loading: false, loadingMore: false, searched: false, loadedKey: null
-}
-
-export default function Search() {
-  const { token, user: currentUser } = useAuth()
-  const { showError } = useNotification()
-  const loc = useLocation()
-  const navigate = useNavigate()
-  const params = new URLSearchParams(loc.search)
-  const initialQ = params.get('q') || ''
-
-  const [q, setQ] = useState(initialQ)
-  const [activeQuery, setActiveQuery] = useState(initialQ)
-  const [tabIndex, setTabIndex] = useState(0)
-  const [states, setStates] = useState({ posts: emptyTabState, comments: emptyTabState, people: emptyTabState })
-
-  // Yazarken öneri (dropdown) - Twitter tarzı hızlı arama
-  const [suggestions, setSuggestions] = useState(null)
-  const [suggestOpen, setSuggestOpen] = useState(false)
-  const [suggestLoading, setSuggestLoading] = useState(false)
-  const [activeIndex, setActiveIndex] = useState(-1) // klavye ile öneri gezinme
-  const debounceRef = useRef(null)
-  const inputRef = useRef(null)
-
-  // Son aramalar: localStorage'da tutulur, kutu boşken/odaklanınca öneri
-  // panelinde gösterilir (bkz. src/utils/recentSearches.js).
-  const [recentSearches, setRecentSearches] = useState(() => loadRecentSearches())
-
-  // Cmd/Ctrl+K/"/" ile başka bir sayfadan buraya yönlendirildiyse (bkz.
-  // useQuickSearchShortcut.js) input'a otomatik odaklan. state'i navigate
-  // ile hemen temizliyoruz ki geri/ileri tuşlarında tekrar tetiklenmesin.
-  useEffect(() => {
-    if (loc.state?.autoFocus) {
-      inputRef.current?.focus()
-      navigate(loc.pathname + loc.search, { replace: true, state: null })
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  // Zaten /search'teyken Cmd/Ctrl+K tekrar basılırsa input'a odaklanıp
-  // mevcut metni seçili hale getir (aramayı sıfırdan yazmayı kolaylaştırır) -
-  // ResponsiveShell'deki genel dinleyici bu sayfadayken bilerek no-op yapıyor.
+function useFocusShortcut(inputRef) {
+  // Bu sayfadayken Cmd/Ctrl+K kutuya odaklanıp metni seçer (diğer sayfalarda
+  // aynı kısayol buraya yönlendirir - bkz. useQuickSearchShortcut).
   useEffect(() => {
     function onKeyDown(e) {
-      const isK = (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k'
+      const isK = (e.metaKey || e.ctrlKey) && (e.key || '').toLowerCase() === 'k'
       if (!isK) return
       e.preventDefault()
       inputRef.current?.focus()
@@ -156,109 +27,75 @@ export default function Search() {
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
+  }, [inputRef])
+}
+
+/**
+ * Platform geneli arama: üstte yazarken öneri veren arama kutusu (son
+ * aramalar + hızlı öneriler), altında Gönderiler / Yorumlar / Kişiler
+ * sekmeli tam sonuçlar. Aktif sorgu URL'de (?q=) tutulur.
+ */
+export default function Search() {
+  const { token, user: currentUser } = useAuth()
+  const { showError } = useNotification()
+  const location = useLocation()
+  const navigate = useNavigate()
+  const urlQuery = new URLSearchParams(location.search).get('q') || ''
+
+  const [q, setQ] = useState(urlQuery)
+  const [activeQuery, setActiveQuery] = useState(urlQuery)
+  const [tabIndex, setTabIndex] = useState(0)
+  const [suggestOpen, setSuggestOpen] = useState(false)
+  const [activeIndex, setActiveIndex] = useState(-1)
+  const [recentSearches, setRecentSearches] = useState(loadRecentSearches)
+  const inputRef = useRef(null)
+
+  // URL'deki sorgu dışarıdan değişirse (ör. tarayıcı geri/ileri) ona uy.
+  const [lastUrlQuery, setLastUrlQuery] = useState(urlQuery)
+  if (lastUrlQuery !== urlQuery) {
+    setLastUrlQuery(urlQuery)
+    setQ(urlQuery)
+    setActiveQuery(urlQuery)
+  }
+
+  const suggest = useSearchSuggestions(token, q)
+  const { states, active, tab, loadMore, reset: resetResults } = useTabbedSearch(token, activeQuery, tabIndex, {
+    onError: (err) => showError(err.message || 'Arama başarısız.')
+  })
+
+  // Yeni öneri listesi gelince klavye seçimi sıfırlanır.
+  const [lastSuggestions, setLastSuggestions] = useState(suggest.suggestions)
+  if (lastSuggestions !== suggest.suggestions) {
+    setLastSuggestions(suggest.suggestions)
+    setActiveIndex(-1)
+  }
+
+  // Başka bir sayfadan kısayolla gelindiyse kutuya odaklan; state'i hemen
+  // temizle ki geri/ileri tuşlarında tekrar tetiklenmesin.
+  useEffect(() => {
+    if (location.state?.autoFocus) {
+      inputRef.current?.focus()
+      navigate(location.pathname + location.search, { replace: true, state: null })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const activeTab = TABS[tabIndex]
-  const activeState = states[activeTab.key]
-
-  // Ana sekmeli sonuçlar: sadece görüntülenen sekme için, gerektiğinde tembel yüklenir.
-  // Faz8-8: numaralı sayfalama (Önceki/Sonraki) yerine sitenin geri kalanıyla
-  // tutarlı "Daha Fazla Yükle" deseni - page 0 baştan yükler (sonuçları
-  // değiştirir), page > 0 ("Daha Fazla Yükle" tıklaması) sonuçların sonuna ekler.
-  useEffect(() => {
-    if (!token || !activeQuery.trim()) return
-    const key = activeTab.key
-    const requestKey = `${activeQuery.trim()}:${activeState.page}`
-    if (activeState.loadedKey === requestKey) return
-
-    const isLoadMore = activeState.page > 0
-    let mounted = true
-    setStates(prev => ({ ...prev, [key]: { ...prev[key], loading: !isLoadMore, loadingMore: isLoadMore } }))
-    activeTab.fetcher(token, activeQuery.trim(), { page: activeState.page })
-      .then(res => {
-        if (!mounted) return
-        const newResults = Array.isArray(res?.content) ? res.content : []
-        setStates(prev => ({
-          ...prev,
-          [key]: {
-            results: isLoadMore ? [...prev[key].results, ...newResults] : newResults,
-            page: activeState.page,
-            totalPages: res?.totalPages ?? 1,
-            totalElements: res?.totalElements ?? 0,
-            last: res?.last ?? true,
-            loading: false,
-            loadingMore: false,
-            searched: true,
-            loadedKey: requestKey,
-          }
-        }))
-      })
-      .catch(err => {
-        if (!mounted) return
-        showError(err.message || 'Arama başarısız.')
-        setStates(prev => ({ ...prev, [key]: { ...prev[key], loading: false, loadingMore: false } }))
-      })
-    return () => { mounted = false }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, activeQuery, tabIndex, activeState.page])
-
-  // Yazarken öneri: debounce'lu birleşik hızlı arama
-  useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    const term = q.trim()
-    if (!token || term.length < 2) {
-      setSuggestions(null)
-      setSuggestLoading(false)
-      return
-    }
-    setSuggestLoading(true)
-    debounceRef.current = setTimeout(() => {
-      // Yazarken-öneri (autocomplete) ikincil bir yardımcı - başarısız
-      // olursa öneri kutusu sessizce kapanır, kullanıcı yine de Enter'a
-      // basıp asıl aramayı (runSearch) çalıştırabilir.
-      quickSearch(token, term)
-        .then(res => { setSuggestions(res); setActiveIndex(-1) })
-        .catch(() => setSuggestions(null))
-        .finally(() => setSuggestLoading(false))
-    }, 300)
-    return () => clearTimeout(debounceRef.current)
-  }, [q, token])
+  useFocusShortcut(inputRef)
 
   const runSearch = (term) => {
     const next = term.trim()
-    setStates({ posts: emptyTabState, comments: emptyTabState, people: emptyTabState })
+    resetResults()
     setActiveQuery(next)
     setSuggestOpen(false)
     if (next) setRecentSearches(saveRecentSearch(next))
-    const sp = new URLSearchParams()
-    if (next) sp.set('q', next)
-    navigate(`/search${sp.toString() ? `?${sp.toString()}` : ''}`, { replace: true })
+    const target = next ? `/search?${new URLSearchParams({ q: next })}` : '/search'
+    setLastUrlQuery(next)
+    navigate(target, { replace: true })
   }
 
   const runRecentSearch = (term) => {
     setQ(term)
     runSearch(term)
-  }
-
-  const onRemoveRecentSearch = (e, term) => {
-    e.stopPropagation()
-    setRecentSearches(removeRecentSearch(term))
-  }
-
-  const onClearRecentSearches = () => {
-    setRecentSearches(clearRecentSearches())
-  }
-
-  const onSubmit = (e) => {
-    e.preventDefault()
-    runSearch(q)
-  }
-
-  const setPageForActiveTab = (updater) => {
-    setStates(prev => ({
-      ...prev,
-      [activeTab.key]: { ...prev[activeTab.key], page: updater(prev[activeTab.key].page) }
-    }))
   }
 
   const goToPost = (postId) => {
@@ -268,27 +105,15 @@ export default function Search() {
 
   const goToProfile = (userId) => {
     setSuggestOpen(false)
-    if (currentUser && String(currentUser.id) === String(userId)) {
-      navigate('/profile')
-    } else {
-      navigate(`/users/${userId}`)
-    }
+    goToUserProfile(navigate, currentUser, userId)
   }
 
-  const hasAnySuggestions = suggestions && (
-    suggestions.posts?.length || suggestions.comments?.length || suggestions.users?.length
-  )
-
-  // Klavye ile gezinme (Yukarı/Aşağı ok, Enter, Escape) için tüm öneri
-  // gruplarını (gönderi/yorum/kişi) görüntülenme sırasıyla tek bir düz
-  // diziye topluyoruz - activeIndex bu diziye göre hesaplanır.
-  const flatSuggestions = suggestOpen && suggestions ? [
-    ...(suggestions.posts || []).map(p => ({ action: () => goToPost(p.id) })),
-    ...(suggestions.comments || []).map(c => ({ action: () => goToPost(c.postId) })),
-    ...(suggestions.users || []).map(u => ({ action: () => goToProfile(u.id) })),
+  // Klavye gezinmesi için öneriler görüntülenme sırasıyla tek düz dizide.
+  const flatSuggestions = suggestOpen && suggest.suggestions ? [
+    ...(suggest.suggestions.posts || []).map(p => () => goToPost(p.id)),
+    ...(suggest.suggestions.comments || []).map(c => () => goToPost(c.postId)),
+    ...(suggest.suggestions.users || []).map(u => () => goToProfile(u.id)),
   ] : []
-  const postsCount = suggestions?.posts?.length || 0
-  const commentsCount = suggestions?.comments?.length || 0
 
   const onInputKeyDown = (e) => {
     if (e.key === 'Escape') {
@@ -305,26 +130,62 @@ export default function Search() {
       setActiveIndex(i => (i - 1 + flatSuggestions.length) % flatSuggestions.length)
     } else if (e.key === 'Enter' && activeIndex >= 0) {
       e.preventDefault()
-      flatSuggestions[activeIndex].action()
+      flatSuggestions[activeIndex]()
     }
   }
 
   const clearQuery = () => {
     setQ('')
-    setSuggestions(null)
+    suggest.clear()
     setActiveIndex(-1)
     inputRef.current?.focus()
   }
 
+  const trimmedQ = q.trim()
+  const panelVisible = suggestOpen && (trimmedQ.length >= suggest.minLength || (trimmedQ.length === 0 && recentSearches.length > 0))
+  const hasActiveQuery = !!activeQuery.trim()
+
+  const renderResults = () => {
+    if (active.loading) {
+      return (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+          <CircularProgress size={24} aria-label="Sonuçlar yükleniyor" />
+        </Box>
+      )
+    }
+    if (!active.searched) {
+      return (
+        <Box sx={{ textAlign: 'center', py: 10 }}>
+          <SearchRounded sx={{ fontSize: 48, color: 'text.secondary', opacity: 0.4, mb: 1 }} />
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+            Gönderi, yorum veya kişi aramak için yukarıya bir şeyler yazın.
+          </Typography>
+        </Box>
+      )
+    }
+    if (active.results.length === 0) {
+      return <EmptyState icon={SearchOffRounded} title="Sonuç bulunamadı" description="Farklı bir arama terimi deneyin" />
+    }
+    return (
+      <Box>
+        {tab.key === 'posts' && <PostList posts={active.results} token={token} highlightQuery={activeQuery} />}
+        {tab.key === 'comments' && active.results.map(c => (
+          <CommentResultCard key={c.id} comment={c} onClick={() => goToPost(c.postId)} onAuthorClick={goToProfile} query={activeQuery} />
+        ))}
+        {tab.key === 'people' && active.results.map(p => (
+          <PersonResultCard key={p.id} person={p} onClick={() => goToProfile(p.id)} query={activeQuery} />
+        ))}
+        {!active.last && <LoadMoreButton loading={active.loadingMore} onClick={loadMore} />}
+      </Box>
+    )
+  }
+
   return (
     <Box sx={{ py: { xs: 2, md: 4 } }}>
-      {/* X'in arama sayfası deseni: büyük başlık yerine üstte sabit, tam
-          yuvarlak (pill) bir arama kutusu - kutunun kendisi zaten sayfanın
-          ne işe yaradığını anlatıyor, ayrı bir "Ara" başlığına gerek yok. */}
       <ClickAwayListener onClickAway={() => setSuggestOpen(false)}>
         <Box sx={{ position: 'sticky', top: 0, zIndex: 5, bgcolor: 'background.default', pt: { xs: 0, md: 1 }, pb: 1 }}>
-          <Box sx={{ position: 'relative', mb: activeQuery.trim() ? 1 : 2 }}>
-            <Box component="form" onSubmit={onSubmit}>
+          <Box sx={{ position: 'relative', mb: hasActiveQuery ? 1 : 2 }}>
+            <Box component="form" role="search" onSubmit={(e) => { e.preventDefault(); runSearch(q) }}>
               <TextField
                 fullWidth
                 inputRef={inputRef}
@@ -333,13 +194,16 @@ export default function Search() {
                 onChange={e => { setQ(e.target.value); setSuggestOpen(true) }}
                 onFocus={() => setSuggestOpen(true)}
                 onKeyDown={onInputKeyDown}
-                InputProps={{
-                  startAdornment: <SearchRounded sx={{ color: 'text.secondary', mr: 1 }} />,
-                  endAdornment: q ? (
-                    <IconButton size="small" aria-label="Aramayı temizle" onClick={clearQuery} edge="end">
-                      <CloseRounded fontSize="small" />
-                    </IconButton>
-                  ) : null,
+                slotProps={{
+                  input: {
+                    startAdornment: <SearchRounded sx={{ color: 'text.secondary', mr: 1 }} />,
+                    endAdornment: q ? (
+                      <IconButton size="small" aria-label="Aramayı temizle" onClick={clearQuery} edge="end">
+                        <CloseRounded fontSize="small" />
+                      </IconButton>
+                    ) : null,
+                  },
+                  htmlInput: { 'aria-label': 'Ara', enterKeyHint: 'search' }
                 }}
                 sx={{
                   '& .MuiOutlinedInput-root': {
@@ -353,173 +217,29 @@ export default function Search() {
               />
             </Box>
 
-          <Fade in={suggestOpen && (q.trim().length >= 2 || (q.trim().length === 0 && recentSearches.length > 0))}>
-            <Paper
-              elevation={6}
-              sx={{
-                position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0,
-                zIndex: 20, borderRadius: 2, border: '1px solid', borderColor: 'divider',
-                maxHeight: 420, overflowY: 'auto',
-                p: (q.trim().length === 0 ? recentSearches.length > 0 : (suggestLoading || hasAnySuggestions)) ? 1.5 : 0
-              }}
-            >
-              {q.trim().length === 0 && recentSearches.length > 0 && (
-                <Box>
-                  <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 1, mb: 0.5 }}>
-                    <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700 }}>
-                      SON ARAMALAR
-                    </Typography>
-                    {/* Faz8-6: bir aksiyon tetikleyen tıklanabilir Typography
-                        yerine gerçek <button> - component="button" native
-                        buton semantiğini (klavye/screen reader erişimi)
-                        korurken görsel olarak caption metni gibi kalıyor. */}
-                    <Typography
-                      component="button"
-                      type="button"
-                      variant="caption"
-                      onClick={onClearRecentSearches}
-                      sx={{
-                        color: 'text.secondary', cursor: 'pointer', '&:hover': { color: 'primary.main' },
-                        bgcolor: 'transparent', border: 0, font: 'inherit', p: 1, m: -1
-                      }}
-                    >
-                      Tümünü temizle
-                    </Typography>
-                  </Stack>
-                  {recentSearches.map(term => (
-                    <Stack
-                      key={term}
-                      direction="row" alignItems="center" spacing={1.25}
-                      onClick={() => runRecentSearch(term)}
-                      sx={{
-                        p: 1, borderRadius: 1.5, cursor: 'pointer',
-                        '&:hover': { bgcolor: 'action.hover' }
-                      }}
-                    >
-                      <HistoryRounded sx={{ fontSize: 18, color: 'text.secondary', flexShrink: 0 }} />
-                      <Typography variant="body2" sx={{ color: 'text.primary', flex: 1 }} noWrap>
-                        {term}
-                      </Typography>
-                      <IconButton
-                        size="small"
-                        aria-label="Bu aramayı kaldır"
-                        onClick={(e) => onRemoveRecentSearch(e, term)}
-                      >
-                        <CloseRounded fontSize="small" />
-                      </IconButton>
-                    </Stack>
-                  ))}
-                </Box>
-              )}
-
-              {q.trim().length >= 2 && suggestLoading && (
-                <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
-                  <CircularProgress size={20} />
-                </Box>
-              )}
-
-              {!suggestLoading && suggestions && !hasAnySuggestions && (
-                <Typography variant="body2" sx={{ color: 'text.secondary', p: 1.5 }}>
-                  Sonuç bulunamadı
-                </Typography>
-              )}
-
-              {!suggestLoading && suggestions?.posts?.length > 0 && (
-                <Box sx={{ mb: 1 }}>
-                  <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, px: 1 }}>
-                    GÖNDERİLER
-                  </Typography>
-                  {suggestions.posts.map((post, i) => (
-                    <Box
-                      key={post.id}
-                      onClick={() => goToPost(post.id)}
-                      sx={{
-                        p: 1, borderRadius: 1.5, cursor: 'pointer',
-                        bgcolor: activeIndex === i ? 'action.selected' : undefined,
-                        '&:hover': { bgcolor: 'action.hover' }
-                      }}
-                    >
-                      <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }} noWrap>
-                        <HighlightText text={post.title} query={q} />
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: 'text.secondary' }} noWrap>
-                        <HighlightText text={truncate(post.content, 90)} query={q} />
-                      </Typography>
-                    </Box>
-                  ))}
-                </Box>
-              )}
-
-              {!suggestLoading && suggestions?.comments?.length > 0 && (
-                <Box sx={{ mb: 1 }}>
-                  <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, px: 1 }}>
-                    YORUMLAR
-                  </Typography>
-                  {suggestions.comments.map((c, i) => (
-                    <Box
-                      key={c.id}
-                      onClick={() => goToPost(c.postId)}
-                      sx={{
-                        p: 1, borderRadius: 1.5, cursor: 'pointer',
-                        bgcolor: activeIndex === postsCount + i ? 'action.selected' : undefined,
-                        '&:hover': { bgcolor: 'action.hover' }
-                      }}
-                    >
-                      <Typography variant="body2" sx={{ color: 'text.primary' }} noWrap>
-                        <HighlightText text={truncate(c.content, 90)} query={q} />
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: 'text.secondary' }} noWrap>
-                        {c.authorName}
-                      </Typography>
-                    </Box>
-                  ))}
-                </Box>
-              )}
-
-              {!suggestLoading && suggestions?.users?.length > 0 && (
-                <Box sx={{ mb: 1 }}>
-                  <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, px: 1 }}>
-                    KİŞİLER
-                  </Typography>
-                  {suggestions.users.map((u, i) => (
-                    <Stack
-                      key={u.id}
-                      direction="row" spacing={1.25} alignItems="center"
-                      onClick={() => goToProfile(u.id)}
-                      sx={{
-                        p: 1, borderRadius: 1.5, cursor: 'pointer',
-                        bgcolor: activeIndex === postsCount + commentsCount + i ? 'action.selected' : undefined,
-                        '&:hover': { bgcolor: 'action.hover' }
-                      }}
-                    >
-                      <Avatar sx={{ width: 28, height: 28, fontSize: 12, fontWeight: 700 }}>
-                        {initialsFrom(`${u.firstName || ''} ${u.lastName || ''}`)}
-                      </Avatar>
-                      <Typography variant="body2" sx={{ color: 'text.primary' }} noWrap>
-                        <HighlightText text={`${u.firstName || ''} ${u.lastName || ''}`.trim()} query={q} />
-                      </Typography>
-                    </Stack>
-                  ))}
-                </Box>
-              )}
-
-              {!suggestLoading && hasAnySuggestions && (
-                <Button
-                  fullWidth
-                  size="small"
-                  onClick={() => runSearch(q)}
-                  sx={{ mt: 0.5 }}
-                >
-                  "{q.trim()}" için tüm sonuçları gör
-                </Button>
-              )}
-            </Paper>
-          </Fade>
+            <Fade in={panelVisible} unmountOnExit>
+              <Box>
+                <SearchSuggestions
+                  term={q}
+                  recentSearches={recentSearches}
+                  onPickRecent={runRecentSearch}
+                  onRemoveRecent={(term) => setRecentSearches(removeRecentSearch(term))}
+                  onClearRecent={() => setRecentSearches(clearRecentSearches())}
+                  suggestions={suggest.suggestions}
+                  loading={suggest.loading}
+                  hasAny={suggest.hasAny}
+                  activeIndex={activeIndex}
+                  onOpenPost={goToPost}
+                  onOpenProfile={goToProfile}
+                  onSeeAll={() => runSearch(q)}
+                />
+              </Box>
+            </Fade>
           </Box>
         </Box>
       </ClickAwayListener>
 
-      {activeQuery.trim() && (
+      {hasActiveQuery && (
         <Tabs
           value={tabIndex}
           onChange={(_, v) => setTabIndex(v)}
@@ -528,80 +248,13 @@ export default function Search() {
           allowScrollButtonsMobile
           sx={{ mb: 2, borderBottom: '1px solid', borderColor: 'divider' }}
         >
-          {TABS.map(t => (
+          {SEARCH_TABS.map(t => (
             <Tab key={t.key} label={`${t.label}${states[t.key].searched ? ` (${states[t.key].totalElements})` : ''}`} />
           ))}
         </Tabs>
       )}
 
-      {activeState.loading && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-          <CircularProgress size={24} />
-        </Box>
-      )}
-
-      {!activeState.loading && activeState.searched && (
-        <Box>
-          {activeState.results.length === 0 ? (
-            <Box sx={{ textAlign: 'center', py: 8 }}>
-              <Typography variant="body1" sx={{ color: 'text.secondary', mb: 1 }}>
-                Sonuç bulunamadı
-              </Typography>
-              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                Farklı bir arama terimi deneyin
-              </Typography>
-            </Box>
-          ) : (
-            <>
-              {activeTab.key === 'posts' && activeState.results.map((post, i) => (
-                <Box key={post.id}>
-                  {i > 0 && <Divider />}
-                  <PostCard
-                    post={post}
-                    token={token}
-                    onClick={() => navigate(`/post/${post.id}`)}
-                    highlightQuery={activeQuery}
-                  />
-                </Box>
-              ))}
-              {activeTab.key === 'comments' && activeState.results.map(c => (
-                <CommentResultCard
-                  key={c.id}
-                  comment={c}
-                  onClick={() => goToPost(c.postId)}
-                  onAuthorClick={goToProfile}
-                  query={activeQuery}
-                />
-              ))}
-              {activeTab.key === 'people' && activeState.results.map(p => (
-                <PersonResultCard key={p.id} person={p} onClick={() => goToProfile(p.id)} query={activeQuery} />
-              ))}
-
-              {!activeState.last && (
-                <Stack alignItems="center" sx={{ py: 3 }}>
-                  <Button
-                    variant="outlined"
-                    disabled={activeState.loadingMore}
-                    onClick={() => setPageForActiveTab(p => p + 1)}
-                    sx={{ minWidth: 168, minHeight: 44 }}
-                  >
-                    {activeState.loadingMore ? <CircularProgress size={18} color="inherit" /> : 'Daha Fazla Yükle'}
-                  </Button>
-                </Stack>
-              )}
-            </>
-          )}
-        </Box>
-      )}
-
-      {!activeState.loading && !activeState.searched && (
-        <Box sx={{ textAlign: 'center', py: 10 }}>
-          <SearchRounded sx={{ fontSize: 48, color: 'text.secondary', opacity: 0.4, mb: 1 }} />
-          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-            Gönderi, yorum veya kişi aramak için yukarıya bir şeyler yazın.
-          </Typography>
-        </Box>
-      )}
+      {renderResults()}
     </Box>
   )
 }

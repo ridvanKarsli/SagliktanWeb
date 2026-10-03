@@ -1,5 +1,5 @@
-import { useRef } from 'react'
-import { Box, IconButton, LinearProgress, Stack, Typography } from '@mui/material'
+import { useEffect, useRef } from 'react'
+import { Box, ButtonBase, IconButton, LinearProgress, Stack, Typography } from '@mui/material'
 import AddPhotoAlternateRoundedIcon from '@mui/icons-material/AddPhotoAlternateRounded'
 import CloseRounded from '@mui/icons-material/CloseRounded'
 import ErrorOutlineRounded from '@mui/icons-material/ErrorOutlineRounded'
@@ -12,7 +12,7 @@ import { requestPresignedUpload, uploadToPresignedUrl } from '../services/api.js
 const MAX_PHOTOS = 6
 
 /**
- * Gönderi oluşturma formunda çoklu fotoğraf seçici - Faz 2 adım 4.
+ * Gönderi oluşturma formunda çoklu fotoğraf seçici.
  *
  * Kontrollü bileşen: `value` mevcut ek listesi, `onChange` bir React state
  * setter'ı GİBİ davranan fonksiyon (functional update - `prev => next` -
@@ -30,6 +30,18 @@ export default function PhotoUploadField({ value = [], onChange, token, disabled
   const inputRef = useRef(null)
   const remainingSlots = MAX_PHOTOS - value.length
 
+  // Sıkıştırma/yükleme sürerken kullanıcı fotoğrafı kaldırabilir ya da
+  // pencereyi kapatabilir; o durumda önizleme URL'i hiç oluşturulmamalı
+  // (oluşursa kimse serbest bırakmaz - bellek sızıntısı).
+  const liveIdsRef = useRef(new Set())
+  liveIdsRef.current = new Set(value.map(e => e.id))
+  const mountedRef = useRef(true)
+  useEffect(() => {
+    mountedRef.current = true
+    return () => { mountedRef.current = false }
+  }, [])
+  const isLive = (id) => mountedRef.current && liveIdsRef.current.has(id)
+
   const handleFiles = (fileList) => {
     const files = Array.from(fileList).slice(0, Math.max(0, remainingSlots))
     for (const file of files) {
@@ -45,15 +57,18 @@ export default function PhotoUploadField({ value = [], onChange, token, disabled
   const processFile = async (id, file) => {
     try {
       const compressed = await compressImage(file)
+      if (!isLive(id)) return
       const previewUrl = URL.createObjectURL(compressed)
       onChange(prev => prev.map(e => (e.id === id ? { ...e, status: 'uploading', previewUrl } : e)))
 
       const presigned = await requestPresignedUpload(token, compressed.type)
       await uploadToPresignedUrl(presigned.uploadUrl, compressed, compressed.type)
+      if (!mountedRef.current) return
 
       onChange(prev => prev.map(e => (e.id === id ? { ...e, status: 'done', storageKey: presigned.storageKey } : e)))
     } catch (err) {
       console.error('Fotoğraf yüklenemedi:', err)
+      if (!mountedRef.current) return
       onChange(prev => prev.map(e => (
         e.id === id ? { ...e, status: 'error', errorMessage: err.message || 'Yüklenemedi' } : e
       )))
@@ -129,17 +144,20 @@ export default function PhotoUploadField({ value = [], onChange, token, disabled
           </Box>
         ))}
         {remainingSlots > 0 && (
-          <Box
-            onClick={() => !disabled && inputRef.current?.click()}
+          <ButtonBase
+            onClick={() => inputRef.current?.click()}
+            disabled={disabled}
+            aria-label="Fotoğraf ekle"
             className="tap-scale"
             sx={{
               width: 84, height: 84, borderRadius: 2, border: '1px dashed', borderColor: 'divider',
               display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-              cursor: disabled ? 'default' : 'pointer', color: 'text.secondary'
+              color: 'text.secondary',
+              '&.Mui-focusVisible': { borderColor: 'primary.main', borderStyle: 'solid' }
             }}
           >
             <AddPhotoAlternateRoundedIcon />
-          </Box>
+          </ButtonBase>
         )}
       </Stack>
       {value.length > 0 && (

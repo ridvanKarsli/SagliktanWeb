@@ -1,15 +1,12 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useAuth } from './AuthContext.jsx'
 import { connectMessagingSocket } from '../services/messagingSocket.js'
 import { getPendingMessageRequestCount, getUnreadMessageCount } from '../services/api.js'
 
-// Faz 2 adım 6: NotificationsFeedContext ile aynı üst seviye rol (global,
-// nav rozeti için sayaç tutan bir context) ama farklı bir şekilde - burada
-// TÜM konuşma/mesaj listesini global state'te tutmuyoruz (o, Conversations/
-// Chat sayfalarının kendi sorumluluğu), sadece nav rozeti için "bekleyen
-// mesaj isteği" + "okunmamış mesaj" sayısını ve sayfaların canlı WS
-// olaylarına abone olabileceği basit bir yayıncı/abone (pub-sub) mekanizması
-// sağlıyor.
+// Global mesajlaşma durumu: konuşma/mesaj listelerini değil (onlar
+// Conversations/Chat sayfalarının sorumluluğu), yalnızca nav rozeti için
+// "bekleyen mesaj isteği" + "okunmamış mesaj" sayılarını ve sayfaların canlı
+// WS olaylarına abone olabileceği basit bir yayıncı/abone mekanizmasını tutar.
 const MessagingContext = createContext(null)
 
 export function MessagingProvider({ children }) {
@@ -86,25 +83,19 @@ export function MessagingProvider({ children }) {
     return () => requestListenersRef.current.delete(fn)
   }, [])
 
-  const decrementPendingCount = useCallback(() => {
-    setPendingRequestCount(prev => Math.max(0, prev - 1))
-  }, [])
+  const value = useMemo(() => ({
+    pendingRequestCount,
+    unreadMessageCount,
+    refreshPendingCount,
+    refreshUnreadCount,
+    subscribeToMessages,
+    subscribeToMessageRequests,
+  }), [
+    pendingRequestCount, unreadMessageCount, refreshPendingCount, refreshUnreadCount,
+    subscribeToMessages, subscribeToMessageRequests
+  ])
 
-  return (
-    <MessagingContext.Provider
-      value={{
-        pendingRequestCount,
-        unreadMessageCount,
-        refreshPendingCount,
-        refreshUnreadCount,
-        decrementPendingCount,
-        subscribeToMessages,
-        subscribeToMessageRequests,
-      }}
-    >
-      {children}
-    </MessagingContext.Provider>
-  )
+  return <MessagingContext.Provider value={value}>{children}</MessagingContext.Provider>
 }
 
 export function useMessaging() {

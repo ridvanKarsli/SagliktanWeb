@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Box, Button, Chip, CircularProgress, FormControlLabel, Stack, Switch, Typography } from '@mui/material'
 import { DeleteOutline, ForumOutlined, OpenInNewRounded } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
@@ -10,6 +10,7 @@ import { useConfirm } from '../../../context/ConfirmContext.jsx'
 import { deleteComment, deletePost, listAdminComments, listAdminPosts } from '../../../services/api.js'
 import { relativeTime } from '../../../utils/format.js'
 import { usePaginatedList } from '../../../hooks/usePaginatedList.js'
+import { useDebouncedValue } from '../../../hooks/useDebouncedValue.js'
 import { AdminCard, AdminEmpty, AdminList, AdminLoading, AdminSearch, LoadMoreButton, SegmentedFilter } from '../AdminUi.jsx'
 
 function AttachmentThumbnails({ attachments }) {
@@ -97,16 +98,11 @@ function ContentCard({ item, type, deletingId, remove }) {
 export default function ContentTab({ token }) {
   const [type, setType] = useState('posts') // 'posts' | 'comments'
   const [q, setQ] = useState('')
-  const [debouncedQ, setDebouncedQ] = useState('')
+  const debouncedQ = useDebouncedValue(q.trim(), 300)
   const [onlyWithPhotos, setOnlyWithPhotos] = useState(false)
   const [deletingId, setDeletingId] = useState(null)
   const { showError, showSuccess } = useNotification()
   const confirm = useConfirm()
-
-  useEffect(() => {
-    const t = setTimeout(() => setDebouncedQ(q.trim()), 300)
-    return () => clearTimeout(t)
-  }, [q])
 
   const {
     items, loading, loadingMore, last, totalCount, loadMore, reload: load,

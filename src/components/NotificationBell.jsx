@@ -3,7 +3,7 @@ import { Badge, Box, Button, Divider, IconButton, ListItemText, Menu, MenuItem, 
 import { NotificationsNoneRounded } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import { useNotificationsFeed } from '../context/NotificationsFeedContext.jsx'
-import { parseServerDate } from '../utils/format.js'
+import { relativeTime } from '../utils/format.js'
 
 const TYPE_LABEL = {
   NEW_COMMENT: (actorName) => `${actorName} gönderine yorum yaptı`,
@@ -22,10 +22,12 @@ export default function NotificationBell() {
   }
   const handleClose = () => setAnchorEl(null)
 
-  const handleItemClick = async (n) => {
+  // markRead iyimser (yerel durumu hemen günceller); ağ isteğini beklemek
+  // yavaş bağlantıda gezinmeyi gereksiz yere geciktiriyordu.
+  const handleItemClick = (n) => {
     handleClose()
-    if (!n.read) await markRead(n.id)
-    navigate(`/post/${n.postId}`)
+    if (!n.read) markRead(n.id)
+    if (n.postId) navigate(`/post/${n.postId}`)
   }
 
   return (
@@ -80,7 +82,7 @@ export default function NotificationBell() {
             >
               <ListItemText
                 primary={(TYPE_LABEL[n.type] || (() => 'Yeni bildirim'))(n.actorName || 'Bir kullanıcı')}
-                secondary={parseServerDate(n.createdAt)?.toLocaleString('tr-TR') || ''}
+                secondary={relativeTime(n.createdAt)}
               />
             </MenuItem>
           ))

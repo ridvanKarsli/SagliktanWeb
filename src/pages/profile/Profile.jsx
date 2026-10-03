@@ -1,24 +1,23 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Avatar, Box, Button, Chip, Collapse, IconButton, Stack, Tab, Tabs, Typography } from '@mui/material'
 import {
-  Avatar, Box, Button, ButtonBase, Chip, CircularProgress, Collapse, Divider, IconButton,
-  ListItemIcon, ListItemText, Menu, MenuItem, Stack, Tab, Tabs, TextField, Typography
-} from '@mui/material'
-import {
-  BookmarkBorderRounded, DynamicFeedRounded, EditOutlined, ExploreOutlined, GroupsRounded,
-  LogoutRounded, MoreVertRounded, OpenInNewRounded, PeopleAltRounded, SettingsOutlined
+  BookmarkBorderRounded, DynamicFeedRounded, EditOutlined, ExploreOutlined, GroupsRounded, SettingsOutlined
 } from '@mui/icons-material'
-import HealthSummary from '../../components/profile/HealthSummary.jsx'
-import CityField from '../../components/profile/CityField.jsx'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { useAuth } from '../../context/AuthContext.jsx'
-import { useNotification } from '../../context/NotificationContext.jsx'
-import PostCard from '../../components/PostCard.jsx'
+import HealthSummary from '../../components/profile/HealthSummary.jsx'
+import ProfileStat from '../../components/profile/ProfileStat.jsx'
+import ProfileEditForm from '../../components/profile/ProfileEditForm.jsx'
+import MyGroupRow from '../../components/profile/MyGroupRow.jsx'
+import PostList from '../../components/PostList.jsx'
 import VerifiedBadge from '../../components/VerifiedBadge.jsx'
 import EmptyState from '../../components/EmptyState.jsx'
-import {
-  getMyDiseaseGroups, getMyPosts, getMySavedPosts, getUserProfile, updateProfile
-} from '../../services/api.js'
+import CenteredSpinner from '../../components/common/CenteredSpinner.jsx'
+import LoadMoreButton from '../../components/common/LoadMoreButton.jsx'
+import { useAuth } from '../../context/AuthContext.jsx'
+import { useNotification } from '../../context/NotificationContext.jsx'
+import { getMyDiseaseGroups, getMyPosts, getMySavedPosts, getUserProfile } from '../../services/api.js'
 import { initialsFrom } from '../../utils/format.js'
+import { fullNameOf } from '../../utils/text.js'
 import { usePaginatedList } from '../../hooks/usePaginatedList.js'
 import { useGroupMembership } from '../../hooks/useGroupMembership.js'
 
@@ -28,263 +27,90 @@ const TABS = [
   { key: 'groups', label: 'Gruplarım', icon: GroupsRounded },
 ]
 const TAB_KEYS = new Set(TABS.map(t => t.key))
-const BIO_MAX = 1000
+const DEFAULT_TAB = 'posts'
 
-/* İstatistik hücresi: sayı + etiket. onClick verilirse ilgili sekmeye götüren
-   gerçek bir buton olur (IG'de "gönderi" sayısına dokunmak gönderilere iner). */
-function Stat({ value, label, onClick, highlight }) {
-  const content = (
-    <>
-      <Typography variant="subtitle2" sx={{ fontWeight: 700, lineHeight: 1.3, color: highlight ? 'primary.main' : 'text.primary', fontVariantNumeric: 'tabular-nums' }}>
-        {value}
-      </Typography>
-      <Typography variant="caption" sx={{ color: 'text.secondary' }}>{label}</Typography>
-    </>
-  )
-  if (!onClick) return <Box sx={{ minWidth: 44, py: 0.25, display: 'flex', flexDirection: 'column' }}>{content}</Box>
-  return (
-    <ButtonBase
-      onClick={onClick}
-      aria-label={`${value} ${label} - göster`}
-      sx={{ flexDirection: 'column', alignItems: 'flex-start', borderRadius: 1, px: 0.5, mx: -0.5, py: 0.25, minWidth: 44 }}
-    >
-      {content}
-    </ButtonBase>
-  )
+// Aktif sekme URL'de (?tab=groups): yenileme, geri tuşu ve paylaşılan link aynı sekmeyi açar.
+function useProfileTab() {
+  const [params, setParams] = useSearchParams()
+  const raw = params.get('tab')
+  const tab = TAB_KEYS.has(raw) ? raw : DEFAULT_TAB
+  const setTab = useCallback((key) => {
+    const next = new URLSearchParams(params)
+    if (key === DEFAULT_TAB) next.delete('tab'); else next.set('tab', key)
+    setParams(next, { replace: true })
+  }, [params, setParams])
+  return [tab, setTab]
 }
 
-/* Gruplarım satırı. Satıra dokunmak gruba girer (birincil eylem); gruptan
-   ayrılmak gibi yıkıcı eylem sağdaki ⋮ menüsünde - mobilde kaydırırken
-   yanlışlıkla "Ayrıl"a basılmasın diye doğrudan buton değil. */
-function MyGroupRow({ group, pending, onOpen, onLeave }) {
-  const [anchor, setAnchor] = useState(null)
-  const close = () => setAnchor(null)
-  return (
-    <Box
-      sx={{
-        display: 'flex', alignItems: 'center',
-        borderRadius: 3, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider',
-        overflow: 'hidden', opacity: pending ? 0.6 : 1, transition: 'opacity .15s ease'
-      }}
-    >
-      <ButtonBase
-        onClick={onOpen}
-        aria-label={`${group.name} grubuna git`}
-        sx={{
-          flex: 1, minWidth: 0, justifyContent: 'flex-start', textAlign: 'left',
-          display: 'flex', alignItems: 'center', gap: 1.5, pl: 1.5, pr: 0.5, py: 1.25,
-          '&:hover': { bgcolor: 'action.hover' },
-          '&.Mui-focusVisible': { bgcolor: 'action.focus' }
-        }}
-      >
-        <Box sx={{ width: 44, height: 44, borderRadius: '50%', flexShrink: 0, display: 'grid', placeItems: 'center', bgcolor: 'rgba(76,184,159,0.16)', color: 'primary.main' }}>
-          <GroupsRounded sx={{ fontSize: 22 }} />
-        </Box>
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 700, lineHeight: 1.3 }} noWrap>{group.name}</Typography>
-          <Stack direction="row" spacing={0.5} alignItems="center">
-            <PeopleAltRounded sx={{ fontSize: 14, color: 'text.secondary' }} />
-            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-              {new Intl.NumberFormat('tr-TR').format(group.memberCount ?? 0)} üye
-            </Typography>
-          </Stack>
-          {group.description && (
-            <Typography
-              variant="body2"
-              sx={{ color: 'text.secondary', mt: 0.25, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical' }}
-            >
-              {group.description}
-            </Typography>
-          )}
-        </Box>
-      </ButtonBase>
-      <Box sx={{ width: 48, display: 'grid', placeItems: 'center', flexShrink: 0, pr: 0.5 }}>
-        {pending ? (
-          <CircularProgress size={18} />
-        ) : (
-          <IconButton
-            aria-label={`${group.name} için seçenekler`}
-            aria-haspopup="menu"
-            aria-expanded={anchor ? 'true' : undefined}
-            onClick={(e) => setAnchor(e.currentTarget)}
-            sx={{ width: 44, height: 44, color: 'text.secondary' }}
-          >
-            <MoreVertRounded />
-          </IconButton>
-        )}
-      </Box>
-      <Menu
-        anchorEl={anchor}
-        open={!!anchor}
-        onClose={close}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-        slotProps={{ paper: { sx: { minWidth: 200 } } }}
-      >
-        <MenuItem onClick={() => { close(); onOpen() }} sx={{ minHeight: 44 }}>
-          <ListItemIcon><OpenInNewRounded fontSize="small" /></ListItemIcon>
-          <ListItemText>Gruba git</ListItemText>
-        </MenuItem>
-        <MenuItem onClick={() => { close(); onLeave() }} sx={{ minHeight: 44, color: 'error.main' }}>
-          <ListItemIcon sx={{ color: 'error.main' }}><LogoutRounded fontSize="small" /></ListItemIcon>
-          <ListItemText>Gruptan ayrıl</ListItemText>
-        </MenuItem>
-      </Menu>
-    </Box>
-  )
+// Yorum ve "faydalı" sayıları /users/me yanıtında gelir. İkincil veri:
+// yüklenemezse 0 gösterilir, sayfa akışı bozulmaz.
+function useProfileStats(token) {
+  const [stats, setStats] = useState({ commentCount: 0, likesReceived: 0 })
+  useEffect(() => {
+    if (!token) return undefined
+    let alive = true
+    getUserProfile(token)
+      .then(res => { if (alive) setStats({ commentCount: res?.commentCount ?? 0, likesReceived: res?.likesReceived ?? 0 }) })
+      .catch(() => {})
+    return () => { alive = false }
+  }, [token])
+  return stats
 }
 
-function LoadMore({ loading, onClick }) {
-  return (
-    <Box sx={{ textAlign: 'center', py: 3 }}>
-      <Button variant="outlined" onClick={onClick} disabled={loading} sx={{ minWidth: 180, minHeight: 44 }}>
-        {loading ? <CircularProgress size={18} /> : 'Daha Fazla Yükle'}
-      </Button>
-    </Box>
-  )
-}
-
-function Loading() {
-  return (
-    <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-      <CircularProgress size={22} />
-    </Box>
-  )
+function useMyGroupsList(token, showError) {
+  const [groups, setGroups] = useState([])
+  const [loading, setLoading] = useState(true)
+  useEffect(() => {
+    if (!token) { setLoading(false); return undefined }
+    let alive = true
+    getMyDiseaseGroups(token)
+      .then(data => { if (alive) setGroups(Array.isArray(data) ? data : []) })
+      .catch(err => { if (alive) showError(err.message || 'Gruplar alınamadı.') })
+      .finally(() => { if (alive) setLoading(false) })
+    return () => { alive = false }
+  }, [token, showError])
+  return { groups, setGroups, loading }
 }
 
 /**
- * Kendi profilin. Kimlik bloğu (avatar/isim/istatistik/bio) üstte, altında
- * Gönderiler/Kaydedilenler/Gruplarım sekmeleri. Aktif sekme URL'de
- * (?tab=groups) tutulur: yenileme, geri tuşu ve paylaşılan link aynı sekmeyi
- * açar. Hesap ayarları ayrı ekranda (/profile/settings, dişli ikonu).
+ * Kendi profilin: kimlik bloğu (avatar/isim/istatistik/bio) üstte, altında
+ * Gönderiler / Kaydedilenler / Gruplarım sekmeleri. Hesap ayarları ayrı
+ * ekranda (/profile/settings, dişli ikonu).
  */
 export default function Profile() {
-  const { token, user, updateLocalUser } = useAuth()
-  const { showError, showSuccess } = useNotification()
+  const { token, user } = useAuth()
+  const { showError } = useNotification()
   const navigate = useNavigate()
-  const [params, setParams] = useSearchParams()
-  const rawTab = params.get('tab')
-  const activeTabKey = TAB_KEYS.has(rawTab) ? rawTab : 'posts'
-
-  const setTab = useCallback((key) => {
-    const next = new URLSearchParams(params)
-    if (key === 'posts') next.delete('tab'); else next.set('tab', key)
-    setParams(next, { replace: true })
-  }, [params, setParams])
-
-  /* ---- Profil düzenleme ---- */
+  const [activeTab, setTab] = useProfileTab()
   const [editOpen, setEditOpen] = useState(false)
-  const [firstName, setFirstName] = useState(user?.firstName || '')
-  const [lastName, setLastName] = useState(user?.lastName || '')
-  const [bio, setBio] = useState(user?.bio || '')
-  const [city, setCity] = useState(user?.city || '')
-  const [savingProfile, setSavingProfile] = useState(false)
 
-  const resetForm = useCallback(() => {
-    setFirstName(user?.firstName || '')
-    setLastName(user?.lastName || '')
-    setBio(user?.bio || '')
-    setCity(user?.city || '')
-  }, [user?.firstName, user?.lastName, user?.bio, user?.city])
-
-  useEffect(() => { resetForm() }, [resetForm])
-
-  const dirty = firstName.trim() !== (user?.firstName || '')
-    || lastName.trim() !== (user?.lastName || '')
-    || bio.trim() !== (user?.bio || '')
-    || city.trim() !== (user?.city || '')
-
-  const cancelEdit = () => { resetForm(); setEditOpen(false) }
-
-  const saveProfile = async (e) => {
-    e.preventDefault()
-    if (!firstName.trim() || !lastName.trim()) {
-      showError('Ad ve soyad zorunludur.')
-      return
-    }
-    setSavingProfile(true)
-    try {
-      const payload = { firstName: firstName.trim(), lastName: lastName.trim(), bio: bio.trim(), city: city.trim() }
-      await updateProfile(token, payload)
-      updateLocalUser(payload)
-      showSuccess('Profil güncellendi.')
-      setEditOpen(false)
-    } catch (err) {
-      showError(err.message || 'Profil güncellenemedi.')
-    } finally {
-      setSavingProfile(false)
-    }
-  }
-
-  /* ---- Hastalık gruplarım ---- */
-  const [myGroups, setMyGroups] = useState([])
-  const [groupsLoading, setGroupsLoading] = useState(true)
+  const stats = useProfileStats(token)
+  const myGroups = useMyGroupsList(token, showError)
   const { leave, pendingId } = useGroupMembership()
 
-  useEffect(() => {
-    if (!token) { setGroupsLoading(false); return }
-    let mounted = true
-    getMyDiseaseGroups(token)
-      .then(data => { if (mounted) setMyGroups(Array.isArray(data) ? data : []) })
-      .catch(err => showError(err.message || 'Gruplar alınamadı.'))
-      .finally(() => { if (mounted) setGroupsLoading(false) })
-    return () => { mounted = false }
-  }, [token, showError])
-
-  const handleLeave = async (group) => {
-    if (await leave(group)) {
-      setMyGroups(prev => prev.filter(g => g.id !== group.id))
-    }
-  }
-
-  /* ---- Gönderilerim ---- */
   const postsFetcher = useCallback((page) => getMyPosts(token, { page }), [token])
-  const {
-    items: myPosts, loading: postsLoading, loadingMore: postsLoadingMore,
-    last: postsLast, totalCount: postsTotalCount, loadMore: loadMorePosts
-  } = usePaginatedList(postsFetcher, {
+  const posts = usePaginatedList(postsFetcher, {
     enabled: !!token,
     deps: [token],
     onError: err => showError(err.message || 'Gönderilerin alınamadı.')
   })
 
-  /* ---- Kaydedilenler ---- */
-  const savedPostsFetcher = useCallback((page) => getMySavedPosts(token, { page }), [token])
-  const {
-    items: savedPosts, loading: savedLoading, loadingMore: savedLoadingMore,
-    last: savedLast, loadMore: loadMoreSaved
-  } = usePaginatedList(savedPostsFetcher, {
-    enabled: activeTabKey === 'saved' && !!token,
+  const savedFetcher = useCallback((page) => getMySavedPosts(token, { page }), [token])
+  const saved = usePaginatedList(savedFetcher, {
+    enabled: activeTab === 'saved' && !!token,
     once: true,
     deps: [token],
     onError: err => showError(err.message || 'Kaydedilen gönderiler alınamadı.')
   })
 
-  /* ---- İstatistikler ---- */
-  const [stats, setStats] = useState({ commentCount: 0, likesReceived: 0 })
-
-  useEffect(() => {
-    if (!token) return
-    let mounted = true
-    getUserProfile(token)
-      .then(res => {
-        if (!mounted) return
-        setStats({ commentCount: res?.commentCount ?? 0, likesReceived: res?.likesReceived ?? 0 })
-      })
-      .catch(() => { /* istatistik yüklenemezse 0 göster, sayfa akışını bozmasın */ })
-    return () => { mounted = false }
-  }, [token])
-
-  if (!user) {
-    return (
-      <Box sx={{ display: 'grid', placeItems: 'center', minHeight: 300, py: 6 }}>
-        <CircularProgress size={28} />
-      </Box>
-    )
+  const handleLeave = async (group) => {
+    if (await leave(group)) myGroups.setGroups(prev => prev.filter(g => g.id !== group.id))
   }
 
-  const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ') || 'Kullanıcı'
-  const fmt = (n) => new Intl.NumberFormat('tr-TR').format(n ?? 0)
+  if (!user) return <CenteredSpinner page />
+
+  const fullName = fullNameOf(user, 'Kullanıcı')
+  const hasGroups = myGroups.groups.length > 0
 
   return (
     <Box sx={{ width: '100%', maxWidth: 680, mx: 'auto', py: { xs: 2, md: 4 } }}>
@@ -310,10 +136,10 @@ export default function Profile() {
               </IconButton>
             </Stack>
             <Stack direction="row" spacing={{ xs: 1.75, md: 3 }} sx={{ mt: 0.25 }} flexWrap="wrap" useFlexGap>
-              <Stat value={fmt(postsTotalCount)} label="Gönderi" onClick={() => setTab('posts')} />
-              <Stat value={fmt(stats.commentCount)} label="Yorum" />
-              <Stat value={fmt(myGroups.length)} label="Grup" onClick={() => setTab('groups')} />
-              <Stat value={fmt(stats.likesReceived)} label="Faydalı" highlight />
+              <ProfileStat value={posts.totalCount} label="Gönderi" onClick={() => setTab('posts')} />
+              <ProfileStat value={stats.commentCount} label="Yorum" />
+              <ProfileStat value={myGroups.groups.length} label="Grup" onClick={() => setTab('groups')} />
+              <ProfileStat value={stats.likesReceived} label="Faydalı" highlight />
             </Stack>
           </Box>
         </Stack>
@@ -351,39 +177,14 @@ export default function Profile() {
         )}
       </Box>
 
-      {/* Profil düzenleme */}
       <Collapse in={editOpen} unmountOnExit>
         <Box sx={{ px: { xs: 0.5, md: 0 }, mb: 3 }}>
-          <Box component="form" onSubmit={saveProfile} sx={{ p: { xs: 2, sm: 2.5 }, borderRadius: 3, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>Profili düzenle</Typography>
-            <Stack spacing={2}>
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                <TextField label="Ad" value={firstName} onChange={e => setFirstName(e.target.value)} fullWidth required autoComplete="given-name" />
-                <TextField label="Soyad" value={lastName} onChange={e => setLastName(e.target.value)} fullWidth required autoComplete="family-name" />
-              </Stack>
-              <CityField value={city} onChange={setCity} label="Yaşadığın şehir" />
-              <TextField
-                label="Hakkında"
-                value={bio}
-                onChange={e => setBio(e.target.value.slice(0, BIO_MAX))}
-                fullWidth multiline minRows={3} maxRows={8}
-                placeholder="Kendinden, deneyimlerinden kısaca bahset (isteğe bağlı)"
-                helperText={`${bio.length}/${BIO_MAX}`}
-                slotProps={{ htmlInput: { maxLength: BIO_MAX }, formHelperText: { sx: { textAlign: 'right', mr: 0 } } }}
-              />
-              <Stack direction="row" spacing={1} justifyContent="flex-end">
-                <Button onClick={cancelEdit} disabled={savingProfile} sx={{ minHeight: 44 }}>Vazgeç</Button>
-                <Button type="submit" variant="contained" disabled={savingProfile || !dirty} sx={{ minHeight: 44, minWidth: 96 }}>
-                  {savingProfile ? <CircularProgress size={16} color="inherit" /> : 'Kaydet'}
-                </Button>
-              </Stack>
-            </Stack>
-          </Box>
+          <ProfileEditForm onDone={() => setEditOpen(false)} />
         </Box>
       </Collapse>
 
       <Tabs
-        value={activeTabKey}
+        value={activeTab}
         onChange={(_, v) => setTab(v)}
         variant="fullWidth"
         aria-label="Profil bölümleri"
@@ -399,31 +200,26 @@ export default function Profile() {
         })}
       </Tabs>
 
-      {activeTabKey === 'posts' && (
-        postsLoading ? <Loading /> : myPosts.length === 0 ? (
+      {activeTab === 'posts' && (
+        posts.loading ? <CenteredSpinner /> : posts.items.length === 0 ? (
           <EmptyState
             icon={DynamicFeedRounded}
             title="Henüz gönderin yok."
             description="Bir alt gruba girip deneyimini paylaşarak başlayabilirsin."
-            actionLabel={myGroups.length > 0 ? 'Gruplarıma git' : 'Grupları keşfet'}
-            onAction={() => (myGroups.length > 0 ? setTab('groups') : navigate('/groups'))}
+            actionLabel={hasGroups ? 'Gruplarıma git' : 'Grupları keşfet'}
+            onAction={() => (hasGroups ? setTab('groups') : navigate('/groups'))}
             dense
           />
         ) : (
           <>
-            {myPosts.map((p, i) => (
-              <Box key={p.id}>
-                {i > 0 && <Divider />}
-                <PostCard post={p} token={token} onClick={() => navigate(`/post/${p.id}`)} showPinnedBadge />
-              </Box>
-            ))}
-            {!postsLast && <LoadMore loading={postsLoadingMore} onClick={loadMorePosts} />}
+            <PostList posts={posts.items} token={token} showPinnedBadge />
+            {!posts.last && <LoadMoreButton loading={posts.loadingMore} onClick={posts.loadMore} />}
           </>
         )
       )}
 
-      {activeTabKey === 'saved' && (
-        savedLoading ? <Loading /> : savedPosts.length === 0 ? (
+      {activeTab === 'saved' && (
+        saved.loading ? <CenteredSpinner /> : saved.items.length === 0 ? (
           <EmptyState
             icon={BookmarkBorderRounded}
             title="Kaydettiğin gönderi yok."
@@ -432,20 +228,15 @@ export default function Profile() {
           />
         ) : (
           <>
-            {savedPosts.map((p, i) => (
-              <Box key={p.id}>
-                {i > 0 && <Divider />}
-                <PostCard post={p} token={token} onClick={() => navigate(`/post/${p.id}`)} />
-              </Box>
-            ))}
-            {!savedLast && <LoadMore loading={savedLoadingMore} onClick={loadMoreSaved} />}
+            <PostList posts={saved.items} token={token} />
+            {!saved.last && <LoadMoreButton loading={saved.loadingMore} onClick={saved.loadMore} />}
           </>
         )
       )}
 
-      {activeTabKey === 'groups' && (
+      {activeTab === 'groups' && (
         <Box sx={{ px: { xs: 0.5, md: 0 } }}>
-          {groupsLoading ? <Loading /> : myGroups.length === 0 ? (
+          {myGroups.loading ? <CenteredSpinner /> : !hasGroups ? (
             <EmptyState
               icon={GroupsRounded}
               title="Henüz bir gruba katılmadın."
@@ -458,14 +249,14 @@ export default function Profile() {
             <>
               <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.25 }}>
                 <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>
-                  {myGroups.length} gruba üyesin
+                  {myGroups.groups.length} gruba üyesin
                 </Typography>
                 <Button size="small" startIcon={<ExploreOutlined />} onClick={() => navigate('/groups')} sx={{ minHeight: 40 }}>
                   Keşfet
                 </Button>
               </Stack>
               <Stack spacing={1} component="ul" sx={{ listStyle: 'none', p: 0, m: 0 }}>
-                {myGroups.map(g => (
+                {myGroups.groups.map(g => (
                   <li key={g.id}>
                     <MyGroupRow
                       group={g}

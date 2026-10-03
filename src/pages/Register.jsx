@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import {
   Box, Button, Stack, TextField, Typography, Link, CircularProgress,
   useMediaQuery, useTheme, Checkbox, FormControlLabel
@@ -29,38 +29,28 @@ export default function Register() {
     city: '',
     kvkkConsent: false
   })
-  const [error, setError] = useState('')
   const [registeredEmail, setRegisteredEmail] = useState('')
   const [loading, setLoading] = useState(false)
 
+  // İlk geçersiz alanın mesajı; her şey yerindeyse null.
+  const validationError = () => {
+    if (!form.firstName?.trim() || !form.lastName?.trim() || !form.email?.trim() || !form.password) {
+      return 'Lütfen zorunlu alanları doldurun.'
+    }
+    if (!isValidName(form.firstName)) return 'Lütfen geçerli bir ad girin (sadece harf, en az 2 karakter).'
+    if (!isValidName(form.lastName)) return 'Lütfen geçerli bir soyad girin (sadece harf, en az 2 karakter).'
+    if (form.password !== form.confirmPassword) return 'Şifreler uyuşmuyor.'
+    if (form.password.length < 8) return 'Şifre en az 8 karakter olmalı.'
+    if (!form.kvkkConsent) return 'Kayıt olmak için KVKK Aydınlatma Metni\'ni onaylamanız gerekiyor.'
+    return null
+  }
+
   const onSubmit = async (e) => {
     e.preventDefault()
-    if (!form.firstName?.trim() || !form.lastName?.trim() || !form.email?.trim() || !form.password) {
-      setError('Lütfen zorunlu alanları doldurun.')
-      return
-    }
-    if (!isValidName(form.firstName)) {
-      setError('Lütfen geçerli bir ad girin (sadece harf, en az 2 karakter).')
-      return
-    }
-    if (!isValidName(form.lastName)) {
-      setError('Lütfen geçerli bir soyad girin (sadece harf, en az 2 karakter).')
-      return
-    }
-    if (form.password !== form.confirmPassword) {
-      setError('Şifreler uyuşmuyor.')
-      return
-    }
-    if (form.password.length < 8) {
-      setError('Şifre en az 8 karakter olmalı.')
-      return
-    }
-    if (!form.kvkkConsent) {
-      setError('Kayıt olmak için KVKK Aydınlatma Metni\'ni onaylamanız gerekiyor.')
-      return
-    }
+    // Her denemede bildirim gösterilir (aynı hata art arda da olsa).
+    const problem = validationError()
+    if (problem) { showError(problem); return }
 
-    setError('')
     setLoading(true)
     try {
       await register({
@@ -73,17 +63,11 @@ export default function Register() {
       })
       setRegisteredEmail(form.email.trim())
     } catch (err) {
-      const errorMessage = (err && err.message) ? err.message : String(err) || 'Kayıt başarısız.'
-      setError(errorMessage)
-      showError(errorMessage)
+      showError(err?.message || 'Kayıt başarısız.')
     } finally {
       setLoading(false)
     }
   }
-
-  useEffect(() => {
-    if (error) showError(error)
-  }, [error, showError])
 
   // Kayıt başarılı: backend e-posta doğrulaması zorunlu tutuyor, otomatik giriş yok.
   if (registeredEmail) {

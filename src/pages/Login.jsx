@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import {
   Box, Button, Link, Stack, TextField, Typography, CircularProgress, 
   FormControlLabel, Checkbox, Container, useMediaQuery, useTheme
@@ -20,12 +20,10 @@ export default function Login() {
   
   const [form, setForm] = useState({ email: '', pw: '' })
   const [rememberMe, setRememberMe] = useState(true)
-  const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
   const onSubmit = async (e) => {
     e.preventDefault()
-    setError('')
     setLoading(true)
     try {
       const loggedIn = await login(form.email.trim(), form.pw, rememberMe)
@@ -37,17 +35,11 @@ export default function Login() {
         : (loggedIn && loggedIn.onboardingCompleted === false ? '/hosgeldin' : '/home')
       navigate(target, { replace: true })
     } catch (err) {
-      const errorMessage = (err && err.message) ? err.message : String(err) || 'Giriş başarısız.'
-      setError(errorMessage)
-      showError(errorMessage)
+      showError(err?.message || 'Giriş başarısız.')
     } finally {
       setLoading(false)
     }
   }
-
-  useEffect(() => {
-    if (error) showError(error)
-  }, [error, showError])
 
   return (
     <Box sx={{ minHeight: '100dvh', display: 'flex' }}>
@@ -209,10 +201,8 @@ export default function Login() {
                     to="/forgot-password"
                     sx={{
                       fontSize: '0.875rem', color: 'secondary.main', fontWeight: 600, '&:hover': { color: 'primary.main' },
-                      // Faz8-3: metin linki doğal satır yüksekliğinde (~19px)
-                      // dokunma hedefi olarak çok küçük kalıyordu - görünmez
-                      // padding + eşit negatif margin ile çevredeki
-                      // düzeni bozmadan hit-box'ı ~44px'e çıkarıyoruz.
+                      // Görünmez padding + eşit negatif margin: düzeni bozmadan
+                      // dokunma alanı ~44px.
                       display: 'inline-block', py: 1.5, px: 0.5, my: -1.5, mx: -0.5
                     }}
                   >

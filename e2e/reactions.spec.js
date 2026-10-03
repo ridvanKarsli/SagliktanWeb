@@ -91,8 +91,8 @@ test.describe('Reaksiyonlar (Faydalı / Faydalı Değil)', () => {
     await expect(page.getByTestId('reaction-helpful-count').first()).toHaveText('1')
 
     const commentText = `Reaksiyon verilecek yorum ${Date.now()}`
-    await page.getByPlaceholder('Yorumunu yaz...').fill(commentText)
-    await page.getByRole('button', { name: 'Yorum Yap' }).click()
+    await page.getByPlaceholder(/Deneyimini ya da sorunu yaz/).fill(commentText)
+    await page.getByRole('button', { name: 'Yorumu gönder' }).click()
     await expect(page.getByText(commentText)).toBeVisible()
 
     // Yorumun kendi reaksiyon satırı en sonda (.last()) - gönderinin

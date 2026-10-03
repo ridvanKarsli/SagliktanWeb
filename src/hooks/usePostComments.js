@@ -3,22 +3,19 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { useNotification } from '../context/NotificationContext.jsx'
 import { createComment, listComments, listCommentReplies } from '../services/api.js'
 
-// Bir gönderinin yorum ağacı - YERİNDE AÇILAN thread modeli.
+// Bir gönderinin yorum ağacı - YERİNDE AÇILAN thread modeli: yanıtlar
+// ebeveynin altında TEK girintiyle açılır; daha derin yanıtlar da aynı
+// girintili blokta "↳ Ad kişisine yanıt" başlığıyla düz listelenir. Böylece
+// dar ekranda ikinci bir girinti seviyesi oluşmaz.
 //
-// Önceki model "thread-drill" idi: "N yanıtı görüntüle" tüm yorum listesini
-// kaldırıp sadece o yorumu + yanıtlarını gösteriyor, kullanıcı "Geri" ile
-// dönüyordu. Mobilde bu, bağlamı kaybettiren ve "iç içe geçmiş" hissi veren
-// bir deneyimdi (bkz. kullanıcı geri bildirimi). Yeni model Instagram/
-// YouTube'un yaptığı gibi: yanıtlar ebeveynin ALTINDA, TEK girinti ile açılır;
-// daha derin yanıtlar da aynı girintili blokta, "↳ Ad kişisine yanıt"
-// başlığıyla DÜZ (flat) listelenir - ekranda hiçbir zaman ikinci bir
-// girinti seviyesi oluşmaz, dar ekranda metin sıkışmaz.
-//
-// Veri: backend her yorum için sadece doğrudan yanıt SAYISINI (replyCount)
+// Veri: backend her yorum için yalnızca doğrudan yanıt SAYISINI (replyCount)
 // döner, yanıtlar tıklanınca sayfalı çekilir. `threads` sözlüğü yorum id ->
 // { replies, loading, loadingMore, page, last, expanded } tutar; render
 // tarafı bir kök yorumun altındaki bloğu flattenThread() ile düzleştirir.
-export function usePostComments(postId) {
+//
+// onCountChange(delta): yorum/yanıt eklenince (+1) ya da silinince (-1)
+// gönderinin toplam yorum sayısını güncellemek için.
+export function usePostComments(postId, { onCountChange } = {}) {
   const { token } = useAuth()
   const { showError, showSuccess } = useNotification()
 
@@ -32,9 +29,11 @@ export function usePostComments(postId) {
   const [newComment, setNewComment] = useState('')
   const [postingComment, setPostingComment] = useState(false)
 
-  // Eski yanıt (başka bir gönderiye geçildikten sonra gelen) geçerli listeyi
-  // ezmesin diye istek sıra numarası.
+  // Eski yanıt (yeniden yükleme ya da başka gönderi sonrası gelen) geçerli
+  // listeyi ezmesin diye istek sıra numarası.
   const loadSeqRef = useRef(0)
+  const onCountChangeRef = useRef(onCountChange)
+  useEffect(() => { onCountChangeRef.current = onCountChange }, [onCountChange])
 
   const loadComments = useCallback(() => {
     if (!token || !postId) return
@@ -52,7 +51,12 @@ export function usePostComments(postId) {
       .finally(() => { if (seq === loadSeqRef.current) setCommentsLoading(false) })
   }, [token, postId, showError])
 
-  useEffect(() => { loadComments() }, [loadComments])
+  const invalidatePending = useCallback(() => { loadSeqRef.current += 1 }, [])
+
+  useEffect(() => {
+    loadComments()
+    return invalidatePending
+  }, [loadComments, invalidatePending])
 
   const patchThread = useCallback((id, patch) => {
     setThreads(prev => ({ ...prev, [id]: { ...(prev[id] || { replies: [], page: 0, last: true, expanded: false, loading: false, loadingMore: false }), ...patch } }))
@@ -106,10 +110,13 @@ export function usePostComments(postId) {
   }, [threads, token, showError, patchThread])
 
   const loadMoreComments = async () => {
+    if (commentsLoadingMore) return
+    const seq = loadSeqRef.current
     const nextPage = page + 1
     setCommentsLoadingMore(true)
     try {
       const res = await listComments(token, postId, { page: nextPage })
+      if (seq !== loadSeqRef.current) return
       setComments(prev => {
         const known = new Set(prev.map(c => c.id))
         return [...prev, ...(Array.isArray(res?.content) ? res.content : []).filter(c => !known.has(c.id))]
@@ -131,6 +138,7 @@ export function usePostComments(postId) {
       await createComment(token, postId, newComment.trim())
       setNewComment('')
       showSuccess('Yorum eklendi.')
+      onCountChangeRef.current?.(1)
       loadComments()
     } catch (err) {
       showError(err.message || 'Yorum eklenemedi.')
@@ -157,6 +165,7 @@ export function usePostComments(postId) {
   const submitReply = async (parentComment, content) => {
     await createComment(token, postId, content, parentComment.id)
     patchEverywhere(parentComment.id, c => ({ ...c, replyCount: (c.replyCount ?? 0) + 1 }))
+    onCountChangeRef.current?.(1)
     // Yeni yanıt hemen görünsün: ebeveynin bloğunu taze veriyle aç.
     await fetchReplies(parentComment, { force: true })
   }
@@ -165,6 +174,7 @@ export function usePostComments(postId) {
     // update() uç noktası replyCount'u bilmez (0 döner) - sadece değişen
     // alanları yazıyoruz.
     patchEverywhere(updated.id, c => ({ ...c, content: updated.content, deleted: updated.deleted }))
+    if (updated.deleted) onCountChangeRef.current?.(-1)
   }
 
   return {

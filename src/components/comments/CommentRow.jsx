@@ -1,18 +1,20 @@
 import { useState } from 'react'
 import {
-  Avatar, Box, Button, CircularProgress, IconButton, Menu, MenuItem, ListItemIcon, ListItemText,
-  Stack, SwipeableDrawer, TextField, Typography, useMediaQuery, useTheme
+  Avatar, Box, Button, CircularProgress, Stack, TextField, Typography, useMediaQuery, useTheme
 } from '@mui/material'
-import { CheckCircleRounded, DeleteOutline, EditOutlined, ExpandLessRounded, ExpandMoreRounded, FlagOutlined, MoreHorizRounded, SubdirectoryArrowRightRounded, TaskAltRounded } from '@mui/icons-material'
+import { CheckCircleRounded, ExpandLessRounded, ExpandMoreRounded, SubdirectoryArrowRightRounded, TaskAltRounded } from '@mui/icons-material'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
 import { useConfirm } from '../../context/ConfirmContext.jsx'
 import ReactionButtons from '../ReactionButtons.jsx'
 import SensitiveContentBanner from '../SensitiveContentBanner.jsx'
+import CommentReplyComposer from './CommentReplyComposer.jsx'
+import CommentActionsMenu from './CommentActionsMenu.jsx'
 import { deleteComment, reactToComment, removeCommentReaction, updateComment } from '../../services/api.js'
 import { initialsFrom, relativeTime } from '../../utils/format.js'
 import { canManage } from '../../utils/permissions.js'
 import { clickableProps } from '../../utils/clickable.js'
+import { COMMENT_MAX_LENGTH } from './commentLimits.js'
 
 // Tek bir yorum ya da yanıt satırı. Girinti/bağlantı çizgisi BURADA değil,
 // PostDetail'deki thread bloğunda çizilir - bu bileşen hiçbir zaman kendi
@@ -29,7 +31,7 @@ import { clickableProps } from '../../utils/clickable.js'
 export default function CommentRow({
   comment, isReply = false, replyingTo = null, canReply, thread,
   onUpdated, onReplySubmitted, onReport, onAuthorClick, onToggleThread,
-  // V24: soru gönderilerinde "en iyi cevap"
+  // Soru gönderilerinde "en iyi cevap"
   accepted = false, canAccept = false, onAccept, onUnaccept, acceptPending = false
 }) {
   const { token, user } = useAuth()
@@ -39,9 +41,6 @@ export default function CommentRow({
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [replyOpen, setReplyOpen] = useState(false)
-  const [replyText, setReplyText] = useState('')
-  const [replySubmitting, setReplySubmitting] = useState(false)
-  const [menuAnchor, setMenuAnchor] = useState(null)
   const confirm = useConfirm()
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
@@ -82,57 +81,9 @@ export default function CommentRow({
     }
   }
 
-  const submitReply = async () => {
-    if (!replyText.trim()) { showError('Yanıt boş olamaz.'); return }
-    setReplySubmitting(true)
-    try {
-      await onReplySubmitted(comment, replyText.trim())
-      setReplyText('')
-      setReplyOpen(false)
-      showSuccess('Yanıt eklendi.')
-    } catch (err) {
-      showError(err.message || 'Yanıt eklenemedi.')
-    } finally {
-      setReplySubmitting(false)
-    }
-  }
-
   const avatarSize = isReply ? 28 : 36
   const authorName = comment.authorName || 'Kullanıcı'
   const when = relativeTime(comment.createdAt)
-
-  const replyComposer = (
-    <Stack spacing={1.5}>
-      <TextField
-        value={replyText}
-        onChange={e => setReplyText(e.target.value)}
-        placeholder={`${authorName} kişisine yanıt yaz…`}
-        multiline
-        minRows={isMobile ? 3 : 2}
-        maxRows={8}
-        fullWidth
-        size="small"
-        autoFocus={replyOpen}
-        inputProps={{ maxLength: 3000 }}
-      />
-      <Stack direction="row" spacing={1} justifyContent={isMobile ? 'stretch' : 'flex-end'}>
-        <Button
-          fullWidth={isMobile} size={isMobile ? 'medium' : 'small'}
-          onClick={() => setReplyOpen(false)} disabled={replySubmitting}
-          sx={{ minHeight: isMobile ? 44 : undefined, order: isMobile ? 1 : 0 }}
-        >
-          Vazgeç
-        </Button>
-        <Button
-          fullWidth={isMobile} size={isMobile ? 'medium' : 'small'} variant="contained"
-          onClick={submitReply} disabled={replySubmitting || !replyText.trim()}
-          sx={{ minHeight: isMobile ? 44 : undefined, order: isMobile ? 2 : 1 }}
-        >
-          {replySubmitting ? <CircularProgress size={16} color="inherit" /> : 'Yanıtla'}
-        </Button>
-      </Stack>
-    </Stack>
-  )
 
   return (
     <Box
@@ -144,9 +95,7 @@ export default function CommentRow({
           mx: { xs: -1, sm: -1.5 }, px: { xs: 1, sm: 1.5 }, borderRadius: 3,
           bgcolor: 'rgba(76,184,159,0.08)', boxShadow: 'inset 3px 0 0 #4CB89F'
         } : {}),
-        // Satırlar düz zemin üstünde, kutusuz: kutu/zemin katmanları
-        // "iç içe geçmiş" hissini yaratan şeydi. Hiyerarşiyi girinti ve
-        // avatar ölçüsü taşıyor, kart kenarları değil.
+        // Satırlar kutusuz: hiyerarşiyi girinti ve avatar ölçüsü taşır.
       }}
     >
       <Stack direction="row" spacing={isReply ? 1.25 : 1.5} alignItems="flex-start">
@@ -185,38 +134,14 @@ export default function CommentRow({
             )}
             <Box sx={{ flex: 1 }} />
             {!editing && !isDeleted && (manageable || !isOwnComment) && (
-              <>
-                <IconButton
-                  size="small"
-                  onClick={(e) => setMenuAnchor(e.currentTarget)}
-                  aria-label="Yorum seçenekleri"
-                  sx={{ flexShrink: 0, color: 'text.secondary', mr: -1 }}
-                >
-                  <MoreHorizRounded fontSize="small" />
-                </IconButton>
-                <Menu anchorEl={menuAnchor} open={!!menuAnchor} onClose={() => setMenuAnchor(null)}>
-                  {manageable && (
-                    <MenuItem onClick={() => { setMenuAnchor(null); setText(comment.content); setEditing(true) }}>
-                      <ListItemIcon><EditOutlined fontSize="small" /></ListItemIcon>
-                      <ListItemText>Düzenle</ListItemText>
-                    </MenuItem>
-                  )}
-                  {manageable && (
-                    <MenuItem onClick={() => { setMenuAnchor(null); remove() }} disabled={deleting}>
-                      <ListItemIcon>
-                        {deleting ? <CircularProgress size={16} /> : <DeleteOutline fontSize="small" />}
-                      </ListItemIcon>
-                      <ListItemText>Sil</ListItemText>
-                    </MenuItem>
-                  )}
-                  {!isOwnComment && (
-                    <MenuItem onClick={() => { setMenuAnchor(null); onReport(comment.id) }}>
-                      <ListItemIcon><FlagOutlined fontSize="small" /></ListItemIcon>
-                      <ListItemText>Şikayet et</ListItemText>
-                    </MenuItem>
-                  )}
-                </Menu>
-              </>
+              <CommentActionsMenu
+                canManage={manageable}
+                canReport={!isOwnComment}
+                deleting={deleting}
+                onEdit={() => { setText(comment.content); setEditing(true) }}
+                onDelete={remove}
+                onReport={() => onReport(comment.id)}
+              />
             )}
           </Stack>
 
@@ -240,7 +165,7 @@ export default function CommentRow({
               <TextField
                 value={text} onChange={e => setText(e.target.value)}
                 multiline minRows={2} maxRows={8} fullWidth size="small" autoFocus
-                inputProps={{ maxLength: 3000 }}
+                inputProps={{ maxLength: COMMENT_MAX_LENGTH, 'aria-label': 'Yorumu düzenle' }}
               />
               <Stack direction="row" spacing={1} justifyContent="flex-end">
                 <Button size="small" onClick={() => setEditing(false)} disabled={saving}>Vazgeç</Button>
@@ -312,34 +237,17 @@ export default function CommentRow({
             </>
           )}
 
-          {replyOpen && !isMobile && <Box sx={{ mt: 1.5 }}>{replyComposer}</Box>}
+          {/* Masaüstünde satır içi; mobilde alttan açılan çekmece (portal). */}
+          <CommentReplyComposer
+            comment={comment}
+            authorName={authorName}
+            isMobile={isMobile}
+            open={replyOpen}
+            onOpenChange={setReplyOpen}
+            onSubmit={(content) => onReplySubmitted(comment, content)}
+          />
         </Box>
       </Stack>
-
-      {isMobile && (
-        <SwipeableDrawer
-          anchor="bottom"
-          open={replyOpen}
-          onOpen={() => setReplyOpen(true)}
-          onClose={() => { if (!replySubmitting) setReplyOpen(false) }}
-          disableSwipeToOpen
-          slotProps={{
-            paper: {
-              sx: {
-                borderTopLeftRadius: 16, borderTopRightRadius: 16, p: 2,
-                pb: 'calc(16px + env(safe-area-inset-bottom, 0px))'
-              }
-            }
-          }}
-        >
-          <Box sx={{ width: 36, height: 4, borderRadius: 2, bgcolor: 'divider', mx: 'auto', mb: 1.5 }} />
-          <Typography variant="subtitle2" sx={{ mb: 0.5 }}>{authorName} kişisine yanıt</Typography>
-          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1.5 }} noWrap>
-            “{(comment.content || '').slice(0, 80)}{(comment.content || '').length > 80 ? '…' : ''}”
-          </Typography>
-          {replyComposer}
-        </SwipeableDrawer>
-      )}
     </Box>
   )
 }

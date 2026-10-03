@@ -35,7 +35,7 @@ function isJwtExpired(token, bufferSeconds = 60) {
   }
 }
 
-export async function resolveFreshAccessToken(fallbackToken) {
+async function resolveFreshAccessToken(fallbackToken) {
   const stored = readStoredAccessToken() || fallbackToken
   if (stored && !isJwtExpired(stored)) return stored
   try {

@@ -92,7 +92,7 @@ function ReportCard({ r, actingId, act, deleteContent }) {
   )
 }
 
-export default function ReportsTab({ token }) {
+export default function ReportsTab({ token, onResolved }) {
   const [status, setStatus] = useState('PENDING')
   const [actingId, setActingId] = useState(null)
   const { showError, showSuccess } = useNotification()
@@ -111,6 +111,7 @@ export default function ReportsTab({ token }) {
       await resolveAdminReport(token, id, newStatus, deleteContent)
       showSuccess(deleteContent ? 'İçerik silindi.' : 'Şikayet güncellendi.')
       load()
+      onResolved?.()
     } catch (err) {
       showError(err.message || 'Şikayet güncellenemedi.')
     } finally {

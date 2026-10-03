@@ -1,125 +1,71 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import { Avatar, Box, Button, CircularProgress, IconButton, ListItemText, Menu, MenuItem, Stack, Typography } from '@mui/material'
 import {
-  Avatar, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogContentText,
-  DialogTitle, Divider, IconButton, ListItemText, Menu, MenuItem, Stack, TextField, Typography
-} from '@mui/material'
-import {
-  ArrowBack, BlockRounded, DynamicFeedRounded, FlagOutlined, LockOpenRounded, MailOutlineRounded,
-  MoreVertRounded
+  ArrowBack, BlockRounded, DynamicFeedRounded, FlagOutlined, LockOpenRounded, MailOutlineRounded, MoreVertRounded
 } from '@mui/icons-material'
-import HealthSummary from '../../components/profile/HealthSummary.jsx'
 import { useNavigate, useParams } from 'react-router-dom'
+import HealthSummary from '../../components/profile/HealthSummary.jsx'
+import PostList from '../../components/PostList.jsx'
+import VerifiedBadge from '../../components/VerifiedBadge.jsx'
+import EmptyState from '../../components/EmptyState.jsx'
+import ReportDialog from '../../components/comments/ReportDialog.jsx'
+import CenteredSpinner from '../../components/common/CenteredSpinner.jsx'
+import LoadMoreButton from '../../components/common/LoadMoreButton.jsx'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
 import { useConfirm } from '../../context/ConfirmContext.jsx'
-import PostCard from '../../components/PostCard.jsx'
-import VerifiedBadge from '../../components/VerifiedBadge.jsx'
-import EmptyState from '../../components/EmptyState.jsx'
+import { usePaginatedList } from '../../hooks/usePaginatedList.js'
+import { useReportDialog } from '../../hooks/useReportDialog.js'
 import {
-  getUserPublicProfile, getUserPosts, sendMessageRequest,
-  blockUser, unblockUser, listBlockedUsers, reportUser
+  getUserPublicProfile, getUserPosts, sendMessageRequest, blockUser, unblockUser, listBlockedUsers, reportUser
 } from '../../services/api.js'
-import { initialsFrom } from '../../utils/format.js'
+import { formatCount, initialsFrom } from '../../utils/format.js'
+import { fullNameOf } from '../../utils/text.js'
 
-// Başka bir kullanıcının herkese açık profili - arama sonuçlarında ya da bir
-// post/yorumun altında isme tıklayınca gelinen sayfa. Kendi profilin için
-// (düzenleme, ayarlar vb.) her zaman /profile kullanılıyor - bkz. App.jsx'te
-// bu sayfaya girildiğinde kendi id'nse otomatik /profile'a yönlenme.
-export default function UserProfile() {
-  const { userId } = useParams()
-  const navigate = useNavigate()
-  const { token, user: currentUser } = useAuth()
+function InlineStat({ value, label, highlight = false }) {
+  return (
+    <Box>
+      <Typography variant="subtitle2" component="span" sx={{ fontWeight: 700, color: highlight ? 'primary.main' : undefined }}>
+        {formatCount(value)}
+      </Typography>
+      <Typography variant="caption" sx={{ color: 'text.secondary', ml: 0.5 }}>{label}</Typography>
+    </Box>
+  )
+}
+
+function usePublicProfile(token, userId) {
+  const [state, setState] = useState({ profile: null, loading: true, error: '' })
+  useEffect(() => {
+    if (!token || !userId) return undefined
+    let alive = true
+    setState({ profile: null, loading: true, error: '' })
+    getUserPublicProfile(token, userId)
+      .then(profile => { if (alive) setState({ profile, loading: false, error: '' }) })
+      .catch(err => { if (alive) setState({ profile: null, loading: false, error: err.message || 'Kullanıcı bulunamadı.' }) })
+    return () => { alive = false }
+  }, [token, userId])
+  return state
+}
+
+// Bu kullanıcıyı engelleyip engellemediğim + engelle/engeli kaldır eylemleri.
+function useBlockToggle(token, userId, displayName) {
   const { showError, showSuccess } = useNotification()
   const confirm = useConfirm()
-
-  const [profile, setProfile] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-
-  /* ---- Engelle / Şikayet et - Chat.jsx'teki handleBlock ile aynı desen.
-     Önceden bu aksiyonlara sadece bir sohbet içindeyken ulaşılabiliyordu -
-     rahatsız edici bir profille daha ilk temasta (mesaj göndermeden önce)
-     karşılaşan biri engelleyip şikayet edebilmek için önce mesaj isteği
-     göndermek zorunda kalıyordu (bkz. Faz7-8 UX bulgusu). ---- */
-  const [menuAnchor, setMenuAnchor] = useState(null)
   const [isBlocked, setIsBlocked] = useState(false)
-  const [reportOpen, setReportOpen] = useState(false)
-  const [reportReason, setReportReason] = useState('')
-
-  const [posts, setPosts] = useState([])
-  const [postsLoading, setPostsLoading] = useState(true)
-  const [postsLoadingMore, setPostsLoadingMore] = useState(false)
-  const [postsPage, setPostsPage] = useState(0)
-  const [postsTotalCount, setPostsTotalCount] = useState(0)
-  const [postsLast, setPostsLast] = useState(true)
-
-  const [sendingRequest, setSendingRequest] = useState(false)
-  const [requestSent, setRequestSent] = useState(false)
 
   useEffect(() => {
-    // Kendi profiline bu sayfadan (link/geri butonu vb.) ulaşılırsa tam
-    // yetkili /profile'a yönlendir.
-    if (currentUser && String(currentUser.id) === String(userId)) {
-      navigate('/profile', { replace: true })
-    }
-  }, [currentUser, userId, navigate])
-
-  useEffect(() => {
-    if (!token || !userId) return
-    let mounted = true
-    setLoading(true)
-    setError('')
-    getUserPublicProfile(token, userId)
-      .then(data => { if (mounted) setProfile(data) })
-      .catch(err => { if (mounted) setError(err.message || 'Kullanıcı bulunamadı.') })
-      .finally(() => { if (mounted) setLoading(false) })
-    return () => { mounted = false }
-  }, [token, userId])
-
-  useEffect(() => {
-    if (!token || !userId) return
+    if (!token || !userId) return undefined
+    let alive = true
     listBlockedUsers(token)
-      .then(list => setIsBlocked((Array.isArray(list) ? list : []).some(b => String(b.userId) === String(userId))))
+      .then(list => { if (alive) setIsBlocked((Array.isArray(list) ? list : []).some(b => String(b.userId) === String(userId))) })
+      // İkincil veri: bilinemiyorsa menü "Engelle" seçeneğini gösterir.
       .catch(() => {})
+    return () => { alive = false }
   }, [token, userId])
 
-  useEffect(() => {
-    if (!token || !userId) return
-    let mounted = true
-    setPostsLoading(true)
-    setPostsPage(0)
-    getUserPosts(token, userId, { page: 0 })
-      .then(res => {
-        if (!mounted) return
-        setPosts(Array.isArray(res?.content) ? res.content : [])
-        setPostsTotalCount(res?.totalElements ?? 0)
-        setPostsLast(res?.last ?? true)
-      })
-      .catch(err => showError(err.message || 'Gönderiler alınamadı.'))
-      .finally(() => { if (mounted) setPostsLoading(false) })
-    return () => { mounted = false }
-  }, [token, userId, showError])
-
-  const loadMorePosts = async () => {
-    const nextPage = postsPage + 1
-    setPostsLoadingMore(true)
-    try {
-      const res = await getUserPosts(token, userId, { page: nextPage })
-      setPosts(prev => [...prev, ...(Array.isArray(res?.content) ? res.content : [])])
-      setPostsLast(res?.last ?? true)
-      setPostsPage(nextPage)
-    } catch (err) {
-      showError(err.message || 'Gönderiler alınamadı.')
-    } finally {
-      setPostsLoadingMore(false)
-    }
-  }
-
-  const handleBlock = async () => {
-    setMenuAnchor(null)
-    const name = [profile?.firstName, profile?.lastName].filter(Boolean).join(' ') || 'Bu kullanıcıyı'
+  const block = async () => {
     const ok = await confirm(
-      `${name} kullanıcısını engellemek istiyor musun? Birbirinize mesaj gönderemezsiniz.`,
+      `${displayName || 'Bu kullanıcıyı'} kullanıcısını engellemek istiyor musun? Birbirinize mesaj gönderemezsiniz.`,
       { title: 'Kullanıcıyı engelle' }
     )
     if (!ok) return
@@ -132,8 +78,7 @@ export default function UserProfile() {
     }
   }
 
-  const handleUnblock = async () => {
-    setMenuAnchor(null)
+  const unblock = async () => {
     try {
       await unblockUser(token, userId)
       setIsBlocked(false)
@@ -143,26 +88,47 @@ export default function UserProfile() {
     }
   }
 
-  const submitReport = async () => {
-    try {
-      await reportUser(token, userId, reportReason.trim() || null)
-      showSuccess('Şikayetiniz alındı, teşekkür ederiz.')
-    } catch (err) {
-      showError(err.message || 'Şikayet gönderilemedi.')
-    } finally {
-      setReportOpen(false)
-      setReportReason('')
+  return { isBlocked, block, unblock }
+}
+
+// Başka bir kullanıcının herkese açık profili. Kendi profiline buradan
+// gelinirse tam yetkili /profile'a yönlendirilir.
+export default function UserProfile() {
+  const { userId } = useParams()
+  const navigate = useNavigate()
+  const { token, user: currentUser } = useAuth()
+  const { showError, showSuccess } = useNotification()
+
+  const { profile, loading, error } = usePublicProfile(token, userId)
+  const fullName = fullNameOf(profile, 'Kullanıcı')
+  const blocking = useBlockToggle(token, userId, profile ? fullName : '')
+  const report = useReportDialog((id, reason) => reportUser(token, id, reason))
+  const [menuAnchor, setMenuAnchor] = useState(null)
+  const [sendingRequest, setSendingRequest] = useState(false)
+  const [requestSent, setRequestSent] = useState(false)
+
+  useEffect(() => {
+    if (currentUser && String(currentUser.id) === String(userId)) {
+      navigate('/profile', { replace: true })
     }
-  }
+  }, [currentUser, userId, navigate])
+
+  const postsFetcher = useCallback((page) => getUserPosts(token, userId, { page }), [token, userId])
+  const posts = usePaginatedList(postsFetcher, {
+    enabled: !!token && !!userId,
+    deps: [token, userId],
+    onError: err => showError(err.message || 'Gönderiler alınamadı.')
+  })
+
+  const closeMenuThen = (action) => () => { setMenuAnchor(null); action() }
 
   const handleSendMessageRequest = async () => {
     setSendingRequest(true)
     try {
       const res = await sendMessageRequest(token, userId)
       if (res?.autoAccepted) {
-        // Karşı taraf zaten bize istek göndermişti ya da aramızda bir
-        // konuşma vardı - backend otomatik eşleştirdi, direkt sohbete gir
-        // (bkz. MessageRequestService.send Outcome.autoAccepted).
+        // Karşı taraf zaten istek göndermişti ya da aramızda bir konuşma
+        // vardı - backend eşleştirdi, doğrudan sohbete gir.
         navigate(`/messages/${res.conversationId}`)
         return
       }
@@ -175,13 +141,7 @@ export default function UserProfile() {
     }
   }
 
-  if (loading) {
-    return (
-      <Box sx={{ display: 'grid', placeItems: 'center', minHeight: 300, py: 6 }}>
-        <CircularProgress size={28} />
-      </Box>
-    )
-  }
+  if (loading) return <CenteredSpinner page />
 
   if (error || !profile) {
     return (
@@ -196,30 +156,28 @@ export default function UserProfile() {
     )
   }
 
-  const fullName = [profile.firstName, profile.lastName].filter(Boolean).join(' ') || 'Kullanıcı'
-
   return (
     <Box sx={{ width: '100%', maxWidth: 680, mx: 'auto', py: { xs: 2, md: 4 } }}>
       <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
         <Button startIcon={<ArrowBack />} onClick={() => navigate(-1)} sx={{ color: 'text.secondary' }}>
           Geri
         </Button>
-        <IconButton onClick={(e) => setMenuAnchor(e.currentTarget)} aria-label="Seçenekler">
+        <IconButton onClick={(e) => setMenuAnchor(e.currentTarget)} aria-label="Seçenekler" aria-haspopup="menu">
           <MoreVertRounded />
         </IconButton>
         <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={() => setMenuAnchor(null)}>
-          {isBlocked ? (
-            <MenuItem onClick={handleUnblock}>
+          {blocking.isBlocked ? (
+            <MenuItem onClick={closeMenuThen(blocking.unblock)}>
               <LockOpenRounded fontSize="small" sx={{ mr: 1.5 }} />
               <ListItemText primary="Engeli Kaldır" />
             </MenuItem>
           ) : (
-            <MenuItem onClick={handleBlock} sx={{ color: 'error.main' }}>
+            <MenuItem onClick={closeMenuThen(blocking.block)} sx={{ color: 'error.main' }}>
               <BlockRounded fontSize="small" sx={{ mr: 1.5 }} />
               <ListItemText primary="Kullanıcıyı Engelle" />
             </MenuItem>
           )}
-          <MenuItem onClick={() => { setMenuAnchor(null); setReportOpen(true) }}>
+          <MenuItem onClick={closeMenuThen(() => report.open(userId))}>
             <FlagOutlined fontSize="small" sx={{ mr: 1.5 }} />
             <ListItemText primary="Şikayet Et" />
           </MenuItem>
@@ -228,8 +186,6 @@ export default function UserProfile() {
 
       <Box sx={{ mb: 4, px: { xs: 0.5, md: 0 } }}>
         <Stack direction="row" spacing={{ xs: 2, md: 3 }} alignItems="flex-start">
-          {/* Faz4: gradyan ring kaldırıldı - bkz. Profile.jsx/PostCard.jsx'teki
-              aynı karar, düz marka rengi çerçeveye indirgendi. */}
           <Avatar
             sx={{
               width: { xs: 78, md: 102 }, height: { xs: 78, md: 102 }, flexShrink: 0,
@@ -240,10 +196,6 @@ export default function UserProfile() {
             {initialsFrom(fullName)}
           </Avatar>
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            {/* X/IG deseni: takip/mesaj eylem butonu isim satırıyla aynı
-                hizada, sağda - önceden bio'nun altında tam genişlikte
-                duruyordu ve profilin "eylem alanı" gibi değil, ayrı bir
-                bileşen gibi görünüyordu. */}
             <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={1} flexWrap="wrap" useFlexGap>
               <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap" useFlexGap>
                 <Typography variant="h2" sx={{ fontWeight: 700, mb: 0.5, wordBreak: 'break-word' }}>
@@ -251,106 +203,54 @@ export default function UserProfile() {
                 </Typography>
                 {profile.emailVerified && <VerifiedBadge />}
               </Stack>
-              <Button
-                variant={requestSent ? 'outlined' : 'contained'}
-                size="small"
-                startIcon={sendingRequest ? <CircularProgress size={14} color="inherit" /> : <MailOutlineRounded />}
-                onClick={handleSendMessageRequest}
-                disabled={sendingRequest || requestSent}
-                sx={{ minHeight: 36, flexShrink: 0 }}
-              >
-                {requestSent ? 'İstek Gönderildi' : 'Mesaj Gönder'}
-              </Button>
+              {!blocking.isBlocked && (
+                <Button
+                  variant={requestSent ? 'outlined' : 'contained'}
+                  size="small"
+                  startIcon={sendingRequest ? <CircularProgress size={14} color="inherit" /> : <MailOutlineRounded />}
+                  onClick={handleSendMessageRequest}
+                  disabled={sendingRequest || requestSent}
+                  sx={{ minHeight: 40, flexShrink: 0 }}
+                >
+                  {requestSent ? 'İstek Gönderildi' : 'Mesaj Gönder'}
+                </Button>
+              )}
             </Stack>
             <Stack direction="row" spacing={{ xs: 2, md: 3 }} flexWrap="wrap" useFlexGap>
-              <Box>
-                <Typography variant="subtitle2" component="span" sx={{ fontWeight: 700 }}>
-                  {postsTotalCount}
-                </Typography>
-                <Typography variant="caption" sx={{ color: 'text.secondary', ml: 0.5 }}>
-                  Gönderi
-                </Typography>
-              </Box>
-              <Box>
-                <Typography variant="subtitle2" component="span" sx={{ fontWeight: 700 }}>
-                  {profile.commentCount ?? 0}
-                </Typography>
-                <Typography variant="caption" sx={{ color: 'text.secondary', ml: 0.5 }}>
-                  Yorum
-                </Typography>
-              </Box>
-              <Box>
-                <Typography variant="subtitle2" component="span" sx={{ fontWeight: 700, color: 'primary.main' }}>
-                  {profile.likesReceived ?? 0}
-                </Typography>
-                <Typography variant="caption" sx={{ color: 'text.secondary', ml: 0.5 }}>
-                  Faydalı
-                </Typography>
-              </Box>
+              <InlineStat value={posts.totalCount} label="Gönderi" />
+              <InlineStat value={profile.commentCount} label="Yorum" />
+              <InlineStat value={profile.likesReceived} label="Faydalı" highlight />
             </Stack>
           </Box>
         </Stack>
         <HealthSummary profile={profile} sx={{ mt: 1.25 }} />
         {profile.bio && (
-          <Typography variant="body2" sx={{ color: 'text.primary', mt: 1.5, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+          <Typography variant="body2" sx={{ color: 'text.primary', mt: 1.5, wordBreak: 'break-word', overflowWrap: 'anywhere', whiteSpace: 'pre-line' }}>
             {profile.bio}
           </Typography>
         )}
       </Box>
 
       <Box sx={{ mb: 2, px: { xs: 0.5, md: 0 }, pb: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}>
-        <Typography variant="h3" sx={{ color: 'text.primary' }}>
-          Gönderiler
-        </Typography>
+        <Typography variant="h3" sx={{ color: 'text.primary' }}>Gönderiler</Typography>
       </Box>
-      {postsLoading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-          <CircularProgress size={22} />
-        </Box>
-      ) : posts.length === 0 ? (
+      {posts.loading ? (
+        <CenteredSpinner />
+      ) : posts.items.length === 0 ? (
         <EmptyState icon={DynamicFeedRounded} title="Henüz gönderisi yok." dense />
       ) : (
         <>
-          {posts.map((p, i) => (
-            <Box key={p.id}>
-              {i > 0 && <Divider />}
-              <PostCard post={p} token={token} onClick={() => navigate(`/post/${p.id}`)} showPinnedBadge />
-            </Box>
-          ))}
-          {!postsLast && (
-            <Box sx={{ textAlign: 'center', py: 3 }}>
-              <Button
-                variant="outlined"
-                onClick={loadMorePosts}
-                disabled={postsLoadingMore}
-                sx={{ minWidth: 180, minHeight: 44 }}
-              >
-                {postsLoadingMore ? <CircularProgress size={18} /> : 'Daha Fazla Yükle'}
-              </Button>
-            </Box>
-          )}
+          <PostList posts={posts.items} token={token} showPinnedBadge />
+          {!posts.last && <LoadMoreButton loading={posts.loadingMore} onClick={posts.loadMore} />}
         </>
       )}
 
-      {/* Kullanıcı şikayet dialogu - Chat.jsx'teki mesaj şikayet dialoguyla aynı desen. */}
-      <Dialog open={reportOpen} onClose={() => setReportOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>Kullanıcıyı Şikayet Et</DialogTitle>
-        <DialogContent>
-          <DialogContentText sx={{ mb: 1.5 }}>
-            {fullName} kullanıcısını neden şikayet ediyorsun? (isteğe bağlı)
-          </DialogContentText>
-          <TextField
-            value={reportReason}
-            onChange={(e) => setReportReason(e.target.value)}
-            placeholder="Açıklama..."
-            fullWidth multiline minRows={2} size="small"
-          />
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setReportOpen(false)}>Vazgeç</Button>
-          <Button variant="contained" color="error" onClick={submitReport}>Şikayet Et</Button>
-        </DialogActions>
-      </Dialog>
+      <ReportDialog
+        {...report.dialogProps}
+        title="Kullanıcıyı Şikayet Et"
+        description={`${fullName} kullanıcısını neden şikayet ediyorsun? (isteğe bağlı)`}
+        placeholder="Açıklama..."
+      />
     </Box>
   )
 }

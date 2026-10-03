@@ -1,7 +1,5 @@
-// Uygulama genelinde tekrarlanan basit biçimlendirme yardımcıları (bkz.
-// clean-code audit) - önceden initialsFrom 11 dosyada, prettyDate ise
-// pages/profile/ProfileShared.jsx içinde ama profil dışı sayfalarda inline
-// olarak birebir kopyalanmış haldeydi.
+// Uygulama genelinde ortak biçimlendirme yardımcıları (isim baş harfleri,
+// sunucu tarihleri, göreli zaman, sayılar).
 
 // Ad-soyaddan avatar baş harfleri: iki kelimeyse her birinin ilk harfi,
 // tek kelimeyse ilk iki harfi, hiç isim yoksa "?".
@@ -54,4 +52,10 @@ export function relativeTime(value, now = new Date()) {
   if (diff < 7 * 86400) return `${Math.round(diff / 86400)} gün`
   const sameYear = dt.getFullYear() === now.getFullYear()
   return dt.toLocaleDateString('tr-TR', sameYear ? { day: 'numeric', month: 'short' } : { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+// Sayıları Türkçe binlik ayraçlı gösterir: 12345 -> "12.345".
+const countFormat = new Intl.NumberFormat('tr-TR')
+export function formatCount(n) {
+  return countFormat.format(n ?? 0)
 }

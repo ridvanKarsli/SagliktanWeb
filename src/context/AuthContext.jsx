@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react'
+import { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react'
 import { loginUser, registerUser, getUserProfile, refreshToken as refreshTokenApi, logoutUser } from '../services/api.js'
 import { clearRecentSearches } from '../utils/recentSearches.js'
 
@@ -36,7 +36,7 @@ function isTokenExpired(token) {
 let refreshPromise = null
 let refreshCallback = null
 
-export function setRefreshCallback(callback) {
+function setRefreshCallback(callback) {
   refreshCallback = callback
 }
 
@@ -91,7 +91,6 @@ function mapUser(u) {
     bio: u.bio || '',
     role: u.role,
     emailVerified: !!u.emailVerified,
-    // V23: profil sağlık özeti + tercihler
     communityRole: u.communityRole || null,
     diagnosisYear: u.diagnosisYear ?? null,
     city: u.city || '',
@@ -163,10 +162,8 @@ export function AuthProvider({ children }) {
 
   const logout = useCallback(async () => {
     if (token) {
-      // Backend artık bu oturumun refresh token'ını DB'de revoke ediyor (bkz.
-      // AuthServiceImpl.revokeCurrentSession, görev #305) - ama bu istek
-      // ağ hatasıyla başarısız olsa bile kullanıcı yerelde çıkış yapabilmeli,
-      // bu yüzden hata sessizce yutuluyor (local token zaten aşağıda siliniyor).
+      // Sunucu tarafı oturum iptali en iyi çaba: ağ hatasında bile kullanıcı
+      // yerelde çıkış yapabilmeli (yerel token zaten aşağıda siliniyor).
       try { await logoutUser(token) } catch { /* best-effort server-side revoke */ }
     }
     setToken(null)
@@ -199,14 +196,10 @@ export function AuthProvider({ children }) {
     try {
       result = await refreshTokenApi(refreshTokenValue)
     } catch (err) {
-      // Sunucu refresh'i REDDETTİ (başka cihazdan "Aktif Oturumlar" ile
-      // sonlandırılmış oturum, pasife alınmış hesap, şifre değişikliği
-      // sonrası iptal edilmiş token...). Önceden burada hiçbir şey
-      // yapılmıyordu: UI oturum açık görünmeye devam ediyor, her istek
-      // "yetkin yok" hatası veriyor, WS istemcileri ölü token'la 5 sn'de
-      // bir yeniden bağlanmaya çalışıyordu ("zombi oturum"). Ağ hatası
-      // (status 0) ya da geçici 5xx'te ise oturumu KORU - kısa bir mobil
-      // kesinti kullanıcıyı çıkışa zorlamamalı.
+      // Sunucu refresh'i REDDETTİYSE (oturum başka cihazdan sonlandırılmış,
+      // hesap pasif, şifre değişmiş...) yerelde de çıkış yap - yoksa arayüz
+      // açık görünür ama her istek "yetkin yok" der ("zombi oturum"). Ağ
+      // hatası (status 0) ya da geçici 5xx'te oturum korunur.
       if (err?.status === 401 || err?.status === 403) {
         await logout()
       }

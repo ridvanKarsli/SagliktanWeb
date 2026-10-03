@@ -105,8 +105,13 @@ function DiseaseGroupAccordion({ group, token, onChanged }) {
   const confirm = useConfirm()
 
   const loadSubGroups = useCallback(() => {
-    listSubGroups(token, group.id).then(setSubGroups).catch(() => setSubGroups([]))
-  }, [token, group.id])
+    listSubGroups(token, group.id)
+      .then(list => setSubGroups(Array.isArray(list) ? list : []))
+      .catch(err => {
+        setSubGroups([])
+        showError(err.message || 'Alt gruplar alınamadı.')
+      })
+  }, [token, group.id, showError])
 
   const remove = async (e) => {
     e.stopPropagation()
@@ -189,22 +194,24 @@ function DiseaseGroupAccordion({ group, token, onChanged }) {
 }
 
 export default function GroupsTab({ token }) {
-  const [groups, setGroups] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [groups, setGroups] = useState(null) // null = ilk yükleme
   const [creating, setCreating] = useState(false)
   const { showError, showSuccess } = useNotification()
 
+  // Değişiklik sonrası yeniden yüklemede liste yerinde güncellenir (tam sayfa
+  // spinner yok): açık akordeonlar ve kaydırma konumu korunur.
   const load = useCallback(() => {
-    setLoading(true)
     listDiseaseGroups(token)
       .then(res => setGroups(Array.isArray(res) ? res : []))
-      .catch(err => showError(err.message || 'Gruplar alınamadı.'))
-      .finally(() => setLoading(false))
+      .catch(err => {
+        setGroups(prev => prev ?? [])
+        showError(err.message || 'Gruplar alınamadı.')
+      })
   }, [token, showError])
 
   useEffect(() => { load() }, [load])
 
-  if (loading) return <AdminLoading />
+  if (groups === null) return <AdminLoading />
 
   return (
     <Box>

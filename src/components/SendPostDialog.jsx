@@ -10,13 +10,10 @@ import { useNotification } from '../context/NotificationContext.jsx'
 import { listConversations, sendChatMessage } from '../services/api.js'
 import { initialsFrom } from '../utils/format.js'
 
-// Faz 2 adım 7: bir gönderiyi sohbetlerinden birine mesaj olarak gönderme -
-// IG/WhatsApp'taki "Gönder" (Send to...) dialogunun sadeleştirilmiş hali.
-// Mesaj isteği/kabul akışına dokunmuyor - sadece zaten kabul edilmiş
-// (serbestçe mesajlaşılabilen) konuşmalar listeleniyor. canMessage=false
-// olan satırlar (herhangi bir yönde engel varsa, bkz. ConversationResponse)
-// gönderilemez şekilde gri gösteriliyor - backend zaten 403 dönerdi, burada
-// önceden engelliyoruz ki kullanıcı boşuna denemesin.
+// Bir gönderiyi mevcut sohbetlerden birine mesaj olarak gönderme. Yalnızca
+// zaten kabul edilmiş konuşmalar listelenir; canMessage=false olanlar (bir
+// yönde engel varsa) gönderilemez şekilde soluk gösterilir - backend zaten
+// 403 dönerdi, kullanıcı boşuna denemesin.
 export default function SendPostDialog({ open, onClose, post }) {
   const { token } = useAuth()
   const { showError } = useNotification()
@@ -28,6 +25,7 @@ export default function SendPostDialog({ open, onClose, post }) {
 
   const [conversations, setConversations] = useState([])
   const [loading, setLoading] = useState(true)
+  const [loadFailed, setLoadFailed] = useState(false)
   const [sendingId, setSendingId] = useState(null)
   const [sentIds, setSentIds] = useState(new Set())
 
@@ -35,10 +33,15 @@ export default function SendPostDialog({ open, onClose, post }) {
     if (!open || !token) return
     let mounted = true
     setLoading(true)
+    setLoadFailed(false)
     setSentIds(new Set())
     listConversations(token, { page: 0 })
       .then(res => { if (mounted) setConversations(Array.isArray(res?.content) ? res.content : []) })
-      .catch(err => showError(err.message || 'Sohbetler alınamadı.'))
+      .catch(err => {
+        if (!mounted) return
+        setLoadFailed(true)
+        showError(err.message || 'Sohbetler alınamadı.')
+      })
       .finally(() => { if (mounted) setLoading(false) })
     return () => { mounted = false }
   }, [open, token, showError])
@@ -71,7 +74,7 @@ export default function SendPostDialog({ open, onClose, post }) {
         ) : conversations.length === 0 ? (
           <Box sx={{ textAlign: 'center', py: 5, px: 2 }}>
             <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-              Henüz kimseyle mesajlaşmıyorsun.
+              {loadFailed ? 'Sohbetler alınamadı.' : 'Henüz kimseyle mesajlaşmıyorsun.'}
             </Typography>
           </Box>
         ) : (

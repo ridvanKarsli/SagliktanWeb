@@ -9,7 +9,7 @@ import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
 import { getDigestPreview, updateHealthProfile, updatePreferences } from '../../services/api.js'
 import HealthProfileFields from '../../components/profile/HealthProfileFields.jsx'
-import { Section } from './ProfileShared.jsx'
+import SettingsSection, { SettingsCard } from '../../components/settings/SettingsSection.jsx'
 
 function sameProfile(a, b) {
   return (a.communityRole || null) === (b.communityRole || null)
@@ -74,7 +74,8 @@ export default function CommunitySettings() {
     setPreview({ open: true, html: '', loading: true })
     try {
       const html = await getDigestPreview(token)
-      setPreview({ open: true, html: typeof html === 'string' ? html : '', loading: false })
+      // Yükleme sürerken dialog kapatıldıysa yeniden açma.
+      setPreview(p => ({ ...p, html: typeof html === 'string' ? html : '', loading: false }))
     } catch (err) {
       setPreview({ open: false, html: '', loading: false })
       showError(err.message || 'Önizleme alınamadı.')
@@ -84,8 +85,8 @@ export default function CommunitySettings() {
   return (
     <>
       <Box ref={sectionRef} id="eslesme" sx={{ scrollMarginTop: 72 }}>
-        <Section title="Profil ve eşleşme">
-          <Box sx={{ borderRadius: 2, border: '1px solid', borderColor: 'divider', p: { xs: 2, sm: 2.5 } }}>
+        <SettingsSection title="Profil ve eşleşme">
+          <SettingsCard padded>
             <HealthProfileFields value={profile} onChange={setProfile} showRole />
             <Stack direction="row" justifyContent="flex-end" spacing={1} sx={{ mt: 2 }}>
               {dirty && (
@@ -95,12 +96,12 @@ export default function CommunitySettings() {
                 {saving ? <CircularProgress size={18} color="inherit" /> : 'Kaydet'}
               </Button>
             </Stack>
-          </Box>
-        </Section>
+          </SettingsCard>
+        </SettingsSection>
       </Box>
 
-      <Section title="E-posta bildirimleri">
-        <Box sx={{ borderRadius: 2, border: '1px solid', borderColor: 'divider', p: { xs: 2, sm: 2.5 } }}>
+      <SettingsSection title="E-posta bildirimleri">
+        <SettingsCard padded>
           <FormControlLabel
             control={
               <Switch
@@ -124,8 +125,8 @@ export default function CommunitySettings() {
           <Button size="small" startIcon={<MailOutlineRounded />} onClick={openPreview} sx={{ minHeight: 40 }}>
             Bu haftaki özetimi göster
           </Button>
-        </Box>
-      </Section>
+        </SettingsCard>
+      </SettingsSection>
 
       <Dialog open={preview.open} onClose={() => setPreview(p => ({ ...p, open: false }))} fullWidth maxWidth="sm">
         <DialogTitle>Haftalık özet önizlemesi</DialogTitle>

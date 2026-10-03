@@ -5,9 +5,15 @@ import {
 } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
 
-// Şikayet için ortak dialog: post ya da yorum, tek bir bileşenle karşılanıyor.
-// PostDetail.jsx'ten taşındı (bkz. clean-code audit).
-export default function ReportDialog({ open, onClose, onSubmit, submitting }) {
+// Gönderi, yorum, mesaj ve kullanıcı şikayetleri için ortak dialog. Gerekçe
+// isteğe bağlı; gönderim sürerken dialog kapatılamaz ve hata olursa yazılan
+// metin korunur (bkz. useReportDialog).
+export default function ReportDialog({
+  open, onClose, onSubmit, submitting,
+  title = 'İçeriği Şikayet Et',
+  description = 'Bu içeriği neden şikayet ettiğinizi kısaca belirtebilirsiniz (opsiyonel).',
+  placeholder = 'Örn. uygunsuz içerik, yanlış bilgi...'
+}) {
   const [reason, setReason] = useState('')
   const theme = useTheme()
   const fullScreen = useMediaQuery(theme.breakpoints.down('sm'))
@@ -19,21 +25,29 @@ export default function ReportDialog({ open, onClose, onSubmit, submitting }) {
   }
 
   const handleSubmit = async () => {
-    await onSubmit(reason.trim() || null)
-    setReason('')
+    const ok = await onSubmit(reason.trim() || null)
+    if (ok !== false) setReason('')
   }
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="xs" fullWidth fullScreen={fullScreen}>
-      <DialogTitle>İçeriği Şikayet Et</DialogTitle>
+    <Dialog
+      open={open}
+      onClose={handleClose}
+      maxWidth="xs"
+      fullWidth
+      fullScreen={fullScreen}
+      // Dialog bir portal ama React olayları bileşen ağacında kabarcıklanır:
+      // tıklanabilir bir kartın içinden açıldığında karttaki onClick'i
+      // tetiklemesin.
+      onClick={(e) => e.stopPropagation()}
+    >
+      <DialogTitle>{title}</DialogTitle>
       <DialogContent>
-        <DialogContentText sx={{ mb: 2 }}>
-          Bu içeriği neden şikayet ettiğinizi kısaca belirtebilirsiniz (opsiyonel).
-        </DialogContentText>
+        <DialogContentText sx={{ mb: 2 }}>{description}</DialogContentText>
         <TextField
           value={reason}
           onChange={e => setReason(e.target.value)}
-          placeholder="Örn. uygunsuz içerik, yanlış bilgi..."
+          placeholder={placeholder}
           multiline
           minRows={2}
           fullWidth

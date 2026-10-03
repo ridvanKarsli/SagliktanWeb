@@ -1,28 +1,55 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Alert, Box, Button, CircularProgress, Divider, Fab, Stack, Tab, Tabs, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
-import { Add, AutoAwesomeRounded, DynamicFeedRounded, GroupsRounded, QuestionAnswerOutlined } from '@mui/icons-material'
+import { Alert, Box, Button, Divider, Stack, Tab, Tabs, Typography } from '@mui/material'
+import { AutoAwesomeRounded, DynamicFeedRounded, GroupsRounded, QuestionAnswerOutlined } from '@mui/icons-material'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import SimilarMembers from '../components/SimilarMembers.jsx'
-import PostCard from '../components/PostCard.jsx'
+import PostList from '../components/PostList.jsx'
 import PostCardSkeleton from '../components/PostCardSkeleton.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import NewPostDialog from '../components/NewPostDialog.jsx'
 import ComposerPrompt from '../components/ComposerPrompt.jsx'
+import CreatePostFab from '../components/CreatePostFab.jsx'
+import SortToggle from '../components/SortToggle.jsx'
+import PullToRefreshIndicator from '../components/PullToRefreshIndicator.jsx'
+import LoadMoreButton from '../components/common/LoadMoreButton.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useNotification } from '../context/NotificationContext.jsx'
 import { getMyDiseaseGroups, getMyFeed, getOpenQuestions } from '../services/api.js'
 import { usePaginatedList } from '../hooks/usePaginatedList.js'
-import { usePullToRefresh } from '../hooks/usePullToRefresh.js'
+
+const FEED_TAB = 'feed'
+const QUESTIONS_TAB = 'questions'
+// "Senin gibi üyeler" kartı akışın bu sıradaki gönderisinden sonra gösterilir:
+// en üstte içeriği aşağı itmesin ama ilk ekranlarda görülsün.
+const SIMILAR_MEMBERS_AFTER_INDEX = 2
+
+function scrollFeedToTop() {
+  try {
+    document.getElementById('root')?.scrollTo({ top: 0, behavior: 'smooth' })
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  } catch { /* eski tarayıcı: kaydırma kritik değil */ }
+}
+
+// Kullanıcının herhangi bir gruba üye olup olmadığı: akış boşsa "grup keşfet"
+// mi yoksa "ilk gönderiyi paylaş" mı gösterileceğini belirler.
+function useHasJoinedGroups(token) {
+  const [state, setState] = useState({ checking: true, hasJoined: true })
+  useEffect(() => {
+    if (!token) { setState({ checking: false, hasJoined: false }); return undefined }
+    let alive = true
+    getMyDiseaseGroups(token)
+      .then(mine => { if (alive) setState({ checking: false, hasJoined: Array.isArray(mine) && mine.length > 0 }) })
+      // İkincil veri: bilinemiyorsa akışı normal göster (varsayılan "üye").
+      .catch(() => { if (alive) setState({ checking: false, hasJoined: true }) })
+    return () => { alive = false }
+  }, [token])
+  return state
+}
 
 /**
- * Giriş sonrası asıl ana sayfa (bkz. App.jsx "/" route'u). Önceden burada
- * doğrudan Gruplar (DiseaseGroups.jsx) listesi açılıyordu - kullanıcı her
- * girişte önce bir grup seçip içine girmek zorundaydı, gönderilere erişmek
- * en az iki tıklama alıyordu. Artık Twitter/Instagram ana sayfası gibi:
- * katıldığı TÜM gruplardaki gönderiler tek bir zaman sıralı akışta (bkz.
- * backend PostController.feed / PostRepository.findFeedForUser). Grup
- * keşfi/yönetimi ayrı bir sayfaya taşındı (bkz. ResponsiveShell nav'daki
- * ayrı "Gruplar" ikonu).
+ * Giriş sonrası ana sayfa: kullanıcının üye olduğu tüm gruplardaki
+ * gönderiler tek bir zaman sıralı akışta; "Cevap bekleyenler" sekmesi açık
+ * soruları listeler. Grup keşfi ayrı sayfada (/groups).
  */
 export default function Home() {
   const { token, user } = useAuth()
@@ -30,42 +57,23 @@ export default function Home() {
   const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
   // ?tab=questions -> "Cevap bekleyenler" (e-posta özetindeki link de buraya gelir)
-  const tab = params.get('tab') === 'questions' ? 'questions' : 'feed'
-  const setTab = (v) => {
+  const tab = params.get('tab') === QUESTIONS_TAB ? QUESTIONS_TAB : FEED_TAB
+  const setTab = (value) => {
     const next = new URLSearchParams(params)
-    if (v === 'questions') next.set('tab', 'questions'); else next.delete('tab')
+    if (value === QUESTIONS_TAB) next.set('tab', QUESTIONS_TAB); else next.delete('tab')
     setParams(next, { replace: true })
   }
 
   const [error, setError] = useState('')
-  // Akış boşsa nedenini ayırt etmek için: hiç gruba katılmamış mı (o zaman
-  // "grup keşfet" CTA'sı asıl mesaj), yoksa katıldığı gruplarda henüz
-  // gönderi mi yok (o zaman farklı, daha nötr bir boş durum).
-  const [hasJoinedGroups, setHasJoinedGroups] = useState(true)
-  const [checkingGroups, setCheckingGroups] = useState(true)
-
-  // Faz6: en çok kullanılan ekranda (bkz. kullanıcı geri bildirimi) sıralama
-  // seçeneği yoktu - Posts.jsx'teki alt grup akışıyla aynı Yeni/Popüler
-  // deseni burada da. Backend tarafı PostController.feed'de aynı
-  // PostSortOption (RECENT/POPULAR) ile karşılanıyor.
   const [sort, setSort] = useState('recent')
   const [composerOpen, setComposerOpen] = useState(false)
-
-  useEffect(() => {
-    if (!token) { setCheckingGroups(false); return }
-    getMyDiseaseGroups(token)
-      .then(mine => setHasJoinedGroups(Array.isArray(mine) && mine.length > 0))
-      .catch(() => {})
-      .finally(() => setCheckingGroups(false))
-  }, [token])
+  const { checking: checkingGroups, hasJoined: hasJoinedGroups } = useHasJoinedGroups(token)
 
   const fetchPage = useCallback(
-    (page) => (tab === 'questions' ? getOpenQuestions(token, { page }) : getMyFeed(token, { page, sort })),
+    (page) => (tab === QUESTIONS_TAB ? getOpenQuestions(token, { page }) : getMyFeed(token, { page, sort })),
     [token, sort, tab]
   )
-  const {
-    items: posts, loading, loadingMore, last, loadMore, reload: reloadFeed
-  } = usePaginatedList(fetchPage, {
+  const { items: posts, loading, loadingMore, last, loadMore, reload } = usePaginatedList(fetchPage, {
     enabled: !!token,
     deps: [token, sort, tab],
     onError: (err, phase) => {
@@ -74,64 +82,103 @@ export default function Home() {
     }
   })
 
-  // Kontrol listesi "Pull-to-refresh desteği" maddesi - Posts.jsx'teki
-  // aynı desen.
-  const { pullDistance, refreshing: pullRefreshing, threshold: pullThreshold } = usePullToRefresh(
-    reloadFeed, { disabled: composerOpen }
-  )
+  // Yeni bir sekme/sıralama yüklenirken önceki hata ekranda kalmasın.
+  useEffect(() => { setError('') }, [token, sort, tab])
 
-  // Yeni gönderi en üstte görünsün: "Popüler" sıralamadaysak "Yeni"ye geç
-  // (sort değişimi akışı zaten yeniden yükler), değilse akışı tazele.
+  const reloadFeed = useCallback(() => {
+    setError('')
+    return reload()
+  }, [reload])
+
+  // Yeni gönderi en üstte görünsün: başka sekme/sıralamadaysak "Tümü / Yeni"ye
+  // geç (bu değişim akışı zaten yeniden yükler), değilse akışı tazele.
   const onPostCreated = () => {
-    if (tab !== 'feed') setTab('feed')
+    if (tab !== FEED_TAB) setTab(FEED_TAB)
     else if (sort !== 'recent') setSort('recent')
     else reloadFeed()
-    try { document.getElementById('root')?.scrollTo({ top: 0, behavior: 'smooth' }); window.scrollTo({ top: 0, behavior: 'smooth' }) } catch { /* yoksay */ }
+    scrollFeedToTop()
   }
+
   const canPost = !checkingGroups && hasJoinedGroups
+  const showSimilarMembersAfter = (index) => tab === FEED_TAB && (
+    index === SIMILAR_MEMBERS_AFTER_INDEX
+    || (index === posts.length - 1 && posts.length <= SIMILAR_MEMBERS_AFTER_INDEX)
+  )
+
+  const renderFeed = () => {
+    if (loading || checkingGroups) {
+      return <Box>{Array.from({ length: 4 }).map((_, i) => <PostCardSkeleton key={i} />)}</Box>
+    }
+    if (!hasJoinedGroups) {
+      return (
+        <EmptyState
+          icon={GroupsRounded}
+          title="Henüz hiçbir gruba katılmadın"
+          description="İlgilendiğin hastalık gruplarına katıl, ana sayfanda gönderilerini görmeye başla."
+          actionLabel="Grupları Keşfet"
+          onAction={() => navigate('/groups')}
+        />
+      )
+    }
+    if (error && posts.length === 0) return null
+    if (posts.length === 0) {
+      return tab === QUESTIONS_TAB ? (
+        <EmptyState
+          icon={QuestionAnswerOutlined}
+          title="Şu an cevap bekleyen soru yok"
+          description="Gruplarındaki sorular cevaplandıkça burası boşalır. Sen de bir soru sorabilirsin."
+          actionLabel="Soru sor"
+          onAction={() => setComposerOpen(true)}
+        />
+      ) : (
+        <EmptyState
+          icon={DynamicFeedRounded}
+          title="Akışında henüz gönderi yok"
+          description="Katıldığın gruplarda henüz kimse paylaşım yapmamış. İlk adımı sen at!"
+          actionLabel="İlk gönderiyi paylaş"
+          onAction={() => setComposerOpen(true)}
+        />
+      )
+    }
+    return (
+      <Box>
+        <PostList
+          posts={posts}
+          token={token}
+          renderAfter={(_, i) => showSimilarMembersAfter(i) && (
+            <>
+              <Divider />
+              <SimilarMembers sx={{ py: 2 }} />
+            </>
+          )}
+        />
+        {!last && <LoadMoreButton loading={loadingMore} onClick={loadMore} />}
+      </Box>
+    )
+  }
 
   return (
     <Box sx={{ py: { xs: 2, md: 4 } }}>
-      <Box
-        sx={{
-          height: pullDistance,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          overflow: 'hidden', color: 'primary.main',
-          transition: pullDistance === 0 ? 'height 0.2s ease' : 'none'
-        }}
-      >
-        {pullDistance > 0 && (
-          <CircularProgress
-            size={22}
-            thickness={5}
-            variant={pullRefreshing ? 'indeterminate' : 'determinate'}
-            value={Math.min(100, (pullDistance / pullThreshold) * 100)}
-          />
-        )}
-      </Box>
+      <PullToRefreshIndicator onRefresh={reloadFeed} disabled={composerOpen} />
 
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {error && (
+        <Alert
+          severity="error"
+          sx={{ mb: 2 }}
+          action={<Button color="inherit" size="small" onClick={reloadFeed} sx={{ minHeight: 36 }}>Tekrar dene</Button>}
+        >
+          {error}
+        </Alert>
+      )}
 
-      {/* Sayfa başlığı: diğer sayfalarla (Gruplar, Mesajlar, Profil) aynı
-          başlık dili; sıralama anahtarı başlığın karşısında, tek satırda. */}
       <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
         <Box>
           <Typography variant="h4" component="h1" sx={{ fontWeight: 700, lineHeight: 1.2 }}>Akış</Typography>
           <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-            {tab === 'questions' ? 'Deneyimin birine yol gösterebilir' : 'Gruplarından son paylaşımlar'}
+            {tab === QUESTIONS_TAB ? 'Deneyimin birine yol gösterebilir' : 'Gruplarından son paylaşımlar'}
           </Typography>
         </Box>
-        {!checkingGroups && hasJoinedGroups && tab === 'feed' && (
-          <ToggleButtonGroup
-            size="small"
-            value={sort}
-            exclusive
-            onChange={(_, v) => v && setSort(v)}
-          >
-            <ToggleButton value="recent">Yeni</ToggleButton>
-            <ToggleButton value="popular">Popüler</ToggleButton>
-          </ToggleButtonGroup>
-        )}
+        {canPost && tab === FEED_TAB && <SortToggle value={sort} onChange={setSort} />}
       </Stack>
 
       {/* Karşılamayı atlayanlara nazik hatırlatma (zorlamadan). */}
@@ -160,93 +207,20 @@ export default function Home() {
             '& .MuiTab-icon': { display: { xs: 'none', sm: 'inline-flex' } }
           }}
         >
-          <Tab value="feed" label="Tümü" icon={<DynamicFeedRounded sx={{ fontSize: 18 }} />} iconPosition="start" />
-          <Tab value="questions" label="Cevap bekleyenler" icon={<QuestionAnswerOutlined sx={{ fontSize: 18 }} />} iconPosition="start" />
+          <Tab value={FEED_TAB} label="Tümü" icon={<DynamicFeedRounded sx={{ fontSize: 18 }} />} iconPosition="start" />
+          <Tab value={QUESTIONS_TAB} label="Cevap bekleyenler" icon={<QuestionAnswerOutlined sx={{ fontSize: 18 }} />} iconPosition="start" />
         </Tabs>
       )}
 
-      {(loading || checkingGroups) ? (
-        <Box>
-          {Array.from({ length: 4 }).map((_, i) => <PostCardSkeleton key={i} />)}
-        </Box>
-      ) : !hasJoinedGroups ? (
-        <EmptyState
-          icon={GroupsRounded}
-          title="Henüz hiçbir gruba katılmadın"
-          description="İlgilendiğin hastalık gruplarına katıl, ana sayfanda gönderilerini görmeye başla."
-          actionLabel="Grupları Keşfet"
-          onAction={() => navigate('/groups')}
-        />
-      ) : (
-        <Box>
-          {posts.map((post, i) => (
-            <Box key={post.id}>
-              {i > 0 && <Divider />}
-              <PostCard post={post} token={token} onClick={() => navigate(`/post/${post.id}`)} />
-              {/* "Senin gibi üyeler" akışın 3. gönderisinden sonra - en üstte
-                  içeriği aşağı itmesin ama ilk ekranlarda görülsün. */}
-              {tab === 'feed' && (i === 2 || (i === posts.length - 1 && posts.length < 3)) && (
-                <>
-                  <Divider />
-                  <SimilarMembers sx={{ py: 2 }} />
-                </>
-              )}
-            </Box>
-          ))}
-          {posts.length === 0 && tab === 'questions' && (
-            <EmptyState
-              icon={QuestionAnswerOutlined}
-              title="Şu an cevap bekleyen soru yok"
-              description="Gruplarındaki sorular cevaplandıkça burası boşalır. Sen de bir soru sorabilirsin."
-              actionLabel="Soru sor"
-              onAction={() => setComposerOpen(true)}
-            />
-          )}
-          {posts.length === 0 && tab === 'feed' && (
-            <EmptyState
-              icon={DynamicFeedRounded}
-              title="Akışında henüz gönderi yok"
-              description="Katıldığın gruplarda henüz kimse paylaşım yapmamış. İlk adımı sen at!"
-              actionLabel="İlk gönderiyi paylaş"
-              onAction={() => setComposerOpen(true)}
-            />
-          )}
-          {!last && posts.length > 0 && (
-            <Box sx={{ textAlign: 'center', py: 3 }}>
-              <Button
-                variant="outlined"
-                onClick={loadMore}
-                disabled={loadingMore}
-                sx={{ minWidth: 180, minHeight: 44 }}
-              >
-                {loadingMore ? <CircularProgress size={18} /> : 'Daha Fazla Yükle'}
-              </Button>
-            </Box>
-          )}
-        </Box>
-      )}
+      {renderFeed()}
 
-      {canPost && (
-        <Fab
-          color="primary"
-          aria-label="Yeni gönderi"
-          onClick={() => setComposerOpen(true)}
-          sx={{
-            position: 'fixed',
-            right: { xs: 16, md: 24 },
-            bottom: { xs: 'calc(64px + env(safe-area-inset-bottom, 0px) + 16px)', md: 24 },
-            zIndex: (t) => t.zIndex.appBar + 3
-          }}
-        >
-          <Add />
-        </Fab>
-      )}
+      {canPost && <CreatePostFab onClick={() => setComposerOpen(true)} />}
 
       <NewPostDialog
         open={composerOpen}
         onClose={() => setComposerOpen(false)}
         onCreated={onPostCreated}
-        initialPostType={tab === 'questions' ? 'QUESTION' : 'DISCUSSION'}
+        initialPostType={tab === QUESTIONS_TAB ? 'QUESTION' : 'DISCUSSION'}
       />
     </Box>
   )

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import {
   Avatar, Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle,
   FormControlLabel, MenuItem, Stack, Switch, TextField, Typography
@@ -9,6 +9,7 @@ import { useNotification } from '../../../context/NotificationContext.jsx'
 import { useConfirm } from '../../../context/ConfirmContext.jsx'
 import { listAdminUsers, updateAdminUser } from '../../../services/api.js'
 import { usePaginatedList } from '../../../hooks/usePaginatedList.js'
+import { useDebouncedValue } from '../../../hooks/useDebouncedValue.js'
 import { initialsFrom, relativeTime } from '../../../utils/format.js'
 import { clickableProps } from '../../../utils/clickable.js'
 import { AdminCard, AdminEmpty, AdminList, AdminLoading, AdminSearch, LoadMoreButton, SegmentedFilter } from '../AdminUi.jsx'
@@ -105,7 +106,7 @@ function UserCard({ u, onEdit }) {
           </Stack>
           <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', wordBreak: 'break-all' }}>{u.email}</Typography>
         </Box>
-        <Button size="small" variant="outlined" onClick={() => onEdit(u)} sx={{ flexShrink: 0, minHeight: 36 }}>Düzenle</Button>
+        <Button size="small" variant="outlined" onClick={() => onEdit(u)} sx={{ flexShrink: 0, minHeight: 40 }}>Düzenle</Button>
       </Stack>
       <Stack direction="row" spacing={0.75} sx={{ mt: 1.25 }} flexWrap="wrap" useFlexGap alignItems="center">
         {!u.active && <Chip size="small" label="Pasif" />}
@@ -121,15 +122,10 @@ function UserCard({ u, onEdit }) {
 
 export default function UsersTab({ token }) {
   const [q, setQ] = useState('')
-  const [debouncedQ, setDebouncedQ] = useState('')
+  const debouncedQ = useDebouncedValue(q.trim(), 300)
   const [filter, setFilter] = useState('all') // all | admin | inactive | unverified
   const [editing, setEditing] = useState(null)
   const { showError } = useNotification()
-
-  useEffect(() => {
-    const t = setTimeout(() => setDebouncedQ(q.trim()), 300)
-    return () => clearTimeout(t)
-  }, [q])
 
   const params = filter === 'admin' ? { role: 'ADMIN' } : filter === 'inactive' ? { active: false } : {}
 

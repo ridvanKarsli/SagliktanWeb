@@ -25,7 +25,9 @@ function isIos() {
 }
 
 function recentlyDismissed() {
-  const raw = localStorage.getItem(DISMISS_KEY)
+  let raw = null
+  // Gizli sekme/engelli depolamada localStorage erişimi hata fırlatabilir.
+  try { raw = localStorage.getItem(DISMISS_KEY) } catch { return false }
   if (!raw) return false
   const dismissedAt = Number(raw)
   if (!dismissedAt) return false
@@ -58,7 +60,7 @@ export default function InstallPrompt() {
   }, [])
 
   const dismiss = () => {
-    localStorage.setItem(DISMISS_KEY, String(Date.now()))
+    try { localStorage.setItem(DISMISS_KEY, String(Date.now())) } catch { /* yalnızca bu oturum için kapanır */ }
     setVisible(false)
   }
 

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback } from 'react'
+import { createContext, useContext, useState, useCallback, useMemo } from 'react'
 import LumoNotification from '../components/LumoNotification.jsx'
 import { Box, Stack } from '@mui/material'
 
@@ -39,15 +39,19 @@ export function NotificationProvider({ children }) {
     return showNotification(message, 'info', duration)
   }, [showNotification])
 
+  // Bağlam değeri sabit kalmalı: neredeyse her bileşen useNotification()
+  // kullanıyor; her toast'ta yeni bir obje, tüm uygulamayı yeniden render
+  // ettiriyordu.
+  const value = useMemo(
+    () => ({ showNotification, showError, showSuccess, showWarning, showInfo, removeNotification }),
+    [showNotification, showError, showSuccess, showWarning, showInfo, removeNotification]
+  )
+
   return (
-    <NotificationContext.Provider value={{ showNotification, showError, showSuccess, showWarning, showInfo, removeNotification }}>
+    <NotificationContext.Provider value={value}>
       {children}
-      {/* Bildirim konteyneri - Apple'ın sistem toast'ları (ör. "Kopyalandı",
-          "AirPods bağlandı") gibi köşeye sabitlenmiş kutu yerine ekranın üst
-          ORTASINDA, içeriğe göre daralan hafif bir kapsül olarak beliriyor.
-          Önceden sağ üst köşede tam genişlik dikdörtgen olarak duruyordu -
-          bir hata mesajı için gereğinden agresif/"geliştirici uyarısı"
-          hissi veriyordu. */}
+      {/* Bildirimler ekranın üst ortasında, içeriğe göre daralan hafif bir
+          kapsül olarak beliriyor. */}
       <Box
         sx={{
           position: 'fixed',
@@ -75,7 +79,8 @@ export function NotificationProvider({ children }) {
               message={notification.message}
               type={notification.type}
               duration={notification.duration}
-              onClose={() => removeNotification(notification.id)}
+              id={notification.id}
+              onClose={removeNotification}
             />
           ))}
         </Stack>
@@ -91,7 +96,3 @@ export function useNotification() {
   }
   return context
 }
-
-
-
-

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Box, Tab, Tabs, Typography } from '@mui/material'
 import {
   DashboardOutlined, FlagOutlined, ForumOutlined, GroupsOutlined, PeopleAltOutlined
@@ -32,11 +32,13 @@ export default function AdminPanel() {
   const tab = VALID.has(raw) ? raw : 'dashboard'
   const [pending, setPending] = useState(null)
 
-  useEffect(() => {
-    let alive = true
-    getAdminStats(token).then(s => { if (alive) setPending(s?.pendingReports ?? 0) }).catch(() => {})
-    return () => { alive = false }
-  }, [token, tab])
+  // Bekleyen şikayet rozeti: sekme değişince ve bir şikayet çözülünce tazelenir.
+  // İkincil veri - alınamazsa rozet gösterilmez.
+  const refreshPending = useCallback(() => {
+    getAdminStats(token).then(s => setPending(s?.pendingReports ?? 0)).catch(() => {})
+  }, [token])
+
+  useEffect(() => { refreshPending() }, [refreshPending, tab])
 
   const setTab = (v) => {
     const next = new URLSearchParams(params)
@@ -94,7 +96,7 @@ export default function AdminPanel() {
         })}
       </Tabs>
       {tab === 'dashboard' && <DashboardTab token={token} onGo={setTab} />}
-      {tab === 'reports' && <ReportsTab token={token} />}
+      {tab === 'reports' && <ReportsTab token={token} onResolved={refreshPending} />}
       {tab === 'content' && <ContentTab token={token} />}
       {tab === 'users' && <UsersTab token={token} />}
       {tab === 'groups' && <GroupsTab token={token} />}

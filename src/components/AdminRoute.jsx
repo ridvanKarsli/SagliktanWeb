@@ -1,6 +1,6 @@
 import { Navigate, Outlet } from 'react-router-dom'
-import { Box, CircularProgress } from '@mui/material'
 import { useAuth } from '../context/AuthContext.jsx'
+import CenteredSpinner from './common/CenteredSpinner.jsx'
 
 // ProtectedRoute zaten "giriş yapmış mı" kontrolünü yapıyor (bu route her
 // zaman ProtectedLayout'un içinde kullanılmalı) - burada ayrıca "ADMIN mi"
@@ -10,13 +10,7 @@ import { useAuth } from '../context/AuthContext.jsx'
 export default function AdminRoute({ children }) {
   const { user, loading } = useAuth()
 
-  if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-        <CircularProgress size={24} />
-      </Box>
-    )
-  }
+  if (loading) return <CenteredSpinner page />
 
   if (!user || user.role !== 'ADMIN') return <Navigate to="/home" replace />
   return children || <Outlet />

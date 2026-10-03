@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Box, Typography, IconButton } from '@mui/material'
 import {
   CheckCircleOutline as SuccessIcon,
@@ -15,24 +15,34 @@ import {
 // nötr/koyu-camsı yüzeyde kalıyor - "hata kutusu" yerine "sistem bildirimi"
 // hissi veriyor. Giriş animasyonu da sertçe aşağıdan kaymak yerine hafifçe
 // yukarıdan süzülüp büyüyor (Apple'ın toast'larındaki yumuşak geliş gibi).
-export default function LumoNotification({ message, type = 'info', onClose, duration = 4000 }) {
-  const [phase, setPhase] = useState('enter')   // enter | visible | exit
+const EXIT_ANIMATION_MS = 260
 
-  const triggerExit = useCallback(() => {
-    setPhase('exit')
-    setTimeout(() => { onClose?.() }, 260)
-  }, [onClose])
+export default function LumoNotification({ id, message, type = 'info', onClose, duration = 4000 }) {
+  const [phase, setPhase] = useState('enter')   // enter | visible | exit
+  // onClose'u ref'te tutuyoruz: sağlayıcı her yeni bildirimde yeniden render
+  // olduğunda değişen bir callback, otomatik kapanma zamanlayıcısını sıfırdan
+  // başlatıyordu (art arda bildirim gelirse eskiler hiç kapanmıyordu).
+  const onCloseRef = useRef(onClose)
+  useEffect(() => { onCloseRef.current = onClose }, [onClose])
+
+  const triggerExit = useCallback(() => setPhase('exit'), [])
+
+  useEffect(() => {
+    if (phase !== 'exit') return undefined
+    const t = setTimeout(() => onCloseRef.current?.(id), EXIT_ANIMATION_MS)
+    return () => clearTimeout(t)
+  }, [phase, id])
 
   /* ---------- Auto-dismiss timer ---------- */
   useEffect(() => {
-    if (duration <= 0) return
+    if (duration <= 0) return undefined
     const t = setTimeout(triggerExit, duration)
     return () => clearTimeout(t)
   }, [duration, triggerExit])
 
   /* ---------- Enter animation ---------- */
   useEffect(() => {
-    const t = setTimeout(() => setPhase('visible'), 20)
+    const t = setTimeout(() => setPhase(p => (p === 'enter' ? 'visible' : p)), 20)
     return () => clearTimeout(t)
   }, [])
 

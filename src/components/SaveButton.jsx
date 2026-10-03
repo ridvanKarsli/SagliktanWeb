@@ -2,26 +2,13 @@ import { useState } from 'react'
 import { Box, Button, Tooltip } from '@mui/material'
 import BookmarkBorderRoundedIcon from '@mui/icons-material/BookmarkBorderRounded'
 import BookmarkRoundedIcon from '@mui/icons-material/BookmarkRounded'
-
-// ReactionButtons.jsx'teki "sayı 0 iken metin gösterilmez ama DOM'dan da
-// çıkarılmaz" deseniyle aynı gerekçe - burada henüz bir E2E sözleşmesi yok
-// ama tutarlılık ve ileride test edilebilirlik için aynı yaklaşım korundu.
-const visuallyHidden = {
-  position: 'absolute',
-  width: 1,
-  height: 1,
-  overflow: 'hidden',
-  clipPath: 'inset(50%)',
-  whiteSpace: 'nowrap'
-}
+import { visuallyHidden } from '../utils/visuallyHidden.js'
+import { useServerSyncedState } from '../hooks/useServerSyncedState.js'
 
 /**
- * Gönderi yıldızlama (kaydetme) butonu - Faz 2 adım 3 (+ adım 3b'de kaydedilme
- * sayısı eklendi). ReactionButtons ile aynı iyimser (optimistic) güncelleme
- * deseni: tıklanır tıklanmaz ikon VE sayaç değişir, istek başarısız olursa
- * eski haline geri alınır (bkz. ReactionButtons.jsx - burada da local state
- * prop'tan sadece ilk mount'ta türetiliyor, çünkü kullanım yerleri post
- * id'sine göre `key={...}` ile render ediyor).
+ * Gönderi kaydetme (yer imi) butonu + kaydedilme sayısı. ReactionButtons ile
+ * aynı iyimser güncelleme deseni: tıklanır tıklanmaz ikon ve sayaç değişir,
+ * istek başarısız olursa eski haline geri alınır.
  */
 export default function SaveButton({
   saved = false,
@@ -32,7 +19,7 @@ export default function SaveButton({
   disabled = false
 }) {
   const [pending, setPending] = useState(false)
-  const [local, setLocal] = useState({ saved, count })
+  const [local, setLocal] = useServerSyncedState({ saved, count }, { paused: pending })
 
   const handleClick = async (e) => {
     e.stopPropagation()

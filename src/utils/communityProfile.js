@@ -7,7 +7,7 @@ export const COMMUNITY_ROLES = [
   { value: 'OTHER', label: 'Merak ediyorum / diğer', short: 'Üye' },
 ]
 
-export function roleShortLabel(role) {
+function roleShortLabel(role) {
   return COMMUNITY_ROLES.find(r => r.value === role)?.short || null
 }
 
