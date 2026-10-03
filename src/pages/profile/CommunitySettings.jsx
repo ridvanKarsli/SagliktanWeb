@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import {
   Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Divider,
-  FormControlLabel, Stack, Switch, Typography
+  FormControlLabel, Skeleton, Stack, Switch, Typography
 } from '@mui/material'
 import { MailOutlineRounded } from '@mui/icons-material'
 import { useLocation } from 'react-router-dom'
@@ -10,6 +10,10 @@ import { useNotification } from '../../context/NotificationContext.jsx'
 import { getDigestPreview, updateHealthProfile, updatePreferences } from '../../services/api.js'
 import HealthProfileFields from '../../components/profile/HealthProfileFields.jsx'
 import SettingsSection, { SettingsCard } from '../../components/settings/SettingsSection.jsx'
+import { useFormValidation } from '../../hooks/useFormValidation.js'
+import { cleanHealthProfile, fieldErrorsFrom, fieldFromMessage, healthProfileErrors } from '../../utils/validation.js'
+
+const MESSAGE_FIELDS = [[/tanı yılı/i, 'diagnosisYear'], [/il seçin|şehir/i, 'city']]
 
 function sameProfile(a, b) {
   return (a.communityRole || null) === (b.communityRole || null)
@@ -29,13 +33,10 @@ export default function CommunitySettings() {
   const location = useLocation()
   const sectionRef = useRef(null)
 
-  const fromUser = () => ({
-    communityRole: user?.communityRole || null,
-    diagnosisYear: user?.diagnosisYear || null,
-    city: user?.city || '',
-    discoverable: !!user?.discoverable,
-  })
+  // Kayıtlı değerler geçerli kümeye indirgenir (ör. listede olmayan eski şehir boş görünür).
+  const fromUser = () => cleanHealthProfile(user || {})
   const [profile, setProfile] = useState(fromUser)
+  const v = useFormValidation(profile, healthProfileErrors)
   const [saving, setSaving] = useState(false)
   const [digestSaving, setDigestSaving] = useState(false)
   const [preview, setPreview] = useState({ open: false, html: '', loading: false })
@@ -44,15 +45,19 @@ export default function CommunitySettings() {
     if (location.hash === '#eslesme') sectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, [location.hash])
 
-  const dirty = user && !sameProfile(profile, fromUser())
+  // Kayıtlı şehir listede yoksa (temizlendi) kaydetmek de anlamlı bir değişiklik.
+  const staleCity = !!user?.city && !fromUser().city
+  const dirty = user && (staleCity || !sameProfile(profile, fromUser()))
 
   const saveProfile = async () => {
+    if (saving || !v.validateAll()) return
     setSaving(true)
     try {
-      applyServerUser(await updateHealthProfile(token, profile))
+      applyServerUser(await updateHealthProfile(token, cleanHealthProfile(profile)))
       showSuccess('Profil bilgilerin kaydedildi.')
     } catch (err) {
-      showError(err.message || 'Kaydedilemedi.')
+      const mapped = { ...fieldFromMessage(err, MESSAGE_FIELDS), ...fieldErrorsFrom(err) }
+      if (!v.applyServerErrors(mapped)) showError(err.message || 'Kaydedilemedi.')
     } finally {
       setSaving(false)
     }
@@ -85,12 +90,12 @@ export default function CommunitySettings() {
   return (
     <>
       <Box ref={sectionRef} id="eslesme" sx={{ scrollMarginTop: 72 }}>
-        <SettingsSection title="Profil ve eşleşme">
+        <SettingsSection title="Profil ve eşleşme" description="Benzer süreçteki üyelerle tanışman için. Hepsi isteğe bağlı.">
           <SettingsCard padded>
-            <HealthProfileFields value={profile} onChange={setProfile} showRole />
+            <HealthProfileFields value={profile} onChange={setProfile} showRole validation={v} />
             <Stack direction="row" justifyContent="flex-end" spacing={1} sx={{ mt: 2 }}>
               {dirty && (
-                <Button onClick={() => setProfile(fromUser())} disabled={saving} sx={{ minHeight: 44 }}>Vazgeç</Button>
+                <Button onClick={() => { setProfile(fromUser()); v.reset() }} disabled={saving} sx={{ minHeight: 44 }}>Vazgeç</Button>
               )}
               <Button variant="contained" onClick={saveProfile} disabled={!dirty || saving} sx={{ minHeight: 44, minWidth: 110 }}>
                 {saving ? <CircularProgress size={18} color="inherit" /> : 'Kaydet'}
@@ -100,7 +105,7 @@ export default function CommunitySettings() {
         </SettingsSection>
       </Box>
 
-      <SettingsSection title="E-posta bildirimleri">
+      <SettingsSection title="E-posta bildirimleri" description="Gruplarında olanları kaçırma, ama gelen kutun da dolmasın.">
         <SettingsCard padded>
           <FormControlLabel
             control={
@@ -132,14 +137,21 @@ export default function CommunitySettings() {
         <DialogTitle>Haftalık özet önizlemesi</DialogTitle>
         <DialogContent sx={{ p: 0 }}>
           {preview.loading ? (
-            <Box sx={{ display: 'grid', placeItems: 'center', py: 6 }}><CircularProgress size={24} /></Box>
+            <Box sx={{ p: 3 }} aria-busy="true" aria-label="Önizleme yükleniyor">
+              <Skeleton variant="text" width="45%" sx={{ fontSize: '1.4rem' }} />
+              <Skeleton variant="rounded" height={120} sx={{ my: 2 }} />
+              <Skeleton variant="text" />
+              <Skeleton variant="text" width="85%" />
+              <Skeleton variant="text" width="70%" />
+            </Box>
           ) : (
             // sandbox: e-posta HTML'i betik çalıştıramaz; linkler yeni sekmede açılır.
-            <iframe
+            <Box
+              component="iframe"
               title="Haftalık özet önizlemesi"
               srcDoc={preview.html}
               sandbox="allow-popups allow-popups-to-escape-sandbox"
-              style={{ width: '100%', height: '70vh', border: 0, background: '#f3f4f6' }}
+              sx={{ display: 'block', width: '100%', height: '70vh', border: 0, bgcolor: 'grey.100' }}
             />
           )}
         </DialogContent>

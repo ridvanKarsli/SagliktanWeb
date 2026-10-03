@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react'
 import {
-  Avatar, Box, Button, CircularProgress, Dialog, DialogContent, DialogTitle,
+  Box, Button, Skeleton, CircularProgress, Dialog, DialogContent, DialogTitle,
   IconButton, Stack, Typography, useMediaQuery
 } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
 import { CheckCircleRounded, CloseRounded, SendRounded } from '@mui/icons-material'
 import { useAuth } from '../context/AuthContext.jsx'
+import UserAvatar from './avatars/UserAvatar.jsx'
+import SlideUp from './shell/SlideUp.jsx'
 import { useNotification } from '../context/NotificationContext.jsx'
 import { listConversations, sendChatMessage } from '../services/api.js'
-import { initialsFrom } from '../utils/format.js'
 
 // Bir gönderiyi mevcut sohbetlerden birine mesaj olarak gönderme. Yalnızca
 // zaten kabul edilmiş konuşmalar listelenir; canMessage=false olanlar (bir
@@ -59,22 +60,38 @@ export default function SendPostDialog({ open, onClose, post }) {
   }
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth fullScreen={fullScreen}>
-      <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        Gönderiyi Gönder
-        <IconButton size="small" onClick={onClose} aria-label="Kapat">
-          <CloseRounded fontSize="small" />
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="xs"
+      fullWidth
+      fullScreen={fullScreen}
+      slots={fullScreen ? { transition: SlideUp } : undefined}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pt: fullScreen ? 'calc(env(safe-area-inset-top) + 16px)' : 2 }}>
+        Mesajla gönder
+        <IconButton onClick={onClose} aria-label="Kapat" sx={{ width: 44, height: 44, mr: -1 }}>
+          <CloseRounded />
         </IconButton>
       </DialogTitle>
       <DialogContent dividers sx={{ p: 0 }}>
         {loading ? (
-          <Box sx={{ display: 'grid', placeItems: 'center', py: 5 }}>
-            <CircularProgress size={24} />
+          <Box role="status" aria-label="Sohbetler yükleniyor">
+            {[0, 1, 2].map(i => (
+              <Stack key={i} direction="row" spacing={1.5} alignItems="center" sx={{ px: 2, py: 1.25 }} aria-hidden>
+                <Skeleton variant="circular" width={44} height={44} />
+                <Skeleton variant="text" sx={{ flex: 1 }} />
+                <Skeleton variant="rounded" width={84} height={36} sx={{ borderRadius: 999 }} />
+              </Stack>
+            ))}
           </Box>
         ) : conversations.length === 0 ? (
           <Box sx={{ textAlign: 'center', py: 5, px: 2 }}>
             <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-              {loadFailed ? 'Sohbetler alınamadı.' : 'Henüz kimseyle mesajlaşmıyorsun.'}
+              {loadFailed
+                ? 'Sohbetlerini şu an getiremedik. Bağlantını kontrol edip yeniden dene.'
+                : 'Henüz kimseyle mesajlaşmıyorsun. Bir üyenin profilinden ona mesaj isteği gönderebilirsin.'}
             </Typography>
           </Box>
         ) : (
@@ -87,9 +104,7 @@ export default function SendPostDialog({ open, onClose, post }) {
                   key={c.id}
                   sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 2, py: 1.25, opacity: disabled ? 0.5 : 1 }}
                 >
-                  <Avatar sx={{ width: 40, height: 40, fontWeight: 600, flexShrink: 0 }}>
-                    {initialsFrom(c.otherUserName)}
-                  </Avatar>
+                  <UserAvatar avatarKey={c.otherUserAvatarKey} name={c.otherUserName || ''} size={44} sx={{ flexShrink: 0 }} />
                   <Typography variant="subtitle2" sx={{ fontWeight: 600, flex: 1 }} noWrap>
                     {c.otherUserName}
                   </Typography>
@@ -106,6 +121,7 @@ export default function SendPostDialog({ open, onClose, post }) {
                           : <SendRounded fontSize="small" />
                     }
                     onClick={() => handleSend(c.id)}
+                    sx={{ minHeight: 40 }}
                   >
                     {sent ? 'Gönderildi' : 'Gönder'}
                   </Button>

@@ -13,7 +13,7 @@ export default function PasswordStrengthMeter({ password }) {
         variant="determinate"
         value={(score / 4) * 100}
         sx={{
-          height: 4, borderRadius: 2, bgcolor: 'rgba(242, 237, 230, 0.08)',
+          height: 6, borderRadius: 999, bgcolor: 'action.selected',
           '& .MuiLinearProgress-bar': { bgcolor: color, borderRadius: 2 }
         }}
       />

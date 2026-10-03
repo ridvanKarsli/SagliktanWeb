@@ -5,55 +5,72 @@ import PasswordStrengthMeter from '../PasswordStrengthMeter.jsx'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
 import { changePassword } from '../../services/api.js'
+import { useFormValidation } from '../../hooks/useFormValidation.js'
+import {
+  LIMITS, confirmPasswordError, currentPasswordError, fieldErrorsFrom, fieldFromMessage, newPasswordError
+} from '../../utils/validation.js'
 
-const PASSWORD_MIN_LENGTH = 8
+const validate = (f) => ({
+  currentPassword: currentPasswordError(f.currentPassword),
+  newPassword: newPasswordError(f.newPassword, { current: f.currentPassword }),
+  confirmPassword: confirmPasswordError(f.confirmPassword, f.newPassword),
+})
+const MESSAGE_FIELDS = [[/mevcut şifre/i, 'currentPassword']]
 
 // Şifre değiştirme formu. onDone: başarı ya da iptal sonrası paneli kapatmak için.
 export default function ChangePasswordForm({ onDone }) {
   const { token } = useAuth()
   const { showError, showSuccess } = useNotification()
-  const [currentPassword, setCurrentPassword] = useState('')
-  const [newPassword, setNewPassword] = useState('')
+  const [fields, setFields] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' })
   const [saving, setSaving] = useState(false)
+  const v = useFormValidation(fields, validate)
+  const set = (key) => (e) => setFields(f => ({ ...f, [key]: e.target.value }))
 
   const submit = async (e) => {
     e.preventDefault()
-    if (!currentPassword) { showError('Mevcut şifreni gir.'); return }
-    if (newPassword.length < PASSWORD_MIN_LENGTH) { showError('Yeni şifre en az 8 karakter olmalı.'); return }
+    if (saving || !v.validateAll()) return
     setSaving(true)
     try {
-      await changePassword(token, { currentPassword, newPassword })
+      await changePassword(token, { currentPassword: fields.currentPassword, newPassword: fields.newPassword })
       showSuccess('Şifre değiştirildi.')
       onDone()
     } catch (err) {
-      showError(err.message || 'Şifre değiştirilemedi.')
+      const mapped = { ...fieldFromMessage(err, MESSAGE_FIELDS), ...fieldErrorsFrom(err) }
+      if (!v.applyServerErrors(mapped)) showError(err.message || 'Şifre değiştirilemedi.')
     } finally {
       setSaving(false)
     }
   }
 
   return (
-    <Box component="form" onSubmit={submit} sx={{ p: 2.5, pt: 0.5 }}>
+    <Box component="form" onSubmit={submit} noValidate sx={{ p: 2.5, pt: 0.5 }}>
       <Stack spacing={2}>
         <PasswordField
-          label="Mevcut Şifre" value={currentPassword} autoComplete="current-password"
-          onChange={e => setCurrentPassword(e.target.value)} fullWidth required size="small"
+          label="Mevcut Şifre" value={fields.currentPassword} autoComplete="current-password"
+          onChange={set('currentPassword')} {...v.field('currentPassword')} helperText={v.error('currentPassword')}
+          fullWidth required size="small" slotProps={{ htmlInput: { enterKeyHint: 'next' } }}
         />
         <Box>
           <PasswordField
-            label="Yeni Şifre" value={newPassword} autoComplete="new-password"
-            onChange={e => setNewPassword(e.target.value)} fullWidth required size="small"
-            helperText="En az 8 karakter"
+            label="Yeni Şifre" value={fields.newPassword} autoComplete="new-password"
+            onChange={set('newPassword')} {...v.field('newPassword')}
+            helperText={v.error('newPassword') || `En az ${LIMITS.PASSWORD_MIN} karakter`}
+            fullWidth required size="small" slotProps={{ htmlInput: { enterKeyHint: 'next' } }}
           />
           <Box sx={{ mt: 1 }}>
-            <PasswordStrengthMeter password={newPassword} />
+            <PasswordStrengthMeter password={fields.newPassword} />
           </Box>
         </Box>
+        <PasswordField
+          label="Yeni Şifre (Tekrar)" value={fields.confirmPassword} autoComplete="new-password"
+          onChange={set('confirmPassword')} {...v.field('confirmPassword')} helperText={v.error('confirmPassword')}
+          fullWidth required size="small" slotProps={{ htmlInput: { enterKeyHint: 'done' } }}
+        />
         <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-          <Button type="submit" variant="contained" size="small" disabled={saving}>
+          <Button type="submit" variant="contained" disabled={saving}>
             {saving ? <CircularProgress size={16} color="inherit" /> : 'Şifreyi Değiştir'}
           </Button>
-          <Button size="small" onClick={onDone} disabled={saving}>İptal</Button>
+          <Button onClick={onDone} disabled={saving}>İptal</Button>
         </Stack>
       </Stack>
     </Box>

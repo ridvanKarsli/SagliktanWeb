@@ -2,7 +2,9 @@ import { useState } from 'react'
 import {
   Avatar, Box, Button, CircularProgress, Stack, TextField, Typography, useMediaQuery, useTheme
 } from '@mui/material'
-import { CheckCircleRounded, ExpandLessRounded, ExpandMoreRounded, SubdirectoryArrowRightRounded, TaskAltRounded } from '@mui/icons-material'
+import { ExpandLessRounded, ExpandMoreRounded, SubdirectoryArrowRightRounded, TaskAltRounded } from '@mui/icons-material'
+import UserAvatar from '../avatars/UserAvatar.jsx'
+import { TypePill } from '../PostTypeBadges.jsx'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
 import { useConfirm } from '../../context/ConfirmContext.jsx'
@@ -11,10 +13,11 @@ import SensitiveContentBanner from '../SensitiveContentBanner.jsx'
 import CommentReplyComposer from './CommentReplyComposer.jsx'
 import CommentActionsMenu from './CommentActionsMenu.jsx'
 import { deleteComment, reactToComment, removeCommentReaction, updateComment } from '../../services/api.js'
-import { initialsFrom, relativeTime } from '../../utils/format.js'
+import { relativeTime } from '../../utils/format.js'
 import { canManage } from '../../utils/permissions.js'
 import { clickableProps } from '../../utils/clickable.js'
 import { COMMENT_MAX_LENGTH } from './commentLimits.js'
+import { clampLength, cleanText, commentError, counterText, fieldErrorsFrom } from '../../utils/validation.js'
 
 // Tek bir yorum ya da yanıt satırı. Girinti/bağlantı çizgisi BURADA değil,
 // PostDetail'deki thread bloğunda çizilir - bu bileşen hiçbir zaman kendi
@@ -32,7 +35,9 @@ export default function CommentRow({
   comment, isReply = false, replyingTo = null, canReply, thread,
   onUpdated, onReplySubmitted, onReport, onAuthorClick, onToggleThread,
   // Soru gönderilerinde "en iyi cevap"
-  accepted = false, canAccept = false, onAccept, onUnaccept, acceptPending = false
+  accepted = false, canAccept = false, onAccept, onUnaccept, acceptPending = false,
+  // Az önce en iyi cevap seçildiyse satır bir kez yumuşakça parlar.
+  celebrateId = null
 }) {
   const { token, user } = useAuth()
   const { showError, showSuccess } = useNotification()
@@ -51,16 +56,25 @@ export default function CommentRow({
   const replyCount = comment.replyCount ?? 0
   const expanded = !!thread?.expanded
 
+  const [editError, setEditError] = useState(null) // { msg, value } - metin değişince kalkar
+  const editUnchanged = cleanText(text) === cleanText(comment.content)
+  const visibleEditError = editError && editError.value === text ? editError.msg : null
+
   const saveEdit = async () => {
-    if (!text.trim()) { showError('Yorum boş olamaz.'); return }
+    if (saving) return
+    const problem = commentError(text)
+    if (problem) { setEditError({ msg: problem, value: text }); return }
+    if (editUnchanged) { setEditing(false); return }
     setSaving(true)
     try {
-      const updated = await updateComment(token, comment.id, text.trim())
-      onUpdated(updated || { ...comment, content: text.trim() })
+      const updated = await updateComment(token, comment.id, cleanText(text))
+      onUpdated(updated || { ...comment, content: cleanText(text) })
       setEditing(false)
       showSuccess('Yorum güncellendi.')
     } catch (err) {
-      showError(err.message || 'Yorum güncellenemedi.')
+      const fieldMsg = fieldErrorsFrom(err).content
+      if (fieldMsg) setEditError({ msg: fieldMsg, value: text })
+      else showError(err.message || 'Yorum güncellenemedi.')
     } finally {
       setSaving(false)
     }
@@ -81,35 +95,39 @@ export default function CommentRow({
     }
   }
 
-  const avatarSize = isReply ? 28 : 36
+  const avatarSize = isReply ? 32 : 40
   const authorName = comment.authorName || 'Kullanıcı'
   const when = relativeTime(comment.createdAt)
 
   return (
     <Box
       id={`comment-${comment.id}`}
+      className={accepted && celebrateId === comment.id ? 'sg-glow' : undefined}
       sx={{
-        py: isReply ? 1 : 1.5,
+        py: isReply ? 1 : 1.75,
         scrollMarginTop: 80,
         ...(accepted ? {
-          mx: { xs: -1, sm: -1.5 }, px: { xs: 1, sm: 1.5 }, borderRadius: 3,
-          bgcolor: 'rgba(76,184,159,0.08)', boxShadow: 'inset 3px 0 0 #4CB89F'
+          my: 0.75, mx: { xs: -1, sm: -1.5 }, px: { xs: 1, sm: 1.5 }, borderRadius: '18px',
+          bgcolor: 'brand.primarySoft'
         } : {}),
         // Satırlar kutusuz: hiyerarşiyi girinti ve avatar ölçüsü taşır.
       }}
     >
       <Stack direction="row" spacing={isReply ? 1.25 : 1.5} alignItems="flex-start">
-        <Avatar
-          {...(!isDeleted ? clickableProps(() => onAuthorClick(comment.authorId)) : {})}
-          aria-label={!isDeleted ? `${authorName} profiline git` : undefined}
-          sx={{
-            width: avatarSize, height: avatarSize, fontSize: isReply ? 11 : 13, fontWeight: 700,
-            flexShrink: 0, cursor: isDeleted ? 'default' : 'pointer', mt: '2px',
-            ...(isDeleted ? { bgcolor: 'action.disabledBackground', color: 'text.disabled' } : {})
-          }}
-        >
-          {isDeleted ? '·' : initialsFrom(authorName)}
-        </Avatar>
+        {isDeleted ? (
+          <Avatar sx={{ width: avatarSize, height: avatarSize, flexShrink: 0, mt: '2px', bgcolor: 'action.selected', color: 'text.secondary' }}>·</Avatar>
+        ) : (
+          <Box
+            {...clickableProps(() => onAuthorClick(comment.authorId))}
+            aria-label={`${authorName} profiline git`}
+            sx={{
+              borderRadius: '50%', flexShrink: 0, cursor: 'pointer', mt: '2px',
+              '&:focus-visible': { outline: '3px solid', outlineColor: 'primary.light', outlineOffset: 2 }
+            }}
+          >
+            <UserAvatar avatarKey={comment.authorAvatarKey} name={authorName} size={avatarSize} />
+          </Box>
+        )}
 
         <Box sx={{ flex: 1, minWidth: 0 }}>
           {/* Başlık: ad · zaman — tek satır, menü sağda */}
@@ -120,8 +138,8 @@ export default function CommentRow({
               {...(!isDeleted ? clickableProps(() => onAuthorClick(comment.authorId)) : {})}
               noWrap
               sx={{
-                fontWeight: 600, lineHeight: 1.3, cursor: isDeleted ? 'default' : 'pointer',
-                color: isDeleted ? 'text.disabled' : 'text.primary',
+                fontWeight: 800, lineHeight: 1.3, cursor: isDeleted ? 'default' : 'pointer',
+                color: isDeleted ? 'text.secondary' : 'text.primary',
                 '&:hover': isDeleted ? {} : { textDecoration: 'underline' }
               }}
             >
@@ -146,10 +164,7 @@ export default function CommentRow({
           </Stack>
 
           {accepted && !isDeleted && (
-            <Stack direction="row" spacing={0.5} alignItems="center" sx={{ color: 'success.main', mb: 0.25 }}>
-              <CheckCircleRounded sx={{ fontSize: 16 }} />
-              <Typography variant="caption" sx={{ fontWeight: 700, color: 'inherit' }}>En iyi cevap</Typography>
-            </Stack>
+            <TypePill tone="solved" label="En iyi cevap" sx={{ mb: 0.75, bgcolor: 'background.paper' }} />
           )}
 
           {/* Bir başka yanıta verilmiş yanıt: bağlamı küçük bir satırla göster */}
@@ -163,13 +178,16 @@ export default function CommentRow({
           {editing ? (
             <Stack spacing={1} sx={{ mt: 0.5 }}>
               <TextField
-                value={text} onChange={e => setText(e.target.value)}
+                value={text} onChange={e => setText(clampLength(e.target.value, COMMENT_MAX_LENGTH))}
                 multiline minRows={2} maxRows={8} fullWidth size="small" autoFocus
-                inputProps={{ maxLength: COMMENT_MAX_LENGTH, 'aria-label': 'Yorumu düzenle' }}
+                error={!!visibleEditError}
+                helperText={visibleEditError || counterText(text, COMMENT_MAX_LENGTH) || undefined}
+                inputProps={{ maxLength: COMMENT_MAX_LENGTH, autoCapitalize: 'sentences', 'aria-label': 'Yorumu düzenle' }}
+                slotProps={{ formHelperText: { sx: { textAlign: visibleEditError ? 'left' : 'right', mr: 0 } } }}
               />
               <Stack direction="row" spacing={1} justifyContent="flex-end">
-                <Button size="small" onClick={() => setEditing(false)} disabled={saving}>Vazgeç</Button>
-                <Button size="small" variant="contained" onClick={saveEdit} disabled={saving}>
+                <Button size="small" onClick={() => { setEditing(false); setEditError(null) }} disabled={saving}>Vazgeç</Button>
+                <Button size="small" variant="contained" onClick={saveEdit} disabled={saving || editUnchanged}>
                   {saving ? <CircularProgress size={14} color="inherit" /> : 'Kaydet'}
                 </Button>
               </Stack>
@@ -181,7 +199,7 @@ export default function CommentRow({
                 sx={{
                   whiteSpace: 'pre-line', wordBreak: 'break-word', lineHeight: 1.5,
                   fontSize: isReply ? '0.9375rem' : '1rem',
-                  ...(isDeleted ? { fontStyle: 'italic', color: 'text.disabled' } : {})
+                  ...(isDeleted ? { fontStyle: 'italic', color: 'text.secondary' } : {})
                 }}
               >
                 {isDeleted ? 'Bu yorum silindi.' : comment.content}
@@ -189,7 +207,7 @@ export default function CommentRow({
               {!isDeleted && comment.flaggedSensitive && <SensitiveContentBanner sx={{ mt: 1, mb: 0 }} />}
 
               {!isDeleted && (
-                <Stack direction="row" spacing={0.5} alignItems="center" flexWrap="wrap" useFlexGap sx={{ mt: 0.25, ml: -0.75 }}>
+                <Stack direction="row" spacing={0.25} alignItems="center" flexWrap="wrap" useFlexGap sx={{ mt: 0.25, ml: -1.25 }}>
                   <ReactionButtons
                     helpfulCount={comment.helpfulCount}
                     notHelpfulCount={comment.notHelpfulCount}
@@ -201,7 +219,7 @@ export default function CommentRow({
                     <Button
                       size="small"
                       onClick={() => setReplyOpen(o => !o)}
-                      sx={{ color: 'text.secondary', fontWeight: 600, minHeight: 36, px: 1 }}
+                      sx={{ color: 'text.secondary', minHeight: 44, px: 1.25 }}
                     >
                       Yanıtla
                     </Button>
@@ -212,7 +230,7 @@ export default function CommentRow({
                       onClick={() => (accepted ? onUnaccept?.() : onAccept?.(comment.id))}
                       disabled={acceptPending}
                       startIcon={acceptPending ? <CircularProgress size={12} /> : (accepted ? null : <TaskAltRounded sx={{ fontSize: '16px !important' }} />)}
-                      sx={{ color: accepted ? 'text.secondary' : 'success.main', fontWeight: 700, minHeight: 36, px: 1 }}
+                      sx={{ color: accepted ? 'text.secondary' : 'primary.main', minHeight: 44, px: 1.25 }}
                     >
                       {accepted ? 'Seçimi kaldır' : 'En iyi cevap'}
                     </Button>
@@ -228,7 +246,7 @@ export default function CommentRow({
                   startIcon={thread?.loading
                     ? <CircularProgress size={12} />
                     : expanded ? <ExpandLessRounded fontSize="small" /> : <ExpandMoreRounded fontSize="small" />}
-                  sx={{ color: 'primary.main', fontWeight: 600, minHeight: 36, px: 1, ml: -1, mt: 0.25 }}
+                  sx={{ color: 'primary.main', minHeight: 44, px: 1.25, ml: -1.25 }}
                   aria-expanded={expanded}
                 >
                   {expanded ? 'Yanıtları gizle' : `${replyCount} yanıt`}

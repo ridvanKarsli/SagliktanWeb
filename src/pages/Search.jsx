@@ -1,18 +1,22 @@
 import { useEffect, useRef, useState } from 'react'
-import { Box, CircularProgress, ClickAwayListener, Fade, IconButton, Tab, Tabs, TextField, Typography } from '@mui/material'
-import { CloseRounded, SearchOffRounded, SearchRounded } from '@mui/icons-material'
+import { Box, ClickAwayListener, Fade, IconButton, Tab, Tabs, TextField, Typography } from '@mui/material'
+import { CloseRounded, SearchRounded } from '@mui/icons-material'
 import { useLocation, useNavigate } from 'react-router-dom'
 import PostList from '../components/PostList.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import LoadMoreButton from '../components/common/LoadMoreButton.jsx'
 import SearchSuggestions from '../components/search/SearchSuggestions.jsx'
-import { CommentResultCard, PersonResultCard } from '../components/search/SearchResultCards.jsx'
+import { CommentResultCard, PersonResultCard, ResultCardSkeleton } from '../components/search/SearchResultCards.jsx'
+import PostCardSkeleton from '../components/PostCardSkeleton.jsx'
+import { pillTabsSx } from '../components/shell/pillTabs.js'
+import { visuallyHidden } from '../utils/visuallyHidden.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useNotification } from '../context/NotificationContext.jsx'
 import { useSearchSuggestions } from '../hooks/useSearchSuggestions.js'
 import { SEARCH_TABS, useTabbedSearch } from '../hooks/useTabbedSearch.js'
 import { goToUserProfile } from '../utils/navigation.js'
 import { loadRecentSearches, saveRecentSearch, removeRecentSearch, clearRecentSearches } from '../utils/recentSearches.js'
+import { LIMITS, clampLength, cleanSearch } from '../utils/validation.js'
 
 function useFocusShortcut(inputRef) {
   // Bu sayfadayken Cmd/Ctrl+K kutuya odaklanıp metni seçer (diğer sayfalarda
@@ -40,7 +44,7 @@ export default function Search() {
   const { showError } = useNotification()
   const location = useLocation()
   const navigate = useNavigate()
-  const urlQuery = new URLSearchParams(location.search).get('q') || ''
+  const urlQuery = clampLength(new URLSearchParams(location.search).get('q') || '', LIMITS.SEARCH_MAX)
 
   const [q, setQ] = useState(urlQuery)
   const [activeQuery, setActiveQuery] = useState(urlQuery)
@@ -83,7 +87,7 @@ export default function Search() {
   useFocusShortcut(inputRef)
 
   const runSearch = (term) => {
-    const next = term.trim()
+    const next = cleanSearch(term)
     resetResults()
     setActiveQuery(next)
     setSuggestOpen(false)
@@ -145,36 +149,48 @@ export default function Search() {
   const panelVisible = suggestOpen && (trimmedQ.length >= suggest.minLength || (trimmedQ.length === 0 && recentSearches.length > 0))
   const hasActiveQuery = !!activeQuery.trim()
 
+  const listSx = { display: 'flex', flexDirection: 'column', gap: { xs: 1.5, sm: 2 } }
+
   const renderResults = () => {
     if (active.loading) {
+      if (tab.key === 'posts') return <PostCardSkeleton count={2} />
       return (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-          <CircularProgress size={24} aria-label="Sonuçlar yükleniyor" />
+        <Box role="status" aria-label="Sonuçlar yükleniyor" sx={listSx}>
+          {[0, 1, 2].map(i => <ResultCardSkeleton key={i} kind={tab.key === 'people' ? 'person' : 'comment'} />)}
         </Box>
       )
     }
     if (!active.searched) {
       return (
-        <Box sx={{ textAlign: 'center', py: 10 }}>
-          <SearchRounded sx={{ fontSize: 48, color: 'text.secondary', opacity: 0.4, mb: 1 }} />
-          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-            Gönderi, yorum veya kişi aramak için yukarıya bir şeyler yazın.
-          </Typography>
-        </Box>
+        <EmptyState
+          companion="deniz-feneri"
+          title="Aradığın bir deneyim mi var?"
+          description="Bir ilaç, bir belirti, bir soru ya da bir isim yaz. Gönderilerde, yorumlarda ve üyeler arasında senin için bakalım."
+        />
       )
     }
     if (active.results.length === 0) {
-      return <EmptyState icon={SearchOffRounded} title="Sonuç bulunamadı" description="Farklı bir arama terimi deneyin" />
+      return (
+        <EmptyState
+          companion="bulut"
+          title="Bununla ilgili bir şey bulamadık"
+          description="Farklı ya da daha kısa bir kelime dene. Bulamazsan grubuna sorabilirsin; belki biri de aynı şeyi merak ediyordur."
+        />
+      )
     }
     return (
       <Box>
         {tab.key === 'posts' && <PostList posts={active.results} token={token} highlightQuery={activeQuery} />}
-        {tab.key === 'comments' && active.results.map(c => (
-          <CommentResultCard key={c.id} comment={c} onClick={() => goToPost(c.postId)} onAuthorClick={goToProfile} query={activeQuery} />
-        ))}
-        {tab.key === 'people' && active.results.map(p => (
-          <PersonResultCard key={p.id} person={p} onClick={() => goToProfile(p.id)} query={activeQuery} />
-        ))}
+        {tab.key !== 'posts' && (
+          <Box className="sg-stagger" sx={listSx}>
+            {tab.key === 'comments' && active.results.map(c => (
+              <CommentResultCard key={c.id} comment={c} onClick={() => goToPost(c.postId)} onAuthorClick={goToProfile} query={activeQuery} />
+            ))}
+            {tab.key === 'people' && active.results.map(p => (
+              <PersonResultCard key={p.id} person={p} onClick={() => goToProfile(p.id)} query={activeQuery} />
+            ))}
+          </Box>
+        )}
         {!active.last && <LoadMoreButton loading={active.loadingMore} onClick={loadMore} />}
       </Box>
     )
@@ -182,36 +198,53 @@ export default function Search() {
 
   return (
     <Box sx={{ py: { xs: 2, md: 4 } }}>
+      {!hasActiveQuery && (
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="h3" component="h1" sx={{ mb: 0.5 }}>Ara</Typography>
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+            Bir başkasının deneyimi, tam aradığın cevap olabilir.
+          </Typography>
+        </Box>
+      )}
+      {hasActiveQuery && <Typography component="h1" sx={{ ...visuallyHidden, width: '1px', height: '1px' }}>Arama sonuçları</Typography>}
       <ClickAwayListener onClickAway={() => setSuggestOpen(false)}>
-        <Box sx={{ position: 'sticky', top: 0, zIndex: 5, bgcolor: 'background.default', pt: { xs: 0, md: 1 }, pb: 1 }}>
-          <Box sx={{ position: 'relative', mb: hasActiveQuery ? 1 : 2 }}>
+        <Box
+          sx={{
+            position: 'sticky', top: { xs: 'calc(57px + env(safe-area-inset-top))', md: 0 }, zIndex: 5,
+            bgcolor: 'background.default', pt: 1, pb: 1.5, mx: { xs: -2, sm: 0 }, px: { xs: 2, sm: 0 }
+          }}
+        >
+          <Box sx={{ position: 'relative' }}>
             <Box component="form" role="search" onSubmit={(e) => { e.preventDefault(); runSearch(q) }}>
               <TextField
                 fullWidth
                 inputRef={inputRef}
                 placeholder="Ara..."
                 value={q}
-                onChange={e => { setQ(e.target.value); setSuggestOpen(true) }}
+                onChange={e => { setQ(clampLength(e.target.value, LIMITS.SEARCH_MAX)); setSuggestOpen(true) }}
                 onFocus={() => setSuggestOpen(true)}
                 onKeyDown={onInputKeyDown}
                 slotProps={{
                   input: {
-                    startAdornment: <SearchRounded sx={{ color: 'text.secondary', mr: 1 }} />,
+                    startAdornment: <SearchRounded sx={{ color: 'primary.main', mr: 1, ml: 0.5 }} />,
                     endAdornment: q ? (
-                      <IconButton size="small" aria-label="Aramayı temizle" onClick={clearQuery} edge="end">
+                      <IconButton aria-label="Aramayı temizle" onClick={clearQuery} edge="end" sx={{ width: 44, height: 44 }}>
                         <CloseRounded fontSize="small" />
                       </IconButton>
                     ) : null,
                   },
-                  htmlInput: { 'aria-label': 'Ara', enterKeyHint: 'search' }
+                  htmlInput: {
+                    'aria-label': 'Ara', enterKeyHint: 'search', inputMode: 'search', maxLength: LIMITS.SEARCH_MAX,
+                    autoComplete: 'off', autoCorrect: 'off'
+                  }
                 }}
                 sx={{
                   '& .MuiOutlinedInput-root': {
-                    borderRadius: 999,
+                    borderRadius: '999px',
                     bgcolor: 'background.paper',
-                    '& fieldset': { borderColor: 'transparent' },
-                    '&:hover fieldset': { borderColor: 'divider' },
-                    '&.Mui-focused': { bgcolor: 'background.default' }
+                    minHeight: 54,
+                    boxShadow: 1,
+                    '& fieldset': { borderColor: 'brand.border' }
                   }
                 }}
               />
@@ -244,9 +277,9 @@ export default function Search() {
           value={tabIndex}
           onChange={(_, v) => setTabIndex(v)}
           variant="scrollable"
-          scrollButtons="auto"
-          allowScrollButtonsMobile
-          sx={{ mb: 2, borderBottom: '1px solid', borderColor: 'divider' }}
+          scrollButtons={false}
+          aria-label="Sonuç türü"
+          sx={{ ...pillTabsSx, mb: 2, display: 'inline-flex', maxWidth: '100%', '& .MuiTab-root': { ...pillTabsSx['& .MuiTab-root'], px: 1.75, minWidth: 0 } }}
         >
           {SEARCH_TABS.map(t => (
             <Tab key={t.key} label={`${t.label}${states[t.key].searched ? ` (${states[t.key].totalElements})` : ''}`} />

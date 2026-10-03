@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { useNotification } from '../context/NotificationContext.jsx'
 import { useConfirm } from '../context/ConfirmContext.jsx'
 import { deletePost, getPost, pinPost, unpinPost, updatePost } from '../services/api.js'
+import { cleanLine, cleanText, fieldErrorsFrom, postContentError, postTitleError } from '../utils/validation.js'
 
 // Bir gönderinin kendisini (yorumlar hariç) yükleme + düzenleme + silme +
 // sabitleme durumunu sarmalar (bkz. PostDetail).
@@ -55,17 +56,25 @@ export function usePost(postId) {
     setEditingPost(true)
   }
 
-  const savePostEdit = async () => {
-    if (!editTitle.trim()) { showError('Başlık zorunludur.'); return }
-    if (!editContent.trim()) { showError('İçerik zorunludur.'); return }
+  // onFieldErrors(fieldErrors) => true: sunucu hataları forma (alanların
+  // altına) yerleştirildi; aksi halde genel bildirim gösterilir. Alan
+  // kontrolleri form tarafında (PostEditForm) yapılır; burada son güvence.
+  const savePostEdit = async (onFieldErrors) => {
+    if (savingPost) return
+    const title = cleanLine(editTitle)
+    const content = cleanText(editContent)
+    const problem = postTitleError(title) || postContentError(content)
+    if (problem) { showError(problem); return }
+    if (title === post.title && content === post.content) { setEditingPost(false); return }
     setSavingPost(true)
     try {
-      const updated = await updatePost(token, post.id, { title: editTitle.trim(), content: editContent.trim() })
-      setPost(updated || { ...post, title: editTitle.trim(), content: editContent.trim() })
+      const updated = await updatePost(token, post.id, { title, content })
+      setPost(updated || { ...post, title, content })
       setEditingPost(false)
       showSuccess('Gönderi güncellendi.')
     } catch (err) {
-      showError(err.message || 'Gönderi güncellenemedi.')
+      const handled = typeof onFieldErrors === 'function' && onFieldErrors(fieldErrorsFrom(err))
+      if (!handled) showError(err.message || 'Gönderi güncellenemedi.')
     } finally {
       setSavingPost(false)
     }

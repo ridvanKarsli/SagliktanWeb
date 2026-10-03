@@ -77,7 +77,7 @@ export default function ShareStoryCardDialog({ open, onClose, post }) {
   }
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth onClick={(e) => e.stopPropagation()}>
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         Hikaye Kartı
         <IconButton size="small" onClick={onClose} aria-label="Kapat"><CloseRounded fontSize="small" /></IconButton>

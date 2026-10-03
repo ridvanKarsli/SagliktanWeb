@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { useNotification } from '../context/NotificationContext.jsx'
 
 // Şikayet akışının ortak durumu: hangi hedef şikayet ediliyor, gönderim
@@ -13,10 +13,14 @@ export function useReportDialog(sendReport) {
   const { showError, showSuccess } = useNotification()
   const [target, setTarget] = useState(null)
   const [submitting, setSubmitting] = useState(false)
+  const submittingRef = useRef(false)
 
   const close = useCallback(() => setTarget(null), [])
 
   const submit = async (reason) => {
+    // Art arda dokunuş aynı şikayeti iki kez göndermesin.
+    if (submittingRef.current) return false
+    submittingRef.current = true
     setSubmitting(true)
     try {
       await sendReport(target, reason)
@@ -27,6 +31,7 @@ export function useReportDialog(sendReport) {
       showError(err.message || 'Şikayet gönderilemedi.')
       return false
     } finally {
+      submittingRef.current = false
       setSubmitting(false)
     }
   }

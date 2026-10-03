@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Button, CircularProgress, Stack, Typography } from '@mui/material'
 import LazyListPanel from './LazyListPanel.jsx'
+import UserAvatar from '../avatars/UserAvatar.jsx'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
 import { useLazyResource } from '../../hooks/useLazyResource.js'
@@ -36,14 +37,16 @@ export default function BlockedUsersPanel() {
       onRetry={blocked.reload}
       items={blocked.data}
       emptyText="Engellediğin kimse yok."
+      skeletonAvatar
       renderItem={(b) => (
         <Stack key={b.id} direction="row" alignItems="center" spacing={1.5} sx={{ py: 0.75 }}>
-          <Typography variant="body2" sx={{ flex: 1, fontWeight: 500 }} noWrap>{b.userName}</Typography>
+          <UserAvatar avatarKey={b.avatarKey} name={b.userName} size={40} />
+          <Typography variant="body1" sx={{ flex: 1, minWidth: 0, fontWeight: 700 }} noWrap>{b.userName}</Typography>
           <Button
             size="small" variant="outlined"
             disabled={unblockingId === b.userId}
             onClick={() => handleUnblock(b.userId)}
-            sx={{ minHeight: 36 }}
+            sx={{ flexShrink: 0 }}
           >
             {unblockingId === b.userId ? <CircularProgress size={14} color="inherit" /> : 'Engeli Kaldır'}
           </Button>

@@ -9,7 +9,7 @@ export default function SortToggle({ value, onChange, sx }) {
       exclusive
       onChange={(_, v) => v && onChange(v)}
       aria-label="Sıralama"
-      sx={sx}
+      sx={{ '& .MuiToggleButton-root': { minHeight: 38, px: 1.5 }, ...sx }}
     >
       <ToggleButton value="recent">Yeni</ToggleButton>
       <ToggleButton value="popular">Popüler</ToggleButton>

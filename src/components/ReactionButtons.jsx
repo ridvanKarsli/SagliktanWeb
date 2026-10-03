@@ -34,10 +34,14 @@ export default function ReactionButtons({
   // kendi istek numarasını alır ve hata durumunda yalnızca HÂLÂ en güncel
   // istek buysa eski hale dönülür - daha yeni bir güncelleme ezilmesin.
   const requestIdRef = useRef(0)
+  // Dokunulan ikon kısa bir "pıt" yapar (bkz. .sg-pop); sayaç key olarak
+  // kullanılır ki art arda dokunuşlarda animasyon yeniden oynasın.
+  const [pop, setPop] = useState({ value: null, n: 0 })
 
   const handleClick = async (e, value) => {
     e.stopPropagation()
     if (disabled) return
+    setPop(p => ({ value, n: p.n + 1 }))
 
     const { helpfulCount: wasHelpful, notHelpfulCount: wasNotHelpful, myReaction: current } = local
 
@@ -92,20 +96,34 @@ export default function ReactionButtons({
   // sayının hangi butona ait olduğu tartışmasız. data-testid'ler ve
   // aria-label'lar (E2E sözleşmesi) korunuyor; sayı 0 iken görünmez ama
   // DOM'da kalır.
-  const btnSx = (active, activeColor) => ({
-    minWidth: 0, minHeight: size === 'medium' ? 40 : 36, px: 1, py: 0.5,
-    borderRadius: 999, gap: 0.5,
-    color: active ? activeColor : 'text.secondary',
-    fontWeight: 700, fontSize: size === 'medium' ? '0.875rem' : '0.8125rem',
-    '&:hover': { bgcolor: 'action.hover' }
+  // Faydalı oy kayısı rengiyle (sıcaklık, teşekkür) vurgulanır; "faydalı
+  // değil" nötr kalır - kimseyi kırmızıyla cezalandırmayız. Seçili durum
+  // yalnız renkle değil, dolu ikon ve yumuşak zeminle de belli olur.
+  const btnSx = (active, tone) => ({
+    minWidth: 0, minHeight: 44, px: 1.25, py: 0.5,
+    borderRadius: 999, gap: 0.625,
+    color: active ? (tone === 'warm' ? 'brand.apricotInk' : 'text.primary') : 'text.secondary',
+    bgcolor: active ? (tone === 'warm' ? 'brand.apricotSoft' : 'action.selected') : 'transparent',
+    fontWeight: 800, fontSize: size === 'medium' ? '0.9375rem' : '0.875rem',
+    '&:hover': { bgcolor: active ? (tone === 'warm' ? 'brand.apricotSoft' : 'action.selected') : 'action.hover' }
   })
+  const iconBox = (value, icon) => (
+    <Box
+      component="span"
+      key={pop.value === value ? pop.n : 0}
+      className={pop.value === value && pop.n > 0 ? 'sg-pop' : undefined}
+      sx={{ display: 'inline-flex' }}
+    >
+      {icon}
+    </Box>
+  )
   const countSx = (n) => (n > 0 ? { lineHeight: 1 } : visuallyHidden)
-  const iconFs = size === 'medium' ? 20 : 18
+  const iconFs = size === 'medium' ? 21 : 19
 
   return (
     <Stack
       direction="row"
-      spacing={0}
+      spacing={0.25}
       alignItems="center"
       onClick={(e) => e.stopPropagation()}
       sx={{ opacity: pending ? 0.7 : 1, transition: 'opacity 0.15s ease' }}
@@ -118,11 +136,11 @@ export default function ReactionButtons({
             onClick={(e) => handleClick(e, 'HELPFUL')}
             aria-label="Faydalı"
             aria-pressed={shownReaction === 'HELPFUL'}
-            sx={btnSx(shownReaction === 'HELPFUL', 'primary.main')}
+            sx={btnSx(shownReaction === 'HELPFUL', 'warm')}
           >
-            {shownReaction === 'HELPFUL'
+            {iconBox('HELPFUL', shownReaction === 'HELPFUL'
               ? <ThumbUpAltIcon sx={{ fontSize: iconFs }} />
-              : <ThumbUpAltOutlinedIcon sx={{ fontSize: iconFs }} />}
+              : <ThumbUpAltOutlinedIcon sx={{ fontSize: iconFs }} />)}
             <Box component="span" sx={countSx(shownHelpful)}>
               <Box component="span" data-testid="reaction-helpful-count">{shownHelpful}</Box>
               <Box component="span" sx={visuallyHidden}>{' faydalı'}</Box>
@@ -138,11 +156,11 @@ export default function ReactionButtons({
             onClick={(e) => handleClick(e, 'NOT_HELPFUL')}
             aria-label="Faydalı Değil"
             aria-pressed={shownReaction === 'NOT_HELPFUL'}
-            sx={btnSx(shownReaction === 'NOT_HELPFUL', 'error.main')}
+            sx={btnSx(shownReaction === 'NOT_HELPFUL', 'neutral')}
           >
-            {shownReaction === 'NOT_HELPFUL'
+            {iconBox('NOT_HELPFUL', shownReaction === 'NOT_HELPFUL'
               ? <ThumbDownAltIcon sx={{ fontSize: iconFs }} />
-              : <ThumbDownAltOutlinedIcon sx={{ fontSize: iconFs }} />}
+              : <ThumbDownAltOutlinedIcon sx={{ fontSize: iconFs }} />)}
             <Box component="span" sx={countSx(shownNotHelpful)}>
               <Box component="span" data-testid="reaction-not-helpful-count">{shownNotHelpful}</Box>
               <Box component="span" sx={visuallyHidden}>{' faydalı değil'}</Box>

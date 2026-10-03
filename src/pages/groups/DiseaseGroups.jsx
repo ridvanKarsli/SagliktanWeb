@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Alert, Box, CircularProgress, InputAdornment, TextField, Typography } from '@mui/material'
-import { GroupsRounded, SearchOffRounded, SearchRounded } from '@mui/icons-material'
+import { Alert, Box, CircularProgress, InputAdornment, Skeleton, TextField, Typography } from '@mui/material'
+import { SearchRounded } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { listDiseaseGroups } from '../../services/api.js'
@@ -8,8 +8,8 @@ import { useGroupMembership } from '../../hooks/useGroupMembership.js'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue.js'
 import { useMyDiseaseGroups } from '../../hooks/useMyDiseaseGroups.js'
 import EmptyState from '../../components/EmptyState.jsx'
-import CenteredSpinner from '../../components/common/CenteredSpinner.jsx'
-import DiseaseGroupCard from '../../components/groups/DiseaseGroupCard.jsx'
+import DiseaseGroupCard, { DiseaseGroupCardSkeleton } from '../../components/groups/DiseaseGroupCard.jsx'
+import { LIMITS, clampLength } from '../../utils/validation.js'
 
 // Tüm hastalık gruplarının listesi + arama (backend prefix/fuzzy tam metin
 // araması). Kullanıcının katıldıkları işaretlenir; katıl/ayrıl buradan da yapılır.
@@ -90,22 +90,37 @@ export default function DiseaseGroups() {
     }
   }
 
-  if (initialLoading) return <CenteredSpinner page />
+  const grid = { display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' }, gap: { xs: 1.5, sm: 2 } }
 
   const renderList = () => {
-    if (!hasAnyGroup && !error) return <EmptyState icon={GroupsRounded} title="Henüz hiç hastalık grubu yok." />
+    if (initialLoading) {
+      return (
+        <Box role="status" aria-label="Gruplar yükleniyor" sx={grid}>
+          {[0, 1, 2, 3].map(i => <DiseaseGroupCardSkeleton key={i} />)}
+        </Box>
+      )
+    }
+    if (!hasAnyGroup && !error) {
+      return (
+        <EmptyState
+          companion="ayicik"
+          title="Henüz hiç grup açılmamış"
+          description="İlk grup açıldığında burada göreceksin."
+        />
+      )
+    }
     if (groups.length === 0 && !loading) {
       if (error) return null
       return (
         <EmptyState
-          icon={SearchOffRounded}
-          title={`"${debouncedQuery}" ile eşleşen grup bulunamadı.`}
-          description="Farklı bir anahtar kelime deneyin."
+          companion="bulut"
+          title={`“${debouncedQuery}” ile eşleşen grup bulamadık`}
+          description="Hastalığın farklı bir adıyla ya da daha kısa bir kelimeyle yeniden dene."
         />
       )
     }
     return (
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' }, gap: 1 }}>
+      <Box className="sg-stagger" sx={grid}>
         {groups.map(group => (
           <DiseaseGroupCard
             key={group.id}
@@ -123,29 +138,33 @@ export default function DiseaseGroups() {
 
   return (
     <Box sx={{ py: { xs: 2, md: 4 } }}>
-      <Box sx={{ mb: 3, px: { xs: 0.5, md: 0 } }}>
-        <Typography variant="h2" sx={{ fontWeight: 700, mb: 0.5 }}>
-          Hastalık Grupları
+      <Box sx={{ mb: 2.5 }}>
+        <Typography variant="h3" component="h1" sx={{ mb: 0.75 }}>
+          Hastalık grupları
         </Typography>
-        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-          İlgilendiğin gruplara katıl, alt forumlarını keşfet.
+        <Typography variant="body1" sx={{ color: 'text.secondary', maxWidth: 580 }}>
+          Her grup, aynı hastalıkla yaşayanların ve yakınlarının buluştuğu küçük bir topluluk.
+          Katıldığın grupların paylaşımları akışına gelir; içerideki alt gruplarda soru sorabilir,
+          deneyimini paylaşabilirsin.
         </Typography>
       </Box>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-      {hasAnyGroup && (
+      {initialLoading && <Skeleton variant="rounded" height={48} sx={{ mb: 2, borderRadius: 999 }} />}
+
+      {!initialLoading && hasAnyGroup && (
         <TextField
           fullWidth
           size="small"
-          placeholder="Grup adı veya açıklamasında ara..."
+          placeholder="Hastalık adıyla ara…"
           value={query}
-          onChange={e => setQuery(e.target.value)}
+          onChange={e => setQuery(clampLength(e.target.value, LIMITS.SEARCH_MAX))}
           slotProps={{
             input: {
               startAdornment: (
                 <InputAdornment position="start">
-                  <SearchRounded sx={{ fontSize: 20, color: 'text.secondary' }} />
+                  <SearchRounded sx={{ fontSize: 22, color: 'text.secondary' }} />
                 </InputAdornment>
               ),
               endAdornment: loading ? (
@@ -154,9 +173,9 @@ export default function DiseaseGroups() {
                 </InputAdornment>
               ) : undefined
             },
-            htmlInput: { 'aria-label': 'Grup ara' }
+            htmlInput: { 'aria-label': 'Grup ara', inputMode: 'search', enterKeyHint: 'search', maxLength: LIMITS.SEARCH_MAX, autoComplete: 'off' }
           }}
-          sx={{ mb: 2 }}
+          sx={{ mb: 2, '& .MuiOutlinedInput-root': { borderRadius: '999px', bgcolor: 'background.paper', minHeight: 48 } }}
         />
       )}
 

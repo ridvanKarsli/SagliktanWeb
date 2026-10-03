@@ -17,7 +17,16 @@ const FONT_SCALES = {
 // Faz6: themeMode ('dark' | 'light') - bkz. theme.js'teki buildTheme notu.
 // Aynı localStorage anahtarı/deseni kullanılıyor, fontScale/highContrast ile
 // birlikte tek bir tercih objesi olarak saklanıyor.
-const DEFAULT_STATE = { fontScale: 'medium', highContrast: false, themeMode: 'dark' }
+// Kayıtlı tema tercihi yoksa cihazın açık/koyu ayarı izlenir (bkz. public/theme-init.js).
+function systemThemeMode() {
+  try {
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+  } catch {
+    return 'light'
+  }
+}
+
+const DEFAULT_STATE = { fontScale: 'medium', highContrast: false, themeMode: systemThemeMode() }
 
 function loadState() {
   try {
@@ -27,7 +36,7 @@ function loadState() {
     return {
       fontScale: FONT_SCALES[parsed.fontScale] ? parsed.fontScale : 'medium',
       highContrast: !!parsed.highContrast,
-      themeMode: parsed.themeMode === 'light' ? 'light' : 'dark',
+      themeMode: parsed.themeMode === 'light' || parsed.themeMode === 'dark' ? parsed.themeMode : systemThemeMode(),
     }
   } catch {
     return DEFAULT_STATE
@@ -53,7 +62,7 @@ export function AccessibilityProvider({ children }) {
     // sistem çubuğu ile sayfa arasında göze batan bir renk sıçraması olur.
     const themeColorMeta = document.querySelector('meta[name="theme-color"]')
     if (themeColorMeta) {
-      themeColorMeta.setAttribute('content', state.themeMode === 'light' ? '#FAF8F5' : '#1E1A16')
+      themeColorMeta.setAttribute('content', state.themeMode === 'light' ? '#F2F7F4' : '#0F1F1C')
     }
   }, [state])
 

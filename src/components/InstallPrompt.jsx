@@ -88,7 +88,7 @@ export default function InstallPrompt() {
           bgcolor: 'background.paper',
           border: '1px solid',
           borderColor: 'divider',
-          boxShadow: '0 12px 32px rgba(0,0,0,0.28)'
+          boxShadow: 6
         }}
       >
         <Stack direction="row" spacing={1.5} alignItems="flex-start">

@@ -1,15 +1,18 @@
-import { useEffect, useRef } from 'react'
-import { Box, ButtonBase, IconButton, LinearProgress, Stack, Typography } from '@mui/material'
+import { useEffect, useRef, useState } from 'react'
+import { Box, ButtonBase, FormHelperText, IconButton, LinearProgress, Stack, Typography } from '@mui/material'
 import AddPhotoAlternateRoundedIcon from '@mui/icons-material/AddPhotoAlternateRounded'
 import CloseRounded from '@mui/icons-material/CloseRounded'
 import ErrorOutlineRounded from '@mui/icons-material/ErrorOutlineRounded'
-import { compressImage } from '../utils/compressImage.js'
+import { alpha } from '@mui/material/styles'
+import { paletteFor } from '../design/tokens.js'
+import { prepareUploadablePhoto } from '../utils/compressImage.js'
 import { requestPresignedUpload, uploadToPresignedUrl } from '../services/api.js'
+import { LIMITS, photoInputError } from '../utils/validation.js'
 
 // Backend'deki MediaConstraints.MAX_ATTACHMENTS_PER_POST ile aynı - burada
 // tekrarlanmasının sebebi kullanıcıya limiti aşmadan ÖNCE (istek atmadan)
 // geri bildirim verebilmek; gerçek doğrulama zaten sunucuda da var.
-const MAX_PHOTOS = 6
+const MAX_PHOTOS = LIMITS.PHOTOS_MAX
 
 /**
  * Gönderi oluşturma formunda çoklu fotoğraf seçici.
@@ -29,6 +32,8 @@ const MAX_PHOTOS = 6
 export default function PhotoUploadField({ value = [], onChange, token, disabled = false }) {
   const inputRef = useRef(null)
   const remainingSlots = MAX_PHOTOS - value.length
+  // Seçimde elenen dosyalar için alanın altında gösterilen açıklama.
+  const [notice, setNotice] = useState(null)
 
   // Sıkıştırma/yükleme sürerken kullanıcı fotoğrafı kaldırabilir ya da
   // pencereyi kapatabilir; o durumda önizleme URL'i hiç oluşturulmamalı
@@ -43,7 +48,19 @@ export default function PhotoUploadField({ value = [], onChange, token, disabled
   const isLive = (id) => mountedRef.current && liveIdsRef.current.has(id)
 
   const handleFiles = (fileList) => {
-    const files = Array.from(fileList).slice(0, Math.max(0, remainingSlots))
+    const picked = Array.from(fileList || [])
+    const problems = []
+    const valid = []
+    for (const file of picked) {
+      const problem = photoInputError(file)
+      if (problem) problems.push(problem)
+      else valid.push(file)
+    }
+    const files = valid.slice(0, Math.max(0, remainingSlots))
+    if (valid.length > files.length) {
+      problems.push(`En fazla ${MAX_PHOTOS} fotoğraf ekleyebilirsin; ${valid.length - files.length} tanesi eklenmedi.`)
+    }
+    setNotice(problems.length ? [...new Set(problems)].join(' ') : null)
     for (const file of files) {
       const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`
       onChange(prev => [
@@ -56,7 +73,7 @@ export default function PhotoUploadField({ value = [], onChange, token, disabled
 
   const processFile = async (id, file) => {
     try {
-      const compressed = await compressImage(file)
+      const compressed = await prepareUploadablePhoto(file)
       if (!isLive(id)) return
       const previewUrl = URL.createObjectURL(compressed)
       onChange(prev => prev.map(e => (e.id === id ? { ...e, status: 'uploading', previewUrl } : e)))
@@ -70,7 +87,7 @@ export default function PhotoUploadField({ value = [], onChange, token, disabled
       console.error('Fotoğraf yüklenemedi:', err)
       if (!mountedRef.current) return
       onChange(prev => prev.map(e => (
-        e.id === id ? { ...e, status: 'error', errorMessage: err.message || 'Yüklenemedi' } : e
+        e.id === id ? { ...e, status: 'error', errorMessage: err.message || 'Fotoğraf yüklenemedi. Kaldırıp yeniden dene.' } : e
       )))
     }
   }
@@ -134,9 +151,9 @@ export default function PhotoUploadField({ value = [], onChange, token, disabled
               aria-label="Fotoğrafı kaldır"
               sx={{
                 position: 'absolute', top: 2, right: 2,
-                width: { xs: 26, sm: 20 }, height: { xs: 26, sm: 20 },
-                bgcolor: 'rgba(0,0,0,0.55)', color: '#fff',
-                '&:hover': { bgcolor: 'rgba(0,0,0,0.75)' }
+                width: { xs: 30, sm: 24 }, height: { xs: 30, sm: 24 },
+                bgcolor: () => alpha(paletteFor('dark').background, 0.7), color: paletteFor('dark').ink,
+                '&:hover': { bgcolor: () => alpha(paletteFor('dark').background, 0.88), color: paletteFor('dark').ink }
               }}
             >
               <CloseRounded sx={{ fontSize: { xs: 16, sm: 14 } }} />
@@ -165,6 +182,10 @@ export default function PhotoUploadField({ value = [], onChange, token, disabled
           {value.length}/{MAX_PHOTOS} fotoğraf
         </Typography>
       )}
+      {value.filter(e => e.status === 'error').map(e => e.errorMessage).filter(Boolean).slice(0, 1).map(msg => (
+        <FormHelperText key="upload-error" error sx={{ mx: 0 }}>{msg}</FormHelperText>
+      ))}
+      {notice && <FormHelperText error sx={{ mx: 0 }} role="status">{notice}</FormHelperText>}
     </Box>
   )
 }

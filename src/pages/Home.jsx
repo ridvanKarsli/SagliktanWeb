@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Alert, Box, Button, Divider, Stack, Tab, Tabs, Typography } from '@mui/material'
-import { AutoAwesomeRounded, DynamicFeedRounded, GroupsRounded, QuestionAnswerOutlined } from '@mui/icons-material'
+import { Alert, Box, Button, Stack, Tab, Tabs, Typography } from '@mui/material'
+import { AutoAwesomeRounded, DynamicFeedRounded, ExploreRounded, QuestionAnswerOutlined } from '@mui/icons-material'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import SimilarMembers from '../components/SimilarMembers.jsx'
 import PostList from '../components/PostList.jsx'
@@ -16,12 +16,22 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { useNotification } from '../context/NotificationContext.jsx'
 import { getMyDiseaseGroups, getMyFeed, getOpenQuestions } from '../services/api.js'
 import { usePaginatedList } from '../hooks/usePaginatedList.js'
+import { pillTabsSx } from '../components/shell/pillTabs.js'
 
 const FEED_TAB = 'feed'
 const QUESTIONS_TAB = 'questions'
 // "Senin gibi üyeler" kartı akışın bu sıradaki gönderisinden sonra gösterilir:
 // en üstte içeriği aşağı itmesin ama ilk ekranlarda görülsün.
 const SIMILAR_MEMBERS_AFTER_INDEX = 2
+
+// Günün saatine göre sıcak bir selam (cihazın yerel saati).
+function greetingFor(date = new Date()) {
+  const h = date.getHours()
+  if (h >= 5 && h < 11) return 'Günaydın'
+  if (h >= 11 && h < 17) return 'İyi günler'
+  if (h >= 17 && h < 22) return 'İyi akşamlar'
+  return 'İyi geceler'
+}
 
 function scrollFeedToTop() {
   try {
@@ -106,16 +116,15 @@ export default function Home() {
   )
 
   const renderFeed = () => {
-    if (loading || checkingGroups) {
-      return <Box>{Array.from({ length: 4 }).map((_, i) => <PostCardSkeleton key={i} />)}</Box>
-    }
+    if (loading || checkingGroups) return <PostCardSkeleton count={3} />
     if (!hasJoinedGroups) {
       return (
         <EmptyState
-          icon={GroupsRounded}
+          companion="filiz"
           title="Henüz hiçbir gruba katılmadın"
-          description="İlgilendiğin hastalık gruplarına katıl, ana sayfanda gönderilerini görmeye başla."
-          actionLabel="Grupları Keşfet"
+          description="Gruplar, aynı hastalıkla yaşayanların ve yakınlarının buluştuğu küçük topluluklar. Sana yakın olana katıl, akışın burada yeşersin."
+          actionLabel="Grupları keşfet"
+          actionIcon={<ExploreRounded />}
           onAction={() => navigate('/groups')}
         />
       )
@@ -124,17 +133,17 @@ export default function Home() {
     if (posts.length === 0) {
       return tab === QUESTIONS_TAB ? (
         <EmptyState
-          icon={QuestionAnswerOutlined}
+          companion="baykus"
           title="Şu an cevap bekleyen soru yok"
-          description="Gruplarındaki sorular cevaplandıkça burası boşalır. Sen de bir soru sorabilirsin."
+          description="Gruplarındaki her soru bir cevap buldu. Merak ettiğin bir şey varsa sorman yeter; deneyimi olan biri mutlaka yazar."
           actionLabel="Soru sor"
           onAction={() => setComposerOpen(true)}
         />
       ) : (
         <EmptyState
-          icon={DynamicFeedRounded}
-          title="Akışında henüz gönderi yok"
-          description="Katıldığın gruplarda henüz kimse paylaşım yapmamış. İlk adımı sen at!"
+          companion="papatya"
+          title="Akışın henüz sessiz"
+          description="Katıldığın gruplarda henüz paylaşım yok. İlk sözü sen söylemek ister misin? Küçük bir merhaba bile yeter."
           actionLabel="İlk gönderiyi paylaş"
           onAction={() => setComposerOpen(true)}
         />
@@ -145,12 +154,7 @@ export default function Home() {
         <PostList
           posts={posts}
           token={token}
-          renderAfter={(_, i) => showSimilarMembersAfter(i) && (
-            <>
-              <Divider />
-              <SimilarMembers sx={{ py: 2 }} />
-            </>
-          )}
+          renderAfter={(_, i) => showSimilarMembersAfter(i) && <SimilarMembers />}
         />
         {!last && <LoadMoreButton loading={loadingMore} onClick={loadMore} />}
       </Box>
@@ -171,14 +175,17 @@ export default function Home() {
         </Alert>
       )}
 
-      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
-        <Box>
-          <Typography variant="h4" component="h1" sx={{ fontWeight: 700, lineHeight: 1.2 }}>Akış</Typography>
-          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-            {tab === QUESTIONS_TAB ? 'Deneyimin birine yol gösterebilir' : 'Gruplarından son paylaşımlar'}
+      <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={2} sx={{ mb: 2 }}>
+        <Box sx={{ minWidth: 0 }}>
+          <Typography variant="h3" component="h1" sx={{ mb: 0.5 }}>
+            {greetingFor()}{user?.firstName ? `, ${user.firstName}` : ''}
+          </Typography>
+          <Typography variant="body2" sx={{ color: 'text.secondary', maxWidth: 520 }}>
+            {tab === QUESTIONS_TAB
+              ? 'Bu sorular hâlâ bir cevap bekliyor. Yaşadıkların, birinin yolunu aydınlatabilir.'
+              : 'Gruplarındaki en yeni paylaşımlar burada. Okumak da, yazmak da iyi gelir.'}
           </Typography>
         </Box>
-        {canPost && tab === FEED_TAB && <SortToggle value={sort} onChange={setSort} />}
       </Stack>
 
       {/* Karşılamayı atlayanlara nazik hatırlatma (zorlamadan). */}
@@ -187,29 +194,36 @@ export default function Home() {
           severity="info"
           icon={<AutoAwesomeRounded />}
           sx={{ mb: 2, alignItems: 'center' }}
-          action={<Button color="inherit" size="small" onClick={() => navigate('/hosgeldin')} sx={{ minHeight: 36, fontWeight: 700 }}>Başla</Button>}
+          action={<Button color="inherit" size="small" onClick={() => navigate('/hosgeldin')} sx={{ minHeight: 44, fontWeight: 800 }}>Başla</Button>}
         >
-          Profilini 1 dakikada tamamla, sana uygun grupları ve üyeleri gösterelim.
+          Profilini bir dakikada tamamla; sana yakın grupları ve üyeleri gösterelim.
         </Alert>
       )}
 
-      {canPost && <ComposerPrompt onClick={() => setComposerOpen(true)} hint="Gruplarına bir şey paylaş…" sx={{ mb: 1.5 }} />}
+      {canPost && <ComposerPrompt onClick={() => setComposerOpen(true)} sx={{ mb: 2.5 }} />}
 
       {canPost && (
-        <Tabs
-          value={tab}
-          onChange={(_, v) => setTab(v)}
-          variant="fullWidth"
-          aria-label="Akış görünümü"
-          sx={{
-            mb: 1, borderBottom: '1px solid', borderColor: 'divider', minHeight: 44,
-            '& .MuiTab-root': { minHeight: 44, textTransform: 'none', fontWeight: 700, px: 1 },
-            '& .MuiTab-icon': { display: { xs: 'none', sm: 'inline-flex' } }
-          }}
-        >
-          <Tab value={FEED_TAB} label="Tümü" icon={<DynamicFeedRounded sx={{ fontSize: 18 }} />} iconPosition="start" />
-          <Tab value={QUESTIONS_TAB} label="Cevap bekleyenler" icon={<QuestionAnswerOutlined sx={{ fontSize: 18 }} />} iconPosition="start" />
-        </Tabs>
+        <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 2 }}>
+          <Tabs
+            value={tab}
+            onChange={(_, v) => setTab(v)}
+            variant="fullWidth"
+            aria-label="Akış görünümü"
+            sx={{ ...pillTabsSx, flex: 1, '& .MuiTab-root': { ...pillTabsSx['& .MuiTab-root'], px: 1 }, '& .MuiTab-icon': { display: { xs: 'none', sm: 'inline-flex' } } }}
+          >
+            <Tab value={FEED_TAB} label="Tümü" icon={<DynamicFeedRounded sx={{ fontSize: 18 }} />} iconPosition="start" />
+            <Tab value={QUESTIONS_TAB} label="Cevap bekleyenler" icon={<QuestionAnswerOutlined sx={{ fontSize: 18 }} />} iconPosition="start" />
+          </Tabs>
+        </Stack>
+      )}
+
+      {canPost && tab === FEED_TAB && (posts.length > 1 || loading || sort !== 'recent') && (
+        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.5, px: 0.5 }}>
+          <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 700 }}>
+            {sort === 'popular' ? 'En çok faydalı bulunanlar' : 'En yeniler önce'}
+          </Typography>
+          <SortToggle value={sort} onChange={setSort} />
+        </Stack>
       )}
 
       {renderFeed()}

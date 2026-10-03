@@ -201,6 +201,21 @@ export function updatePreferences(token, { weeklyDigestEnabled }) {
   return request('/users/me/preferences', { method: 'PUT', token, body: { weeklyDigestEnabled } });
 }
 
+// Faydalılıkla açılan profil avatarları: liste (kilitliler dahil) + seçim.
+export function getAvatarOptions(token) {
+  return request('/users/me/avatars', { token });
+}
+
+// avatarKey null => baş harflere dön. Güncel kullanıcıyı (UserResponse) döner.
+export function selectAvatar(token, avatarKey) {
+  return request('/users/me/avatar', { method: 'PUT', token, body: { avatarKey } });
+}
+
+// Admin dashboard: son N günün (7-90) günlük kullanım serisi + dönem karşılaştırması.
+export function getAdminActivity(token, { days = 30, signal } = {}) {
+  return request('/admin/stats/activity', { token, params: { days }, signal });
+}
+
 export function getSimilarMembers(token, { limit = 8, signal } = {}) {
   return request('/users/me/similar', { token, params: { limit }, signal });
 }

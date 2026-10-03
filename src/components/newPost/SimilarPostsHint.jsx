@@ -5,7 +5,7 @@ import { TipsAndUpdatesOutlined } from '@mui/icons-material'
 export default function SimilarPostsHint({ posts, isQuestion, onOpen }) {
   if (posts.length === 0) return null
   return (
-    <Box sx={{ mt: -1, p: 1.25, borderRadius: 2.5, bgcolor: 'action.hover' }}>
+    <Box sx={{ mt: -1, p: 1.5, borderRadius: '16px', bgcolor: 'brand.skySoft' }}>
       <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mb: 0.5, color: 'text.secondary' }}>
         <TipsAndUpdatesOutlined sx={{ fontSize: 16 }} />
         <Typography variant="caption" sx={{ fontWeight: 700 }}>
@@ -17,7 +17,7 @@ export default function SimilarPostsHint({ posts, isQuestion, onOpen }) {
           <ButtonBase
             key={p.id}
             onClick={() => onOpen(p.id)}
-            sx={{ justifyContent: 'flex-start', textAlign: 'left', borderRadius: 1.5, px: 0.75, py: 0.75, '&:hover': { bgcolor: 'action.selected' } }}
+            sx={{ justifyContent: 'flex-start', textAlign: 'left', borderRadius: '10px', px: 0.75, py: 0.75, minHeight: 44, '&:hover': { bgcolor: 'action.hover' } }}
           >
             <Box component="span" sx={{ display: 'block', minWidth: 0 }}>
               <Typography variant="body2" component="span" sx={{ display: 'block', fontWeight: 600 }} noWrap>{p.title}</Typography>

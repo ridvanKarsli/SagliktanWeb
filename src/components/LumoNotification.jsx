@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Box, Typography, IconButton } from '@mui/material'
+import { alpha, useTheme } from '@mui/material/styles'
+import { paletteFor } from '../design/tokens.js'
 import {
   CheckCircleOutline as SuccessIcon,
   ErrorOutline as ErrorIcon,
@@ -8,13 +10,10 @@ import {
   Close as CloseIcon
 } from '@mui/icons-material'
 
-// Apple'ın sistem toast'ları (ör. "Kopyalandı", "AirPods Bağlandı") gibi
-// hafif, tarafsız bir kapsül - önceki tasarımdaki renkli sol şerit + sert
-// gölge halkası + alt ilerleme çubuğu kaldırıldı. Anlam artık SADECE
-// ikonun rengiyle taşınıyor, kutunun kendisi her bildirim türünde aynı
-// nötr/koyu-camsı yüzeyde kalıyor - "hata kutusu" yerine "sistem bildirimi"
-// hissi veriyor. Giriş animasyonu da sertçe aşağıdan kaymak yerine hafifçe
-// yukarıdan süzülüp büyüyor (Apple'ın toast'larındaki yumuşak geliş gibi).
+// Hafif bir kapsül bildirim: açık temada çam mürekkebi rengi koyu bir
+// yüzey, koyu temada tersi (açık yüzey) - her iki temada da içerikten net
+// ayrılır. Tür, renkli bir ikon dairesiyle (ikon + metin, renk tek başına
+// değil) anlatılır. Yukarıdan yaylanarak süzülür, dokununca kapanır.
 const EXIT_ANIMATION_MS = 260
 
 export default function LumoNotification({ id, message, type = 'info', onClose, duration = 4000 }) {
@@ -46,12 +45,18 @@ export default function LumoNotification({ id, message, type = 'info', onClose, 
     return () => clearTimeout(t)
   }, [])
 
+  const theme = useTheme()
+  // Kapsül ters renkte olduğu için vurgu renkleri de karşı paletten gelir
+  // (koyu zeminde açık tonlar, açık zeminde koyu tonlar) - kontrast korunur.
+  const inverse = paletteFor(theme.palette.mode === 'light' ? 'dark' : 'light')
+  const surface = theme.palette.brand.ink
+  const textColor = theme.palette.background.default
   const accent = {
-    success: '#4CB89F',
-    error: '#E08078',
-    warning: '#E0A85E',
-    info: '#7FAEBD',
-  }[type] || '#7FAEBD'
+    success: inverse.primaryBright,
+    error: inverse.rose,
+    warning: inverse.apricot,
+    info: inverse.sky,
+  }[type] || inverse.sky
 
   const icon = {
     success: <SuccessIcon sx={{ fontSize: 20 }} />,
@@ -75,61 +80,60 @@ export default function LumoNotification({ id, message, type = 'info', onClose, 
         width: 'fit-content',
         maxWidth: { xs: '100%', sm: 400 },
         mx: 'auto',
-        borderRadius: '20px',
-        pl: 2,
-        pr: 1,
-        py: 1.25,
-        // Apple'ın camsı koyu toast yüzeyi - tür renginden bağımsız, tek
-        // tip nötr zemin.
-        bgcolor: 'rgba(26, 22, 18, 0.82)',
-        backdropFilter: 'blur(22px) saturate(1.6)',
-        WebkitBackdropFilter: 'blur(22px) saturate(1.6)',
-        border: '1px solid rgba(255, 255, 255, 0.09)',
-        boxShadow: '0 12px 32px rgba(0, 0, 0, 0.38), 0 2px 10px rgba(0, 0, 0, 0.22)',
+        borderRadius: '999px',
+        pl: 0.75,
+        pr: 0.75,
+        py: 0.75,
+        bgcolor: alpha(surface, 0.96),
+        backdropFilter: 'blur(16px) saturate(1.4)',
+        WebkitBackdropFilter: 'blur(16px) saturate(1.4)',
+        boxShadow: `0 14px 34px rgba(${theme.palette.brand.shadowRgb}, 0.28), 0 2px 8px rgba(${theme.palette.brand.shadowRgb}, 0.18)`,
         cursor: 'pointer',
         opacity: entering || exiting ? 0 : 1,
         transform: entering
-          ? 'translateY(-10px) scale(0.94)'
+          ? 'translateY(-14px) scale(0.92)'
           : exiting
             ? 'translateY(-6px) scale(0.96)'
             : 'translateY(0) scale(1)',
-        transition: 'opacity 0.32s cubic-bezier(.25,.9,.35,1), transform 0.32s cubic-bezier(.25,.9,.35,1)',
+        transition: 'opacity 260ms var(--ease-flow), transform 420ms var(--ease-spring)',
       }}
     >
-      <Box sx={{ display: 'flex', alignItems: 'center', color: accent, flexShrink: 0 }}>
+      <Box
+        sx={{
+          width: 34, height: 34, borderRadius: '50%', flexShrink: 0, display: 'grid', placeItems: 'center',
+          color: accent, bgcolor: alpha(accent, 0.18)
+        }}
+      >
         {icon}
       </Box>
 
       <Typography
         sx={{
-          fontSize: '0.875rem',
-          fontWeight: 500,
+          fontSize: '0.9375rem',
+          fontWeight: 700,
           lineHeight: 1.45,
-          letterSpacing: 0.1,
-          color: '#F5F1EB',
+          color: textColor,
           wordBreak: 'break-word',
+          py: 0.5
         }}
       >
         {message}
       </Typography>
 
-      {/* Apple'ın kendi toast'larında kapatma butonu yok (sadece otomatik
-          kayboluyor/dokununca kapanıyor) - ama WCAG 2.2.1 gereği
-          zaman-sınırlı içeriğin elle de kapatılabilmesi gerekiyor, bu
-          yüzden çok düşük kontrastlı/göze batmayan küçük bir 'x' bırakıldı. */}
+      {/* WCAG 2.2.1: zaman sınırlı içerik elle de kapatılabilmeli. */}
       <IconButton
         size="small"
         onClick={(e) => { e.stopPropagation(); triggerExit() }}
         aria-label="Bildirimi kapat"
         sx={{
-          color: 'rgba(245,241,235,0.4)',
-          width: 24,
-          height: 24,
+          color: alpha(textColor, 0.75),
+          width: 34,
+          height: 34,
           flexShrink: 0,
-          '&:hover': { color: 'rgba(245,241,235,0.85)', bgcolor: 'rgba(245,241,235,0.08)' },
+          '&:hover': { color: textColor, bgcolor: alpha(textColor, 0.1) },
         }}
       >
-        <CloseIcon sx={{ fontSize: 14 }} />
+        <CloseIcon sx={{ fontSize: 16 }} />
       </IconButton>
     </Box>
   )

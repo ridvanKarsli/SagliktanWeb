@@ -36,10 +36,10 @@ export default function DeactivateAccountPanel({ onCancel }) {
             kendine yeniden aktifleştirme seçeneği yok).
           </Typography>
           <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-            <Button variant="contained" color="error" size="small" onClick={deactivate} disabled={deactivating}>
+            <Button variant="contained" color="error" onClick={deactivate} disabled={deactivating}>
               {deactivating ? <CircularProgress size={14} color="inherit" /> : 'Evet, Deaktive Et'}
             </Button>
-            <Button size="small" onClick={onCancel} disabled={deactivating}>Vazgeç</Button>
+            <Button onClick={onCancel} disabled={deactivating}>Vazgeç</Button>
           </Stack>
         </Stack>
       </Alert>

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Alert, Box, IconButton, Stack, TextField, Typography } from '@mui/material'
-import { CloseRounded, DynamicFeedRounded, SearchOffRounded, SearchRounded } from '@mui/icons-material'
+import { Alert, Box, IconButton, Skeleton, Stack, TextField, Typography } from '@mui/material'
+import { CloseRounded, ForumRounded, SearchRounded } from '@mui/icons-material'
 import { useParams } from 'react-router-dom'
 import PostList from '../components/PostList.jsx'
 import PostCardSkeleton from '../components/PostCardSkeleton.jsx'
@@ -17,6 +17,7 @@ import { useNotification } from '../context/NotificationContext.jsx'
 import { getSubGroup, listPostsBySubGroup, searchPostsInSubGroup } from '../services/api.js'
 import { usePaginatedList } from '../hooks/usePaginatedList.js'
 import { useDebouncedValue } from '../hooks/useDebouncedValue.js'
+import { LIMITS, clampLength } from '../utils/validation.js'
 
 // Alt grubun (forum) gönderi akışı: sıralama, gruba özel arama ve paylaşım.
 export default function Posts() {
@@ -25,6 +26,7 @@ export default function Posts() {
   const { showError } = useNotification()
 
   const [subGroup, setSubGroup] = useState(null)
+  const [subGroupFailed, setSubGroupFailed] = useState(false)
   const [error, setError] = useState('')
   const [sort, setSort] = useState('recent')
   const [query, setQuery] = useState('')
@@ -37,7 +39,11 @@ export default function Posts() {
     let alive = true
     getSubGroup(token, subGroupId)
       .then(data => { if (alive) setSubGroup(data) })
-      .catch(err => { if (alive) showError(err.message || 'Alt grup bilgisi alınamadı.') })
+      .catch(err => {
+        if (!alive) return
+        setSubGroupFailed(true)
+        showError(err.message || 'Alt grup bilgisi alınamadı. Sayfayı yenileyip yeniden deneyebilirsin.')
+      })
     return () => { alive = false }
   }, [token, subGroupId, showError])
 
@@ -82,42 +88,63 @@ export default function Posts() {
 
       <BackLink
         to={subGroup ? `/groups/${subGroup.diseaseGroupId}` : '/groups'}
-        ariaLabel="Alt gruba dön"
-        label="Alt Gruba Dön"
+        label="Gruba dön"
       />
 
-      {subGroup && (
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="h2" sx={{ fontWeight: 700, mb: 0.5, wordBreak: 'break-word' }}>
-            {subGroup.name}
-          </Typography>
-          {subGroup.description && (
-            <Typography variant="body1" sx={{ color: 'text.secondary' }}>
-              {subGroup.description}
+      {subGroup ? (
+        <Box sx={{ mb: 2.5 }}>
+          <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 0.75 }}>
+            <Box
+              aria-hidden
+              sx={{
+                width: 48, height: 48, borderRadius: '16px', flexShrink: 0, display: 'grid', placeItems: 'center',
+                bgcolor: 'brand.apricotSoft', color: 'brand.apricotInk'
+              }}
+            >
+              <ForumRounded />
+            </Box>
+            <Typography variant="h3" component="h1" sx={{ minWidth: 0, wordBreak: 'break-word' }}>
+              {subGroup.name}
             </Typography>
-          )}
+          </Stack>
+          <Typography variant="body1" sx={{ color: 'text.secondary', maxWidth: 560 }}>
+            {subGroup.description || 'Aynı konuyu konuşmak isteyenlerin buluştuğu bir köşe.'}
+          </Typography>
+          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5, maxWidth: 560 }}>
+            Okuyabilir, soru sorabilir ya da kendi deneyimini paylaşabilirsin.
+          </Typography>
+        </Box>
+      ) : !subGroupFailed && (
+        <Box aria-hidden sx={{ mb: 2.5 }}>
+          <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1 }}>
+            <Skeleton variant="rounded" width={48} height={48} sx={{ borderRadius: '16px' }} />
+            <Skeleton variant="text" width="55%" sx={{ fontSize: '2rem' }} />
+          </Stack>
+          <Skeleton variant="text" width="85%" />
+          <Skeleton variant="text" width="60%" />
         </Box>
       )}
 
       {token && <ComposerPrompt onClick={openDialog} sx={{ mb: 2.5 }} />}
 
-      <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1.5 }}>
+      <Stack direction="row" spacing={1.25} alignItems="center" sx={{ mb: 2 }}>
         <TextField
           size="small"
           fullWidth
           placeholder="Bu grupta ara..."
           value={query}
-          onChange={e => setQuery(e.target.value)}
+          onChange={e => setQuery(clampLength(e.target.value, LIMITS.SEARCH_MAX))}
+          sx={{ '& .MuiOutlinedInput-root': { borderRadius: '999px', bgcolor: 'background.paper', minHeight: 46 } }}
           slotProps={{
             input: {
-              startAdornment: <SearchRounded sx={{ color: 'text.secondary', mr: 1, fontSize: 20 }} />,
+              startAdornment: <SearchRounded sx={{ color: 'text.secondary', mr: 1, fontSize: 22 }} />,
               endAdornment: query ? (
-                <IconButton size="small" aria-label="Aramayı temizle" onClick={() => setQuery('')} edge="end">
+                <IconButton aria-label="Aramayı temizle" onClick={() => setQuery('')} edge="end" sx={{ width: 40, height: 40 }}>
                   <CloseRounded fontSize="small" />
                 </IconButton>
               ) : null,
             },
-            htmlInput: { 'aria-label': 'Bu grupta ara' }
+            htmlInput: { 'aria-label': 'Bu grupta ara', inputMode: 'search', enterKeyHint: 'search', maxLength: LIMITS.SEARCH_MAX, autoComplete: 'off' }
           }}
         />
         {/* Arama sonuçları alaka düzeyine göre geldiği için sıralama anlamsız. */}
@@ -127,19 +154,25 @@ export default function Posts() {
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       {loading ? (
-        <Box>
-          {Array.from({ length: 4 }).map((_, i) => <PostCardSkeleton key={i} />)}
-        </Box>
+        <PostCardSkeleton count={3} />
       ) : (
         <Box>
           <PostList posts={posts} token={token} highlightQuery={isSearching ? debouncedQuery : undefined} />
-          {posts.length === 0 && !error && (
+          {posts.length === 0 && !error && (isSearching ? (
             <EmptyState
-              icon={isSearching ? SearchOffRounded : DynamicFeedRounded}
-              title={isSearching ? 'Sonuç bulunamadı' : 'Henüz gönderi yok'}
-              description={isSearching ? 'Farklı bir arama terimi deneyin.' : 'İlk gönderiyi sen yap!'}
+              companion="bulut"
+              title="Bu aramayla eşleşen gönderi yok"
+              description="Farklı ya da daha kısa bir kelimeyle yeniden dene. Aradığını bulamazsan sormaktan çekinme."
             />
-          )}
+          ) : (
+            <EmptyState
+              companion="serce"
+              title="Burası henüz sessiz"
+              description="Bu köşede ilk sözü sen söyleyebilirsin. Bir merhaba, bir soru ya da bir deneyim yeter."
+              actionLabel="İlk gönderiyi paylaş"
+              onAction={openDialog}
+            />
+          ))}
           {!last && posts.length > 0 && <LoadMoreButton loading={loadingMore} onClick={loadMore} />}
         </Box>
       )}

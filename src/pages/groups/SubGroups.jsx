@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Alert, Box, Button, CircularProgress, Stack, Typography } from '@mui/material'
-import { CheckRounded, ForumRounded, PeopleAltRounded } from '@mui/icons-material'
+import { Alert, Box, Button, CircularProgress, Skeleton, Stack, Typography } from '@mui/material'
+import { CheckRounded, PeopleAltRounded } from '@mui/icons-material'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
@@ -12,8 +12,8 @@ import EmptyState from '../../components/EmptyState.jsx'
 import NewPostDialog from '../../components/NewPostDialog.jsx'
 import ComposerPrompt from '../../components/ComposerPrompt.jsx'
 import BackLink from '../../components/common/BackLink.jsx'
-import CenteredSpinner from '../../components/common/CenteredSpinner.jsx'
-import SubGroupCard from '../../components/groups/SubGroupCard.jsx'
+import SubGroupCard, { SubGroupCardSkeleton } from '../../components/groups/SubGroupCard.jsx'
+import GroupIcon from '../../components/groups/GroupIcon.jsx'
 import GroupMembersDialog from '../../components/groups/GroupMembersDialog.jsx'
 
 // Grup, alt grupları ve kullanıcının üyeliği tek seferde yüklenir.
@@ -92,52 +92,55 @@ export default function SubGroups() {
     ))
   }))
 
-  if (loading) return <CenteredSpinner page />
+  if (loading) return <SubGroupsSkeleton />
 
   const membershipPending = !!group && pendingId === group.id
 
   return (
     <Box sx={{ py: { xs: 2, md: 4 } }}>
-      <BackLink to="/groups" ariaLabel="Hastalık gruplarına dön" label="Hastalık Grupları" />
+      <BackLink to="/groups" label="Tüm gruplar" />
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       {group && (
         <Box sx={{ mb: 3 }}>
-          <Stack direction="row" spacing={1.5} alignItems="flex-start" sx={{ mb: 0.5 }}>
-            <Typography variant="h2" sx={{ fontWeight: 700, flex: 1, minWidth: 0, wordBreak: 'break-word' }}>
+          <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1 }}>
+            <GroupIcon size={52} iconSize={28} />
+            <Typography variant="h3" component="h1" sx={{ flex: 1, minWidth: 0, wordBreak: 'break-word' }}>
               {group.name}
             </Typography>
+          </Stack>
+          {group.description && (
+            <Typography variant="body1" sx={{ color: 'text.secondary', mb: 1.5, maxWidth: 580 }}>
+              {group.description}
+            </Typography>
+          )}
+          <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap" useFlexGap>
             {joined !== null && (
               <Button
                 variant={joined ? 'outlined' : 'contained'}
-                size="small"
                 disabled={membershipPending}
                 onClick={toggleMembership}
                 startIcon={joined && !membershipPending ? <CheckRounded /> : undefined}
                 aria-label={joined ? `${group.name} grubundan ayrıl` : `${group.name} grubuna katıl`}
-                sx={{
-                  flexShrink: 0, borderRadius: 999, minHeight: 40, minWidth: 96, px: 2,
-                  ...(joined ? { color: 'text.secondary', borderColor: 'divider' } : {})
-                }}
+                sx={{ minHeight: 44, minWidth: 110, ...(joined ? { color: 'primary.main', borderColor: 'primary.light' } : {}) }}
               >
-                {membershipPending ? <CircularProgress size={16} color="inherit" /> : (joined ? 'Üyesin' : 'Katıl')}
+                {membershipPending ? <CircularProgress size={16} color="inherit" aria-label="İşleniyor" /> : (joined ? 'Üyesin' : 'Katıl')}
               </Button>
             )}
+            <Button
+              startIcon={<PeopleAltRounded />}
+              onClick={() => setMembersOpen(true)}
+              sx={{ minHeight: 44, color: 'text.secondary' }}
+            >
+              {group.memberCount ?? 0} üye · Üyeleri Gör
+            </Button>
           </Stack>
-          {group.description && (
-            <Typography variant="body1" sx={{ color: 'text.secondary', mb: 1 }}>
-              {group.description}
+          {joined === false && (
+            <Typography variant="body2" sx={{ color: 'text.secondary', mt: 1.25, maxWidth: 560 }}>
+              Katılınca bu gruptaki paylaşımlar akışına gelir; soru sorabilir, yorum yazabilir ve deneyimini paylaşabilirsin.
             </Typography>
           )}
-          <Button
-            size="small"
-            startIcon={<PeopleAltRounded />}
-            onClick={() => setMembersOpen(true)}
-            sx={{ color: 'text.secondary', pl: 0, '&:hover': { bgcolor: 'transparent', color: 'primary.main' } }}
-          >
-            {group.memberCount ?? 0} üye · Üyeleri Gör
-          </Button>
         </Box>
       )}
 
@@ -145,14 +148,22 @@ export default function SubGroups() {
         <ComposerPrompt onClick={() => setComposerOpen(true)} hint={`${group.name} grubunda paylaş…`} sx={{ mb: 3 }} />
       )}
 
-      <Typography variant="h4" component="h2" sx={{ fontWeight: 600, mb: 1.5 }}>
-        Alt Gruplar
+      <Typography variant="h4" component="h2" sx={{ mb: 0.5 }}>
+        Alt gruplar
+      </Typography>
+      <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.75 }}>
+        Grubun içindeki konu köşeleri. Merak ettiğin konuya en yakın olanı seç.
       </Typography>
 
       {subGroups.length === 0 && !error ? (
-        <EmptyState icon={ForumRounded} title="Bu grupta henüz alt grup (forum) yok." />
+        <EmptyState
+          companion="kaplumbaga"
+          dense
+          title="Bu grupta henüz alt grup yok"
+          description="Konu köşeleri açıldığında burada göreceksin."
+        />
       ) : (
-        <Stack spacing={1.5}>
+        <Stack spacing={1.25} className="sg-stagger">
           {subGroups.map(sub => (
             <SubGroupCard key={sub.id} subGroup={sub} onOpen={() => navigate(`/sub-groups/${sub.id}`)} />
           ))}
@@ -178,6 +189,29 @@ export default function SubGroups() {
           onCreated={onPostCreated}
         />
       )}
+    </Box>
+  )
+}
+
+// Grup sayfası yüklenirken: başlık, düğmeler ve alt grup kartlarının taslağı.
+function SubGroupsSkeleton() {
+  return (
+    <Box role="status" aria-label="Grup yükleniyor" sx={{ py: { xs: 2, md: 4 } }}>
+      <Skeleton variant="rounded" width={130} height={36} sx={{ borderRadius: 999, mb: 2 }} />
+      <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1.25 }}>
+        <Skeleton variant="rounded" width={52} height={52} sx={{ borderRadius: '17px' }} />
+        <Skeleton variant="text" width="60%" sx={{ fontSize: '2rem' }} />
+      </Stack>
+      <Skeleton variant="text" width="95%" />
+      <Skeleton variant="text" width="70%" sx={{ mb: 1.5 }} />
+      <Stack direction="row" spacing={1} sx={{ mb: 4 }}>
+        <Skeleton variant="rounded" width={110} height={44} sx={{ borderRadius: 999 }} />
+        <Skeleton variant="rounded" width={170} height={44} sx={{ borderRadius: 999 }} />
+      </Stack>
+      <Skeleton variant="text" width={160} sx={{ fontSize: '1.6rem', mb: 1.5 }} />
+      <Stack spacing={1.25}>
+        {[0, 1, 2].map(i => <SubGroupCardSkeleton key={i} />)}
+      </Stack>
     </Box>
   )
 }

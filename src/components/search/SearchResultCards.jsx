@@ -1,21 +1,26 @@
-import { Avatar, Box, Stack, Typography } from '@mui/material'
-import { ChatBubbleOutlineRounded } from '@mui/icons-material'
+import { Box, Skeleton, Stack, Typography } from '@mui/material'
+import { ChatBubbleOutlineRounded, ChevronRightRounded } from '@mui/icons-material'
 import HighlightText from '../HighlightText.jsx'
-import { initialsFrom, prettyDate } from '../../utils/format.js'
+import UserAvatar from '../avatars/UserAvatar.jsx'
+import { relativeTime } from '../../utils/format.js'
 import { cardActivationProps } from '../../utils/clickable.js'
 import { fullNameOf } from '../../utils/text.js'
 
-const cardSx = {
-  p: { xs: 2, md: 2.5 },
-  mb: 1.5,
-  borderRadius: 2,
+const surfaceSx = {
+  p: { xs: 2, sm: 2.25 },
+  borderRadius: '20px',
   bgcolor: 'background.paper',
   border: '1px solid',
-  borderColor: 'divider',
+  borderColor: 'brand.border',
+  boxShadow: 1,
+}
+
+const cardSx = {
+  ...surfaceSx,
   cursor: 'pointer',
-  transition: 'background-color 0.2s ease, border-color 0.2s ease',
-  '&:hover': { bgcolor: 'action.hover', borderColor: 'primary.main' },
-  '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 2 }
+  transition: 'border-color 200ms ease, box-shadow 240ms ease, transform 160ms var(--ease-spring)',
+  '@media (hover: hover)': { '&:hover': { boxShadow: 3, borderColor: 'brand.borderStrong' } },
+  '&:focus-visible': { outline: '3px solid', outlineColor: 'primary.light', outlineOffset: 2 }
 }
 
 // Yorum arama sonucu: kart yorumun gönderisini açar, yazar adı profiline gider.
@@ -23,25 +28,28 @@ export function CommentResultCard({ comment, onClick, onAuthorClick, query }) {
   const authorName = comment.authorName || 'Kullanıcı'
   return (
     <Box {...cardActivationProps(onClick, `Yorum: ${authorName}`)} className="tap-scale" sx={cardSx}>
-      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-        <ChatBubbleOutlineRounded sx={{ fontSize: 15, color: 'text.secondary' }} />
+      <Stack direction="row" spacing={1.25} alignItems="center" sx={{ mb: 1 }}>
+        <UserAvatar avatarKey={comment.authorAvatarKey} name={authorName} size={32} />
         <Typography
-          variant="caption"
+          variant="body2"
           component="button"
           type="button"
           onClick={(e) => { e.stopPropagation(); onAuthorClick?.(comment.authorId) }}
           sx={{
-            color: 'text.secondary', fontWeight: 600, cursor: 'pointer', p: 0, border: 0, bgcolor: 'transparent',
-            font: 'inherit', '&:hover': { textDecoration: 'underline' }
+            color: 'text.primary', fontWeight: 800, cursor: 'pointer', p: 0, border: 0, bgcolor: 'transparent',
+            font: 'inherit', minHeight: 32, '&:hover': { textDecoration: 'underline' },
+            '&:focus-visible': { outline: '3px solid', outlineColor: 'primary.light', outlineOffset: 2, borderRadius: '6px' }
           }}
         >
           {authorName}
         </Typography>
         <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-          · {prettyDate(comment.createdAt) || ''}
+          · {relativeTime(comment.createdAt)}
         </Typography>
+        <Box sx={{ flex: 1 }} />
+        <ChatBubbleOutlineRounded sx={{ fontSize: 16, color: "text.secondary" }} aria-hidden />
       </Stack>
-      <Typography variant="body2" sx={{ color: 'text.primary', whiteSpace: 'pre-line', wordBreak: 'break-word' }}>
+      <Typography variant="body1" sx={{ color: 'text.primary', whiteSpace: 'pre-line', wordBreak: 'break-word' }}>
         {query ? <HighlightText text={comment.content} query={query} /> : comment.content}
       </Typography>
     </Box>
@@ -53,22 +61,48 @@ export function CommentResultCard({ comment, onClick, onAuthorClick, query }) {
 export function PersonResultCard({ person, onClick, query }) {
   const fullName = fullNameOf(person, 'Kullanıcı')
   return (
-    <Box {...cardActivationProps(onClick, fullName)} className="tap-scale" sx={cardSx}>
+    <Box {...cardActivationProps(onClick, fullName)} className="tap-scale" sx={{ ...cardSx, py: { xs: 1.5, sm: 1.75 } }}>
       <Stack direction="row" spacing={1.5} alignItems="center">
-        <Avatar sx={{ width: 40, height: 40, fontSize: 15, fontWeight: 700, flexShrink: 0 }}>
-          {initialsFrom(fullName)}
-        </Avatar>
-        <Box sx={{ minWidth: 0 }}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.primary' }} noWrap>
+        <UserAvatar avatarKey={person.avatarKey} name={fullName} size={48} sx={{ flexShrink: 0 }} />
+        <Box sx={{ minWidth: 0, flex: 1 }}>
+          <Typography variant="subtitle1" component="h2" sx={{ fontWeight: 800, color: 'text.primary', lineHeight: 1.35 }} noWrap>
             {query ? <HighlightText text={fullName} query={query} /> : fullName}
           </Typography>
           {person.bio && (
-            <Typography variant="caption" sx={{ color: 'text.secondary' }} noWrap>
+            <Typography variant="body2" sx={{ color: 'text.secondary' }} noWrap>
               {person.bio}
             </Typography>
           )}
         </Box>
+        <ChevronRightRounded sx={{ color: 'text.secondary' }} aria-hidden />
       </Stack>
+    </Box>
+  )
+}
+
+// Sonuçlar yüklenirken yorum/kişi kartlarının taslağı.
+export function ResultCardSkeleton({ kind = 'comment' }) {
+  if (kind === 'person') {
+    return (
+      <Box aria-hidden sx={{ ...surfaceSx, py: { xs: 1.5, sm: 1.75 } }}>
+        <Stack direction="row" spacing={1.5} alignItems="center">
+          <Skeleton variant="circular" width={48} height={48} />
+          <Box sx={{ flex: 1 }}>
+            <Skeleton variant="text" width="45%" sx={{ fontSize: '1.05rem' }} />
+            <Skeleton variant="text" width="70%" />
+          </Box>
+        </Stack>
+      </Box>
+    )
+  }
+  return (
+    <Box aria-hidden sx={surfaceSx}>
+      <Stack direction="row" spacing={1.25} alignItems="center" sx={{ mb: 1 }}>
+        <Skeleton variant="circular" width={32} height={32} />
+        <Skeleton variant="text" width="35%" />
+      </Stack>
+      <Skeleton variant="text" width="100%" />
+      <Skeleton variant="text" width="80%" />
     </Box>
   )
 }

@@ -1,12 +1,18 @@
-// Tema FOUC önleyici - index.html'den çağrılır (bkz. oradaki not). CSP
-// (script-src 'self') inline script'e izin vermediği için ayrı dosya.
-// AccessibilityContext.jsx ile aynı STORAGE_KEY ('sagliktan:accessibility').
+// Tema FOUC önleyici - index.html'den React'tan önce çağrılır (CSP inline
+// script'e izin vermediği için ayrı dosya). AccessibilityContext ile aynı
+// anahtar. Kayıtlı tercih yoksa cihazın açık/koyu ayarı izlenir.
 (function () {
+  var mode = 'light';
   try {
     var raw = localStorage.getItem('sagliktan:accessibility');
-    var mode = raw && JSON.parse(raw).themeMode === 'light' ? 'light' : 'dark';
-    document.documentElement.dataset.theme = mode;
+    var saved = raw ? JSON.parse(raw).themeMode : null;
+    if (saved === 'light' || saved === 'dark') {
+      mode = saved;
+    } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      mode = 'dark';
+    }
   } catch {
-    document.documentElement.dataset.theme = 'dark';
+    mode = 'light';
   }
+  document.documentElement.dataset.theme = mode;
 })();

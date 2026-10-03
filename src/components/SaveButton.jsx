@@ -20,6 +20,7 @@ export default function SaveButton({
 }) {
   const [pending, setPending] = useState(false)
   const [local, setLocal] = useServerSyncedState({ saved, count }, { paused: pending })
+  const [tuck, setTuck] = useState(0) // kaydedince yer imi kısa bir "oturma" hareketi yapar
 
   const handleClick = async (e) => {
     e.stopPropagation()
@@ -28,6 +29,7 @@ export default function SaveButton({
     const { saved: wasSaved, count: wasCount } = local
     const nextSaved = !wasSaved
     const nextCount = Math.max(0, wasCount + (nextSaved ? 1 : -1))
+    if (nextSaved) setTuck(n => n + 1)
 
     setLocal({ saved: nextSaved, count: nextCount })
     setPending(true)
@@ -49,7 +51,7 @@ export default function SaveButton({
   const shownCount = local.count
 
   // ReactionButtons ile aynı dil: ikon + sayı tek satırda, pill buton.
-  const iconFs = size === 'medium' ? 20 : 18
+  const iconFs = size === 'medium' ? 21 : 19
   return (
     <Tooltip title={shownSaved ? 'Kaydı kaldır' : 'Kaydet'}>
       <span onClick={(e) => e.stopPropagation()}>
@@ -60,13 +62,16 @@ export default function SaveButton({
           aria-label={shownSaved ? 'Kaydı kaldır' : 'Kaydet'}
           aria-pressed={shownSaved}
           sx={{
-            minWidth: 0, minHeight: size === 'medium' ? 40 : 36, px: 1, py: 0.5, gap: 0.5, borderRadius: 999,
+            minWidth: 44, minHeight: 44, px: 1.25, py: 0.5, gap: 0.5, borderRadius: 999,
             color: shownSaved ? 'primary.main' : 'text.secondary',
-            fontWeight: 700, fontSize: size === 'medium' ? '0.875rem' : '0.8125rem',
-            '&:hover': { bgcolor: 'action.hover' }
+            bgcolor: shownSaved ? 'brand.primarySoft' : 'transparent',
+            fontWeight: 800, fontSize: size === 'medium' ? '0.9375rem' : '0.875rem',
+            '&:hover': { bgcolor: shownSaved ? 'brand.primarySoft' : 'action.hover' }
           }}
         >
-          {shownSaved ? <BookmarkRoundedIcon sx={{ fontSize: iconFs }} /> : <BookmarkBorderRoundedIcon sx={{ fontSize: iconFs }} />}
+          <Box component="span" key={tuck} className={tuck > 0 && shownSaved ? 'sg-tuck' : undefined} sx={{ display: 'inline-flex' }}>
+            {shownSaved ? <BookmarkRoundedIcon sx={{ fontSize: iconFs }} /> : <BookmarkBorderRoundedIcon sx={{ fontSize: iconFs }} />}
+          </Box>
           <Box component="span" sx={shownCount > 0 ? { lineHeight: 1 } : visuallyHidden}>
             <Box component="span" data-testid="saved-count">{shownCount}</Box>
             <Box component="span" sx={visuallyHidden}>{' kaydedildi'}</Box>

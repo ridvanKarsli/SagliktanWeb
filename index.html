@@ -8,7 +8,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Sağlıktan – Hastalık Toplulukları için Destek Platformu</title>
     <meta name="description" content="Kronik ve nadir hastalıklarla yaşayan bireyleri ve yakınlarını hastalık gruplarında bir araya getiren, deneyim paylaşımına dayalı güvenli bir topluluk platformu." />
-    <meta name="theme-color" content="#1E1A16" />
+    <meta name="theme-color" content="#F2F7F4" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <!-- Faz6: açık tema desteği - React yüklenip AccessibilityProvider
          çalışana kadar body varsayılan (koyu) zeminle boyanır, kullanıcı
@@ -34,15 +34,10 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Sağlıktan" />
-    <!-- Inter fontu artık Google'ın sunucusundan değil, @fontsource/inter ile
-         yerelden (self-hosted) yükleniyor - bkz. src/main.jsx. İki sebep:
-         1) KVKK/GDPR: Google Fonts'u doğrudan Google'dan çekmek, kullanıcının
-            IP adresini rızası olmadan Google'a göndermek anlamına geliyor
-            (Almanya'da bunun GDPR ihlali sayıldığı emsal kararlar var).
-         2) Güvenilirlik: bu render-blocking harici istek, E2E testlerinde
-            (GitHub Actions) sayfanın ilk boyanmasını 30s'yi aşacak kadar
-            geciktirip Playwright testlerinin deterministik biçimde
-            timeout'a düşmesine sebep oluyordu (bkz. E2E #4 teşhis raporu). -->
+    <!-- Fontlar (Nunito, Baloo 2) kendi sunucumuzdan yükleniyor - bkz.
+         src/main.jsx. KVKK: Google Fonts'a doğrudan istek kullanıcının IP
+         adresini rızası olmadan Google'a gönderir; ayrıca harici,
+         render'ı bekleten bir istek ilk boyamayı geciktirir. -->
   </head>
   <body>
     <div id="root"></div>

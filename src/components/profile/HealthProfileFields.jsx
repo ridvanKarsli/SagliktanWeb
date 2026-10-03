@@ -4,6 +4,8 @@ import {
 } from '@mui/icons-material'
 import { COMMUNITY_ROLES } from '../../utils/communityProfile.js'
 import CityField from './CityField.jsx'
+import { currentYear, normalizeDiagnosisYear } from '../../utils/validation.js'
+import { radius } from '../../design/tokens.js'
 
 const ROLE_ICONS = {
   PATIENT: PersonOutlineRounded,
@@ -12,8 +14,15 @@ const ROLE_ICONS = {
   OTHER: EmojiPeopleOutlined,
 }
 
-const CURRENT_YEAR = new Date().getFullYear()
-const YEARS = Array.from({ length: CURRENT_YEAR - 1949 }, (_, i) => CURRENT_YEAR - i)
+// Seçim listesinin alt ucu: backend 1900'e kadar kabul ediyor, ama listeyi
+// kısa tutmak için 1930; daha eski kayıtlı (geçerli) bir değer varsa listeye eklenir.
+const LIST_FLOOR = 1930
+function yearOptions(selected) {
+  const top = currentYear()
+  const years = Array.from({ length: top - LIST_FLOOR + 1 }, (_, i) => top - i)
+  if (selected && selected < LIST_FLOOR) years.push(selected)
+  return years
+}
 
 // Rol seçimi: büyük, tek dokunuşla seçilen kartlar (mobilde 2x2).
 export function RolePicker({ value, onChange }) {
@@ -29,15 +38,22 @@ export function RolePicker({ value, onChange }) {
             aria-checked={selected}
             onClick={() => onChange(selected ? null : r.value)}
             sx={{
-              flexDirection: 'column', gap: 1, p: 1.75, minHeight: 104, borderRadius: 3, textAlign: 'center',
-              border: '1.5px solid', borderColor: selected ? 'primary.main' : 'divider',
-              bgcolor: selected ? 'rgba(76,184,159,0.12)' : 'background.paper',
-              transition: 'border-color .15s ease, background-color .15s ease',
+              flexDirection: 'column', gap: 1, p: 1.75, minHeight: 112, borderRadius: `${radius.lg}px`, textAlign: 'center',
+              border: '2px solid', borderColor: selected ? 'primary.main' : 'brand.border',
+              bgcolor: selected ? 'brand.primarySoft' : 'background.paper',
+              transition: 'border-color 200ms ease, background-color 200ms ease, transform 160ms var(--ease-spring)',
+              '&:active': { transform: 'scale(0.96)' },
               '&.Mui-focusVisible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 2 }
             }}
           >
-            <Icon sx={{ fontSize: 28, color: selected ? 'primary.main' : 'text.secondary' }} />
-            <Typography variant="body2" sx={{ fontWeight: selected ? 700 : 600, lineHeight: 1.3 }}>{r.label}</Typography>
+            <Box
+              key={selected ? 'on' : 'off'}
+              className={selected ? 'sg-pop' : undefined}
+              sx={{ width: 48, height: 48, borderRadius: '50%', display: 'grid', placeItems: 'center', bgcolor: selected ? 'background.paper' : 'brand.surfaceAlt', color: selected ? 'primary.main' : 'text.secondary' }}
+            >
+              <Icon sx={{ fontSize: 26 }} />
+            </Box>
+            <Typography variant="body2" sx={{ fontWeight: 800, lineHeight: 1.3, color: selected ? 'primary.main' : 'text.primary' }}>{r.label}</Typography>
           </ButtonBase>
         )
       })}
@@ -49,9 +65,15 @@ export function RolePicker({ value, onChange }) {
  * Tanı yılı + şehir + görünürlük. value: { communityRole, diagnosisYear, city, discoverable }.
  * Hepsi isteğe bağlı; görünürlük açılmadıkça bu bilgiler başkalarına gösterilmez.
  */
-export default function HealthProfileFields({ value, onChange, showRole = false }) {
+// validation: isteğe bağlı useFormValidation örneği - verilirse sunucu/alan
+// hataları (şehir, tanı yılı) ilgili alanın altında gösterilir.
+export default function HealthProfileFields({ value, onChange, showRole = false, validation }) {
   const v = value || {}
   const set = (patch) => onChange({ ...v, ...patch })
+  // Aralık dışı (gelecek/çok eski) kayıtlı değer boş görünür.
+  const year = normalizeDiagnosisYear(v.diagnosisYear)
+  const fieldProps = (name) => (validation ? validation.field(name) : {})
+  const errorText = (name) => (validation ? validation.error(name) : null)
   return (
     <Stack spacing={2.25}>
       {showRole && (
@@ -63,22 +85,24 @@ export default function HealthProfileFields({ value, onChange, showRole = false 
       <TextField
         select
         label={v.communityRole === 'CAREGIVER' ? 'Yakınının tanı yılı' : 'Tanı yılı'}
-        value={v.diagnosisYear || ''}
+        value={year || ''}
         onChange={e => set({ diagnosisYear: e.target.value ? Number(e.target.value) : null })}
+        {...fieldProps('diagnosisYear')}
         fullWidth
-        helperText="Benzer süreçteki kişilerle eşleşmek için. İsteğe bağlı."
+        helperText={errorText('diagnosisYear') || 'Benzer süreçteki kişilerle eşleşmek için. İsteğe bağlı.'}
         slotProps={{ select: { MenuProps: { slotProps: { paper: { sx: { maxHeight: 320 } } } } } }}
       >
         <MenuItem value="">Belirtmek istemiyorum</MenuItem>
-        {YEARS.map(y => <MenuItem key={y} value={y}>{y}</MenuItem>)}
+        {yearOptions(year).map(y => <MenuItem key={y} value={y}>{y}</MenuItem>)}
       </TextField>
       <CityField
         value={v.city}
         onChange={(city) => set({ city })}
         label="Yaşadığın şehir"
-        helperText="Profilinde görünür; yakınındaki üyeleri bulmana da yardım eder. İsteğe bağlı."
+        {...fieldProps('city')}
+        helperText={errorText('city') || 'Profilinde görünür; yakınındaki üyeleri bulmana da yardım eder. İsteğe bağlı.'}
       />
-      <Box sx={{ p: 1.5, borderRadius: 3, border: '1px solid', borderColor: v.discoverable ? 'primary.main' : 'divider' }}>
+      <Box sx={{ p: 1.75, borderRadius: `${radius.md}px`, border: '2px solid', borderColor: v.discoverable ? 'primary.main' : 'brand.border', bgcolor: v.discoverable ? 'brand.primarySoft' : 'background.paper', transition: 'background-color 200ms ease, border-color 200ms ease' }}>
         <FormControlLabel
           control={<Switch checked={!!v.discoverable} onChange={e => set({ discoverable: e.target.checked })} />}
           label={<Typography variant="body2" sx={{ fontWeight: 700 }}>Benzer üyeler beni bulabilsin</Typography>}

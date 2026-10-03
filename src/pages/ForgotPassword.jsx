@@ -1,12 +1,28 @@
 import { useState } from 'react'
 import {
-  Box, Button, Link, Stack, TextField, Typography, CircularProgress, useMediaQuery, useTheme
+  Box, Button, Link, Stack, TextField, Typography, CircularProgress
 } from '@mui/material'
-import { ArrowBack, CheckCircleOutline } from '@mui/icons-material'
 import { useNavigate, Link as RouterLink } from 'react-router-dom'
 import { useNotification } from '../context/NotificationContext.jsx'
 import { forgotPassword, resetPassword } from '../services/api.js'
 import PasswordField from '../components/PasswordField.jsx'
+import AuthLayout from '../components/auth/AuthLayout.jsx'
+import Companion from '../components/avatars/Companion.jsx'
+import PasswordStrengthMeter from '../components/PasswordStrengthMeter.jsx'
+import EmailField from '../components/forms/EmailField.jsx'
+import { useFormValidation } from '../hooks/useFormValidation.js'
+import {
+  LIMITS, codeError, confirmPasswordError, fieldErrorsFrom, fieldFromMessage, loginEmailError,
+  newPasswordError, normalizeEmail, sanitizeCode
+} from '../utils/validation.js'
+
+const validateRequest = (f) => ({ email: loginEmailError(f.email) })
+const validateReset = (f) => ({
+  code: codeError(f.code),
+  newPassword: newPasswordError(f.newPassword),
+  confirmPassword: confirmPasswordError(f.confirmPassword, f.newPassword),
+})
+const RESET_MESSAGE_FIELDS = [[/kod/i, 'code']]
 
 // Şifre sıfırlama backend'de kod tabanlı (link değil - bkz. SmtpEmailService.
 // sendPasswordResetCode): kullanıcı e-postasına gelen 6 haneli kodu elle
@@ -15,8 +31,6 @@ import PasswordField from '../components/PasswordField.jsx'
 export default function ForgotPassword() {
   const navigate = useNavigate()
   const { showError, showSuccess } = useNotification()
-  const theme = useTheme()
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
 
   const [step, setStep] = useState('request') // 'request' | 'reset' | 'done'
   const [email, setEmail] = useState('')
@@ -24,17 +38,20 @@ export default function ForgotPassword() {
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const requestForm = useFormValidation({ email }, validateRequest)
+  const resetForm = useFormValidation({ code, newPassword, confirmPassword }, validateReset)
 
   const submitRequest = async (e) => {
     e.preventDefault()
-    if (!email.trim()) { showError('E-posta adresini gir.'); return }
+    if (loading || !requestForm.validateAll()) return
     setLoading(true)
     try {
-      await forgotPassword({ email: email.trim() })
+      await forgotPassword({ email: normalizeEmail(email) })
       showSuccess('E-posta adresiniz kayıtlıysa sıfırlama kodu gönderildi.')
+      resetForm.reset()
       setStep('reset')
     } catch (err) {
-      showError(err.message || 'İstek gönderilemedi.')
+      if (!requestForm.applyServerErrors(fieldErrorsFrom(err))) showError(err.message || 'İstek gönderilemedi.')
     } finally {
       setLoading(false)
     }
@@ -42,192 +59,147 @@ export default function ForgotPassword() {
 
   const submitReset = async (e) => {
     e.preventDefault()
-    if (!code.trim()) { showError('E-postana gelen kodu gir.'); return }
-    if (newPassword.length < 8) { showError('Yeni şifre en az 8 karakter olmalı.'); return }
-    if (newPassword !== confirmPassword) { showError('Şifreler eşleşmiyor.'); return }
+    if (loading || !resetForm.validateAll()) return
     setLoading(true)
     try {
-      await resetPassword({ email: email.trim(), code: code.trim(), newPassword })
+      await resetPassword({ email: normalizeEmail(email), code: sanitizeCode(code), newPassword })
       showSuccess('Şifreniz sıfırlandı, artık giriş yapabilirsiniz.')
       setStep('done')
     } catch (err) {
-      showError(err.message || 'Şifre sıfırlanamadı.')
+      const mapped = { ...fieldFromMessage(err, RESET_MESSAGE_FIELDS), ...fieldErrorsFrom(err) }
+      if (!resetForm.applyServerErrors(mapped)) showError(err.message || 'Şifre sıfırlanamadı.')
     } finally {
       setLoading(false)
     }
   }
 
+  const heading = {
+    request: { title: 'Şifreni mi unuttun?', lead: 'Olur böyle şeyler. Hesabına kayıtlı e-posta adresini yaz, sana bir sıfırlama kodu gönderelim.' },
+    reset: { title: 'Kodu gir', lead: <><strong>{email}</strong> adresine bir kod gönderdik. Kodu ve yeni şifreni aşağıya yaz.</> },
+    done: { title: 'Şifren yenilendi', lead: null },
+  }[step]
+
   return (
-    <Box sx={{ minHeight: '100dvh', display: 'flex' }}>
-      {!isMobile && (
-        <Box
-          sx={{
-            flex: 1,
-            bgcolor: 'background.paper',
-            borderRight: '1px solid',
-            borderColor: 'divider',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-            alignItems: 'center',
-            p: 6
-          }}
-        >
-          <Box sx={{ maxWidth: 400, textAlign: 'center' }}>
-            <Box
-              component="img"
-              src="/sagliktanLogo.png"
-              alt="Sağlıktan"
-              sx={{ width: 80, height: 80, borderRadius: '20px', mb: 4 }}
-            />
-            <Typography variant="h2" component="p" sx={{ color: 'primary.main', mb: 2, fontWeight: 700 }}>
-              Şifreni Sıfırla
-            </Typography>
-            <Typography variant="body1" sx={{ color: 'text.secondary', lineHeight: 1.8 }}>
-              Merak etme, herkesin başına gelebilir. E-postana gelecek kodla şifreni birkaç adımda yenileyebilirsin.
-            </Typography>
-          </Box>
-        </Box>
-      )}
-
-      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', bgcolor: 'background.default' }}>
-        <Box sx={{ p: { xs: 2, sm: 3 } }}>
-          <Button
-            startIcon={<ArrowBack />}
-            onClick={() => navigate('/login')}
-            sx={{ color: 'text.secondary' }}
-          >
-            Girişe Dön
-          </Button>
-        </Box>
-
-        <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', px: { xs: 3, sm: 4 }, pb: 8 }}>
-          <Box sx={{ width: '100%', maxWidth: 400 }}>
-            {isMobile && (
-              <Box sx={{ textAlign: 'center', mb: 4 }}>
-                <Box component="img" src="/sagliktanLogo.png" alt="Sağlıktan" sx={{ width: 56, height: 56, borderRadius: '14px', mb: 2 }} />
-              </Box>
-            )}
-
+    <AuthLayout
+      title={heading.title}
+      lead={heading.lead}
+      sideTitle="Merak etme, hallederiz"
+      sideText="Herkesin başına gelebilir. E-postana gelecek kodla şifreni birkaç adımda yenileyebilirsin."
+      companions={['bulut', 'baykus', 'damla']}
+      backLabel="Girişe Dön"
+      onBack={() => navigate('/login')}
+      maxWidth={420}
+      footer={step === 'request' ? (
+        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+          Şifreni hatırladın mı?{' '}
+          <Link component={RouterLink} to="/login" sx={{ display: 'inline-block', py: 1.5, px: 0.5, my: -1.5, mx: -0.5 }}>
+            Giriş Yap
+          </Link>
+        </Typography>
+      ) : null}
+    >
             {step === 'done' ? (
-              <Box sx={{ textAlign: 'center' }}>
-                <CheckCircleOutline sx={{ fontSize: 56, color: 'primary.main', mb: 2 }} />
-                <Typography variant="h2" component="h1" sx={{ color: 'primary.main', mb: 1 }}>
-                  Şifren Sıfırlandı
-                </Typography>
-                <Typography variant="body1" sx={{ color: 'text.secondary', mb: 4 }}>
-                  Yeni şifrenle giriş yapabilirsin.
-                </Typography>
-                <Button variant="contained" size="large" fullWidth onClick={() => navigate('/login')}>
-                  Giriş Yap
-                </Button>
-              </Box>
-            ) : step === 'request' ? (
-              <>
-                <Box sx={{ mb: 4, textAlign: { xs: 'center', md: 'left' } }}>
-                  <Typography variant="h2" component="h1" sx={{ color: 'primary.main', mb: 1 }}>
-                    Şifremi Unuttum
-                  </Typography>
-                  <Typography variant="body1" sx={{ color: 'text.secondary' }}>
-                    Hesabına kayıtlı e-posta adresini gir, sana bir sıfırlama kodu gönderelim.
-                  </Typography>
-                </Box>
-
-                <Box component="form" onSubmit={submitRequest}>
-                  <Stack spacing={3}>
-                    <TextField
-                      label="E-posta adresi"
-                      type="email"
-                      value={email}
-                      onChange={e => setEmail(e.target.value)}
-                      required
-                      autoFocus
-                      autoComplete="email"
-                      fullWidth
-                      placeholder="ornek@email.com"
-                    />
-                    <Button type="submit" variant="contained" disabled={loading} fullWidth size="large">
-                      {loading ? (
-                        <Stack direction="row" spacing={1.5} alignItems="center">
-                          <CircularProgress size={20} color="inherit" />
-                          <span>Gönderiliyor...</span>
-                        </Stack>
-                      ) : 'Sıfırlama Kodu Gönder'}
-                    </Button>
-                  </Stack>
-                </Box>
-
-                <Box sx={{ mt: 4, textAlign: 'center' }}>
-                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                    Şifreni hatırladın mı?{' '}
-                    <Link component={RouterLink} to="/login" sx={{ color: 'secondary.main', fontWeight: 600, '&:hover': { color: 'primary.main' }, display: 'inline-block', py: 1.5, px: 0.5, my: -1.5, mx: -0.5 }}>
-                      Giriş Yap
-                    </Link>
-                  </Typography>
-                </Box>
-              </>
-            ) : (
-              <>
-                <Box sx={{ mb: 4, textAlign: { xs: 'center', md: 'left' } }}>
-                  <Typography variant="h2" component="h1" sx={{ color: 'primary.main', mb: 1 }}>
-                    Kodu Gir
-                  </Typography>
-                  <Typography variant="body1" sx={{ color: 'text.secondary' }}>
-                    <strong>{email}</strong> adresine bir kod gönderdik. Kodu ve yeni şifreni aşağıya gir.
-                  </Typography>
-                </Box>
-
-                <Box component="form" onSubmit={submitReset}>
-                  <Stack spacing={3}>
-                    <TextField
-                      label="Sıfırlama Kodu"
-                      value={code}
-                      onChange={e => setCode(e.target.value)}
-                      required
-                      autoFocus
-                      fullWidth
-                      placeholder="123456"
-                      inputProps={{ maxLength: 10 }}
-                    />
-                    <PasswordField
-                      label="Yeni Şifre"
-                      value={newPassword}
-                      onChange={e => setNewPassword(e.target.value)}
-                      required
-                      fullWidth
-                      helperText="En az 8 karakter"
-                    />
-                    <PasswordField
-                      label="Yeni Şifre (Tekrar)"
-                      value={confirmPassword}
-                      onChange={e => setConfirmPassword(e.target.value)}
-                      required
-                      fullWidth
-                    />
-                    <Button type="submit" variant="contained" disabled={loading} fullWidth size="large">
-                      {loading ? (
-                        <Stack direction="row" spacing={1.5} alignItems="center">
-                          <CircularProgress size={20} color="inherit" />
-                          <span>Kaydediliyor...</span>
-                        </Stack>
-                      ) : 'Şifreyi Sıfırla'}
-                    </Button>
-                    <Button
-                      variant="text"
-                      size="small"
-                      onClick={() => setStep('request')}
-                      disabled={loading}
-                      sx={{ color: 'text.secondary' }}
-                    >
-                      Kod gelmedi mi? Tekrar dene
-                    </Button>
-                  </Stack>
-                </Box>
-              </>
-            )}
-          </Box>
-        </Box>
-      </Box>
+    <Box sx={{ textAlign: 'center' }}>
+      <Box className="sg-arrive" sx={{ display: 'inline-block', mb: 2 }}><Companion name="gunes" size={88} /></Box>
+      <Typography variant="body1" sx={{ color: 'text.secondary', mb: 3 }}>
+        Yeni şifren kaydedildi. Artık onunla giriş yapabilirsin.
+      </Typography>
+      <Button variant="contained" size="large" fullWidth onClick={() => navigate('/login')}>
+        Giriş Yap
+      </Button>
     </Box>
+  ) : step === 'request' ? (
+    <>
+      <Box component="form" onSubmit={submitRequest} noValidate>
+        <Stack spacing={3}>
+          <EmailField
+            value={email}
+            onChange={setEmail}
+            {...requestForm.field('email')}
+            errorText={requestForm.error('email')}
+            required
+            autoFocus
+            slotProps={{ htmlInput: { enterKeyHint: 'send' } }}
+          />
+          <Button type="submit" variant="contained" disabled={loading} fullWidth size="large">
+            {loading ? (
+              <Stack direction="row" spacing={1.5} alignItems="center">
+                <CircularProgress size={20} color="inherit" />
+                <span>Gönderiliyor...</span>
+              </Stack>
+            ) : 'Sıfırlama Kodu Gönder'}
+          </Button>
+        </Stack>
+      </Box>
+
+    </>
+  ) : (
+    <>
+      <Box component="form" onSubmit={submitReset} noValidate>
+        <Stack spacing={3}>
+          <TextField
+            label="Sıfırlama Kodu"
+            value={code}
+            onChange={e => setCode(sanitizeCode(e.target.value))}
+            {...resetForm.field('code')}
+            helperText={resetForm.error('code') || `E-postana gelen ${LIMITS.CODE_LENGTH} haneli kod`}
+            required
+            autoFocus
+            fullWidth
+            placeholder="123456"
+            autoComplete="one-time-code"
+            slotProps={{
+              htmlInput: {
+                inputMode: 'numeric', pattern: '[0-9]*', maxLength: LIMITS.CODE_LENGTH,
+                enterKeyHint: 'next', autoCorrect: 'off', spellCheck: false
+              }
+            }}
+          />
+          <Box>
+            <PasswordField
+              label="Yeni Şifre"
+              value={newPassword}
+              onChange={e => setNewPassword(e.target.value)}
+              {...resetForm.field('newPassword')}
+              helperText={resetForm.error('newPassword') || `En az ${LIMITS.PASSWORD_MIN} karakter`}
+              autoComplete="new-password"
+              required
+              fullWidth
+              slotProps={{ htmlInput: { enterKeyHint: 'next' } }}
+            />
+            <Box sx={{ mt: 1 }}><PasswordStrengthMeter password={newPassword} /></Box>
+          </Box>
+          <PasswordField
+            label="Yeni Şifre (Tekrar)"
+            value={confirmPassword}
+            onChange={e => setConfirmPassword(e.target.value)}
+            {...resetForm.field('confirmPassword')}
+            helperText={resetForm.error('confirmPassword')}
+            autoComplete="new-password"
+            required
+            fullWidth
+            slotProps={{ htmlInput: { enterKeyHint: 'done' } }}
+          />
+          <Button type="submit" variant="contained" disabled={loading} fullWidth size="large">
+            {loading ? (
+              <Stack direction="row" spacing={1.5} alignItems="center">
+                <CircularProgress size={20} color="inherit" />
+                <span>Kaydediliyor...</span>
+              </Stack>
+            ) : 'Şifreyi Sıfırla'}
+          </Button>
+          <Button
+            variant="text"
+            size="small"
+            onClick={() => setStep('request')}
+            disabled={loading}
+          >
+            Kod gelmedi mi? Tekrar dene
+          </Button>
+        </Stack>
+      </Box>
+    </>
+  )}
+    </AuthLayout>
   )
 }

@@ -1,28 +1,56 @@
-import { Avatar, Box, ButtonBase, Dialog, DialogContent, DialogTitle, IconButton, Stack, Typography } from '@mui/material'
-import { CloseRounded, PeopleAltRounded } from '@mui/icons-material'
+import {
+  Box, ButtonBase, Dialog, DialogContent, DialogTitle, IconButton, Skeleton, Stack, Typography, useMediaQuery
+} from '@mui/material'
+import { useTheme } from '@mui/material/styles'
+import { ChevronRightRounded, CloseRounded } from '@mui/icons-material'
 import EmptyState from '../EmptyState.jsx'
-import CenteredSpinner from '../common/CenteredSpinner.jsx'
 import LoadMoreButton from '../common/LoadMoreButton.jsx'
-import { initialsFrom } from '../../utils/format.js'
+import UserAvatar from '../avatars/UserAvatar.jsx'
+import SlideUp from '../shell/SlideUp.jsx'
 import { fullNameOf } from '../../utils/text.js'
 
-// Bir hastalık grubunun üye listesi (sayfalı). Satıra dokunmak profile gider.
-export default function GroupMembersDialog({ open, onClose, members, loading, loadingMore, hasMore, onLoadMore, onOpenProfile }) {
+function MemberRowSkeleton() {
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="xs">
-      <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+    <Stack direction="row" spacing={1.5} alignItems="center" sx={{ px: 2.5, py: 1.25 }}>
+      <Skeleton variant="circular" width={44} height={44} />
+      <Skeleton variant="text" width="50%" />
+    </Stack>
+  )
+}
+
+// Bir hastalık grubunun üye listesi (sayfalı). Satıra dokunmak profile gider.
+// Mobilde tam ekran, alttan kayarak açılır.
+export default function GroupMembersDialog({ open, onClose, members, loading, loadingMore, hasMore, onLoadMore, onOpenProfile }) {
+  const theme = useTheme()
+  const fullScreen = useMediaQuery(theme.breakpoints.down('sm'))
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      fullWidth
+      maxWidth="xs"
+      fullScreen={fullScreen}
+      slots={fullScreen ? { transition: SlideUp } : undefined}
+      aria-labelledby="group-members-title"
+    >
+      <DialogTitle
+        id="group-members-title"
+        sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pt: fullScreen ? 'calc(env(safe-area-inset-top) + 16px)' : 2 }}
+      >
         Üyeler
-        <IconButton size="small" onClick={onClose} aria-label="Kapat">
-          <CloseRounded fontSize="small" />
+        <IconButton onClick={onClose} aria-label="Kapat" sx={{ width: 44, height: 44, mr: -1 }}>
+          <CloseRounded />
         </IconButton>
       </DialogTitle>
       <DialogContent dividers sx={{ p: 0 }}>
         {loading ? (
-          <CenteredSpinner />
+          <Box role="status" aria-label="Üyeler yükleniyor">
+            {[0, 1, 2, 3, 4].map(i => <MemberRowSkeleton key={i} />)}
+          </Box>
         ) : members.length === 0 ? (
-          <EmptyState icon={PeopleAltRounded} title="Henüz üye yok." dense />
+          <EmptyState companion="serce" title="Henüz üye yok" description="İlk katılan sen olabilirsin." dense />
         ) : (
-          <Stack divider={<Box sx={{ borderBottom: '1px solid', borderColor: 'divider' }} />}>
+          <Stack sx={{ py: 0.5 }}>
             {members.map(m => {
               const fullName = fullNameOf(m, 'Kullanıcı')
               return (
@@ -30,10 +58,17 @@ export default function GroupMembersDialog({ open, onClose, members, loading, lo
                   key={m.id}
                   onClick={() => onOpenProfile(m.id)}
                   aria-label={`${fullName} profiline git`}
-                  sx={{ display: 'flex', justifyContent: 'flex-start', gap: 1.5, px: 2, py: 1.25, '&:hover': { bgcolor: 'action.hover' } }}
+                  sx={{
+                    display: 'flex', justifyContent: 'flex-start', gap: 1.5, px: 2.5, py: 1, minHeight: 60,
+                    '&:hover': { bgcolor: 'action.hover' },
+                    '&.Mui-focusVisible': { bgcolor: 'action.focus' }
+                  }}
                 >
-                  <Avatar sx={{ width: 36, height: 36, fontSize: 14, fontWeight: 600 }}>{initialsFrom(fullName)}</Avatar>
-                  <Typography variant="body2" component="span" sx={{ fontWeight: 600, color: 'text.primary' }} noWrap>{fullName}</Typography>
+                  <UserAvatar avatarKey={m.avatarKey} name={fullName} size={44} />
+                  <Typography variant="body1" component="span" sx={{ fontWeight: 700, color: 'text.primary', flex: 1, textAlign: 'left' }} noWrap>
+                    {fullName}
+                  </Typography>
+                  <ChevronRightRounded sx={{ color: 'text.secondary' }} aria-hidden />
                 </ButtonBase>
               )
             })}

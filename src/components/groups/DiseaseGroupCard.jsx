@@ -1,10 +1,20 @@
-import { Box, Button, Chip, CircularProgress, Stack, Typography } from '@mui/material'
-import { PeopleAltRounded } from '@mui/icons-material'
+import { Box, Button, CircularProgress, Skeleton, Stack, Typography } from '@mui/material'
+import { CheckCircleRounded, PeopleAltRounded } from '@mui/icons-material'
 import GroupIcon from './GroupIcon.jsx'
 import { cardActivationProps } from '../../utils/clickable.js'
 
+const groupCardSx = {
+  p: { xs: 2, sm: 2.25 },
+  borderRadius: '22px',
+  bgcolor: 'background.paper',
+  border: '1px solid',
+  borderColor: 'brand.border',
+  boxShadow: 1,
+}
+
 // Grup listesindeki kart: kartın kendisi gruba girer (birincil eylem),
-// Katıl/Ayrıl sağda kompakt ikincil bir buton.
+// Katıl/Ayrıl altta ikincil bir buton. Katıldığın gruplar yeşil bir
+// "Katıldın" rozetiyle (ikon + metin) ve ince yeşil kenarla belli olur.
 export default function DiseaseGroupCard({ group, joined, pending, onOpen, onJoin, onLeave }) {
   const handleMembership = (e) => {
     e.stopPropagation()
@@ -16,58 +26,83 @@ export default function DiseaseGroupCard({ group, joined, pending, onOpen, onJoi
       {...cardActivationProps(onOpen, group.name)}
       className="tap-scale"
       sx={{
-        p: { xs: 2, md: 2.5 },
-        borderRadius: 3,
-        bgcolor: 'background.paper',
-        border: '1px solid',
-        borderColor: joined ? 'primary.main' : 'transparent',
+        ...groupCardSx,
+        display: 'flex', flexDirection: 'column', gap: 1.25,
+        borderColor: joined ? 'primary.light' : 'brand.border',
         cursor: 'pointer',
-        position: 'relative',
-        overflow: 'hidden',
-        transition: 'background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease',
-        '&:hover': { bgcolor: 'action.hover', boxShadow: '0 4px 16px rgba(0,0,0,0.10)' },
-        '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 2 }
+        transition: 'border-color 200ms ease, box-shadow 240ms ease, transform 160ms var(--ease-spring)',
+        '@media (hover: hover)': { '&:hover': { boxShadow: 3, borderColor: joined ? 'primary.main' : 'brand.borderStrong' } },
+        '&:focus-visible': { outline: '3px solid', outlineColor: 'primary.light', outlineOffset: 2 }
       }}
     >
-      <Stack direction="row" spacing={1.5} alignItems="center">
-        <GroupIcon size={46} iconSize={24} />
+      <Stack direction="row" spacing={1.5} alignItems="flex-start">
+        <GroupIcon size={50} iconSize={26} />
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="wrap" useFlexGap>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'text.primary', wordBreak: 'break-word' }}>
-              {group.name}
-            </Typography>
-            {joined && <Chip label="Katıldın" size="small" color="primary" variant="filled" sx={{ height: 24 }} />}
-          </Stack>
-          <Stack direction="row" spacing={0.5} alignItems="center">
-            <PeopleAltRounded sx={{ fontSize: 14, color: 'text.secondary' }} />
-            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500 }}>
+          <Typography
+            variant="subtitle1"
+            component="h2"
+            sx={{ fontFamily: (t) => t.typography.h5.fontFamily, fontSize: '1.2rem', fontWeight: 700, lineHeight: 1.3, color: 'text.primary', wordBreak: 'break-word' }}
+          >
+            {group.name}
+          </Typography>
+          <Stack direction="row" spacing={0.5} alignItems="center" sx={{ color: 'text.secondary', mt: 0.25 }}>
+            <PeopleAltRounded sx={{ fontSize: 16 }} />
+            <Typography variant="caption" sx={{ color: 'inherit', fontWeight: 700 }}>
               {group.memberCount ?? 0} üye
             </Typography>
           </Stack>
-          {group.description && (
-            <Typography
-              variant="body2"
-              sx={{
-                color: 'text.secondary', mt: 0.25, overflow: 'hidden', textOverflow: 'ellipsis',
-                display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical'
-              }}
-            >
-              {group.description}
-            </Typography>
-          )}
         </Box>
+      </Stack>
+      {group.description && (
+        <Typography
+          variant="body2"
+          sx={{
+            color: 'text.secondary', overflow: 'hidden', textOverflow: 'ellipsis',
+            display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical'
+          }}
+        >
+          {group.description}
+        </Typography>
+      )}
+      <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1} sx={{ mt: 'auto', pt: 0.25 }}>
+        {joined ? (
+          <Stack direction="row" spacing={0.5} alignItems="center" sx={{ color: 'primary.main' }}>
+            <CheckCircleRounded sx={{ fontSize: 18 }} />
+            <Typography component="span" variant="body2" sx={{ fontWeight: 800, color: 'inherit' }}>Katıldın</Typography>
+          </Stack>
+        ) : <Box />}
         <Button
-          variant={joined ? 'outlined' : 'contained'}
+          variant={joined ? 'text' : 'contained'}
           size="small"
           disabled={pending}
           onClick={handleMembership}
-          sx={{
-            flexShrink: 0, borderRadius: 999, minHeight: 40, minWidth: 84, px: 1.75, alignSelf: 'center',
-            ...(joined ? { color: 'text.secondary', borderColor: 'divider' } : {})
-          }}
+          sx={{ flexShrink: 0, minHeight: 44, minWidth: 92, px: 2.25 }}
         >
-          {pending ? <CircularProgress size={16} color="inherit" /> : (joined ? 'Ayrıl' : 'Katıl')}
+          {pending ? <CircularProgress size={16} color="inherit" aria-label="İşleniyor" /> : (joined ? 'Ayrıl' : 'Katıl')}
         </Button>
+      </Stack>
+    </Box>
+  )
+}
+
+// Liste yüklenirken aynı ölçülerde taslak kart.
+export function DiseaseGroupCardSkeleton() {
+  return (
+    <Box aria-hidden sx={{ ...groupCardSx, display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+      <Stack direction="row" spacing={1.5} alignItems="center">
+        <Skeleton variant="rounded" width={50} height={50} sx={{ borderRadius: '16px' }} />
+        <Box sx={{ flex: 1 }}>
+          <Skeleton variant="text" width="65%" sx={{ fontSize: '1.2rem' }} />
+          <Skeleton variant="text" width="30%" sx={{ fontSize: '0.8rem' }} />
+        </Box>
+      </Stack>
+      <Box>
+        <Skeleton variant="text" width="100%" />
+        <Skeleton variant="text" width="72%" />
+      </Box>
+      <Stack direction="row" justifyContent="space-between" alignItems="center">
+        <Skeleton variant="text" width={120} />
+        <Skeleton variant="rounded" width={92} height={40} sx={{ borderRadius: 999 }} />
       </Stack>
     </Box>
   )

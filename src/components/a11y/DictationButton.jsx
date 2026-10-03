@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { IconButton, Tooltip } from '@mui/material'
+import { IconButton, Tooltip, useTheme } from '@mui/material'
+import { alpha } from '@mui/material/styles'
 import { MicNoneRounded, MicRounded } from '@mui/icons-material'
 import { useNotification } from '../../context/NotificationContext.jsx'
 import { getRecognitionCtor } from '../../utils/speech.js'
@@ -11,6 +12,7 @@ import { getRecognitionCtor } from '../../utils/speech.js'
  * metin yazmak zor gelenler için.
  */
 export default function DictationButton({ onText, disabled = false, size = 'medium', label = 'Sesle yaz' }) {
+  const theme = useTheme()
   const { showError, showInfo } = useNotification()
   const [listening, setListening] = useState(false)
   const recRef = useRef(null)
@@ -73,8 +75,8 @@ export default function DictationButton({ onText, disabled = false, size = 'medi
               bgcolor: 'action.selected',
               animation: 'dictation-pulse 1.4s ease-in-out infinite',
               '@keyframes dictation-pulse': {
-                '0%, 100%': { boxShadow: '0 0 0 0 rgba(220, 80, 70, 0.35)' },
-                '50%': { boxShadow: '0 0 0 8px rgba(220, 80, 70, 0)' }
+                '0%, 100%': { boxShadow: `0 0 0 0 ${alpha(theme.palette.error.main, 0.35)}` },
+                '50%': { boxShadow: `0 0 0 8px ${alpha(theme.palette.error.main, 0)}` }
               },
               '@media (prefers-reduced-motion: reduce)': { animation: 'none' }
             } : {})

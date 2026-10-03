@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Avatar, Box, Button, Chip, Collapse, IconButton, Stack, Tab, Tabs, Typography } from '@mui/material'
+import { Box, Button, Chip, Collapse, IconButton, Skeleton, Stack, Tab, Tabs, Typography } from '@mui/material'
 import {
   BookmarkBorderRounded, DynamicFeedRounded, EditOutlined, ExploreOutlined, GroupsRounded, SettingsOutlined
 } from '@mui/icons-material'
@@ -7,19 +7,23 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import HealthSummary from '../../components/profile/HealthSummary.jsx'
 import ProfileStat from '../../components/profile/ProfileStat.jsx'
 import ProfileEditForm from '../../components/profile/ProfileEditForm.jsx'
-import MyGroupRow from '../../components/profile/MyGroupRow.jsx'
+import MyGroupRow, { MyGroupRowSkeleton } from '../../components/profile/MyGroupRow.jsx'
+import ProfileHeader, { ProfileAvatar, ProfileHeaderSkeleton, StatStrip } from '../../components/profile/ProfileHeader.jsx'
+import HelpfulHint from '../../components/profile/HelpfulHint.jsx'
+import AvatarPicker from '../../components/avatars/AvatarPicker.jsx'
+import AvatarUnlockWatcher from '../../components/avatars/AvatarUnlockWatcher.jsx'
+import CompanionEmpty from '../../components/avatars/CompanionEmpty.jsx'
 import PostList from '../../components/PostList.jsx'
+import PostCardSkeleton from '../../components/PostCardSkeleton.jsx'
 import VerifiedBadge from '../../components/VerifiedBadge.jsx'
-import EmptyState from '../../components/EmptyState.jsx'
-import CenteredSpinner from '../../components/common/CenteredSpinner.jsx'
 import LoadMoreButton from '../../components/common/LoadMoreButton.jsx'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
 import { getMyDiseaseGroups, getMyPosts, getMySavedPosts, getUserProfile } from '../../services/api.js'
-import { initialsFrom } from '../../utils/format.js'
 import { fullNameOf } from '../../utils/text.js'
 import { usePaginatedList } from '../../hooks/usePaginatedList.js'
 import { useGroupMembership } from '../../hooks/useGroupMembership.js'
+import '../../styles/companions.css'
 
 const TABS = [
   { key: 'posts', label: 'Gönderiler', icon: DynamicFeedRounded },
@@ -45,13 +49,13 @@ function useProfileTab() {
 // Yorum ve "faydalı" sayıları /users/me yanıtında gelir. İkincil veri:
 // yüklenemezse 0 gösterilir, sayfa akışı bozulmaz.
 function useProfileStats(token) {
-  const [stats, setStats] = useState({ commentCount: 0, likesReceived: 0 })
+  const [stats, setStats] = useState({ commentCount: 0, likesReceived: 0, loading: true })
   useEffect(() => {
     if (!token) return undefined
     let alive = true
     getUserProfile(token)
-      .then(res => { if (alive) setStats({ commentCount: res?.commentCount ?? 0, likesReceived: res?.likesReceived ?? 0 }) })
-      .catch(() => {})
+      .then(res => { if (alive) setStats({ commentCount: res?.commentCount ?? 0, likesReceived: res?.likesReceived ?? 0, loading: false }) })
+      .catch(() => { if (alive) setStats(s => ({ ...s, loading: false })) })
     return () => { alive = false }
   }, [token])
   return stats
@@ -65,17 +69,27 @@ function useMyGroupsList(token, showError) {
     let alive = true
     getMyDiseaseGroups(token)
       .then(data => { if (alive) setGroups(Array.isArray(data) ? data : []) })
-      .catch(err => { if (alive) showError(err.message || 'Gruplar alınamadı.') })
+      .catch(err => { if (alive) showError(err.message || 'Grupların alınamadı. Sayfayı yenileyip tekrar dener misin?') })
       .finally(() => { if (alive) setLoading(false) })
     return () => { alive = false }
   }, [token, showError])
   return { groups, setGroups, loading }
 }
 
+function PostsSkeleton() {
+  return (
+    <Box aria-busy="true" aria-label="Gönderiler yükleniyor">
+      <PostCardSkeleton />
+      <PostCardSkeleton />
+      <PostCardSkeleton />
+    </Box>
+  )
+}
+
 /**
- * Kendi profilin: kimlik bloğu (avatar/isim/istatistik/bio) üstte, altında
- * Gönderiler / Kaydedilenler / Gruplarım sekmeleri. Hesap ayarları ayrı
- * ekranda (/profile/settings, dişli ikonu).
+ * Kendi profilin: kimlik kartı (yol arkadaşın, isim, istatistikler, sıradaki
+ * yol arkadaşı ipucu) üstte, altında Gönderiler / Kaydedilenler / Gruplarım
+ * sekmeleri. Hesap ayarları ayrı ekranda (/profile/settings, dişli ikonu).
  */
 export default function Profile() {
   const { token, user } = useAuth()
@@ -83,6 +97,9 @@ export default function Profile() {
   const navigate = useNavigate()
   const [activeTab, setTab] = useProfileTab()
   const [editOpen, setEditOpen] = useState(false)
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const openPicker = useCallback(() => setPickerOpen(true), [])
+  const closePicker = useCallback(() => setPickerOpen(false), [])
 
   const stats = useProfileStats(token)
   const myGroups = useMyGroupsList(token, showError)
@@ -92,7 +109,7 @@ export default function Profile() {
   const posts = usePaginatedList(postsFetcher, {
     enabled: !!token,
     deps: [token],
-    onError: err => showError(err.message || 'Gönderilerin alınamadı.')
+    onError: err => showError(err.message || 'Gönderilerin alınamadı. Biraz sonra tekrar dener misin?')
   })
 
   const savedFetcher = useCallback((page) => getMySavedPosts(token, { page }), [token])
@@ -100,86 +117,80 @@ export default function Profile() {
     enabled: activeTab === 'saved' && !!token,
     once: true,
     deps: [token],
-    onError: err => showError(err.message || 'Kaydedilen gönderiler alınamadı.')
+    onError: err => showError(err.message || 'Kaydettiğin gönderiler alınamadı. Biraz sonra tekrar dener misin?')
   })
 
   const handleLeave = async (group) => {
     if (await leave(group)) myGroups.setGroups(prev => prev.filter(g => g.id !== group.id))
   }
 
-  if (!user) return <CenteredSpinner page />
+  const pageSx = { width: '100%', maxWidth: 680, mx: 'auto', py: { xs: 1.5, md: 4 } }
+
+  if (!user) {
+    return (
+      <Box sx={pageSx}>
+        <ProfileHeaderSkeleton />
+        <Skeleton variant="rounded" height={48} sx={{ my: 2.5 }} />
+        <PostsSkeleton />
+      </Box>
+    )
+  }
 
   const fullName = fullNameOf(user, 'Kullanıcı')
   const hasGroups = myGroups.groups.length > 0
 
   return (
-    <Box sx={{ width: '100%', maxWidth: 680, mx: 'auto', py: { xs: 2, md: 4 } }}>
-      {/* Kimlik bloğu */}
-      <Box sx={{ mb: 2, px: { xs: 0.5, md: 0 } }}>
-        <Stack direction="row" spacing={{ xs: 2, md: 3 }} alignItems="center">
-          <Avatar
-            sx={{
-              width: { xs: 72, md: 96 }, height: { xs: 72, md: 96 }, flexShrink: 0,
-              fontSize: { xs: 22, md: 30 }, fontWeight: 600,
-              border: '3px solid', borderColor: 'primary.main'
-            }}
-          >
-            {initialsFrom(fullName)}
-          </Avatar>
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Stack direction="row" alignItems="flex-start" spacing={0.5}>
-              <Typography variant="h2" sx={{ fontWeight: 700, mb: 0.5, wordBreak: 'break-word', flex: 1, fontSize: { xs: '1.375rem', md: undefined } }}>
-                {fullName}
-              </Typography>
-              <IconButton onClick={() => navigate('/profile/settings')} sx={{ flexShrink: 0, mt: -0.75, width: 44, height: 44 }} aria-label="Ayarlar">
-                <SettingsOutlined />
-              </IconButton>
-            </Stack>
-            <Stack direction="row" spacing={{ xs: 1.75, md: 3 }} sx={{ mt: 0.25 }} flexWrap="wrap" useFlexGap>
-              <ProfileStat value={posts.totalCount} label="Gönderi" onClick={() => setTab('posts')} />
-              <ProfileStat value={stats.commentCount} label="Yorum" />
-              <ProfileStat value={myGroups.groups.length} label="Grup" onClick={() => setTab('groups')} />
-              <ProfileStat value={stats.likesReceived} label="Faydalı" highlight />
-            </Stack>
-          </Box>
-        </Stack>
+    <Box className="page-transition" sx={pageSx}>
+      <AvatarUnlockWatcher />
 
-        <Box sx={{ mt: 1.25 }}>
-          {user.emailVerified ? (
-            <VerifiedBadge />
-          ) : (
-            <Chip
-              label="E-posta doğrulanmadı · Ayarlar"
-              size="small" color="warning" variant="outlined"
-              onClick={() => navigate('/profile/settings')}
-              sx={{ height: 28 }}
-            />
-          )}
-        </Box>
-
-        <HealthSummary profile={user} sx={{ mt: 1.25 }} />
-        {user.bio && (
-          <Typography variant="body2" sx={{ color: 'text.primary', mt: 1.25, wordBreak: 'break-word', overflowWrap: 'anywhere', whiteSpace: 'pre-line' }}>
-            {user.bio}
-          </Typography>
+      <ProfileHeader
+        avatar={<ProfileAvatar avatarKey={user.avatarKey} name={fullName} onEdit={openPicker} />}
+        name={fullName}
+        badge={user.emailVerified ? <VerifiedBadge /> : (
+          <Chip
+            label="E-postanı doğrula"
+            size="small" color="warning" variant="outlined"
+            onClick={() => navigate('/profile/settings')}
+            sx={{ height: 28 }}
+          />
         )}
-
+        summary={<HealthSummary profile={user} />}
+        bio={user.bio}
+        topRight={(
+          <IconButton
+            onClick={() => navigate('/profile/settings')}
+            aria-label="Ayarlar"
+            sx={{ width: 44, height: 44, bgcolor: 'background.paper', '&:hover': { bgcolor: 'background.paper' } }}
+          >
+            <SettingsOutlined />
+          </IconButton>
+        )}
+        stats={(
+          <StatStrip>
+            <ProfileStat value={posts.totalCount} label="Gönderi" onClick={() => setTab('posts')} loading={posts.loading} />
+            <ProfileStat value={stats.commentCount} label="Yorum" loading={stats.loading} />
+            <ProfileStat value={myGroups.groups.length} label="Grup" onClick={() => setTab('groups')} loading={myGroups.loading} />
+            <ProfileStat value={stats.likesReceived} label="Faydalı" highlight loading={stats.loading} />
+          </StatStrip>
+        )}
+      >
+        <HelpfulHint userId={user.id} onOpen={openPicker} />
         {!editOpen && (
           <Button
             fullWidth
             variant="outlined"
             startIcon={<EditOutlined />}
             onClick={() => setEditOpen(true)}
-            sx={{ mt: 1.75, minHeight: 40, color: 'text.primary', borderColor: 'divider', fontWeight: 600 }}
+            sx={{ mt: 2, maxWidth: { md: 240 } }}
           >
             Profili düzenle
           </Button>
         )}
-      </Box>
+      </ProfileHeader>
 
       <Collapse in={editOpen} unmountOnExit>
-        <Box sx={{ px: { xs: 0.5, md: 0 }, mb: 3 }}>
-          <ProfileEditForm onDone={() => setEditOpen(false)} />
+        <Box sx={{ mt: 2 }}>
+          <ProfileEditForm onDone={() => setEditOpen(false)} onEditAvatar={openPicker} />
         </Box>
       </Collapse>
 
@@ -189,8 +200,8 @@ export default function Profile() {
         variant="fullWidth"
         aria-label="Profil bölümleri"
         sx={{
-          mb: 2, borderBottom: '1px solid', borderColor: 'divider', minHeight: 48,
-          '& .MuiTab-root': { minHeight: 48, minWidth: 0, px: 1, textTransform: 'none', fontWeight: 600 },
+          mt: 2.5, mb: 2, borderBottom: '1px solid', borderColor: 'divider', minHeight: 48,
+          '& .MuiTab-root': { minHeight: 48, minWidth: 0, px: 1 },
           '& .MuiTab-icon': { display: { xs: 'none', sm: 'inline-flex' } }
         }}
       >
@@ -201,11 +212,11 @@ export default function Profile() {
       </Tabs>
 
       {activeTab === 'posts' && (
-        posts.loading ? <CenteredSpinner /> : posts.items.length === 0 ? (
-          <EmptyState
-            icon={DynamicFeedRounded}
-            title="Henüz gönderin yok."
-            description="Bir alt gruba girip deneyimini paylaşarak başlayabilirsin."
+        posts.loading ? <PostsSkeleton /> : posts.items.length === 0 ? (
+          <CompanionEmpty
+            companion="filiz"
+            title="Hikâyen burada büyüyecek"
+            description="Bir deneyimini ya da sorunu paylaştığında burada görünür. Küçük bir paylaşım bile birine yol gösterebilir."
             actionLabel={hasGroups ? 'Gruplarıma git' : 'Grupları keşfet'}
             onAction={() => (hasGroups ? setTab('groups') : navigate('/groups'))}
             dense
@@ -219,11 +230,11 @@ export default function Profile() {
       )}
 
       {activeTab === 'saved' && (
-        saved.loading ? <CenteredSpinner /> : saved.items.length === 0 ? (
-          <EmptyState
-            icon={BookmarkBorderRounded}
-            title="Kaydettiğin gönderi yok."
-            description="Gönderilerdeki yer imi simgesine dokunarak sonra okumak için kaydedebilirsin."
+        saved.loading ? <PostsSkeleton /> : saved.items.length === 0 ? (
+          <CompanionEmpty
+            companion="baykus"
+            title="Kaydettiğin gönderi yok"
+            description="Sonra yeniden okumak istediğin bir gönderide yer imi simgesine dokun; burada seni bekler."
             dense
           />
         ) : (
@@ -235,27 +246,31 @@ export default function Profile() {
       )}
 
       {activeTab === 'groups' && (
-        <Box sx={{ px: { xs: 0.5, md: 0 } }}>
-          {myGroups.loading ? <CenteredSpinner /> : !hasGroups ? (
-            <EmptyState
-              icon={GroupsRounded}
-              title="Henüz bir gruba katılmadın."
-              description="Seninle aynı süreçten geçen insanlarla tanışmak için bir hastalık grubuna katıl."
+        <Box>
+          {myGroups.loading ? (
+            <Stack spacing={1} aria-busy="true" aria-label="Grupların yükleniyor">
+              {[0, 1, 2].map(i => <MyGroupRowSkeleton key={i} />)}
+            </Stack>
+          ) : !hasGroups ? (
+            <CompanionEmpty
+              companion="kaplumbaga"
+              title="Henüz bir gruba katılmadın"
+              description="Seninle aynı süreçten geçen insanlar bir hastalık grubunda buluşuyor. Sana uygun olanı bul, selam ver."
               actionLabel="Grupları keşfet"
               onAction={() => navigate('/groups')}
               dense
             />
           ) : (
             <>
-              <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.25 }}>
-                <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+              <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.25, px: 0.5 }}>
+                <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 700 }}>
                   {myGroups.groups.length} gruba üyesin
                 </Typography>
-                <Button size="small" startIcon={<ExploreOutlined />} onClick={() => navigate('/groups')} sx={{ minHeight: 40 }}>
+                <Button size="small" startIcon={<ExploreOutlined />} onClick={() => navigate('/groups')} sx={{ minHeight: 44 }}>
                   Keşfet
                 </Button>
               </Stack>
-              <Stack spacing={1} component="ul" sx={{ listStyle: 'none', p: 0, m: 0 }}>
+              <Stack spacing={1} component="ul" className="sg-stagger" sx={{ listStyle: 'none', p: 0, m: 0 }}>
                 {myGroups.groups.map(g => (
                   <li key={g.id}>
                     <MyGroupRow
@@ -271,6 +286,8 @@ export default function Profile() {
           )}
         </Box>
       )}
+
+      <AvatarPicker open={pickerOpen} onClose={closePicker} />
     </Box>
   )
 }

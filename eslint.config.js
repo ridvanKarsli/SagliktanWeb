@@ -40,7 +40,7 @@ export default defineConfig([
     // kalıyordu; sonucu sadece HMR'da o dosya düzenlenince tam yenileme
     // yapılması (geliştirme konforu), bir üretim sorunu değil. Bu dosyalar
     // için uyarıya indiriliyor ki lint gerçek hataları yakalamaya yarasın.
-    files: ['src/context/**/*.jsx'],
+    files: ['src/context/**/*.jsx', 'src/components/avatars/avatarArt.jsx'],
     rules: {
       'react-refresh/only-export-components': 'off',
     },

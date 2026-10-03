@@ -1,10 +1,12 @@
 import { ForumOutlined, HelpOutlineRounded, PollOutlined } from '@mui/icons-material'
+import { LIMITS, validatePollOptions } from '../../utils/validation.js'
 
-export const TITLE_MAX = 255
-export const CONTENT_MAX = 10000
-export const POLL_MIN_OPTIONS = 2
-export const POLL_MAX_OPTIONS = 6
-export const POLL_OPTION_MAX = 120
+// Sınırların tek kaynağı utils/validation.js (backend PostRequest/PollServiceImpl).
+export const TITLE_MAX = LIMITS.TITLE_MAX
+export const CONTENT_MAX = LIMITS.CONTENT_MAX
+export const POLL_MIN_OPTIONS = LIMITS.POLL_MIN_OPTIONS
+export const POLL_MAX_OPTIONS = LIMITS.POLL_MAX_OPTIONS
+export const POLL_OPTION_MAX = LIMITS.POLL_OPTION_MAX
 
 export const EMPTY_POLL_OPTIONS = Object.freeze(['', ''])
 
@@ -12,19 +14,19 @@ export const EMPTY_POLL_OPTIONS = Object.freeze(['', ''])
 export const POST_TYPES = [
   {
     value: 'DISCUSSION', label: 'Gönderi', icon: ForumOutlined,
-    hint: 'Deneyimini, gününü ya da öğrendiğin bir şeyi paylaş.',
+    hint: 'Bir deneyim, gününden bir an ya da küçük bir sevinç. Ne paylaşırsan, okuyan birine iyi gelebilir.',
     titleLabel: 'Başlık', titlePlaceholder: 'Kısa ve anlaşılır bir başlık',
     contentLabel: 'İçerik', contentPlaceholder: 'Deneyimini anlat…'
   },
   {
     value: 'QUESTION', label: 'Soru', icon: HelpOutlineRounded,
-    hint: 'Sorular "Cevap bekleyenler"de öne çıkar; en iyi cevabı sen seçersin.',
+    hint: 'Sorun "Cevap bekleyenler"de öne çıkar; deneyimi olanlar yanıtlar, en işine yarayanı sen seçersin.',
     titleLabel: 'Sorun', titlePlaceholder: 'Sorunu tek cümleyle yaz',
     contentLabel: 'Ayrıntılar', contentPlaceholder: 'Durumunu, neler denediğini ve neyi merak ettiğini anlat…'
   },
   {
     value: 'POLL', label: 'Anket', icon: PollOutlined,
-    hint: 'Gruba tek dokunuşla yanıtlanacak bir soru sor (2-6 seçenek).',
+    hint: 'Gruba tek dokunuşla yanıtlanacak bir soru sor (2-6 seçenek). Oy verenler sonuçları hemen görür.',
     titleLabel: 'Anket sorusu', titlePlaceholder: 'Örn. Hangi tedaviyi denediniz?',
     contentLabel: 'Açıklama', contentPlaceholder: 'Neden soruyorsun? Kısa bir açıklama ekle…'
   },
@@ -38,9 +40,6 @@ export function isKnownPostType(value) {
   return POST_TYPES.some(t => t.value === value)
 }
 
-// Boş olmayan, kırpılmış seçenekler ve anketin geçerliliği (en az 2 farklı seçenek).
-export function normalizePollOptions(options) {
-  const clean = options.map(o => o.trim()).filter(Boolean)
-  const distinct = new Set(clean.map(o => o.toLocaleLowerCase('tr'))).size === clean.length
-  return { clean, valid: clean.length >= POLL_MIN_OPTIONS && distinct }
-}
+// Boş olmayan, kırpılmış seçenekler, anketin geçerliliği ve seçenek bazlı
+// hatalar (bkz. validation.validatePollOptions).
+export const normalizePollOptions = validatePollOptions

@@ -1,53 +1,96 @@
-
-
 * { box-sizing: border-box; }
-html, body, #root { 
+html, body, #root {
   height: 100%;
   overflow-x: hidden;
   width: 100%;
 }
 
-/* Faz4 tasarım revizyonu: köşelerde dolaşan renkli "ambient glow" katmanı
-   kaldırıldı - X.com gibi olgun, bilgi-yoğun ürünlerin ortak özelliği düz/
-   nötr bir zemin üzerine içeriğin kendisinin öne çıkmasıdır; dekoratif
-   gradyanlar "wellness/hobi uygulaması" hissi veriyordu (bkz. kullanıcı
-   geri bildirimi: "tasarım hiç de x kadar profesyonel değil"). Düz zemin
-   JS yüklenmeden önce de (index.css) theme.js'teki CssBaseline body
-   override'ı ile birebir aynı tutulmalı. */
+/* İlk boyamada (JS yüklenmeden) zemin, theme.js ile aynı olmalı - bkz.
+   public/theme-init.js, <html data-theme> değerini React'tan önce yazar. */
 body {
-  background-color: #1E1A16; /* Sıcak espresso zemin (koyu tema varsayılan) */
+  background-color: #F2F7F4;
   margin: 0;
   position: relative;
+  font-family: "Nunito Variable", "Nunito", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
-
-/* Faz6: açık tema - index.html'deki inline script, React yüklenmeden ÖNCE
-   localStorage'dan okuyup <html data-theme> yazıyor ki bu kural JS
-   çalışmadan önce de doğru zeminle boyansın (bkz. index.html'deki not). */
-html[data-theme='light'] body {
-  background-color: #FAF8F5; /* Sıcak kırık beyaz zemin - theme.js lightColors.background ile aynı */
-}
+html[data-theme='dark'] body { background-color: #0F1F1C; }
 
 :root {
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-flow: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-/* Ana ekrana eklenip tam ekran (standalone) çalışırken tarayıcının kendi
-   "geri kaydırınca sayfayı yenile" / lastik gibi zıplama efekti olmasın -
-   native app hissini bozan en büyük detaylardan biri budur. */
-html, body {
-  overscroll-behavior-y: contain;
-}
+/* Ana ekrana eklenmiş (standalone) kullanımda lastik zıplamasını kapat. */
+html, body { overscroll-behavior-y: contain; }
 
 :focus-visible {
-  outline: 2px solid rgba(76,184,159,0.9);
+  outline: 3px solid rgba(76, 184, 159, 0.75);
   outline-offset: 2px;
-  border-radius: 8px;
+  border-radius: 10px;
 }
 
-/* Mobil için görsel ve içerik genişlik kontrolü */
 img, video, iframe {
   max-width: 100%;
   height: auto;
   display: block;
+}
+
+/* ---- Hareket kütüphanesi (bkz. design/tokens.js motion) ----
+   Kullanıcının bir eylemine cevap veren kısa hareketler; dekoratif sürekli
+   animasyon yok. prefers-reduced-motion'da hepsi kapanır. */
+
+@keyframes sg-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes sg-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes sg-pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.28); }
+  100% { transform: scale(1); }
+}
+@keyframes sg-wiggle {
+  0%, 100% { transform: rotate(0); }
+  25% { transform: rotate(-8deg); }
+  75% { transform: rotate(8deg); }
+}
+@keyframes sg-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+@keyframes sg-leaf-fall {
+  0% { opacity: 0; transform: translate3d(0, -10px, 0) rotate(0deg); }
+  15% { opacity: 1; }
+  100% { opacity: 0; transform: translate3d(var(--sg-drift, 30px), 120px, 0) rotate(var(--sg-spin, 220deg)); }
+}
+
+/* Sayfa geçişi: içerik yumuşakça yerine oturur. */
+.page-transition { animation: sg-rise 360ms var(--ease-flow) both; }
+/* Listelerde ilk yüklemede tek seferlik kademeli giriş. */
+.sg-stagger > * { animation: sg-rise 380ms var(--ease-flow) both; }
+.sg-stagger > *:nth-child(2) { animation-delay: 40ms; }
+.sg-stagger > *:nth-child(3) { animation-delay: 80ms; }
+.sg-stagger > *:nth-child(4) { animation-delay: 120ms; }
+.sg-stagger > *:nth-child(5) { animation-delay: 160ms; }
+.sg-stagger > *:nth-child(n+6) { animation-delay: 200ms; }
+/* Tepki verince kısa "pıt" etkisi. */
+.sg-pop { animation: sg-pop 360ms var(--ease-spring); }
+/* Boş durumlardaki yoldaş avatarı hafifçe süzülür. */
+.sg-float { animation: sg-float 3.2s ease-in-out infinite; }
+
+/* Dokunma geri bildirimi (kartlar, satırlar). */
+.tap-scale { transition: transform 160ms var(--ease-spring); }
+.tap-scale:active { transform: scale(0.985); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
 }

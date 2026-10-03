@@ -19,6 +19,8 @@
 // Gösterim tarafında (WebP'yi <img> ile AÇMA) bunun aksine praktik olarak
 // evrensel destek var, bu yüzden sadece üretim tarafını feature-detect
 // ediyoruz. Desteklenmiyorsa JPEG'e (eski davranış) sorunsuzca düşer.
+import { PHOTO_DECODE_ERROR, photoUploadError } from './validation.js'
+
 const DEFAULT_MAX_DIMENSION = 1920
 const DEFAULT_QUALITY = 0.8
 
@@ -71,4 +73,19 @@ export async function compressImage(file, { maxDimension = DEFAULT_MAX_DIMENSION
 function toFileName(originalName, extension) {
   const base = (originalName || 'foto').replace(/\.[^./]+$/, '')
   return `${base}.${extension}`
+}
+
+// Seçilen fotoğrafı sıkıştırır ve sunucu kurallarıyla (MediaConstraints:
+// tip + 8 MB) kontrol eder. Tarayıcının açamadığı biçimlerde (ör. Chrome'da
+// HEIC) İngilizce teknik hata yerine anlaşılır bir Türkçe mesaj fırlatır.
+export async function prepareUploadablePhoto(file) {
+  let compressed
+  try {
+    compressed = await compressImage(file)
+  } catch {
+    throw new Error(PHOTO_DECODE_ERROR)
+  }
+  const problem = photoUploadError(compressed)
+  if (problem) throw new Error(problem)
+  return compressed
 }

@@ -1,14 +1,13 @@
-import { Avatar, Box, Typography } from '@mui/material'
-import { useTheme } from '@mui/material/styles'
-import { useNavigate } from 'react-router-dom'
+import { Box } from '@mui/material'
+import { alpha, useTheme } from '@mui/material/styles'
 import NotificationBell from '../NotificationBell.jsx'
-import { clickableProps } from '../../utils/clickable.js'
+import BrandMark from './BrandMark.jsx'
 
-// Mobil üst bar: logo + marka adı ve bildirimler. Ana ekrana eklenip tam
-// ekran açıldığında çentik/durum çubuğu alanını da karşılar (safe-area-inset-top).
+// Mobil üst bar: logo + marka adı ve bildirimler. Zemin rengiyle hafif
+// buzlu bir şerit; içerik altından akarken bile sakin durur. Ana ekrana
+// eklenip tam ekran açıldığında çentik alanını da karşılar.
 export default function MobileTopBar() {
   const theme = useTheme()
-  const navigate = useNavigate()
   return (
     <Box
       component="header"
@@ -21,29 +20,16 @@ export default function MobileTopBar() {
         justifyContent: 'space-between',
         gap: 1.25,
         px: 2,
-        pt: 'calc(10px + env(safe-area-inset-top))',
-        pb: 1.25,
-        bgcolor: 'background.paper',
+        pt: 'calc(6px + env(safe-area-inset-top))',
+        pb: 0.75,
+        bgcolor: alpha(theme.palette.background.default, 0.86),
+        backdropFilter: 'blur(14px) saturate(1.4)',
+        WebkitBackdropFilter: 'blur(14px) saturate(1.4)',
         borderBottom: '1px solid',
         borderColor: 'divider'
       }}
     >
-      <Box
-        {...clickableProps(() => navigate('/home'))}
-        aria-label="Sağlıktan ana sayfa"
-        sx={{ display: 'flex', alignItems: 'center', gap: 1.25, cursor: 'pointer', minHeight: 40 }}
-      >
-        <Avatar
-          src="/sagliktanLogo.png"
-          alt="Sağlıktan"
-          sx={{ width: 28, height: 28, borderRadius: '8px' }}
-        />
-        <Typography
-          sx={{ fontWeight: 700, fontSize: '0.9375rem', color: 'primary.main', letterSpacing: '-0.01em' }}
-        >
-          Sağlıktan
-        </Typography>
-      </Box>
+      <BrandMark size={30} fontSize="1.3rem" />
       <NotificationBell />
     </Box>
   )

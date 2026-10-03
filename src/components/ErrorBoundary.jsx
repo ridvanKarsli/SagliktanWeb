@@ -96,12 +96,11 @@ export default class ErrorBoundary extends Component {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            bgcolor: 'rgba(224, 128, 120, 0.14)',
-            border: '1px solid rgba(224, 128, 120, 0.32)',
+            bgcolor: 'brand.roseSoft',
             mb: 2.5,
           }}
         >
-          <ErrorOutlineRounded sx={{ fontSize: 32, color: '#E08078' }} />
+          <ErrorOutlineRounded sx={{ fontSize: 32, color: 'error.main' }} />
         </Box>
         <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>
           Bir şeyler ters gitti

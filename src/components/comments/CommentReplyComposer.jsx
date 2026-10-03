@@ -1,14 +1,16 @@
-import { useState } from 'react'
-import { Box, Button, CircularProgress, Stack, SwipeableDrawer, TextField, Typography } from '@mui/material'
+import { useRef, useState } from 'react'
+import { Box, Button, CircularProgress, Collapse, Stack, SwipeableDrawer, TextField, Typography } from '@mui/material'
 import { useNotification } from '../../context/NotificationContext.jsx'
+import { clampLength, cleanText, counterText, fieldErrorsFrom, isBlank, replyError } from '../../utils/validation.js'
 import { COMMENT_MAX_LENGTH } from './commentLimits.js'
 
-function ReplyForm({ authorName, isMobile, open, submitting, text, onTextChange, onCancel, onSubmit }) {
+function ReplyForm({ authorName, isMobile, open, submitting, text, errorText, onTextChange, onCancel, onSubmit }) {
+  const counter = counterText(text, COMMENT_MAX_LENGTH)
   return (
     <Stack spacing={1.5}>
       <TextField
         value={text}
-        onChange={e => onTextChange(e.target.value)}
+        onChange={e => onTextChange(clampLength(e.target.value, COMMENT_MAX_LENGTH))}
         placeholder={`${authorName} kişisine yanıt yaz…`}
         multiline
         minRows={isMobile ? 3 : 2}
@@ -16,20 +18,24 @@ function ReplyForm({ authorName, isMobile, open, submitting, text, onTextChange,
         fullWidth
         size="small"
         autoFocus={open}
-        inputProps={{ maxLength: COMMENT_MAX_LENGTH }}
+        sx={{ '& .MuiOutlinedInput-root': { borderRadius: '18px' } }}
+        error={!!errorText}
+        helperText={errorText || counter || undefined}
+        inputProps={{ maxLength: COMMENT_MAX_LENGTH, autoCapitalize: 'sentences', 'aria-label': `${authorName} kişisine yanıt` }}
+        slotProps={{ formHelperText: { sx: { textAlign: errorText ? 'left' : 'right', mr: 0 } } }}
       />
       <Stack direction="row" spacing={1} justifyContent={isMobile ? 'stretch' : 'flex-end'}>
         <Button
           fullWidth={isMobile} size={isMobile ? 'medium' : 'small'}
           onClick={onCancel} disabled={submitting}
-          sx={{ minHeight: isMobile ? 44 : undefined, order: isMobile ? 1 : 0 }}
+          sx={{ minHeight: 44, order: isMobile ? 1 : 0 }}
         >
           Vazgeç
         </Button>
         <Button
           fullWidth={isMobile} size={isMobile ? 'medium' : 'small'} variant="contained"
-          onClick={onSubmit} disabled={submitting || !text.trim()}
-          sx={{ minHeight: isMobile ? 44 : undefined, order: isMobile ? 2 : 1 }}
+          onClick={onSubmit} disabled={submitting || isBlank(text)}
+          sx={{ minHeight: 44, order: isMobile ? 2 : 1 }}
         >
           {submitting ? <CircularProgress size={16} color="inherit" /> : 'Yanıtla'}
         </Button>
@@ -45,18 +51,27 @@ export default function CommentReplyComposer({ comment, authorName, isMobile, op
   const { showError, showSuccess } = useNotification()
   const [text, setText] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [serverError, setServerError] = useState(null) // { msg, value }
+  const submittingRef = useRef(false)
 
   const submit = async () => {
-    if (!text.trim()) { showError('Yanıt boş olamaz.'); return }
+    if (submittingRef.current) return // çift dokunuş aynı yanıtı iki kez eklemesin
+    const problem = replyError(text)
+    if (problem) { showError(problem); return }
+    submittingRef.current = true
     setSubmitting(true)
+    setServerError(null)
     try {
-      await onSubmit(text.trim())
+      await onSubmit(cleanText(text))
       setText('')
       onOpenChange(false)
       showSuccess('Yanıt eklendi.')
     } catch (err) {
-      showError(err.message || 'Yanıt eklenemedi.')
+      const fieldMsg = fieldErrorsFrom(err).content
+      if (fieldMsg) setServerError({ msg: fieldMsg, value: text })
+      else showError(err.message || 'Yanıt eklenemedi.')
     } finally {
+      submittingRef.current = false
       setSubmitting(false)
     }
   }
@@ -68,13 +83,21 @@ export default function CommentReplyComposer({ comment, authorName, isMobile, op
       open={open}
       submitting={submitting}
       text={text}
+      errorText={serverError && serverError.value === text ? serverError.msg : null}
       onTextChange={setText}
       onCancel={() => onOpenChange(false)}
       onSubmit={submit}
     />
   )
 
-  if (!isMobile) return open ? <Box sx={{ mt: 1.5 }}>{form}</Box> : null
+  // Masaüstünde satır içi alan yumuşakça açılır.
+  if (!isMobile) {
+    return (
+      <Collapse in={open} timeout={220} unmountOnExit>
+        <Box sx={{ mt: 1, mb: 0.5 }}>{form}</Box>
+      </Collapse>
+    )
+  }
 
   const snippet = comment.content || ''
   return (
@@ -89,14 +112,20 @@ export default function CommentReplyComposer({ comment, authorName, isMobile, op
       ModalProps={{ keepMounted: false }}
       slotProps={{
         paper: {
-          sx: { borderTopLeftRadius: 16, borderTopRightRadius: 16, p: 2, pb: 'calc(16px + env(safe-area-inset-bottom, 0px))' }
+          sx: { borderTopLeftRadius: 28, borderTopRightRadius: 28, p: 2.5, pt: 1.5, pb: 'calc(16px + env(safe-area-inset-bottom, 0px))' }
         }
       }}
     >
-      <Box sx={{ width: 36, height: 4, borderRadius: 2, bgcolor: 'divider', mx: 'auto', mb: 1.5 }} />
-      <Typography variant="subtitle2" sx={{ mb: 0.5 }}>{authorName} kişisine yanıt</Typography>
-      <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1.5 }} noWrap>
-        “{snippet.slice(0, 80)}{snippet.length > 80 ? '…' : ''}”
+      <Box aria-hidden sx={{ width: 40, height: 5, borderRadius: 999, bgcolor: 'brand.borderStrong', mx: 'auto', mb: 2 }} />
+      <Typography variant="h6" component="h2" sx={{ fontFamily: (t) => t.typography.h5.fontFamily, fontWeight: 700, mb: 0.75 }}>
+        {authorName} kişisine yanıt
+      </Typography>
+      <Typography
+        variant="body2"
+        sx={{ color: 'text.secondary', display: 'block', mb: 1.75, pl: 1.25, borderLeft: '3px solid', borderColor: 'brand.primarySoft' }}
+        noWrap
+      >
+        {snippet.slice(0, 80)}{snippet.length > 80 ? '…' : ''}
       </Typography>
       {form}
     </SwipeableDrawer>

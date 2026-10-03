@@ -1,8 +1,23 @@
 import { useState } from 'react'
-import { Box, ButtonBase, CircularProgress, IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Stack, Typography } from '@mui/material'
+import { Box, ButtonBase, CircularProgress, IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Skeleton, Stack, Typography } from '@mui/material'
 import { LogoutRounded, MoreVertRounded, OpenInNewRounded, PeopleAltRounded } from '@mui/icons-material'
 import GroupIcon from '../groups/GroupIcon.jsx'
 import { formatCount } from '../../utils/format.js'
+import { radius } from '../../design/tokens.js'
+
+const ROW_SX = { display: 'flex', alignItems: 'center', borderRadius: `${radius.md}px`, bgcolor: 'background.paper', border: '1px solid', borderColor: 'brand.border' }
+
+export function MyGroupRowSkeleton() {
+  return (
+    <Box sx={{ ...ROW_SX, gap: 1.5, px: 1.5, py: 1.5 }}>
+      <Skeleton variant="rounded" width={44} height={44} sx={{ borderRadius: `${radius.sm}px`, flexShrink: 0 }} />
+      <Box sx={{ flex: 1 }}>
+        <Skeleton variant="text" width="55%" />
+        <Skeleton variant="text" width="30%" sx={{ fontSize: '0.8rem' }} />
+      </Box>
+    </Box>
+  )
+}
 
 // Profil > Gruplarım satırı. Satıra dokunmak gruba girer (birincil eylem);
 // gruptan ayrılmak gibi yıkıcı eylem ⋮ menüsünde - mobilde kaydırırken
@@ -13,9 +28,7 @@ export default function MyGroupRow({ group, pending, onOpen, onLeave }) {
   return (
     <Box
       sx={{
-        display: 'flex', alignItems: 'center',
-        borderRadius: 3, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider',
-        overflow: 'hidden', opacity: pending ? 0.6 : 1, transition: 'opacity .15s ease'
+        ...ROW_SX, overflow: 'hidden', opacity: pending ? 0.6 : 1, transition: 'opacity .15s ease'
       }}
     >
       <ButtonBase
@@ -23,7 +36,7 @@ export default function MyGroupRow({ group, pending, onOpen, onLeave }) {
         aria-label={`${group.name} grubuna git`}
         sx={{
           flex: 1, minWidth: 0, justifyContent: 'flex-start', textAlign: 'left',
-          display: 'flex', alignItems: 'center', gap: 1.5, pl: 1.5, pr: 0.5, py: 1.25,
+          display: 'flex', alignItems: 'center', gap: 1.5, pl: 1.5, pr: 0.5, py: 1.5, minHeight: 64,
           '&:hover': { bgcolor: 'action.hover' },
           '&.Mui-focusVisible': { bgcolor: 'action.focus' }
         }}

@@ -3,15 +3,19 @@ import { Box, Skeleton, Stack } from '@mui/material'
 // Yorum satırı yüklenirken gösterilen iskelet - CommentRow'un kutusuz
 // avatar+metin yerleşimini birebir taklit eder. compact: yanıt bloğu içi.
 export default function CommentRowSkeleton({ compact = false }) {
-  const size = compact ? 28 : 36
+  const size = compact ? 32 : 40
   return (
-    <Box sx={{ py: compact ? 1 : 1.5 }}>
+    <Box aria-hidden sx={{ py: compact ? 1 : 1.75 }}>
       <Stack direction="row" spacing={1.5}>
         <Skeleton variant="circular" width={size} height={size} />
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Skeleton variant="text" width="35%" sx={{ fontSize: '0.875rem' }} />
           <Skeleton variant="text" width="92%" />
           <Skeleton variant="text" width="64%" />
+          <Stack direction="row" spacing={1} sx={{ mt: 0.75 }}>
+            <Skeleton variant="rounded" width={44} height={26} sx={{ borderRadius: 999 }} />
+            <Skeleton variant="rounded" width={64} height={26} sx={{ borderRadius: 999 }} />
+          </Stack>
         </Box>
       </Stack>
     </Box>

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Avatar, Box, Button, CircularProgress, Divider, IconButton, Stack, Tab, Tabs, Typography } from '@mui/material'
-import { ArrowBackRounded, MailOutlineRounded } from '@mui/icons-material'
+import { Box, Button, ButtonBase, CircularProgress, IconButton, Skeleton, Stack, Tab, Tabs, Typography } from '@mui/material'
+import { ArrowBackRounded } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
@@ -10,41 +10,53 @@ import {
   listMessageRequests, acceptMessageRequest, rejectMessageRequest, listSentMessageRequests, cancelMessageRequest
 } from '../../services/api.js'
 import { usePaginatedList } from '../../hooks/usePaginatedList.js'
-import { initialsFrom } from '../../utils/format.js'
-import { clickableProps } from '../../utils/clickable.js'
-import EmptyState from '../../components/EmptyState.jsx'
-import CenteredSpinner from '../../components/common/CenteredSpinner.jsx'
+import { prettyDate } from '../../utils/format.js'
+import UserAvatar from '../../components/avatars/UserAvatar.jsx'
+import CompanionEmpty from '../../components/avatars/CompanionEmpty.jsx'
+import { radius } from '../../design/tokens.js'
+import '../../styles/companions.css'
 import LoadMoreButton from '../../components/common/LoadMoreButton.jsx'
 
 const INCOMING = 0
 const OUTGOING = 1
 
-function RequestRow({ name, onOpenProfile, children }) {
+const LIST_SX = { borderRadius: `${radius.lg}px`, border: '1px solid', borderColor: 'brand.border', bgcolor: 'background.paper', overflow: 'hidden' }
+
+function RequestRow({ name, avatarKey, when, note, onOpenProfile, children }) {
   return (
     <Box
       sx={{
         display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' },
-        gap: 1.25, px: 2, py: 1.5
+        gap: 1.5, px: { xs: 1.5, sm: 2 }, py: 1.75
       }}
     >
-      <Stack direction="row" alignItems="center" spacing={1.5} sx={{ minWidth: 0, flex: 1 }}>
-        <Avatar
-          sx={{ width: 44, height: 44, fontWeight: 600, flexShrink: 0, cursor: 'pointer' }}
-          {...clickableProps(onOpenProfile)}
-          aria-label={`${name || 'Kullanıcı'} profiline git`}
-        >
-          {initialsFrom(name)}
-        </Avatar>
-        <Typography
-          variant="subtitle2"
-          sx={{ fontWeight: 600, minWidth: 0, wordBreak: 'break-word', cursor: 'pointer' }}
-          onClick={onOpenProfile}
-        >
-          {name}
-        </Typography>
-      </Stack>
+      <ButtonBase
+        onClick={onOpenProfile}
+        aria-label={`${name || 'Kullanıcı'} profiline git`}
+        sx={{ flex: 1, minWidth: 0, justifyContent: 'flex-start', gap: 1.5, textAlign: 'left', borderRadius: `${radius.md}px`, p: 0.5, m: -0.5 }}
+      >
+        <UserAvatar avatarKey={avatarKey} name={name} size={52} sx={{ flexShrink: 0 }} />
+        <Box sx={{ minWidth: 0 }}>
+          <Typography variant="subtitle1" component="span" sx={{ display: 'block', wordBreak: 'break-word' }}>{name}</Typography>
+          <Typography variant="body2" component="span" sx={{ display: 'block', color: 'text.secondary' }}>
+            {note}{when ? ` · ${when}` : ''}
+          </Typography>
+        </Box>
+      </ButtonBase>
       {children}
     </Box>
+  )
+}
+
+function RequestSkeleton() {
+  return (
+    <Stack direction="row" alignItems="center" spacing={1.5} sx={{ px: 2, py: 1.75 }}>
+      <Skeleton variant="circular" width={52} height={52} />
+      <Box sx={{ flex: 1 }}>
+        <Skeleton variant="text" width="45%" />
+        <Skeleton variant="text" width="60%" sx={{ fontSize: '0.8rem' }} />
+      </Box>
+    </Stack>
   )
 }
 
@@ -124,13 +136,16 @@ export default function MessageRequests() {
   const emptyText = tab === INCOMING ? 'Bekleyen mesaj isteğin yok.' : 'Gönderdiğin bekleyen mesaj isteği yok.'
 
   return (
-    <Box sx={{ width: '100%', maxWidth: 680, mx: 'auto', py: { xs: 2, md: 4 } }}>
-      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1, px: { xs: 0.5, md: 0 } }}>
-        <IconButton onClick={() => navigate('/messages')} aria-label="Geri" size="small">
+    <Box className="page-transition" sx={{ width: '100%', maxWidth: 680, mx: 'auto', py: { xs: 1.5, md: 4 } }}>
+      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
+        <IconButton onClick={() => navigate('/messages')} aria-label="Geri" sx={{ width: 44, height: 44 }}>
           <ArrowBackRounded />
         </IconButton>
-        <Typography variant="h2" sx={{ fontWeight: 700 }}>Mesaj İstekleri</Typography>
+        <Typography variant="h2" component="h1">Mesaj İstekleri</Typography>
       </Stack>
+      <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.5, px: 0.5 }}>
+        Biri sana yazmak istediğinde önce burada görürsün. Kabul edersen sohbetiniz açılır.
+      </Typography>
 
       <Tabs value={tab} onChange={(_, v) => setTab(v)} aria-label="Mesaj istekleri" sx={{ mb: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
         <Tab label="Gelen" />
@@ -138,41 +153,57 @@ export default function MessageRequests() {
       </Tabs>
 
       {list.loading ? (
-        <CenteredSpinner py={6} size={28} />
+        <Box sx={LIST_SX} aria-busy="true" aria-label="İstekler yükleniyor">
+          <RequestSkeleton /><RequestSkeleton />
+        </Box>
       ) : list.items.length === 0 ? (
-        <EmptyState icon={MailOutlineRounded} title={emptyText} />
+        <CompanionEmpty
+          companion={tab === INCOMING ? 'kedi' : 'kirpi'}
+          title={emptyText}
+          description={tab === INCOMING
+            ? 'Yeni bir istek geldiğinde sana haber veririz.'
+            : 'Bir profilden "Mesaj Gönder"e dokunduğunda istek burada bekler.'}
+          dense
+        />
       ) : (
-        <Box sx={{ borderRadius: 2, border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
-          <Stack divider={<Divider />}>
-            {list.items.map(r => {
-              const busy = actingId === r.id
-              const isIncoming = tab === INCOMING
-              const otherId = isIncoming ? r.senderId : r.recipientId
-              const otherName = isIncoming ? r.senderName : r.recipientName
-              return (
-                <RequestRow key={r.id} name={otherName} onOpenProfile={() => navigate(`/users/${otherId}`)}>
+        <Stack component="ul" className="sg-stagger" sx={{ ...LIST_SX, listStyle: 'none', p: 0, m: 0, '& > li + li': { borderTop: '1px solid', borderColor: 'divider' } }}>
+          {list.items.map(r => {
+            const busy = actingId === r.id
+            const isIncoming = tab === INCOMING
+            const otherId = isIncoming ? r.senderId : r.recipientId
+            const otherName = isIncoming ? r.senderName : r.recipientName
+            const otherAvatar = isIncoming ? r.senderAvatarKey : r.recipientAvatarKey
+            return (
+              <li key={r.id}>
+                <RequestRow
+                  name={otherName}
+                  avatarKey={otherAvatar}
+                  when={prettyDate(r.createdAt)}
+                  note={isIncoming ? 'Seninle sohbet etmek istiyor' : 'Yanıt bekleniyor'}
+                  onOpenProfile={() => navigate(`/users/${otherId}`)}
+                >
                   {isIncoming ? (
-                    <Stack direction="row" spacing={1} sx={{ justifyContent: { xs: 'flex-end', sm: 'flex-start' } }}>
-                      <Button size="small" variant="outlined" color="inherit" disabled={busy} onClick={() => handleReject(r)} sx={{ minHeight: 40 }}>
+                    <Stack direction="row" spacing={1} sx={{ justifyContent: { xs: 'stretch', sm: 'flex-start' }, '& > *': { flex: { xs: 1, sm: '0 0 auto' } } }}>
+                      <Button variant="outlined" disabled={busy} onClick={() => handleReject(r)}>
                         Reddet
                       </Button>
-                      <Button size="small" variant="contained" disabled={busy} onClick={() => handleAccept(r)} sx={{ minHeight: 40 }}>
-                        {busy ? <CircularProgress size={16} color="inherit" /> : 'Kabul Et'}
+                      <Button variant="contained" disabled={busy} onClick={() => handleAccept(r)}>
+                        {busy ? <CircularProgress size={18} color="inherit" /> : 'Kabul Et'}
                       </Button>
                     </Stack>
                   ) : (
                     <Button
-                      size="small" variant="outlined" color="error" disabled={busy} onClick={() => handleCancel(r)}
-                      sx={{ alignSelf: { xs: 'flex-end', sm: 'center' }, minHeight: 40 }}
+                      variant="outlined" color="error" disabled={busy} onClick={() => handleCancel(r)}
+                      sx={{ alignSelf: { xs: 'stretch', sm: 'center' } }}
                     >
-                      {busy ? <CircularProgress size={16} color="inherit" /> : 'Geri Çek'}
+                      {busy ? <CircularProgress size={18} color="inherit" /> : 'Geri Çek'}
                     </Button>
                   )}
                 </RequestRow>
-              )
-            })}
-          </Stack>
-        </Box>
+              </li>
+            )
+          })}
+        </Stack>
       )}
 
       {!list.loading && !list.last && <LoadMoreButton loading={list.loadingMore} onClick={list.loadMore} />}

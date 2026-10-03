@@ -38,12 +38,12 @@ export default function Help() {
     <StaticPageShell title="Yardım ve Destek" subtitle="Sık sorulan sorular ve bize ulaşma yolları">
       <Box sx={{ mb: 4 }}>
         {faqs.map((item) => (
-          <Accordion key={item.q} disableGutters sx={{ '&:before': { display: 'none' } }}>
-            <AccordionSummary expandIcon={<ExpandMore />}>
-              <Typography sx={{ fontWeight: 600, fontSize: '0.95rem' }}>{item.q}</Typography>
+          <Accordion key={item.q} disableGutters elevation={0} sx={{ bgcolor: 'transparent', border: 0, borderBottom: '1px solid', borderColor: 'divider', borderRadius: '0 !important', '&:before': { display: 'none' } }}>
+            <AccordionSummary expandIcon={<ExpandMore />} sx={{ px: 0, minHeight: 56 }}>
+              <Typography sx={{ fontWeight: 700, fontSize: '1.0625rem' }}>{item.q}</Typography>
             </AccordionSummary>
-            <AccordionDetails>
-              <Typography variant="body2" sx={{ color: 'text.secondary', lineHeight: 1.8 }}>
+            <AccordionDetails sx={{ px: 0, pt: 0 }}>
+              <Typography variant="body1" sx={{ color: 'text.secondary', lineHeight: 1.7 }}>
                 {item.a}
               </Typography>
             </AccordionDetails>
@@ -51,9 +51,9 @@ export default function Help() {
         ))}
       </Box>
 
-      <Box sx={{ textAlign: 'center', py: 3, borderTop: '1px solid', borderColor: 'divider' }}>
+      <Box sx={{ textAlign: 'center', pt: 1 }}>
         <Typography variant="body1" sx={{ mb: 2, color: 'text.secondary' }}>
-          Aradığınız cevabı bulamadınız mı? Bize doğrudan yazın.
+          Aradığın cevabı bulamadın mı? Bize doğrudan yaz, en kısa sürede dönelim.
         </Typography>
         <Button
           variant="contained"

@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
-import { Avatar, Box, Button, ButtonBase, Chip, IconButton, Skeleton, Stack, Typography } from '@mui/material'
+import { Box, Button, ButtonBase, IconButton, Skeleton, Stack, Typography } from '@mui/material'
 import { CloseRounded, Diversity3Rounded } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { getSimilarMembers } from '../services/api.js'
 import { healthSummaryParts } from '../utils/communityProfile.js'
-import { initialsFrom } from '../utils/format.js'
+import UserAvatar from './avatars/UserAvatar.jsx'
 
 const DISMISS_KEY = 'sagliktan:similar-invite-dismissed'
 
@@ -38,22 +38,22 @@ export default function SimilarMembers({ sx }) {
   if (!discoverable) {
     if (dismissed) return null
     return (
-      <Box sx={{ position: 'relative', p: 2, pr: 5, borderRadius: 3, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', ...sx }}>
+      <Box sx={{ position: 'relative', p: 2, pr: 6, borderRadius: '22px', bgcolor: 'brand.apricotSoft', ...sx }}>
         <IconButton
           aria-label="Bu öneriyi kapat"
           onClick={() => { try { localStorage.setItem(DISMISS_KEY, '1') } catch { /* yoksay */ } setDismissed(true) }}
-          sx={{ position: 'absolute', top: 4, right: 4, width: 40, height: 40 }}
+          sx={{ position: 'absolute', top: 6, right: 6, width: 44, height: 44 }}
         >
           <CloseRounded fontSize="small" />
         </IconButton>
         <Stack direction="row" spacing={1.5} alignItems="flex-start">
-          <Diversity3Rounded sx={{ color: 'primary.main', mt: 0.25 }} />
+          <UserAvatar avatarKey="kirpi" size={48} aria-hidden sx={{ flexShrink: 0 }} />
           <Box>
-            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Senin gibi olanlarla tanış</Typography>
-            <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.25 }}>
-              Benzer süreçteki üyeleri görmek için profilinde görünür olmayı aç. Bilgilerin sen açmadıkça kimseyle paylaşılmaz.
+            <Typography variant="h6" component="h2" sx={{ fontFamily: (t) => t.typography.h5.fontFamily, fontWeight: 700, lineHeight: 1.3 }}>Senin gibi olanlarla tanış</Typography>
+            <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
+              Benzer yoldan geçen üyeleri görmek için profilinde görünür olmayı açabilirsin. Bilgilerin, sen açmadıkça kimseyle paylaşılmaz.
             </Typography>
-            <Button size="small" onClick={() => navigate('/profile/settings#eslesme')} sx={{ mt: 1, ml: -1, fontWeight: 700, minHeight: 36 }}>
+            <Button size="small" variant="outlined" onClick={() => navigate('/profile/settings#eslesme')} sx={{ mt: 1.25, minHeight: 44, bgcolor: 'background.paper' }}>
               Ayarları aç
             </Button>
           </Box>
@@ -65,19 +65,22 @@ export default function SimilarMembers({ sx }) {
   if (members !== null && members.length === 0) return null
 
   return (
-    <Box component="section" aria-labelledby="similar-members-title" sx={sx}>
-      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
-        <Diversity3Rounded sx={{ color: 'primary.main', fontSize: 20 }} />
-        <Typography id="similar-members-title" variant="subtitle1" sx={{ fontWeight: 700 }}>Senin gibi üyeler</Typography>
+    <Box component="section" aria-labelledby="similar-members-title" sx={{ py: 1, ...sx }}>
+      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.25, px: 0.5 }}>
+        <Diversity3Rounded sx={{ color: 'brand.apricotInk', fontSize: 22 }} />
+        <Typography id="similar-members-title" variant="h6" component="h2" sx={{ fontFamily: (t) => t.typography.h5.fontFamily, fontWeight: 700 }}>Senin gibi üyeler</Typography>
       </Stack>
+      <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.25, px: 0.5 }}>
+        Benzer bir yoldan geçiyorlar. Bir merhaba, iki kişinin de gününü güzelleştirebilir.
+      </Typography>
       <Box
         sx={{
-          display: 'flex', alignItems: 'stretch', gap: 1.25, overflowX: 'auto', mx: -2, px: 2, pb: 1, scrollSnapType: 'x mandatory',
-          scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' }
+          display: 'flex', alignItems: 'stretch', gap: 1.25, overflowX: 'auto', mx: { xs: -2, sm: 0 }, px: { xs: 2, sm: 0 }, pb: 1, scrollSnapType: 'x mandatory',
+          scrollPaddingLeft: 16, scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' }
         }}
       >
         {members === null
-          ? [0, 1, 2].map(i => <Skeleton key={i} variant="rounded" width={200} height={168} sx={{ borderRadius: 3, flexShrink: 0 }} />)
+          ? [0, 1, 2].map(i => <Skeleton key={i} variant="rounded" width={196} height={176} sx={{ borderRadius: '20px', flexShrink: 0 }} />)
           : members.map(m => {
             const name = [m.firstName, m.lastName].filter(Boolean).join(' ')
             const summary = healthSummaryParts(m)
@@ -86,18 +89,19 @@ export default function SimilarMembers({ sx }) {
                 key={m.id}
                 onClick={() => navigate(`/users/${m.id}`)}
                 aria-label={`${name} profiline git`}
+                className="tap-scale"
                 sx={{
-                  width: 200, flexShrink: 0, scrollSnapAlign: 'start', p: 1.5, borderRadius: 3,
+                  width: 196, flexShrink: 0, scrollSnapAlign: 'start', p: 1.75, borderRadius: '20px',
                   flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-start', textAlign: 'left', gap: 0.75,
                   overflow: 'hidden',
-                  border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper',
-                  '&:hover': { borderColor: 'primary.main' }
+                  border: '1px solid', borderColor: 'brand.border', bgcolor: 'background.paper', boxShadow: 1,
+                  transition: 'border-color 200ms ease, box-shadow 240ms ease, transform 160ms var(--ease-spring)',
+                  '&:hover': { borderColor: 'primary.light', boxShadow: 3 },
+                  '&.Mui-focusVisible': { outline: '3px solid', outlineColor: 'primary.light', outlineOffset: 2 }
                 }}
               >
-                <Stack direction="row" spacing={1} alignItems="center" sx={{ width: '100%' }}>
-                  <Avatar sx={{ width: 40, height: 40, fontSize: 14, fontWeight: 700 }}>{initialsFrom(name)}</Avatar>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700, minWidth: 0 }} noWrap>{name}</Typography>
-                </Stack>
+                <UserAvatar avatarKey={m.avatarKey} name={name} size={52} />
+                <Typography variant="subtitle2" sx={{ fontWeight: 800, width: '100%', color: 'text.primary' }} noWrap>{name}</Typography>
                 {summary.length > 0 && (
                   <Typography variant="caption" sx={{ color: 'text.secondary', width: '100%' }} noWrap title={summary.join(' · ')}>
                     {summary.join(' · ')}
@@ -109,7 +113,15 @@ export default function SimilarMembers({ sx }) {
                   </Typography>
                 )}
                 {m.reasons?.[0] && (
-                  <Chip size="small" label={m.reasons[0]} sx={{ height: 24, maxWidth: '100%' }} />
+                  <Box
+                    component="span"
+                    sx={{
+                      mt: 'auto', px: 1, py: 0.25, borderRadius: '999px', bgcolor: 'brand.apricotSoft', color: 'brand.apricotInk',
+                      fontSize: '0.8125rem', fontWeight: 800, maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {m.reasons[0]}
+                  </Box>
                 )}
               </ButtonBase>
             )

@@ -1,0 +1,47 @@
+/* Yol arkadaşları, profil, mesajlar ve karşılama ekranlarının küçük hareket
+   kütüphanesi. Genel kurallar (sg-rise, sg-pop, sg-float...) index.css'te;
+   burada yalnızca bu ekranlara özgü, kullanıcı eylemine cevap veren
+   kısa hareketler var. prefers-reduced-motion index.css'te genel olarak kapanır. */
+
+/* Bir yol arkadaşının sahneye gelişi: hafif yaylanarak yerine oturur. */
+@keyframes sg-arrive {
+  0% { opacity: 0; transform: translateY(14px) scale(0.72); }
+  60% { opacity: 1; transform: translateY(-3px) scale(1.04); }
+  100% { opacity: 1; transform: none; }
+}
+.sg-arrive { animation: sg-arrive 640ms var(--ease-spring) both; }
+
+/* Dokununca/üstüne gelince bir kez sallanır (selam verir). */
+@keyframes sg-sway {
+  0%, 100% { transform: rotate(0); }
+  30% { transform: rotate(-7deg); }
+  70% { transform: rotate(6deg); }
+}
+.sg-sway-on-hover:hover .sg-sway-target,
+.sg-sway-on-hover:focus-visible .sg-sway-target,
+.sg-sway-on-hover:active .sg-sway-target { animation: sg-sway 520ms var(--ease-spring); }
+
+/* Seçim anında halka dışa doğru yayılıp kaybolur. */
+@keyframes sg-ring-out {
+  from { box-shadow: 0 0 0 0 var(--sg-ring, rgba(76, 184, 159, 0.55)); }
+  to { box-shadow: 0 0 0 14px rgba(76, 184, 159, 0); }
+}
+.sg-ring-out { animation: sg-ring-out 560ms var(--ease-flow); }
+
+/* Yeni gelen/gönderilen mesaj balonu. */
+@keyframes sg-bubble-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+.sg-bubble-in { animation: sg-bubble-in 300ms var(--ease-spring) both; transform-origin: bottom right; }
+.sg-bubble-in-left { animation: sg-bubble-in 300ms var(--ease-spring) both; transform-origin: bottom left; }
+
+/* Karşılama adımları arasında yumuşak geçiş. */
+@keyframes sg-step-in {
+  from { opacity: 0; transform: translateX(18px); }
+  to { opacity: 1; transform: none; }
+}
+.sg-step-in { animation: sg-step-in 380ms var(--ease-flow) both; }
+
+/* İlerleme çubuğu dolarken. */
+.sg-grow { transition: width 700ms var(--ease-flow), transform 700ms var(--ease-flow); }

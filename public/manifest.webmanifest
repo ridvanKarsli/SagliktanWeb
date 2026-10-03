@@ -5,9 +5,11 @@
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#1E1A16",
-  "theme_color": "#1E1A16",
-  "description": "Hastalık gruplarında deneyim paylaşımı ve topluluk desteği uygulaması.",
+  "background_color": "#F2F7F4",
+  "theme_color": "#F2F7F4",
+  "description": "Kronik ve nadir hastalıklarla yaşayanların ve yakınlarının deneyim paylaştığı, birbirine destek olduğu topluluk.",
+  "lang": "tr",
+  "categories": ["health", "social"],
   "icons": [
     {
       "src": "/icon-72.png",

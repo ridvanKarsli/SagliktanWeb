@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Box, Button, ButtonBase, CircularProgress, Stack, Typography } from '@mui/material'
+import { alpha } from '@mui/material/styles'
 import { CheckCircleRounded, PollOutlined } from '@mui/icons-material'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useNotification } from '../context/NotificationContext.jsx'
@@ -69,35 +70,37 @@ export default function PollView({ postId, poll: initialPoll, isOwner = false, o
               disabled={pendingId != null}
               aria-pressed={mine}
               aria-label={showResults ? `${opt.label}: yüzde ${pct}, ${opt.votes} oy${mine ? ', senin seçimin' : ''}` : `${opt.label} seçeneğine oy ver`}
+              className="tap-scale"
               sx={{
-                position: 'relative', overflow: 'hidden', width: '100%', minHeight: 46,
-                justifyContent: 'flex-start', textAlign: 'left', px: 1.5, py: 1, borderRadius: 2.5,
-                border: '1.5px solid', borderColor: mine ? 'primary.main' : 'divider',
-                bgcolor: showResults ? 'transparent' : 'background.paper',
-                '&:hover': { borderColor: 'primary.main' },
-                '&.Mui-focusVisible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 2 }
+                position: 'relative', overflow: 'hidden', width: '100%', minHeight: 50,
+                justifyContent: 'flex-start', textAlign: 'left', px: 1.75, py: 1.125, borderRadius: '14px',
+                border: '1.5px solid', borderColor: mine ? 'brand.lilac' : 'brand.border',
+                bgcolor: showResults ? 'background.paper' : 'brand.lilacSoft',
+                transition: 'border-color 160ms ease, background-color 160ms ease',
+                '&:hover': { borderColor: 'brand.lilac' },
+                '&.Mui-focusVisible': { outline: '3px solid', outlineColor: 'brand.lilac', outlineOffset: 2 }
               }}
             >
               {showResults && (
                 <Box
                   aria-hidden
+                  className="sg-poll-fill"
                   sx={{
-                    position: 'absolute', inset: 0, width: `${pct}%`,
-                    bgcolor: mine ? 'rgba(76,184,159,0.22)' : 'action.selected',
-                    transition: 'width .4s ease',
-                    '@media (prefers-reduced-motion: reduce)': { transition: 'none' }
+                    position: 'absolute', top: 0, bottom: 0, left: 0, width: `${pct}%`,
+                    bgcolor: (t) => alpha(t.palette.brand.lilac, mine ? 0.24 : 0.1),
+                    transition: 'width 480ms var(--ease-flow)'
                   }}
                 />
               )}
               <Stack direction="row" alignItems="center" spacing={1} sx={{ position: 'relative', width: '100%' }}>
                 {pendingId === opt.id
                   ? <CircularProgress size={16} />
-                  : mine ? <CheckCircleRounded sx={{ fontSize: 18, color: 'primary.main' }} /> : null}
-                <Typography variant="body2" sx={{ fontWeight: mine ? 700 : 500, flex: 1, minWidth: 0, wordBreak: 'break-word' }}>
+                  : mine ? <CheckCircleRounded sx={{ fontSize: 19, color: 'brand.lilac' }} /> : null}
+                <Typography variant="body2" sx={{ fontWeight: mine ? 800 : 600, flex: 1, minWidth: 0, wordBreak: 'break-word', color: 'text.primary' }}>
                   {opt.label}
                 </Typography>
                 {showResults && (
-                  <Typography variant="body2" sx={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 800, fontVariantNumeric: 'tabular-nums', flexShrink: 0, color: mine ? 'brand.lilac' : 'text.primary' }}>
                     %{pct}
                   </Typography>
                 )}
@@ -106,13 +109,13 @@ export default function PollView({ postId, poll: initialPoll, isOwner = false, o
           )
         })}
       </Stack>
-      <Stack direction="row" alignItems="center" spacing={0.75} sx={{ mt: 0.75, color: 'text.secondary' }}>
+      <Stack direction="row" alignItems="center" spacing={0.75} sx={{ mt: 0.75, color: 'text.secondary', minHeight: 44 }}>
         <PollOutlined sx={{ fontSize: 16 }} />
         <Typography variant="caption" sx={{ flex: 1 }}>
-          {total} oy{!showResults ? ' · Sonuçları görmek için oy ver' : ''}
+          {total} oy{!showResults ? ' · Oy verince sonuçları görürsün' : ''}
         </Typography>
         {voted && (
-          <Button size="small" onClick={unvote} disabled={pendingId != null} sx={{ minHeight: 32, color: 'text.secondary' }}>
+          <Button size="small" onClick={unvote} disabled={pendingId != null} sx={{ minHeight: 44, color: 'text.secondary' }}>
             {pendingId === 'remove' ? <CircularProgress size={14} /> : 'Oyumu geri al'}
           </Button>
         )}

@@ -1,24 +1,49 @@
 import { useState } from 'react'
 import {
-  Box, Button, Stack, TextField, Typography, Link, CircularProgress,
-  useMediaQuery, useTheme, Checkbox, FormControlLabel
+  Box, Button, Stack, TextField, Typography, Link, CircularProgress, Checkbox, FormControlLabel, FormHelperText
 } from '@mui/material'
-import { ArrowBack, MarkEmailReadOutlined } from '@mui/icons-material'
+import { MarkEmailReadOutlined } from '@mui/icons-material'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useNotification } from '../context/NotificationContext.jsx'
 import { useNavigate, Link as RouterLink } from 'react-router-dom'
-import { isValidName } from '../utils/validateName.js'
 import TrustBadges from '../components/TrustBadges.jsx'
+import AuthLayout from '../components/auth/AuthLayout.jsx'
+import Companion from '../components/avatars/Companion.jsx'
+import { radius } from '../design/tokens.js'
 import PasswordStrengthMeter from '../components/PasswordStrengthMeter.jsx'
 import PasswordField from '../components/PasswordField.jsx'
 import CityField from '../components/profile/CityField.jsx'
+import EmailField from '../components/forms/EmailField.jsx'
+import { useFormValidation } from '../hooks/useFormValidation.js'
+import {
+  LIMITS, cityError, cleanLine, confirmPasswordError, emailError, fieldErrorsFrom, fieldFromMessage,
+  nameError, newPasswordError, normalizeCity, normalizeEmail
+} from '../utils/validation.js'
+
+const validateRegister = (f) => ({
+  firstName: nameError(f.firstName, 'first'),
+  lastName: nameError(f.lastName, 'last'),
+  email: emailError(f.email),
+  city: cityError(f.city),
+  password: newPasswordError(f.password),
+  confirmPassword: confirmPasswordError(f.confirmPassword, f.password),
+  kvkkConsent: f.kvkkConsent ? null : 'Kayıt olmak için aydınlatma metnini onaylaman gerekiyor.',
+})
+
+// Backend'in alan adı vermeden döndürdüğü bilinen hatalar.
+const REGISTER_MESSAGE_FIELDS = [
+  [/e-posta/i, 'email'],
+  [/KVKK/i, 'kvkkConsent'],
+]
+
+const nameInputProps = {
+  maxLength: LIMITS.NAME_MAX, autoCapitalize: 'words', autoCorrect: 'off', spellCheck: false, enterKeyHint: 'next'
+}
 
 export default function Register() {
   const { register } = useAuth()
   const { showError } = useNotification()
   const navigate = useNavigate()
-  const theme = useTheme()
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
 
   const [form, setForm] = useState({
     firstName: '',
@@ -31,39 +56,29 @@ export default function Register() {
   })
   const [registeredEmail, setRegisteredEmail] = useState('')
   const [loading, setLoading] = useState(false)
-
-  // İlk geçersiz alanın mesajı; her şey yerindeyse null.
-  const validationError = () => {
-    if (!form.firstName?.trim() || !form.lastName?.trim() || !form.email?.trim() || !form.password) {
-      return 'Lütfen zorunlu alanları doldurun.'
-    }
-    if (!isValidName(form.firstName)) return 'Lütfen geçerli bir ad girin (sadece harf, en az 2 karakter).'
-    if (!isValidName(form.lastName)) return 'Lütfen geçerli bir soyad girin (sadece harf, en az 2 karakter).'
-    if (form.password !== form.confirmPassword) return 'Şifreler uyuşmuyor.'
-    if (form.password.length < 8) return 'Şifre en az 8 karakter olmalı.'
-    if (!form.kvkkConsent) return 'Kayıt olmak için KVKK Aydınlatma Metni\'ni onaylamanız gerekiyor.'
-    return null
-  }
+  const v = useFormValidation(form, validateRegister)
+  const set = (key) => (value) => setForm(f => ({ ...f, [key]: value }))
 
   const onSubmit = async (e) => {
     e.preventDefault()
-    // Her denemede bildirim gösterilir (aynı hata art arda da olsa).
-    const problem = validationError()
-    if (problem) { showError(problem); return }
+    if (loading) return
+    if (!v.validateAll()) return
 
     setLoading(true)
     try {
+      const email = normalizeEmail(form.email)
       await register({
-        firstName: form.firstName.trim(),
-        lastName: form.lastName.trim(),
-        email: form.email.trim(),
+        firstName: cleanLine(form.firstName),
+        lastName: cleanLine(form.lastName),
+        email,
         password: form.password,
         kvkkConsent: form.kvkkConsent,
-        city: form.city.trim()
+        city: normalizeCity(form.city)
       })
-      setRegisteredEmail(form.email.trim())
+      setRegisteredEmail(email)
     } catch (err) {
-      showError(err?.message || 'Kayıt başarısız.')
+      const mapped = { ...fieldFromMessage(err, REGISTER_MESSAGE_FIELDS), ...fieldErrorsFrom(err) }
+      if (!v.applyServerErrors(mapped)) showError(err?.message || 'Kayıt başarısız.')
     } finally {
       setLoading(false)
     }
@@ -73,15 +88,22 @@ export default function Register() {
   if (registeredEmail) {
     return (
       <Box sx={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 3, bgcolor: 'background.default' }}>
-        <Box sx={{ maxWidth: 440, textAlign: 'center' }}>
-          <MarkEmailReadOutlined sx={{ fontSize: 64, color: 'secondary.main', mb: 2 }} />
-          <Typography variant="h2" sx={{ color: 'primary.main', mb: 2 }}>
+        <Box className="page-transition" sx={{ maxWidth: 460, textAlign: 'center' }}>
+          <Box sx={{ position: 'relative', display: 'inline-block', mb: 2.5 }}>
+            <Box className="sg-arrive"><Companion name="serce" size={104} /></Box>
+            <Box sx={{ position: 'absolute', right: -6, bottom: -2, width: 44, height: 44, borderRadius: '50%', display: 'grid', placeItems: 'center', bgcolor: 'primary.main', color: 'primary.contrastText', border: '3px solid', borderColor: 'background.default' }}>
+              <MarkEmailReadOutlined sx={{ fontSize: 22 }} />
+            </Box>
+          </Box>
+          <Typography variant="h2" component="h1" sx={{ mb: 1.5 }}>
             E-postanı kontrol et
           </Typography>
-          <Typography variant="body1" sx={{ color: 'text.secondary', mb: 4, lineHeight: 1.7 }}>
+          <Typography variant="body1" sx={{ color: 'text.secondary', mb: 1.5 }}>
             <strong>{registeredEmail}</strong> adresine bir doğrulama bağlantısı gönderdik.
-            Hesabınla giriş yapabilmek için önce e-postandaki bağlantıya tıklayarak
-            adresini doğrulaman gerekiyor.
+            Bağlantıya dokunup adresini doğruladıktan sonra giriş yapabilirsin.
+          </Typography>
+          <Typography variant="body2" sx={{ color: 'text.secondary', mb: 4, p: 1.5, borderRadius: `${radius.md}px`, bgcolor: 'brand.surfaceAlt' }}>
+            Birkaç dakika içinde gelmezse gereksiz (spam) klasörüne de bakmayı unutma.
           </Typography>
           <Button variant="contained" size="large" fullWidth onClick={() => navigate('/login', { replace: true })}>
             Giriş sayfasına dön
@@ -92,240 +114,159 @@ export default function Register() {
   }
 
   return (
-    <Box sx={{ minHeight: '100dvh', display: 'flex' }}>
-      {/* Left side - Branding (hidden on mobile) */}
-      {!isMobile && (
-        <Box
-          sx={{
-            flex: 1,
-            bgcolor: 'background.paper',
-            borderRight: '1px solid',
-            borderColor: 'divider',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-            alignItems: 'center',
-            p: 6
-          }}
-        >
-          <Box sx={{ maxWidth: 400, textAlign: 'center' }}>
-            <Box
-              component="img"
-              src="/sagliktanLogo.png"
-              alt="Sağlıktan"
-              sx={{
-                width: 80,
-                height: 80,
-                borderRadius: '20px',
-                mb: 4
-              }}
-            />
-            <Typography variant="h2" component="p" sx={{ color: 'primary.main', mb: 2, fontWeight: 700 }}>
-              Sizi Anlayan
-              <br />Bir Topluluk
-            </Typography>
-            <Typography variant="body1" sx={{ color: 'text.secondary', lineHeight: 1.8 }}>
-              Aynı yolu yürüyen insanlarla tanışın, deneyimlerinizi güvenle paylaşın.
-            </Typography>
+    <AuthLayout
+      title="Aramıza katıl"
+      lead="Yalnız değilsin. Bir dakikada hesabını oluştur, seninle aynı yoldan geçenlerle tanış."
+      sideTitle="Yalnız değilsin"
+      sideText="Kronik ve nadir hastalıklarla yaşayanlar ve yakınları burada deneyimlerini paylaşıyor. İlk yol arkadaşların seni bekliyor."
+      companions={['damla', 'filiz', 'bulut']}
+      onBack={() => navigate('/')}
+      maxWidth={480}
+      footer={(
+        <>
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+            Zaten hesabın var mı?{' '}
+            <Link
+              component={RouterLink}
+              to="/login"
+              sx={{ display: 'inline-block', py: 1.5, px: 0.5, my: -1.5, mx: -0.5 }}
+            >
+              Giriş Yap
+            </Link>
+          </Typography>
+          <Box sx={{ mt: 2.5 }}>
+            <TrustBadges />
           </Box>
-        </Box>
+        </>
       )}
+    >
+            <Box component="form" onSubmit={onSubmit} noValidate>
+        <Stack spacing={2.5}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+            <TextField
+              label="İsim"
+              required
+              value={form.firstName}
+              onChange={e => set('firstName')(e.target.value)}
+              {...v.field('firstName')}
+              helperText={v.error('firstName')}
+              autoComplete="given-name"
+              fullWidth
+              placeholder="Adın"
+              slotProps={{ htmlInput: { ...nameInputProps, 'data-testid': 'register-firstName' } }}
+            />
+            <TextField
+              label="Soyisim"
+              required
+              value={form.lastName}
+              onChange={e => set('lastName')(e.target.value)}
+              {...v.field('lastName')}
+              helperText={v.error('lastName')}
+              autoComplete="family-name"
+              fullWidth
+              placeholder="Soyadın"
+              slotProps={{ htmlInput: { ...nameInputProps, 'data-testid': 'register-lastName' } }}
+            />
+          </Stack>
 
-      {/* Right side - Form */}
-      <Box
-        sx={{
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          bgcolor: 'background.default',
-          overflowY: 'auto'
-        }}
-      >
-        {/* Back button */}
-        <Box sx={{ p: { xs: 2, sm: 3 } }}>
-          <Button
-            startIcon={<ArrowBack />}
-            onClick={() => navigate('/')}
-            sx={{ color: 'text.secondary' }}
-          >
-            Ana Sayfa
-          </Button>
-        </Box>
+          <EmailField
+            required
+            value={form.email}
+            onChange={set('email')}
+            {...v.field('email')}
+            errorText={v.error('email')}
+            helperText="Doğrulama bağlantısı bu adrese gönderilecek."
+            testId="register-email"
+          />
 
-        {/* Form Container */}
-        <Box
-          sx={{
-            flex: 1,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            px: { xs: 3, sm: 4 },
-            pb: 6
-          }}
-        >
-          <Box sx={{ width: '100%', maxWidth: 440 }}>
-            {/* Mobile Logo */}
-            {isMobile && (
-              <Box sx={{ textAlign: 'center', mb: 3 }}>
-                <Box
-                  component="img"
-                  src="/sagliktanLogo.png"
-                  alt="Sağlıktan"
-                  sx={{ width: 56, height: 56, borderRadius: '14px', mb: 2 }}
-                />
-              </Box>
-            )}
+          <CityField
+            value={form.city}
+            onChange={set('city')}
+            {...v.field('city')}
+            helperText={v.error('city') || 'Profilinde görünür, istediğin zaman değiştirebilirsin.'}
+            testId="register-city"
+          />
 
-            {/* Header */}
-            <Box sx={{ mb: 4, textAlign: { xs: 'center', md: 'left' } }}>
-              <Typography variant="h2" component="h1" sx={{ color: 'primary.main', mb: 1 }}>
-                Kayıt Ol
-              </Typography>
-              <Typography variant="body1" sx={{ color: 'text.secondary' }}>
-                Sağlık topluluğuna katılın
-              </Typography>
+          <Stack spacing={2.5}>
+            <Box sx={{ flex: 1, width: '100%', display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <PasswordField
+                label="Şifre"
+                required
+                value={form.password}
+                onChange={e => set('password')(e.target.value)}
+                {...v.field('password')}
+                helperText={v.error('password') || `En az ${LIMITS.PASSWORD_MIN} karakter`}
+                autoComplete="new-password"
+                fullWidth
+                placeholder="••••••••"
+                slotProps={{ htmlInput: { minLength: LIMITS.PASSWORD_MIN, enterKeyHint: 'next', 'data-testid': 'register-password' } }}
+              />
+              <PasswordStrengthMeter password={form.password} />
             </Box>
 
-            {/* Form */}
-            <Box component="form" onSubmit={onSubmit}>
-              <Stack spacing={2.5}>
-                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                  <TextField
-                    label="İsim"
-                    required
-                    value={form.firstName}
-                    onChange={e => setForm(f => ({ ...f, firstName: e.target.value }))}
-                    autoComplete="given-name"
-                    fullWidth
-                    placeholder="Adınız"
-                    slotProps={{ htmlInput: { 'data-testid': 'register-firstName' } }}
-                  />
-                  <TextField
-                    label="Soyisim"
-                    required
-                    value={form.lastName}
-                    onChange={e => setForm(f => ({ ...f, lastName: e.target.value }))}
-                    autoComplete="family-name"
-                    fullWidth
-                    placeholder="Soyadınız"
-                    slotProps={{ htmlInput: { 'data-testid': 'register-lastName' } }}
-                  />
-                </Stack>
+            <PasswordField
+              label="Şifre (tekrar)"
+              required
+              value={form.confirmPassword}
+              onChange={e => set('confirmPassword')(e.target.value)}
+              {...v.field('confirmPassword')}
+              helperText={v.error('confirmPassword')}
+              autoComplete="new-password"
+              fullWidth
+              placeholder="••••••••"
+              slotProps={{ htmlInput: { enterKeyHint: 'done', 'data-testid': 'register-confirmPassword' } }}
+            />
+          </Stack>
 
-                <TextField
-                  label="E-posta adresi"
-                  type="email"
-                  required
-                  value={form.email}
-                  onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-                  autoComplete="email"
-                  fullWidth
-                  placeholder="ornek@email.com"
-                  slotProps={{ htmlInput: { 'data-testid': 'register-email' } }}
-                />
-
-                <CityField
-                  value={form.city}
-                  onChange={city => setForm(f => ({ ...f, city }))}
-                  helperText="Profilinde görünür, istediğin zaman değiştirebilirsin."
-                  testId="register-city"
-                />
-
-                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="flex-start">
-                  <Box sx={{ flex: 1, width: '100%', display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    <PasswordField
-                      label="Şifre"
-                      required
-                      helperText="En az 8 karakter"
-                      value={form.password}
-                      onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-                      autoComplete="new-password"
-                      fullWidth
-                      placeholder="••••••••"
-                      slotProps={{ htmlInput: { minLength: 8, 'data-testid': 'register-password' } }}
-                    />
-                    <PasswordStrengthMeter password={form.password} />
-                  </Box>
-
-                  <PasswordField
-                    label="Şifre (tekrar)"
-                    required
-                    value={form.confirmPassword}
-                    onChange={e => setForm(f => ({ ...f, confirmPassword: e.target.value }))}
-                    autoComplete="new-password"
-                    fullWidth
-                    placeholder="••••••••"
-                    slotProps={{ htmlInput: { 'data-testid': 'register-confirmPassword' } }}
-                  />
-                </Stack>
-
-                <FormControlLabel
-                  sx={{ alignItems: 'flex-start', ml: 0, mt: 0.5 }}
-                  control={
-                    <Checkbox
-                      checked={form.kvkkConsent}
-                      onChange={e => setForm(f => ({ ...f, kvkkConsent: e.target.checked }))}
-                      sx={{ pt: 0.25 }}
-                    />
-                  }
-                  label={
-                    <Typography variant="body2" sx={{ color: 'text.secondary', lineHeight: 1.6 }}>
-                      <Link
-                        component={RouterLink}
-                        to="/gizlilik-politikasi"
-                        target="_blank"
-                        rel="noopener"
-                        sx={{ color: 'secondary.main', fontWeight: 600 }}
-                      >
-                        KVKK Aydınlatma Metni ve Gizlilik Politikası
-                      </Link>
-                      'nı okudum, kişisel verilerimin belirtilen kapsamda işlenmesini kabul ediyorum.
-                    </Typography>
-                  }
-                />
-
-                <Button
-                  type="submit"
-                  variant="contained"
-                  disabled={loading}
-                  fullWidth
-                  size="large"
-                  sx={{ mt: 1 }}
-                >
-                  {loading ? (
-                    <Stack direction="row" spacing={1.5} alignItems="center">
-                      <CircularProgress size={20} color="inherit" />
-                      <span>Kaydediliyor...</span>
-                    </Stack>
-                  ) : 'Kayıt Ol'}
-                </Button>
-              </Stack>
-            </Box>
-
-            {/* Footer */}
-            <Box sx={{ mt: 4, textAlign: 'center' }}>
-              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                Hesabınız var mı?{' '}
+          <Box>
+          <FormControlLabel
+            sx={{ alignItems: 'flex-start', ml: 0, mt: 0.5 }}
+            control={
+              <Checkbox
+                checked={form.kvkkConsent}
+                onChange={e => set('kvkkConsent')(e.target.checked)}
+                inputRef={v.refFor('kvkkConsent')}
+                slotProps={{ input: { 'aria-invalid': !!v.error('kvkkConsent') || undefined } }}
+                sx={{ pt: 0.25 }}
+              />
+            }
+            label={
+              <Typography variant="body2" sx={{ color: 'text.secondary', lineHeight: 1.6 }}>
                 <Link
                   component={RouterLink}
-                  to="/login"
-                  sx={{
-                    color: 'secondary.main',
-                    fontWeight: 600,
-                    '&:hover': { color: 'primary.main' },
-                    display: 'inline-block', py: 1.5, px: 0.5, my: -1.5, mx: -0.5
-                  }}
+                  to="/gizlilik-politikasi"
+                  target="_blank"
+                  rel="noopener"
+
                 >
-                  Giriş Yap
+                  KVKK Aydınlatma Metni ve Gizlilik Politikası
                 </Link>
+                'nı okudum, kişisel verilerimin belirtilen kapsamda işlenmesini kabul ediyorum.
               </Typography>
-              <Box sx={{ mt: 2.5 }}>
-                <TrustBadges />
-              </Box>
-            </Box>
+            }
+          />
+          {v.error('kvkkConsent') && (
+            <FormHelperText error sx={{ ml: 4.5, mt: 0 }}>{v.error('kvkkConsent')}</FormHelperText>
+          )}
           </Box>
-        </Box>
+
+          <Button
+            type="submit"
+            variant="contained"
+            disabled={loading}
+            fullWidth
+            size="large"
+          >
+            {loading ? (
+              <Stack direction="row" spacing={1.5} alignItems="center">
+                <CircularProgress size={20} color="inherit" />
+                <span>Kaydediliyor...</span>
+              </Stack>
+            ) : 'Kayıt Ol'}
+          </Button>
+        </Stack>
       </Box>
-    </Box>
+
+    </AuthLayout>
   )
 }

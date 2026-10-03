@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Box, Divider, IconButton, Stack, Typography } from '@mui/material'
+import { useCallback, useState } from 'react'
+import { Box, Button, Divider, IconButton, Stack, Typography } from '@mui/material'
 import {
   ArrowBackRounded, BlockRounded, DeleteForeverRounded, DescriptionOutlined, DevicesOutlined,
   FileDownloadOutlined, GroupsRounded, HelpOutlineRounded, InfoOutlined, LockOutlined, LogoutRounded,
@@ -20,6 +20,10 @@ import BlockedUsersPanel from '../../components/settings/BlockedUsersPanel.jsx'
 import ActiveSessionsPanel from '../../components/settings/ActiveSessionsPanel.jsx'
 import DeactivateAccountPanel from '../../components/settings/DeactivateAccountPanel.jsx'
 import DeleteAccountPanel from '../../components/settings/DeleteAccountPanel.jsx'
+import UserAvatar from '../../components/avatars/UserAvatar.jsx'
+import AvatarPicker from '../../components/avatars/AvatarPicker.jsx'
+import { radius } from '../../design/tokens.js'
+import { fullNameOf } from '../../utils/text.js'
 
 const ICON_SX = { fontSize: 20 }
 
@@ -59,8 +63,10 @@ function useDataExport() {
  * kendi içeriklerini yükler (bkz. components/settings).
  */
 export default function AccountSettings() {
-  const { logout } = useAuth()
+  const { logout, user } = useAuth()
   const navigate = useNavigate()
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const closePicker = useCallback(() => setPickerOpen(false), [])
   const { exporting, exportData } = useDataExport()
   // Hangi açılır panelin açık olduğu (aynı anda birden fazla açık olabilir).
   const [openPanels, setOpenPanels] = useState(() => new Set())
@@ -82,43 +88,61 @@ export default function AccountSettings() {
   }
 
   return (
-    <Box sx={{ width: '100%', maxWidth: 680, mx: 'auto', py: { xs: 2, md: 4 } }}>
-      <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 3, px: { xs: 0.5, md: 0 } }}>
-        <IconButton onClick={() => navigate('/profile')} aria-label="Profile dön" edge="start">
+    <Box className="page-transition" sx={{ width: '100%', maxWidth: 680, mx: 'auto', py: { xs: 1.5, md: 4 } }}>
+      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
+        <IconButton onClick={() => navigate('/profile')} aria-label="Profile dön" sx={{ width: 44, height: 44 }}>
           <ArrowBackRounded />
         </IconButton>
-        <Typography variant="h2" sx={{ fontWeight: 700 }}>Ayarlar</Typography>
+        <Typography variant="h2" component="h1">Ayarlar</Typography>
       </Stack>
+
+      {user && (
+        <Stack
+          direction="row"
+          alignItems="center"
+          spacing={1.75}
+          sx={{ mb: 3.5, p: { xs: 1.75, sm: 2 }, borderRadius: `${radius.lg}px`, bgcolor: 'brand.surfaceAlt' }}
+        >
+          <UserAvatar avatarKey={user.avatarKey} name={fullNameOf(user, 'Kullanıcı')} size={60} sx={{ border: '3px solid', borderColor: 'background.paper' }} />
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography variant="h5" component="p" noWrap>{fullNameOf(user, 'Kullanıcı')}</Typography>
+            <Typography variant="body2" sx={{ color: 'text.secondary' }} noWrap>{user.email}</Typography>
+          </Box>
+          <Button variant="outlined" size="small" onClick={() => setPickerOpen(true)} aria-label="Yol arkadaşını değiştir" sx={{ minHeight: 44, flexShrink: 0, bgcolor: 'background.paper' }}>
+            Değiştir
+          </Button>
+        </Stack>
+      )}
 
       <Stack spacing={4}>
         <CommunitySettings />
 
-        <SettingsSection title="Erişilebilirlik">
+        <SettingsSection title="Erişilebilirlik" description="Okuması ve kullanması sana en rahat gelen hâli seç. Bu cihazda saklanır.">
           <AccessibilitySettings />
         </SettingsSection>
 
-        <SettingsSection title="Hesap">
+        <SettingsSection title="Hesap ve gizlilik">
           <SettingsCard>
-            <Stack divider={<Divider />}>
+            <Stack divider={<Divider sx={{ mx: 1.25 }} />}>
               <ExpandableSettingsRow
-                icon={<LockOutlined sx={ICON_SX} />} label="Şifre Değiştir"
+                icon={<LockOutlined sx={ICON_SX} />} label="Şifre Değiştir" hint="En az 8 karakterli yeni bir şifre belirle"
                 open={isOpen('password')} onToggle={() => toggle('password')}
               >
                 <ChangePasswordForm onDone={() => close('password')} />
               </ExpandableSettingsRow>
               <ExpandableSettingsRow
-                icon={<BlockRounded sx={ICON_SX} />} label="Engellenen Kullanıcılar"
+                icon={<BlockRounded sx={ICON_SX} />} label="Engellenen Kullanıcılar" hint="Sana yazamayan kişiler"
                 open={isOpen('blocked')} onToggle={() => toggle('blocked')}
               >
                 <BlockedUsersPanel />
               </ExpandableSettingsRow>
               <ExpandableSettingsRow
-                icon={<DevicesOutlined sx={ICON_SX} />} label="Aktif Oturumlar"
+                icon={<DevicesOutlined sx={ICON_SX} />} label="Aktif Oturumlar" hint="Hesabının açık olduğu cihazlar"
                 open={isOpen('sessions')} onToggle={() => toggle('sessions')}
               >
                 <ActiveSessionsPanel />
               </ExpandableSettingsRow>
-              <SettingsRow icon={<FileDownloadOutlined sx={ICON_SX} />} label="Verilerimi İndir" loading={exporting} onClick={exportData} />
+              <SettingsRow icon={<FileDownloadOutlined sx={ICON_SX} />} label="Verilerimi İndir" hint="Paylaşımların ve bilgilerin tek bir dosyada" loading={exporting} onClick={exportData} />
               <SettingsRow icon={<LogoutRounded sx={ICON_SX} />} label="Çıkış Yap" onClick={handleLogout} />
             </Stack>
           </SettingsCard>
@@ -126,7 +150,7 @@ export default function AccountSettings() {
 
         <SettingsSection title="Destek ve Yasal">
           <SettingsCard>
-            <Stack divider={<Divider />}>
+            <Stack divider={<Divider sx={{ mx: 1.25 }} />}>
               {SUPPORT_LINKS.map(link => {
                 const Icon = link.Icon
                 return <SettingsRow key={link.to} icon={<Icon sx={ICON_SX} />} label={link.label} onClick={() => navigate(link.to)} />
@@ -135,9 +159,9 @@ export default function AccountSettings() {
           </SettingsCard>
         </SettingsSection>
 
-        <SettingsSection title="Tehlikeli Bölge">
+        <SettingsSection title="Hesabını kapat" description="Buradaki adımlar geri alınması zor işlemler. Acele etme, önce açıklamaları oku.">
           <SettingsCard>
-            <Stack divider={<Divider />}>
+            <Stack divider={<Divider sx={{ mx: 1.25 }} />}>
               <ExpandableSettingsRow
                 icon={<WarningAmberRounded sx={ICON_SX} />} label="Hesabımı Deaktive Et" danger
                 open={isOpen('deactivate')} onToggle={() => toggle('deactivate')}
@@ -154,6 +178,8 @@ export default function AccountSettings() {
           </SettingsCard>
         </SettingsSection>
       </Stack>
+
+      <AvatarPicker open={pickerOpen} onClose={closePicker} />
     </Box>
   )
 }

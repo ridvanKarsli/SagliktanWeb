@@ -6,9 +6,11 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import useQuickSearchShortcut from '../hooks/useQuickSearchShortcut.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import InstallPrompt from './InstallPrompt.jsx'
+import AvatarUnlockWatcher from './avatars/AvatarUnlockWatcher.jsx'
 import DesktopSidebar, { SIDEBAR_WIDTH } from './shell/DesktopSidebar.jsx'
 import MobileTopBar from './shell/MobileTopBar.jsx'
 import MobileBottomNav, { MOBILE_NAV_HEIGHT } from './shell/MobileBottomNav.jsx'
+import '../styles/feed.css'
 
 // Oturum açık sayfaların kabuğu: masaüstünde sabit sol gezinme, mobilde üst
 // bar + alt sekme çubuğu; ortada dar (okunabilir) içerik sütunu.
@@ -44,6 +46,9 @@ export default function ResponsiveShell({ children }) {
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100dvh', bgcolor: 'background.default' }}>
+      {/* Faydalı oylarla yeni yol arkadaşı açıldığında tüm uygulamada kutlar
+          (oturum başına bir kontrol; Profil sayfası da kendi kontrolünü tetikler). */}
+      <AvatarUnlockWatcher />
       {isMdUp && <DesktopSidebar onLogout={handleLogout} />}
 
       <Box
@@ -61,7 +66,7 @@ export default function ResponsiveShell({ children }) {
           sx={{
             flex: 1,
             minWidth: 0,
-            pb: { xs: `calc(${MOBILE_NAV_HEIGHT}px + env(safe-area-inset-bottom) + 8px)`, md: 0 }
+            pb: { xs: `calc(${MOBILE_NAV_HEIGHT}px + env(safe-area-inset-bottom) + 8px)`, md: 4 }
           }}
         >
           {!isMdUp && <MobileTopBar />}
@@ -72,7 +77,9 @@ export default function ResponsiveShell({ children }) {
             sx={{
               // Admin paneli veri yoğun (tablolar/kartlar) - yalnızca orada
               // genişletilir; diğer sayfalar okunabilirlik için dar kalır.
-              maxWidth: isAdminRoute ? 1100 : 720,
+              // Akış sütunu masaüstünde de ~680px: satır uzunluğu rahat
+              // okunur, kartlar "çakıl taşı" gibi ortada durur.
+              maxWidth: isAdminRoute ? 1100 : 704,
               mx: 'auto', width: '100%', px: { xs: 2, sm: 3 }
             }}
           >

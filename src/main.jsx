@@ -4,12 +4,10 @@ import ThemedApp from './ThemedApp.jsx'
 import { AccessibilityProvider } from './context/AccessibilityContext.jsx'
 import { reportWebVitals } from './utils/reportWebVitals.js'
 import { clearChunkReloadFlagAfterBoot, hasAttemptedChunkReload, reloadOnceForChunkError } from './utils/chunkReloadGuard.js'
-// Inter fontu artık Google Fonts'tan değil, yerelden (bkz. index.html'deki not).
-import '@fontsource/inter/400.css'
-import '@fontsource/inter/500.css'
-import '@fontsource/inter/600.css'
-import '@fontsource/inter/700.css'
-import '@fontsource/inter/800.css'
+// Fontlar kendi sunucumuzdan (KVKK: kullanıcı IP'si Google'a gitmez).
+// Nunito = gövde/arayüz, Baloo 2 = başlıklar (bkz. design/tokens.js).
+import '@fontsource-variable/nunito/wght.css'
+import '@fontsource-variable/baloo-2/wght.css'
 import './index.css'
 
 // Hata izleme (Sentry, LAUNCH_ROADMAP.md #1). VITE_SENTRY_DSN sadece

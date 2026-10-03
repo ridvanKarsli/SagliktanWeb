@@ -1,21 +1,42 @@
-import { Avatar, Box, Typography } from '@mui/material'
+import { Box, ButtonBase, Typography } from '@mui/material'
 import { LogoutRounded } from '@mui/icons-material'
 import { useLocation, useNavigate } from 'react-router-dom'
 import NotificationBell from '../NotificationBell.jsx'
+import UserAvatar from '../avatars/UserAvatar.jsx'
+import { useAuth } from '../../context/AuthContext.jsx'
 import { clickableProps } from '../../utils/clickable.js'
 import NavIcon from './NavIcon.jsx'
+import BrandMark from './BrandMark.jsx'
 import { isNavItemActive, useNavItems } from './navConfig.jsx'
 
-export const SIDEBAR_WIDTH = 240
+export const SIDEBAR_WIDTH = 256
 
-// Masaüstü sol gezinme çubuğu: logo + bildirimler, sekmeler, çıkış.
+const rowSx = {
+  position: 'relative',
+  display: 'flex',
+  alignItems: 'center',
+  gap: 1.75,
+  px: 1.75,
+  minHeight: 48,
+  borderRadius: '999px',
+  cursor: 'pointer',
+  transition: 'background-color 160ms ease, color 160ms ease',
+  '&:focus-visible': { outline: '3px solid', outlineColor: 'primary.light', outlineOffset: 2 }
+}
+
+// Masaüstü sol gezinme: marka + bildirimler, sekmeler, altta "sen" kartı
+// (avatarın ve adın, profiline gider) ve çıkış.
 export default function DesktopSidebar({ onLogout }) {
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const navItems = useNavItems()
+  const { user } = useAuth()
+  const fullName = [user?.firstName, user?.lastName].filter(Boolean).join(' ')
 
   return (
     <Box
+      component="nav"
+      aria-label="Ana gezinme"
       sx={{
         width: SIDEBAR_WIDTH,
         flexShrink: 0,
@@ -29,49 +50,18 @@ export default function DesktopSidebar({ onLogout }) {
         display: 'flex',
         flexDirection: 'column',
         py: 3,
-        px: 2.5
+        px: 2
       }}
     >
-      {/* Logo */}
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          px: 1.5,
-          mb: 5
-        }}
-      >
-        <Box
-          {...clickableProps(() => navigate('/home'))}
-          aria-label="Sağlıktan ana sayfa"
-          sx={{ display: 'flex', alignItems: 'center', gap: 2, cursor: 'pointer' }}
-        >
-          <Avatar
-            src="/sagliktanLogo.png"
-            alt="Sağlıktan"
-            sx={{
-              width: 40,
-              height: 40,
-              borderRadius: '12px'
-            }}
-          />
-          <Typography
-            sx={{
-              fontWeight: 700,
-              fontSize: '1.125rem',
-              color: 'primary.main',
-              letterSpacing: '-0.01em'
-            }}
-          >
-            Sağlıktan
-          </Typography>
-        </Box>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pl: 1, mb: 1 }}>
+        <BrandMark size={36} fontSize="1.5rem" />
         <NotificationBell />
       </Box>
+      <Typography variant="body2" sx={{ color: 'text.secondary', pl: 1.25, mb: 3.5, lineHeight: 1.45 }}>
+        Aynı yoldan geçenlerle, birlikte.
+      </Typography>
 
-      {/* Nav Links */}
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
         {navItems.map(item => {
           const active = isNavItemActive(item, pathname)
           return (
@@ -81,62 +71,28 @@ export default function DesktopSidebar({ onLogout }) {
               aria-current={active ? 'page' : undefined}
               aria-label={item.label}
               sx={{
-                position: 'relative',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 2,
-                px: 2,
-                py: 1.5,
-                borderRadius: 2.5,
-                cursor: 'pointer',
+                ...rowSx,
                 color: active ? 'primary.main' : 'text.secondary',
-                bgcolor: active ? 'rgba(76, 184, 159, 0.12)' : 'transparent',
-                fontWeight: active ? 600 : 500,
-                transition: 'background-color 0.15s ease, color 0.15s ease',
-                // Aktif satırın solunda ince bir vurgu çubuğu - hangi
-                // sekmede olduğunu arka plan tonundan daha net anlatır.
-                '&::before': {
-                  content: '""',
-                  position: 'absolute',
-                  left: -10,
-                  top: '20%',
-                  bottom: '20%',
-                  width: 3,
-                  borderRadius: 3,
-                  bgcolor: 'primary.main',
-                  opacity: active ? 1 : 0,
-                  transition: 'opacity 0.2s ease'
-                },
-                '&:hover': {
-                  bgcolor: active ? 'rgba(76, 184, 159, 0.16)' : 'rgba(242, 237, 230, 0.06)',
-                  color: 'primary.main'
-                }
+                bgcolor: active ? 'brand.primarySoft' : 'transparent',
+                fontWeight: active ? 800 : 600,
+                '&:hover': { bgcolor: active ? 'brand.primarySoft' : 'action.hover', color: active ? 'primary.main' : 'text.primary' },
+                '& svg': { fontSize: 24, transition: 'transform 240ms var(--ease-spring)' },
+                '&:hover svg': { transform: 'scale(1.08)' }
               }}
             >
-              <Box
-                sx={{
-                  display: 'flex',
-                  '& svg': {
-                    fontSize: 22,
-                    color: active ? 'secondary.main' : 'inherit'
-                  }
-                }}
-              >
+              <Box sx={{ display: 'flex' }}>
                 <NavIcon item={item} active={active} />
               </Box>
-              <Typography sx={{ fontWeight: 'inherit', fontSize: '0.9375rem', flex: 1 }}>
+              <Typography sx={{ fontWeight: 'inherit', fontSize: '1rem', flex: 1 }}>
                 {item.label}
               </Typography>
-              {/* X.com/Linear tarzı kısayol ipucu - bkz. useQuickSearchShortcut.js.
-                  Sadece masaüstü sidebar'da: mobilde klavye kısayolunun
-                  bir anlamı yok. */}
+              {/* Kısayol ipucu (bkz. useQuickSearchShortcut). Metin tam opak
+                  text.secondary: soluklaştırmak AA kontrastını bozar. */}
               {item.to === '/search' && (
-                // Metin tam opak 'text.secondary': soluklaştırmak WCAG AA
-                // renk kontrastını ihlal eder (bkz. accessibility.spec.js).
                 <Box
                   sx={{
-                    fontSize: '0.6875rem', fontWeight: 600, color: 'text.secondary',
-                    border: '1px solid', borderColor: 'divider', borderRadius: 1,
+                    fontSize: '0.75rem', fontWeight: 700, color: 'text.secondary',
+                    border: '1px solid', borderColor: 'brand.borderStrong', borderRadius: '8px',
                     px: 0.75, py: 0.125
                   }}
                 >
@@ -149,29 +105,38 @@ export default function DesktopSidebar({ onLogout }) {
       </Box>
 
       <Box sx={{ flex: 1 }} />
-    
-      {/* Logout */}
+
+      {user && (
+        <ButtonBase
+          onClick={() => navigate('/profile')}
+          aria-label={`Profilin: ${fullName || 'Profil'}`}
+          sx={{
+            display: 'flex', alignItems: 'center', gap: 1.25, justifyContent: 'flex-start', textAlign: 'left',
+            p: 1.25, mb: 1, borderRadius: '18px', bgcolor: 'brand.surfaceAlt',
+            transition: 'background-color 160ms ease',
+            '&:hover': { bgcolor: 'brand.primarySoft' },
+            '&.Mui-focusVisible': { outline: '3px solid', outlineColor: 'primary.light', outlineOffset: 2 }
+          }}
+        >
+          <UserAvatar avatarKey={user.avatarKey} name={fullName} size={40} />
+          <Box sx={{ minWidth: 0 }}>
+            <Typography variant="subtitle2" noWrap sx={{ color: 'text.primary', lineHeight: 1.3 }}>{fullName || 'Profilin'}</Typography>
+            <Typography variant="caption" noWrap sx={{ color: 'text.secondary', display: 'block' }}>Profilini gör</Typography>
+          </Box>
+        </ButtonBase>
+      )}
+
       <Box
         {...clickableProps(onLogout)}
         aria-label="Çıkış Yap"
         sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 2,
-          px: 2,
-          py: 1.5,
-          borderRadius: 2.5,
-          cursor: 'pointer',
+          ...rowSx,
           color: 'text.secondary',
-          transition: 'all 0.2s ease',
-          '&:hover': {
-            bgcolor: 'rgba(196, 85, 74, 0.08)',
-            color: '#C4554A'
-          }
+          '&:hover': { bgcolor: 'brand.roseSoft', color: 'error.main' }
         }}
       >
         <LogoutRounded sx={{ fontSize: 22 }} />
-        <Typography sx={{ fontSize: '0.9375rem', fontWeight: 500 }}>Çıkış Yap</Typography>
+        <Typography sx={{ fontSize: '0.95rem', fontWeight: 700 }}>Çıkış Yap</Typography>
       </Box>
     </Box>
   )

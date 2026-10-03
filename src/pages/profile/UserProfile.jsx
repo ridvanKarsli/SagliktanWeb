@@ -1,15 +1,17 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Avatar, Box, Button, CircularProgress, IconButton, ListItemText, Menu, MenuItem, Stack, Typography } from '@mui/material'
+import { Box, Button, CircularProgress, IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Typography } from '@mui/material'
 import {
-  ArrowBack, BlockRounded, DynamicFeedRounded, FlagOutlined, LockOpenRounded, MailOutlineRounded, MoreVertRounded
+  ArrowBackRounded, BlockRounded, FlagOutlined, LockOpenRounded, MailOutlineRounded, MoreVertRounded
 } from '@mui/icons-material'
 import { useNavigate, useParams } from 'react-router-dom'
 import HealthSummary from '../../components/profile/HealthSummary.jsx'
 import PostList from '../../components/PostList.jsx'
 import VerifiedBadge from '../../components/VerifiedBadge.jsx'
-import EmptyState from '../../components/EmptyState.jsx'
 import ReportDialog from '../../components/comments/ReportDialog.jsx'
-import CenteredSpinner from '../../components/common/CenteredSpinner.jsx'
+import ProfileHeader, { ProfileAvatar, ProfileHeaderSkeleton, StatStrip } from '../../components/profile/ProfileHeader.jsx'
+import ProfileStat from '../../components/profile/ProfileStat.jsx'
+import CompanionEmpty from '../../components/avatars/CompanionEmpty.jsx'
+import PostCardSkeleton from '../../components/PostCardSkeleton.jsx'
 import LoadMoreButton from '../../components/common/LoadMoreButton.jsx'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
@@ -19,19 +21,8 @@ import { useReportDialog } from '../../hooks/useReportDialog.js'
 import {
   getUserPublicProfile, getUserPosts, sendMessageRequest, blockUser, unblockUser, listBlockedUsers, reportUser
 } from '../../services/api.js'
-import { formatCount, initialsFrom } from '../../utils/format.js'
+import '../../styles/companions.css'
 import { fullNameOf } from '../../utils/text.js'
-
-function InlineStat({ value, label, highlight = false }) {
-  return (
-    <Box>
-      <Typography variant="subtitle2" component="span" sx={{ fontWeight: 700, color: highlight ? 'primary.main' : undefined }}>
-        {formatCount(value)}
-      </Typography>
-      <Typography variant="caption" sx={{ color: 'text.secondary', ml: 0.5 }}>{label}</Typography>
-    </Box>
-  )
-}
 
 function usePublicProfile(token, userId) {
   const [state, setState] = useState({ profile: null, loading: true, error: '' })
@@ -141,103 +132,121 @@ export default function UserProfile() {
     }
   }
 
-  if (loading) return <CenteredSpinner page />
+  const pageSx = { width: '100%', maxWidth: 680, mx: 'auto', py: { xs: 1.5, md: 4 } }
+  const roundIcon = { width: 44, height: 44, bgcolor: 'background.paper', '&:hover': { bgcolor: 'background.paper' } }
+  const backButton = (
+    <IconButton onClick={() => navigate(-1)} aria-label="Geri" sx={roundIcon}>
+      <ArrowBackRounded />
+    </IconButton>
+  )
 
-  if (error || !profile) {
+  if (loading) {
     return (
-      <Box sx={{ py: { xs: 2, md: 4 } }}>
-        <Button startIcon={<ArrowBack />} onClick={() => navigate(-1)} sx={{ mb: 2, color: 'text.secondary' }}>
-          Geri
-        </Button>
-        <Typography variant="body1" sx={{ color: 'text.secondary' }}>
-          {error || 'Kullanıcı bulunamadı.'}
-        </Typography>
+      <Box sx={pageSx}>
+        <ProfileHeaderSkeleton />
+        <Box sx={{ mt: 3 }}><PostCardSkeleton /><PostCardSkeleton /></Box>
       </Box>
     )
   }
 
+  if (error || !profile) {
+    return (
+      <Box sx={pageSx}>
+        <Button startIcon={<ArrowBackRounded />} onClick={() => navigate(-1)} sx={{ mb: 1 }}>Geri</Button>
+        <CompanionEmpty
+          companion="bulut"
+          title="Bu profili bulamadık"
+          description={error ? `${error} Bağlantı eski olabilir ya da kişi hesabını kapatmış olabilir.` : 'Bağlantı eski olabilir ya da kişi hesabını kapatmış olabilir.'}
+          actionLabel="Ana sayfaya dön"
+          onAction={() => navigate('/home')}
+        />
+      </Box>
+    )
+  }
+
+  const firstName = profile.firstName || fullName
+
   return (
-    <Box sx={{ width: '100%', maxWidth: 680, mx: 'auto', py: { xs: 2, md: 4 } }}>
-      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
-        <Button startIcon={<ArrowBack />} onClick={() => navigate(-1)} sx={{ color: 'text.secondary' }}>
-          Geri
-        </Button>
-        <IconButton onClick={(e) => setMenuAnchor(e.currentTarget)} aria-label="Seçenekler" aria-haspopup="menu">
-          <MoreVertRounded />
-        </IconButton>
-        <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={() => setMenuAnchor(null)}>
-          {blocking.isBlocked ? (
-            <MenuItem onClick={closeMenuThen(blocking.unblock)}>
-              <LockOpenRounded fontSize="small" sx={{ mr: 1.5 }} />
-              <ListItemText primary="Engeli Kaldır" />
-            </MenuItem>
-          ) : (
-            <MenuItem onClick={closeMenuThen(blocking.block)} sx={{ color: 'error.main' }}>
-              <BlockRounded fontSize="small" sx={{ mr: 1.5 }} />
-              <ListItemText primary="Kullanıcıyı Engelle" />
-            </MenuItem>
-          )}
-          <MenuItem onClick={closeMenuThen(() => report.open(userId))}>
-            <FlagOutlined fontSize="small" sx={{ mr: 1.5 }} />
-            <ListItemText primary="Şikayet Et" />
-          </MenuItem>
-        </Menu>
-      </Stack>
-
-      <Box sx={{ mb: 4, px: { xs: 0.5, md: 0 } }}>
-        <Stack direction="row" spacing={{ xs: 2, md: 3 }} alignItems="flex-start">
-          <Avatar
-            sx={{
-              width: { xs: 78, md: 102 }, height: { xs: 78, md: 102 }, flexShrink: 0,
-              fontSize: { xs: 24, md: 32 }, fontWeight: 600,
-              border: '3px solid', borderColor: 'primary.main'
-            }}
-          >
-            {initialsFrom(fullName)}
-          </Avatar>
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={1} flexWrap="wrap" useFlexGap>
-              <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap" useFlexGap>
-                <Typography variant="h2" sx={{ fontWeight: 700, mb: 0.5, wordBreak: 'break-word' }}>
-                  {fullName}
-                </Typography>
-                {profile.emailVerified && <VerifiedBadge />}
-              </Stack>
-              {!blocking.isBlocked && (
-                <Button
-                  variant={requestSent ? 'outlined' : 'contained'}
-                  size="small"
-                  startIcon={sendingRequest ? <CircularProgress size={14} color="inherit" /> : <MailOutlineRounded />}
-                  onClick={handleSendMessageRequest}
-                  disabled={sendingRequest || requestSent}
-                  sx={{ minHeight: 40, flexShrink: 0 }}
-                >
-                  {requestSent ? 'İstek Gönderildi' : 'Mesaj Gönder'}
-                </Button>
+    <Box className="page-transition" sx={pageSx}>
+      <ProfileHeader
+        avatar={<ProfileAvatar avatarKey={profile.avatarKey} name={fullName} />}
+        name={fullName}
+        badge={profile.emailVerified ? <VerifiedBadge /> : null}
+        summary={<HealthSummary profile={profile} />}
+        bio={profile.bio}
+        topLeft={backButton}
+        topRight={(
+          <>
+            <IconButton onClick={(e) => setMenuAnchor(e.currentTarget)} aria-label="Seçenekler" aria-haspopup="menu" sx={roundIcon}>
+              <MoreVertRounded />
+            </IconButton>
+            <Menu
+              anchorEl={menuAnchor}
+              open={Boolean(menuAnchor)}
+              onClose={() => setMenuAnchor(null)}
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+              transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+            >
+              {blocking.isBlocked ? (
+                <MenuItem onClick={closeMenuThen(blocking.unblock)}>
+                  <ListItemIcon><LockOpenRounded fontSize="small" /></ListItemIcon>
+                  <ListItemText primary="Engeli Kaldır" />
+                </MenuItem>
+              ) : (
+                <MenuItem onClick={closeMenuThen(blocking.block)} sx={{ color: 'error.main' }}>
+                  <ListItemIcon sx={{ color: 'error.main' }}><BlockRounded fontSize="small" /></ListItemIcon>
+                  <ListItemText primary="Kullanıcıyı Engelle" />
+                </MenuItem>
               )}
-            </Stack>
-            <Stack direction="row" spacing={{ xs: 2, md: 3 }} flexWrap="wrap" useFlexGap>
-              <InlineStat value={posts.totalCount} label="Gönderi" />
-              <InlineStat value={profile.commentCount} label="Yorum" />
-              <InlineStat value={profile.likesReceived} label="Faydalı" highlight />
-            </Stack>
-          </Box>
-        </Stack>
-        <HealthSummary profile={profile} sx={{ mt: 1.25 }} />
-        {profile.bio && (
-          <Typography variant="body2" sx={{ color: 'text.primary', mt: 1.5, wordBreak: 'break-word', overflowWrap: 'anywhere', whiteSpace: 'pre-line' }}>
-            {profile.bio}
-          </Typography>
+              <MenuItem onClick={closeMenuThen(() => report.open(userId))}>
+                <ListItemIcon><FlagOutlined fontSize="small" /></ListItemIcon>
+                <ListItemText primary="Şikayet Et" />
+              </MenuItem>
+            </Menu>
+          </>
         )}
-      </Box>
+        stats={(
+          <StatStrip>
+            <ProfileStat value={posts.totalCount} label="Gönderi" loading={posts.loading} />
+            <ProfileStat value={profile.commentCount} label="Yorum" />
+            <ProfileStat value={profile.likesReceived} label="Faydalı" highlight />
+          </StatStrip>
+        )}
+      >
+        {blocking.isBlocked ? (
+          <Typography variant="body2" sx={{ mt: 2, color: 'text.secondary' }}>
+            Bu kişiyi engelledin. Engeli kaldırmak için sağ üstteki menüyü kullanabilirsin.
+          </Typography>
+        ) : (
+          <Box sx={{ mt: 2.5 }}>
+            <Button
+              variant={requestSent ? 'outlined' : 'contained'}
+              startIcon={sendingRequest ? <CircularProgress size={16} color="inherit" /> : <MailOutlineRounded />}
+              onClick={handleSendMessageRequest}
+              disabled={sendingRequest || requestSent}
+              sx={{ width: { xs: '100%', md: 'auto' }, minWidth: { md: 220 } }}
+            >
+              {requestSent ? 'İstek Gönderildi' : 'Mesaj Gönder'}
+            </Button>
+            <Typography variant="caption" sx={{ display: 'block', mt: 1, color: 'text.secondary' }}>
+              {requestSent
+                ? `${firstName} isteğini kabul edince sohbetiniz Mesajlar'da açılır.`
+                : `${firstName} kabul ederse birebir sohbet başlar.`}
+            </Typography>
+          </Box>
+        )}
+      </ProfileHeader>
 
-      <Box sx={{ mb: 2, px: { xs: 0.5, md: 0 }, pb: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}>
-        <Typography variant="h3" sx={{ color: 'text.primary' }}>Gönderiler</Typography>
-      </Box>
+      <Typography variant="h4" component="h2" sx={{ mt: 3.5, mb: 1.5, px: 0.5 }}>Paylaşımları</Typography>
       {posts.loading ? (
-        <CenteredSpinner />
+        <Box aria-busy="true" aria-label="Gönderiler yükleniyor"><PostCardSkeleton /><PostCardSkeleton /></Box>
       ) : posts.items.length === 0 ? (
-        <EmptyState icon={DynamicFeedRounded} title="Henüz gönderisi yok." dense />
+        <CompanionEmpty
+          companion="cakil"
+          title="Henüz bir paylaşımı yok"
+          description={`${firstName} ilk paylaşımını yaptığında burada göreceksin.`}
+          dense
+        />
       ) : (
         <>
           <PostList posts={posts.items} token={token} showPinnedBadge />

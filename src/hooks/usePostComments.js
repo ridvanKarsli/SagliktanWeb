@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useNotification } from '../context/NotificationContext.jsx'
 import { createComment, listComments, listCommentReplies } from '../services/api.js'
+import { cleanText, commentError, fieldErrorsFrom } from '../utils/validation.js'
 
 // Bir gönderinin yorum ağacı - YERİNDE AÇILAN thread modeli: yanıtlar
 // ebeveynin altında TEK girintiyle açılır; daha derin yanıtlar da aynı
@@ -28,6 +29,9 @@ export function usePostComments(postId, { onCountChange } = {}) {
 
   const [newComment, setNewComment] = useState('')
   const [postingComment, setPostingComment] = useState(false)
+  // Sunucunun yorum alanına özel hatası (ör. uzunluk) - metin değişince kalkar.
+  const [commentServerError, setCommentServerError] = useState(null)
+  const postingRef = useRef(false)
 
   // Eski yanıt (yeniden yükleme ya da başka gönderi sonrası gelen) geçerli
   // listeyi ezmesin diye istek sıra numarası.
@@ -132,17 +136,25 @@ export function usePostComments(postId, { onCountChange } = {}) {
 
   const submitComment = async (e) => {
     e.preventDefault()
-    if (!newComment.trim()) { showError('Yorum boş olamaz.'); return }
+    // Çift gönderim (Enter + düğme, art arda dokunma) aynı yorumu iki kez eklemesin.
+    if (postingRef.current) return
+    const problem = commentError(newComment)
+    if (problem) { showError(problem); return }
+    postingRef.current = true
     setPostingComment(true)
+    setCommentServerError(null)
     try {
-      await createComment(token, postId, newComment.trim())
+      await createComment(token, postId, cleanText(newComment))
       setNewComment('')
       showSuccess('Yorum eklendi.')
       onCountChangeRef.current?.(1)
       loadComments()
     } catch (err) {
-      showError(err.message || 'Yorum eklenemedi.')
+      const fieldMsg = fieldErrorsFrom(err).content
+      if (fieldMsg) setCommentServerError({ msg: fieldMsg, value: newComment })
+      else showError(err.message || 'Yorum eklenemedi.')
     } finally {
+      postingRef.current = false
       setPostingComment(false)
     }
   }
@@ -180,6 +192,7 @@ export function usePostComments(postId, { onCountChange } = {}) {
   return {
     comments, commentsLoading, commentsLoadingMore, last, threads,
     newComment, setNewComment, postingComment,
+    commentError: commentServerError && commentServerError.value === newComment ? commentServerError.msg : null,
     loadMoreComments, submitComment, submitReply, saveCommentUpdate,
     toggleThread, loadMoreReplies
   }

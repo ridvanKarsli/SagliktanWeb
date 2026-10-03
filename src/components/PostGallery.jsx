@@ -3,6 +3,11 @@ import { Box, ButtonBase } from '@mui/material'
 import Lightbox from 'yet-another-react-lightbox'
 import Zoom from 'yet-another-react-lightbox/plugins/zoom'
 import 'yet-another-react-lightbox/styles.css'
+import { alpha } from '@mui/material/styles'
+import { paletteFor } from '../design/tokens.js'
+
+// Lightbox her temada koyu (fotoğrafa odaklanılsın): gece çamı zemin.
+const LIGHTBOX_BG = alpha(paletteFor('dark').background, 0.96)
 
 /**
  * Gönderi fotoğrafları: CSS scroll-snap ile yatay kaydırmalı bir şerit
@@ -39,12 +44,12 @@ export default function PostGallery({ attachments }) {
               scrollSnapAlign: 'start',
               flex: '0 0 auto',
               width: attachments.length === 1 ? '100%' : '85%',
-              borderRadius: 2,
+              borderRadius: '16px',
               overflow: 'hidden',
               border: '1px solid',
-              borderColor: 'divider',
+              borderColor: 'brand.border',
               cursor: 'zoom-in',
-              '&.Mui-focusVisible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 2 }
+              '&.Mui-focusVisible': { outline: '3px solid', outlineColor: 'primary.light', outlineOffset: 2 }
             }}
           >
             <Box
@@ -72,7 +77,7 @@ export default function PostGallery({ attachments }) {
         }}
         // closeOnPullDown: iOS Fotoğraflar'daki gibi aşağı sürükleyerek kapatma.
         controller={{ closeOnBackdropClick: true, closeOnPullDown: true }}
-        styles={{ container: { backgroundColor: 'rgba(20, 17, 14, 0.94)' } }}
+        styles={{ container: { backgroundColor: LIGHTBOX_BG } }}
       />
     </>
   )

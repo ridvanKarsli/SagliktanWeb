@@ -46,8 +46,8 @@ export default function ActiveSessionsPanel() {
         <Stack key={s.id} direction="row" alignItems="center" spacing={1.5} sx={{ py: 0.75 }}>
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <Stack direction="row" alignItems="center" spacing={1}>
-              <Typography variant="body2" sx={{ fontWeight: 500 }} noWrap>{s.deviceLabel}</Typography>
-              {s.current && <Chip label="Bu cihaz" size="small" color="primary" variant="outlined" sx={{ height: 20 }} />}
+              <Typography variant="body1" sx={{ fontWeight: 700 }} noWrap>{s.deviceLabel}</Typography>
+              {s.current && <Chip label="Bu cihaz" size="small" color="success" sx={{ height: 24 }} />}
             </Stack>
             <Typography variant="caption" sx={{ color: 'text.secondary' }}>
               Son kullanım: {prettyDate(s.lastUsedAt) || 'Bilinmiyor'}
@@ -58,7 +58,7 @@ export default function ActiveSessionsPanel() {
               size="small" variant="outlined" color="error"
               disabled={revokingId === s.id}
               onClick={() => handleRevoke(s.id)}
-              sx={{ minHeight: 36 }}
+              sx={{ flexShrink: 0 }}
             >
               {revokingId === s.id ? <CircularProgress size={14} color="inherit" /> : 'Çıkış Yap'}
             </Button>

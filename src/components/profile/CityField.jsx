@@ -1,39 +1,79 @@
+import { useState } from 'react'
 import { Autocomplete, TextField } from '@mui/material'
 import { TR_CITIES } from '../../utils/communityProfile.js'
+import { filterPrefixFirst, LIMITS, matchCity, normalizeCity } from '../../utils/validation.js'
 
-// Türkçe büyük/küçük harfe duyarsız; önce "ile başlayanlar", sonra "içerenler".
-function filterCities(options, { inputValue }) {
-  const q = (inputValue || '').trim().toLocaleLowerCase('tr')
-  if (!q) return options
-  const starts = []
-  const contains = []
-  for (const o of options) {
-    const l = o.toLocaleLowerCase('tr')
-    if (l.startsWith(q)) starts.push(o)
-    else if (l.includes(q)) contains.push(o)
+const filterCities = (options, { inputValue }) => filterPrefixFirst(options, inputValue)
+
+// Yaşadığı şehir: YALNIZCA Türkiye'nin 81 ilinden biri seçilebilir (serbest
+// metin yok - backend listede olmayan değeri reddeder, bkz. TurkishCities).
+// Yazdıkça Türkçe duyarlı süzülür ("izmir", "IZMIR", "canakkale" de bulur);
+// ile başlayanlar önce. Değer her zaman '' ya da geçerli bir il; kayıtlı
+// değer listede yoksa boş sayılır. Her zaman isteğe bağlı.
+export default function CityField({
+  value, onChange, label = 'Yaşadığın şehir (isteğe bağlı)', helperText, size, testId,
+  error = false, inputRef, onBlur
+}) {
+  const selected = normalizeCity(value) || null
+  const [inputValue, setInputValue] = useState(selected || '')
+  const [lastSelected, setLastSelected] = useState(selected)
+  // Değer dışarıdan değişince (ör. "Vazgeç") yazılan metni de eşitle.
+  if (lastSelected !== selected) {
+    setLastSelected(selected)
+    setInputValue(selected || '')
   }
-  return [...starts, ...contains].slice(0, 8)
-}
 
-// Yaşadığı şehir: 81 il listesinden seçilebilir ya da serbest yazılabilir
-// (ilçe, yurt dışı vb.). Her zaman isteğe bağlı.
-export default function CityField({ value, onChange, label = 'Yaşadığın şehir (isteğe bağlı)', helperText, size, testId }) {
+  // Listeden seçmeden alandan çıkıldıysa ve yazılan metin bir ilin adıysa
+  // ("istanbul") onu seç; değilse metin seçili değere geri döner.
+  const handleBlur = (e) => {
+    const typed = inputValue.trim()
+    if (typed && typed !== selected) {
+      const match = matchCity(typed)
+      if (match) onChange(match)
+    }
+    onBlur?.(e)
+  }
+
   return (
     <Autocomplete
-      freeSolo
       options={TR_CITIES}
       filterOptions={filterCities}
-      value={value || ''}
-      inputValue={value || ''}
-      onInputChange={(_, city) => onChange((city || '').slice(0, 60))}
+      value={selected}
+      onChange={(_, city) => onChange(city || '')}
+      inputValue={inputValue}
+      onInputChange={(_, text) => setInputValue((text || '').slice(0, LIMITS.CITY_MAX))}
+      autoHighlight
+      openOnFocus
+      handleHomeEndKeys
       size={size}
+      noOptionsText="Şehir bulunamadı"
+      clearText="Temizle"
+      openText="Listeyi aç"
+      closeText="Listeyi kapat"
+      slotProps={{ listbox: { sx: { maxHeight: 280 } } }}
+      // Mobilde üzerine gelme (hover) yok: temizle düğmesi seçim varken hep görünsün.
+      sx={{ '& .MuiAutocomplete-clearIndicator': { visibility: selected ? 'visible' : undefined } }}
       renderInput={(params) => (
         <TextField
           {...params}
           label={label}
           helperText={helperText}
-          autoComplete="address-level2"
-          slotProps={{ htmlInput: { ...params.inputProps, maxLength: 60, ...(testId ? { 'data-testid': testId } : {}) } }}
+          error={error}
+          inputRef={inputRef}
+          onBlur={handleBlur}
+          placeholder="İl seç ya da yazmaya başla"
+          slotProps={{
+            htmlInput: {
+              ...params.inputProps,
+              maxLength: LIMITS.CITY_MAX,
+              autoComplete: 'address-level1',
+              autoCapitalize: 'words',
+              autoCorrect: 'off',
+              spellCheck: false,
+              enterKeyHint: 'done',
+              ...(testId ? { 'data-testid': testId } : {})
+            }
+          }}
         />
       )}
     />

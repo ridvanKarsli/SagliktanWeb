@@ -1,6 +1,5 @@
 import { useCallback } from 'react'
-import { Alert, Box, Button, IconButton, Stack, Typography } from '@mui/material'
-import { ArrowBack, ChatBubbleOutlineRounded } from '@mui/icons-material'
+import { Alert, Box, Button, Stack, Typography } from '@mui/material'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import ReportDialog from '../components/comments/ReportDialog.jsx'
@@ -15,6 +14,8 @@ import PostDetailHeader from '../components/post/PostDetailHeader.jsx'
 import PostEditForm from '../components/post/PostEditForm.jsx'
 import PostContent from '../components/post/PostContent.jsx'
 import PostActionBar from '../components/post/PostActionBar.jsx'
+import { detailSurfaceSx } from '../components/post/detailSurface.js'
+import LeafBurst from '../components/celebration/LeafBurst.jsx'
 import { reportComment, reportPost } from '../services/api.js'
 import { canManage } from '../utils/permissions.js'
 import { goToUserProfile } from '../utils/navigation.js'
@@ -52,10 +53,14 @@ export default function PostDetail() {
   if (error || !post) {
     return (
       <Box sx={{ py: { xs: 2, md: 4 } }}>
-        <IconButton onClick={() => navigate(-1)} sx={{ mb: 2 }} aria-label="Geri dön">
-          <ArrowBack />
-        </IconButton>
-        <Alert severity="error">{error || 'Gönderi bulunamadı.'}</Alert>
+        <BackLink label="Geri dön" />
+        <EmptyState
+          companion="bulut"
+          title="Bu gönderiyi açamadık"
+          description={`${error || 'Gönderi bulunamadı.'} Silinmiş olabilir ya da bağlantı kopmuş olabilir; biraz sonra yeniden deneyebilirsin.`}
+          actionLabel="Akışa dön"
+          onAction={() => navigate('/home')}
+        />
       </Box>
     )
   }
@@ -76,103 +81,124 @@ export default function PostDetail() {
     onReport: (id) => report.open({ type: 'comment', id }),
     onAuthorClick: goToProfile,
     onToggleThread: comments.toggleThread,
+    celebrateId: answer.celebration?.commentId ?? null,
   }
+  const isQuestion = post.postType === 'QUESTION'
+  const commentTotal = post.commentCount ?? comments.comments.length
 
   return (
     <Box sx={{ py: { xs: 2, md: 4 } }}>
-      <BackLink to={`/sub-groups/${post.subGroupId}`} ariaLabel="Alt gruba dön" label="Alt Gruba Dön" />
-      <MedicalDisclaimer />
+      <BackLink to={`/sub-groups/${post.subGroupId}`} label={post.subGroupName || 'Alt gruba dön'} />
 
-      <Box sx={{ mb: 1 }}>
-        <Box sx={{ pb: { xs: 2, md: 2.5 } }}>
-          <PostDetailHeader
-            post={post}
-            isOwnPost={isOwnPost}
-            canManagePost={canManage(user, post.authorId)}
-            showActions={!postState.editingPost}
-            onAuthorClick={goToProfile}
-            onTogglePin={postState.togglePin}
-            togglingPin={postState.togglingPin}
-            onEdit={postState.startEditing}
-            onDelete={() => postState.removePost((deleted) => navigate(`/sub-groups/${deleted.subGroupId}`))}
-            deleting={postState.deletingPost}
-            onReport={() => report.open({ type: 'post', id: post.id })}
+      <Box component="article" aria-label={post.title || "Gönderi"} sx={{ ...detailSurfaceSx, mb: 3.5 }}>
+        <PostDetailHeader
+          post={post}
+          isOwnPost={isOwnPost}
+          canManagePost={canManage(user, post.authorId)}
+          showActions={!postState.editingPost}
+          onAuthorClick={goToProfile}
+          onTogglePin={postState.togglePin}
+          togglingPin={postState.togglingPin}
+          onEdit={postState.startEditing}
+          onDelete={() => postState.removePost((deleted) => navigate(`/sub-groups/${deleted.subGroupId}`))}
+          deleting={postState.deletingPost}
+          onReport={() => report.open({ type: 'post', id: post.id })}
+        />
+
+        {postState.editingPost ? (
+          <PostEditForm
+            title={postState.editTitle}
+            onTitleChange={postState.setEditTitle}
+            content={postState.editContent}
+            onContentChange={postState.setEditContent}
+            saving={postState.savingPost}
+            onSave={postState.savePostEdit}
+            onCancel={postState.cancelEditing}
           />
-
-          {postState.editingPost ? (
-            <PostEditForm
-              title={postState.editTitle}
-              onTitleChange={postState.setEditTitle}
-              content={postState.editContent}
-              onContentChange={postState.setEditContent}
-              saving={postState.savingPost}
-              onSave={postState.savePostEdit}
-              onCancel={postState.cancelEditing}
-            />
-          ) : (
+        ) : (
+          <Box>
             <PostContent
               post={post}
               isOwnPost={isOwnPost}
               onPollChange={(poll) => setPost(p => ({ ...p, poll }))}
             />
-          )}
-        </Box>
+            <MedicalDisclaimer sx={{ mt: 2.5 }} />
+          </Box>
+        )}
 
         {!postState.editingPost && <PostActionBar post={post} />}
       </Box>
 
-      <Typography variant="h6" component="h2" sx={{ fontWeight: 700, mb: 1.5 }}>
-        Yorumlar
-      </Typography>
-
-      {membershipKnown && !isMember ? (
-        <Alert
-          severity="info"
-          sx={{ mb: 2 }}
-          action={
-            <Button color="inherit" size="small" onClick={() => navigate(`/groups/${post.diseaseGroupId}`)}>
-              Gruba git
-            </Button>
-          }
-        >
-          Yorum yapmak için bu hastalık grubuna katılman gerekiyor.
-        </Alert>
-      ) : (
-        <CommentComposer
-          value={comments.newComment}
-          onChange={comments.setNewComment}
-          onSubmit={comments.submitComment}
-          submitting={comments.postingComment}
-          disabled={!isMember}
-        />
-      )}
-
-      {comments.commentsLoading ? (
-        <Stack>
-          <CommentRowSkeleton />
-          <CommentRowSkeleton />
-          <CommentRowSkeleton />
+      <Box component="section" aria-labelledby="comments-title">
+        <Stack direction="row" alignItems="baseline" spacing={1} sx={{ mb: 0.5, px: 0.5 }}>
+          <Typography id="comments-title" variant="h4" component="h2">
+            {isQuestion ? 'Cevaplar' : 'Yorumlar'}
+          </Typography>
+          {commentTotal > 0 && (
+            <Typography variant="body1" sx={{ color: 'text.secondary', fontWeight: 800 }}>{commentTotal}</Typography>
+          )}
         </Stack>
-      ) : comments.comments.length === 0 ? (
-        <EmptyState
-          icon={ChatBubbleOutlineRounded}
-          title="Henüz yorum yok"
-          description={isMember ? 'İlk yorumu sen yaz; deneyimin başka birine yol gösterebilir.' : 'Gruba katılınca ilk yorumu sen yazabilirsin.'}
-          dense
-        />
-      ) : (
-        <CommentThreadList
-          comments={comments.comments}
-          threads={comments.threads}
-          acceptedCommentId={post.acceptedCommentId}
-          rowProps={commentRowProps}
-          onLoadMoreReplies={comments.loadMoreReplies}
-          hasMore={!comments.last}
-          loadingMore={comments.commentsLoadingMore}
-          onLoadMore={comments.loadMoreComments}
-        />
-      )}
+        <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.75, px: 0.5 }}>
+          {isQuestion
+            ? 'Deneyimini paylaş; soruyu soran, en çok işine yarayan cevabı seçebilir.'
+            : 'Nazik ve destekleyici bir dil, burayı herkes için güvenli tutar.'}
+        </Typography>
 
+        <Box sx={{ ...detailSurfaceSx, px: { xs: 1.75, sm: 3 }, pt: { xs: 1.5, sm: 2 }, pb: { xs: 1, sm: 1.5 } }}>
+          {membershipKnown && !isMember ? (
+            <Alert
+              severity="info"
+              sx={{ mb: 1.5 }}
+              action={
+                <Button color="inherit" size="small" onClick={() => navigate(`/groups/${post.diseaseGroupId}`)} sx={{ minHeight: 44 }}>
+                  Gruba git
+                </Button>
+              }
+            >
+              Yorum yapmak için bu hastalık grubuna katılman gerekiyor.
+            </Alert>
+          ) : (
+            <CommentComposer
+              value={comments.newComment}
+              onChange={comments.setNewComment}
+              onSubmit={comments.submitComment}
+              submitting={comments.postingComment}
+              errorText={comments.commentError}
+              disabled={!isMember}
+            />
+          )}
+
+          {comments.commentsLoading ? (
+            <Box role="status" aria-label="Yorumlar yükleniyor">
+              <CommentRowSkeleton />
+              <CommentRowSkeleton />
+              <CommentRowSkeleton />
+            </Box>
+          ) : comments.comments.length === 0 ? (
+            <EmptyState
+              companion={isQuestion ? 'baykus' : 'serce'}
+              title={isQuestion ? 'Henüz cevap yok' : 'Henüz yorum yok'}
+              description={isMember
+                ? 'İlk yazan sen ol; küçük bir deneyim bile birinin yolunu aydınlatabilir.'
+                : 'Gruba katılınca ilk yazan sen olabilirsin.'}
+              dense
+            />
+          ) : (
+            <CommentThreadList
+              comments={comments.comments}
+              threads={comments.threads}
+              acceptedCommentId={post.acceptedCommentId}
+              rowProps={commentRowProps}
+              onLoadMoreReplies={comments.loadMoreReplies}
+              hasMore={!comments.last}
+              loadingMore={comments.commentsLoadingMore}
+              onLoadMore={comments.loadMoreComments}
+            />
+          )}
+        </Box>
+      </Box>
+
+      <LeafBurst trigger={answer.celebration?.at} />
       <ReportDialog {...report.dialogProps} />
     </Box>
   )

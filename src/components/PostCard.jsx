@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Avatar, Box, Button, IconButton, Stack, Typography } from '@mui/material'
+import { Box, Button, IconButton, Stack, Typography } from '@mui/material'
 import { ChatBubbleOutlineRounded, FlagOutlined, PushPinRounded, SendOutlined } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import ReactionButtons from './ReactionButtons.jsx'
@@ -10,19 +10,22 @@ import SendPostDialog from './SendPostDialog.jsx'
 import SensitiveContentBanner from './SensitiveContentBanner.jsx'
 import PollView from './PollView.jsx'
 import PostTypeBadges from './PostTypeBadges.jsx'
+import UserAvatar from './avatars/UserAvatar.jsx'
 import ReportDialog from './comments/ReportDialog.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useReportDialog } from '../hooks/useReportDialog.js'
 import { reactToPost, removePostReaction, reportPost, savePost, unsavePost } from '../services/api.js'
-import { initialsFrom, parseServerDate } from '../utils/format.js'
+import { relativeTime } from '../utils/format.js'
 import { cardActivationProps } from '../utils/clickable.js'
 import { truncate } from '../utils/text.js'
 
 const PREVIEW_LENGTH = 180
 
 /**
- * Akış kartı: kenarlıksız, listede ince bölücülerle ayrılan gönderi öğesi
- * (bkz. PostList). onClick verilirse kart detay sayfasını açar.
+ * Akış kartı: nane zemin üstünde yumuşak, beyaz bir "çakıl taşı". Hiyerarşi
+ * yukarıdan aşağı: yazar → tür rozeti → başlık → metin → eylemler. Soru gök
+ * mavisi, anket leylak, çözülmüş soru yeşil rozetle (ikon + metin) ayrılır.
+ * onClick verilirse kart detay sayfasını açar.
  */
 export default function PostCard({ post, onClick, token, highlightQuery, showPinnedBadge = false }) {
   const [sendDialogOpen, setSendDialogOpen] = useState(false)
@@ -31,14 +34,12 @@ export default function PostCard({ post, onClick, token, highlightQuery, showPin
   const report = useReportDialog((postId, reason) => reportPost(token, postId, reason))
   if (!post) return null
   const {
-    id, subGroupId, subGroupName, diseaseGroupName, authorId, authorName, title, content, createdAt, updatedAt,
+    id, subGroupId, subGroupName, diseaseGroupName, authorId, authorName, authorAvatarKey, title, content, createdAt, updatedAt,
     helpfulCount, notHelpfulCount, myReaction, saved, savedCount, attachments, flaggedSensitive, pinned,
     postType, acceptedCommentId, commentCount, poll
   } = post
 
-  const dateLabel = createdAt
-    ? parseServerDate(createdAt)?.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })
-    : ''
+  const dateLabel = relativeTime(createdAt)
   const edited = !!(updatedAt && createdAt && updatedAt !== createdAt)
   const isOwnPost = currentUser && String(currentUser.id) === String(authorId)
   const ariaLabel = title ? `Gönderi: ${title}` : undefined
@@ -49,18 +50,22 @@ export default function PostCard({ post, onClick, token, highlightQuery, showPin
         {...(onClick ? cardActivationProps(onClick, ariaLabel) : { role: 'article', 'aria-label': ariaLabel })}
         className={onClick ? 'tap-scale' : undefined}
         sx={{
-          py: { xs: 2, md: 2.25 },
+          p: { xs: 2, sm: 2.5 },
+          pb: token ? { xs: 1, sm: 1.25 } : undefined,
+          borderRadius: { xs: '20px', sm: '22px' },
+          bgcolor: 'background.paper',
+          border: '1px solid',
+          borderColor: 'brand.border',
+          boxShadow: 1,
           cursor: onClick ? 'pointer' : 'default',
-          '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: -2, borderRadius: 1 },
-          transition: 'background-color 0.15s ease',
+          '&:focus-visible': { outline: '3px solid', outlineColor: 'primary.light', outlineOffset: 2 },
+          transition: 'box-shadow 240ms ease, border-color 240ms ease, transform 160ms var(--ease-spring)',
           // CSS containment: her kart kendi içinde bağımsız bir layout/paint
-          // birimi olduğunu tarayıcıya bildiriyor (dialoglar Portal ile
-          // document.body'ye render olduğu için bundan etkilenmiyor). Uzun
-          // feed'lerde (Posts.jsx) tarayıcı görünür alan dışındaki kartların
-          // iç hesaplamalarını atlayabiliyor - mobilde scroll performansı için
-          // büyük ölçekli feed uygulamalarının kullandığı standart bir teknik.
+          // birimi; uzun akışlarda tarayıcı ekran dışındaki kartların iç
+          // hesaplarını atlayabilir (mobil kaydırma performansı). Dialoglar
+          // portal olduğu için etkilenmez.
           contain: 'content',
-          '&:hover': onClick ? { bgcolor: 'action.hover' } : undefined
+          '@media (hover: hover)': onClick ? { '&:hover': { boxShadow: 3, borderColor: 'brand.borderStrong' } } : undefined
         }}
       >
         {/* "Sabitlendi" etiketi yalnızca profil listelerinde anlamlı; genel
@@ -73,22 +78,15 @@ export default function PostCard({ post, onClick, token, highlightQuery, showPin
             </Typography>
           </Stack>
         )}
-        <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1.25 }}>
-          <Avatar
-            sx={{
-              width: 44, height: 44, fontSize: 15, fontWeight: 700, flexShrink: 0,
-              border: '2px solid', borderColor: 'primary.main'
-            }}
-          >
-            {initialsFrom(authorName || '')}
-          </Avatar>
+        <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1.5 }}>
+          <UserAvatar avatarKey={authorAvatarKey} name={authorName || ''} size={44} sx={{ flexShrink: 0 }} />
           <Box sx={{ minWidth: 0, flex: 1 }}>
             <Stack direction="row" alignItems="baseline" spacing={0.75} sx={{ minWidth: 0 }}>
               <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.primary' }} noWrap>
                 {authorName || 'Kullanıcı'}
               </Typography>
               <Typography variant="caption" sx={{ color: 'text.secondary', flexShrink: 0 }}>
-                · {dateLabel}{edited ? ' · düzenlendi' : ''}
+                {dateLabel ? `· ${dateLabel}` : ''}{edited ? ' · düzenlendi' : ''}
               </Typography>
             </Stack>
             {/* Grup bağlamı: karışık akışta (ana sayfa) dolu gelir; tek alt
@@ -102,9 +100,9 @@ export default function PostCard({ post, onClick, token, highlightQuery, showPin
                 sx={{
                   display: 'block', maxWidth: '100%', p: 0, border: 'none', bgcolor: 'transparent',
                   font: 'inherit', fontSize: '0.8125rem', textAlign: 'left', cursor: 'pointer',
-                  color: 'primary.main', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                  '&:hover': { textDecoration: 'underline' },
-                  '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 2, borderRadius: 1 }
+                  color: 'primary.main', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  py: 0.25, '&:hover': { textDecoration: 'underline' },
+                  '&:focus-visible': { outline: '3px solid', outlineColor: 'primary.light', outlineOffset: 2, borderRadius: '6px' }
                 }}
               >
                 {diseaseGroupName ? `${diseaseGroupName} › ${subGroupName}` : subGroupName}
@@ -117,13 +115,17 @@ export default function PostCard({ post, onClick, token, highlightQuery, showPin
 
         <Typography
           variant="h6"
-          sx={{ fontWeight: 700, color: 'text.primary', mb: 0.75, wordBreak: 'break-word', lineHeight: 1.4 }}
+          component="h2"
+          sx={{
+            fontFamily: (t) => t.typography.h5.fontFamily, fontWeight: 700, fontSize: { xs: '1.25rem', sm: '1.3rem' },
+            color: 'text.primary', mb: 0.5, wordBreak: 'break-word', lineHeight: 1.3
+          }}
         >
           {highlightQuery ? <HighlightText text={title} query={highlightQuery} /> : title}
         </Typography>
         <Typography
           variant="body1"
-          sx={{ color: 'text.primary', whiteSpace: 'pre-line', wordBreak: 'break-word', mb: token ? 1.5 : 0 }}
+          sx={{ color: 'text.secondary', whiteSpace: 'pre-line', wordBreak: 'break-word', mb: token ? 1.5 : 0 }}
         >
           {highlightQuery
             ? <HighlightText text={truncate(content, PREVIEW_LENGTH)} query={highlightQuery} />
@@ -137,8 +139,11 @@ export default function PostCard({ post, onClick, token, highlightQuery, showPin
         <PostGallery attachments={attachments} />
 
         {token && (
-          <Stack direction="row" alignItems="center" justifyContent="space-between">
-            <Stack direction="row" alignItems="center" sx={{ minWidth: 0 }}>
+          <Stack
+            direction="row" alignItems="center" justifyContent="space-between"
+            sx={{ mx: -1, pt: 0.5, borderTop: '1px solid', borderColor: 'divider' }}
+          >
+            <Stack direction="row" alignItems="center" spacing={0.25} sx={{ minWidth: 0 }}>
               <ReactionButtons
                 helpfulCount={helpfulCount}
                 notHelpfulCount={notHelpfulCount}
@@ -152,10 +157,11 @@ export default function PostCard({ post, onClick, token, highlightQuery, showPin
                   size="small"
                   onClick={(e) => { e.stopPropagation(); onClick(e) }}
                   aria-label={`${commentCount || 0} yorum`}
-                  startIcon={<ChatBubbleOutlineRounded sx={{ fontSize: '18px !important' }} />}
+                  startIcon={<ChatBubbleOutlineRounded sx={{ fontSize: '19px !important' }} />}
                   sx={{
-                    minWidth: 0, minHeight: 36, px: 1, borderRadius: 999, color: 'text.secondary',
-                    fontWeight: 700, fontSize: '0.8125rem', '& .MuiButton-startIcon': { mr: commentCount ? 0.5 : 0 }
+                    minWidth: 44, minHeight: 44, px: 1.25, borderRadius: 999, color: 'text.secondary',
+                    fontWeight: 800, fontSize: '0.875rem',
+                    '& .MuiButton-startIcon': { mr: commentCount ? 0.625 : 0, ml: 0 }
                   }}
                 >
                   {commentCount ? commentCount : ''}
@@ -163,7 +169,7 @@ export default function PostCard({ post, onClick, token, highlightQuery, showPin
               )}
             </Stack>
             {/* IG'deki yer bloğuna sadık: yıldızlama (bookmark) + gönder sağ tarafta. */}
-            <Stack direction="row" alignItems="center">
+            <Stack direction="row" alignItems="center" spacing={0.25}>
               <SaveButton
                 saved={!!saved}
                 count={savedCount}
@@ -171,19 +177,19 @@ export default function PostCard({ post, onClick, token, highlightQuery, showPin
                 onUnsave={() => unsavePost(token, id)}
               />
               <IconButton
-                size="small"
                 onClick={(e) => { e.stopPropagation(); setSendDialogOpen(true) }}
                 aria-label="Mesajla gönder"
                 title="Mesajla gönder"
+                sx={{ width: 44, height: 44 }}
               >
                 <SendOutlined fontSize="small" />
               </IconButton>
               {!isOwnPost && (
                 <IconButton
-                  size="small"
                   onClick={(e) => { e.stopPropagation(); report.open(id) }}
                   aria-label="Şikayet et"
                   title="Şikayet et"
+                  sx={{ width: 44, height: 44 }}
                 >
                   <FlagOutlined fontSize="small" />
                 </IconButton>

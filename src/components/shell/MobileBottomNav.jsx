@@ -1,14 +1,15 @@
 import { BottomNavigation, BottomNavigationAction, Box } from '@mui/material'
-import { useTheme } from '@mui/material/styles'
+import { alpha, useTheme } from '@mui/material/styles'
 import { useLocation, useNavigate } from 'react-router-dom'
 import NavIcon from './NavIcon.jsx'
 import { isNavItemActive, useNavItems } from './navConfig.jsx'
 
 export const MOBILE_NAV_HEIGHT = 64
 
-// Mobil alt sekme çubuğu. Sekmelerden birine ait olmayan sayfalarda (ör.
-// gönderi detayı, başka bir kullanıcının profili) hiçbir sekme seçili
-// görünmez - önceden yanlışlıkla "Anasayfa" seçili kalıyordu.
+// Mobil alt sekme çubuğu. Seçili sekmenin ikonu yumuşak yeşil bir kapsülün
+// içine yaylanarak oturur (tema: MuiBottomNavigationAction). Sekmelerden
+// birine ait olmayan sayfalarda (ör. gönderi detayı) hiçbir sekme seçili
+// görünmez.
 export default function MobileBottomNav() {
   const theme = useTheme()
   const navigate = useNavigate()
@@ -18,15 +19,20 @@ export default function MobileBottomNav() {
 
   return (
     <Box
+      component="nav"
+      aria-label="Ana gezinme"
       sx={{
         position: 'fixed',
         left: 0,
         right: 0,
         bottom: 0,
-        bgcolor: 'background.paper',
+        bgcolor: alpha(theme.palette.background.paper, 0.94),
+        backdropFilter: 'blur(14px) saturate(1.4)',
+        WebkitBackdropFilter: 'blur(14px) saturate(1.4)',
         borderTop: '1px solid',
         borderColor: 'divider',
-        zIndex: theme.zIndex.appBar + 1
+        zIndex: theme.zIndex.appBar + 1,
+        pb: 'env(safe-area-inset-bottom)'
       }}
     >
       <BottomNavigation
@@ -36,36 +42,18 @@ export default function MobileBottomNav() {
         sx={{
           height: MOBILE_NAV_HEIGHT,
           bgcolor: 'transparent',
+          borderTop: 0,
           '& .MuiBottomNavigationAction-root': {
-            color: 'text.secondary',
             minWidth: 0,
-            // Admin kullanıcılarda 6 sekme oluyor (bkz. ADMIN_NAV_ITEM) -
-            // 12px yatay padding dar ekranlarda (ör. iPhone SE/mini)
-            // sekmelerin sıkışıp etiketlerin iki satıra taşmasına yol
-            // açıyordu. 4px'e düşürüldü, ikon/etiket boyutu aynı kaldı.
-            padding: '8px 4px',
-            gap: 0.5,
+            // Admin kullanıcılarda 6 sekme var: dar ekranda (iPhone SE)
+            // etiketler sığsın diye yatay boşluk küçük tutulur.
+            padding: '8px 2px 6px',
             '& .MuiSvgIcon-root': { fontSize: 24 },
             '& .MuiBottomNavigationAction-label': {
-              fontSize: '0.75rem',
-              fontWeight: 500,
-              marginTop: '2px',
-              // Güvenlik payı: padding daraltmasına rağmen bir etiket
-              // yine de sığmazsa iki satıra bölünüp satır yüksekliğini
-              // bozmak yerine tek satırda üç nokta ile kesilsin.
               whiteSpace: 'nowrap',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
-              maxWidth: '100%',
-              '&.Mui-selected': {
-                fontSize: '0.75rem'
-              }
-            },
-            '&.Mui-selected': { 
-              color: 'primary.main',
-              '& .MuiSvgIcon-root': {
-                color: 'secondary.main'
-              }
+              maxWidth: '100%'
             }
           }
         }}
@@ -78,7 +66,6 @@ export default function MobileBottomNav() {
           />
         ))}
       </BottomNavigation>
-      <Box sx={{ height: 'env(safe-area-inset-bottom)', bgcolor: 'background.paper' }} />
     </Box>
   )
 }

@@ -3,8 +3,8 @@
 // e2e/reactions.spec.js) bu metinleri okuyor.
 export const visuallyHidden = {
   position: 'absolute',
-  width: 1,
-  height: 1,
+  width: '1px',
+  height: '1px',
   overflow: 'hidden',
   clipPath: 'inset(50%)',
   whiteSpace: 'nowrap'

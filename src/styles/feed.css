@@ -1,0 +1,33 @@
+/* Akış, gönderi ve kabuk için ek hareketler (bkz. index.css'teki temel
+   kütüphane). Hepsi bir kullanıcı eylemine cevap verir; hareket azaltma
+   tercihinde index.css'teki genel kural bunları da kapatır. */
+
+/* Yeni gönderi düğmesi sayfaya yaylanarak gelir. */
+@keyframes sg-fab-in {
+  0% { opacity: 0; transform: scale(0.4) rotate(-45deg); }
+  100% { opacity: 1; transform: none; }
+}
+.sg-fab-in { animation: sg-fab-in 520ms var(--ease-spring) 180ms both; }
+
+/* Kaydet düğmesi: yer imi hafifçe aşağı "oturur". */
+@keyframes sg-tuck {
+  0% { transform: translateY(0) scale(1); }
+  35% { transform: translateY(-3px) scale(1.18); }
+  70% { transform: translateY(1px) scale(0.96); }
+  100% { transform: none; }
+}
+.sg-tuck { animation: sg-tuck 420ms var(--ease-spring); }
+
+/* En iyi cevap seçildiğinde satır bir kez yumuşakça parlar. */
+@keyframes sg-glow {
+  0% { box-shadow: 0 0 0 0 rgba(76, 184, 159, 0.45); }
+  100% { box-shadow: 0 0 0 14px rgba(76, 184, 159, 0); }
+}
+.sg-glow { animation: sg-glow 900ms var(--ease-flow); }
+
+/* Anket sonuç çubukları oy verilince soldan dolar. */
+@keyframes sg-poll-fill {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+.sg-poll-fill { transform-origin: left center; animation: sg-poll-fill 720ms var(--ease-flow) both; }
