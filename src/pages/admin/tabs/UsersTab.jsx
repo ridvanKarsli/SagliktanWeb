@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useState } from 'react'
 import {
   Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle,
   FormControlLabel, MenuItem, Stack, Switch, Table, TableBody, TableCell, TableContainer,
@@ -8,6 +8,7 @@ import { useTheme } from '@mui/material/styles'
 import { useNotification } from '../../../context/NotificationContext.jsx'
 import { useConfirm } from '../../../context/ConfirmContext.jsx'
 import { listAdminUsers, updateAdminUser } from '../../../services/api.js'
+import { usePaginatedList } from '../../../hooks/usePaginatedList.js'
 
 // AdminPanel.jsx'ten ayrı bir dosyaya taşındı (bkz. clean-code audit).
 
@@ -122,20 +123,16 @@ export default function UsersTab({ token }) {
   // kullanıcılar 6 sütunu yatay kaydırmadan okuyamıyordu.
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
   const [q, setQ] = useState('')
-  const [users, setUsers] = useState([])
-  const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(null)
   const { showError } = useNotification()
 
-  const load = useCallback(() => {
-    setLoading(true)
-    listAdminUsers(token, { q: q || undefined, size: 50 })
-      .then(res => setUsers(Array.isArray(res?.content) ? res.content : []))
-      .catch(err => showError(err.message || 'Kullanıcılar alınamadı.'))
-      .finally(() => setLoading(false))
-  }, [token, q, showError])
-
-  useEffect(() => { load() }, [load])
+  // Sayfalama: önceden sadece ilk 50 kullanıcı listeleniyordu (bkz. ReportsTab).
+  const {
+    items: users, setItems: setUsers, loading, loadingMore, last, totalCount, loadMore,
+  } = usePaginatedList(
+    (pageNum) => listAdminUsers(token, { q: q || undefined, page: pageNum, size: 50 }),
+    { deps: [token, q], onError: (err) => showError(err.message || 'Kullanıcılar alınamadı.') }
+  )
 
   return (
     <Box sx={{ mt: 2 }}>
@@ -190,6 +187,14 @@ export default function UsersTab({ token }) {
             </TableBody>
           </Table>
         </TableContainer>
+      )}
+
+      {!loading && !last && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+          <Button variant="outlined" size="small" onClick={loadMore} disabled={loadingMore}>
+            {loadingMore ? 'Yükleniyor…' : `Daha fazla yükle (${users.length}/${totalCount})`}
+          </Button>
+        </Box>
       )}
 
       {editing && (

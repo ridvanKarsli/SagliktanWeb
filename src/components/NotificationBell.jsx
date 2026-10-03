@@ -3,6 +3,7 @@ import { Badge, Box, Button, Divider, IconButton, ListItemText, Menu, MenuItem, 
 import { NotificationsNoneRounded } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import { useNotificationsFeed } from '../context/NotificationsFeedContext.jsx'
+import { parseServerDate } from '../utils/format.js'
 
 const TYPE_LABEL = {
   NEW_COMMENT: (actorName) => `${actorName} gönderine yorum yaptı`,
@@ -78,7 +79,7 @@ export default function NotificationBell() {
             >
               <ListItemText
                 primary={(TYPE_LABEL[n.type] || (() => 'Yeni bildirim'))(n.actorName || 'Bir kullanıcı')}
-                secondary={n.createdAt ? new Date(n.createdAt).toLocaleString('tr-TR') : ''}
+                secondary={parseServerDate(n.createdAt)?.toLocaleString('tr-TR') || ''}
               />
             </MenuItem>
           ))

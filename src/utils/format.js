@@ -12,9 +12,31 @@ export function initialsFrom(name = '') {
   return '?'
 }
 
+// Backend tüm zaman damgalarını LocalDateTime olarak, saat dilimi/offset
+// OLMADAN ("2026-10-03T09:00:00") ve UTC'de üretir (bkz. SagliktanApi
+// Dockerfile: TZ=UTC). `new Date("2026-10-03T09:00:00")` ise böyle bir
+// string'i YEREL saat olarak yorumlar - İstanbul'daki kullanıcı sohbet/
+// bildirim saatlerini 3 saat geri görüyor, "bugün mü?" kıyası gece
+// yarısı civarında yanlış çıkıyordu. Dilim bilgisi yoksa 'Z' ekleyerek
+// UTC olarak parse ediyoruz; zaten offset'li/Z'li string ve Date/number
+// girişleri olduğu gibi geçer.
+const HAS_ZONE = /(?:[zZ]|[+-]\d{2}:?\d{2})$/
+export function parseServerDate(value) {
+  if (value === null || value === undefined || value === '') return null
+  if (value instanceof Date) return value
+  if (typeof value === 'number') return new Date(value)
+  const str = String(value)
+  // Sadece "YYYY-MM-DDTHH:mm[:ss[.fff]]" biçimindeki dilimsiz tarih-saat'e
+  // dokunuyoruz; salt tarih ("2026-10-03") zaten UTC gece yarısı sayılır.
+  const dt = /^\d{4}-\d{2}-\d{2}T/.test(str) && !HAS_ZONE.test(str)
+    ? new Date(str + 'Z')
+    : new Date(str)
+  return isNaN(dt) ? null : dt
+}
+
 // ISO tarih string'ini (ya da Date'i) tr-TR yerel biçiminde kısa tarihe çevirir.
 // Geçersiz/boş girişte null döner.
 export function prettyDate(d) {
-  const dt = d ? new Date(d) : null
-  return dt && !isNaN(dt) ? dt.toLocaleDateString('tr-TR') : null
+  const dt = parseServerDate(d)
+  return dt ? dt.toLocaleDateString('tr-TR') : null
 }

@@ -23,7 +23,13 @@
 // tam da bunları ilk yüklemede indirmemek (bkz. App.jsx yorumları) - onlar
 // aşağıdaki fetch handler'ın cache-first dalıyla ziyaret edildiklerinde
 // fırsatçı olarak önbelleğe giriyor.
-const CACHE_NAME = 'sagliktan-pwa-v5';
+// v7: sadece BAŞARILI (response.ok) yanıtlar cache'leniyor. Önceden 5xx ya da
+// eksik bir hash'li chunk için Vercel'in SPA rewrite'ından dönen index.html,
+// o asset URL'si altında cache-first olarak SONSUZA KADAR servis ediliyor;
+// navigasyon dalı da 4xx/5xx HTML'i "/" olarak saklıyordu. Ayrıca /api/
+// dalında caches.match hep undefined döndüğü için offline'da respondWith
+// (undefined) TypeError'ı oluşuyordu - artık düzgün bir 503 JSON dönüyor.
+const CACHE_NAME = 'sagliktan-pwa-v7';
 const ASSETS = [
   '/',
   '/index.html',
@@ -63,7 +69,12 @@ self.addEventListener('fetch', (event) => {
   // (vercel.json rewrite) kullanıldığı için origin değil, path kontrol edilir.
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(
-      fetch(request).catch(() => caches.match(request))
+      fetch(request).catch(() =>
+        new Response(
+          JSON.stringify({ status: 503, error: 'Service Unavailable', message: 'İnternet bağlantını kontrol edip tekrar dene.' }),
+          { status: 503, headers: { 'Content-Type': 'application/json;charset=UTF-8' } }
+        )
+      )
     );
     return;
   }
@@ -82,11 +93,13 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(request, { cache: 'no-store' })
         .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put('/', copy));
+          if (response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put('/', copy));
+          }
           return response;
         })
-        .catch(() => caches.match('/') || caches.match('/index.html'))
+        .catch(() => caches.match('/').then((hit) => hit || caches.match('/index.html')))
     );
     return;
   }
@@ -97,11 +110,17 @@ self.addEventListener('fetch', (event) => {
       if (cached) return cached;
       return fetch(request)
         .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          // Sadece gerçek, başarılı, aynı-origin yanıtlar; HTML dönen bir
+          // "asset" (SPA fallback) hash'li URL altında asla saklanmamalı.
+          const contentType = response.headers.get('content-type') || '';
+          const looksLikeSpaFallback = /\.(js|css|png|jpg|jpeg|webp|svg|ico|woff2?)$/i.test(url.pathname)
+            && contentType.includes('text/html');
+          if (response.ok && response.type === 'basic' && !looksLikeSpaFallback) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          }
           return response;
-        })
-        .catch(() => cached);
+        });
     })
   );
 });

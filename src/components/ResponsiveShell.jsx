@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import {
   Badge, BottomNavigation, BottomNavigationAction, Box,
   Typography, Avatar
@@ -16,6 +16,7 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { useMessaging } from '../context/MessagingContext.jsx'
 import InstallPrompt from './InstallPrompt.jsx'
 import NotificationBell from './NotificationBell.jsx'
+import { clickableProps } from '../utils/clickable.js'
 
 const SIDEBAR_WIDTH = 240
 const MOBILE_NAV_HEIGHT = 64
@@ -56,6 +57,28 @@ export default function ResponsiveShell({ children }) {
   const { pendingRequestCount, unreadMessageCount } = useMessaging()
   const messagesBadgeCount = pendingRequestCount + unreadMessageCount
   const isAdminRoute = location.pathname.startsWith('/admin')
+
+  // Rota değişince en üste kaydır: içerik key={location.pathname} ile
+  // yeniden mount oluyor ama scroll container'ın (#root / window) scrollTop'u
+  // kalıyordu - feed'in dibinden bir gönderiye tıklayınca detay sayfası
+  // aşağı kaymış açılıyordu.
+  useEffect(() => {
+    try {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+    } catch {
+      window.scrollTo(0, 0)
+    }
+    const root = document.getElementById('root')
+    if (root) root.scrollTop = 0
+  }, [location.pathname])
+
+  const handleLogout = async () => {
+    // Önce logout'un bitmesini bekle: beklenmezse PublicOnlyRoute hâlâ
+    // "giriş yapmış" gördüğü için "/"den /home'a geri sektirip titreşim
+    // (flicker) yaratıyordu (AccountSettings zaten await ediyor).
+    await logout()
+    navigate('/', { replace: true })
+  }
 
   // Cmd/Ctrl+K ve "/" ile heryerden hızlı arama - bkz. useQuickSearchShortcut.js
   useQuickSearchShortcut()
@@ -139,7 +162,9 @@ export default function ResponsiveShell({ children }) {
               return (
                 <Box
                   key={item.to}
-                  onClick={() => navigate(item.to)}
+                  {...clickableProps(() => navigate(item.to))}
+                  aria-current={active ? 'page' : undefined}
+                  aria-label={item.label}
                   sx={{
                     position: 'relative',
                     display: 'flex',
@@ -223,7 +248,8 @@ export default function ResponsiveShell({ children }) {
           
           {/* Logout */}
           <Box
-            onClick={() => { logout(); navigate('/') }}
+            {...clickableProps(handleLogout)}
+            aria-label="Çıkış Yap"
             sx={{
               display: 'flex',
               alignItems: 'center',

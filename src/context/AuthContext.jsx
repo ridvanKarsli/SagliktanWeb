@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react'
 import { loginUser, registerUser, getUserProfile, refreshToken as refreshTokenApi, logoutUser } from '../services/api.js'
+import { clearRecentSearches } from '../utils/recentSearches.js'
 
 // --- JWT yardımcıları (sadece expiry kontrolü için; kullanıcı bilgisi her zaman /users/me'den alınır) ---
 function b64urlToUtf8(b64url) {
@@ -152,7 +153,7 @@ export function AuthProvider({ children }) {
     return mapUser(profile)
   }
 
-  async function logout() {
+  const logout = useCallback(async () => {
     if (token) {
       // Backend artık bu oturumun refresh token'ını DB'de revoke ediyor (bkz.
       // AuthServiceImpl.revokeCurrentSession, görev #305) - ama bu istek
@@ -163,7 +164,10 @@ export function AuthProvider({ children }) {
     setToken(null)
     setUser(null)
     removeAuthStorage()
-  }
+    // Sağlık verisi niteliğindeki son aramalar (hastalık adları) ortak
+    // cihazda bir sonraki kullanıcıya kalmasın.
+    clearRecentSearches()
+  }, [token])
 
   // Backend e-posta doğrulaması zorunlu kılıyor: register token döndürmez.
   // Kayıt sonrası kullanıcı e-postasındaki linke tıklayıp login sayfasına gelmeli.
@@ -183,11 +187,28 @@ export function AuthProvider({ children }) {
       await logout()
       throw new Error('Oturum süresi dolmuş, lütfen tekrar giriş yapın.')
     }
-    const { accessToken, refreshToken: newRefreshToken } = await refreshTokenApi(refreshTokenValue)
+    let result
+    try {
+      result = await refreshTokenApi(refreshTokenValue)
+    } catch (err) {
+      // Sunucu refresh'i REDDETTİ (başka cihazdan "Aktif Oturumlar" ile
+      // sonlandırılmış oturum, pasife alınmış hesap, şifre değişikliği
+      // sonrası iptal edilmiş token...). Önceden burada hiçbir şey
+      // yapılmıyordu: UI oturum açık görünmeye devam ediyor, her istek
+      // "yetkin yok" hatası veriyor, WS istemcileri ölü token'la 5 sn'de
+      // bir yeniden bağlanmaya çalışıyordu ("zombi oturum"). Ağ hatası
+      // (status 0) ya da geçici 5xx'te ise oturumu KORU - kısa bir mobil
+      // kesinti kullanıcıyı çıkışa zorlamamalı.
+      if (err?.status === 401 || err?.status === 403) {
+        await logout()
+      }
+      throw err
+    }
+    const { accessToken, refreshToken: newRefreshToken } = result
     setToken(accessToken)
     setAuthStorage({ accessToken, refreshToken: newRefreshToken }, storage === localStorage)
     return accessToken
-  }, [])
+  }, [logout])
 
   function updateLocalUser(patch) {
     setUser(u => (u ? { ...u, ...patch } : u))
@@ -200,7 +221,10 @@ export function AuthProvider({ children }) {
 
   const value = useMemo(
     () => ({ token, user, isAuthenticated: !!token && !!user, loading, login, logout, register, updateLocalUser, refreshAccessToken }),
-    [token, user, loading]
+    // login/register/updateLocalUser her render'da yeni referans ama sadece
+    // setState/API çağırıyor - tüketicilerin gereksiz yeniden render'ını
+    // önlemek için bilinçli olarak deps dışında.
+    [token, user, loading, logout, refreshAccessToken]
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

@@ -12,7 +12,7 @@ import ReportDialog from './comments/ReportDialog.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useNotification } from '../context/NotificationContext.jsx'
 import { reactToPost, removePostReaction, reportPost, savePost, unsavePost } from '../services/api.js'
-import { initialsFrom } from '../utils/format.js'
+import { initialsFrom, parseServerDate } from '../utils/format.js'
 
 function truncate(text = '', max = 180) {
   const clean = String(text || '').trim()
@@ -42,7 +42,7 @@ export default function PostCard({ post, onClick, token, highlightQuery, showPin
   } = post
 
   const dateLabel = createdAt
-    ? new Date(createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })
+    ? parseServerDate(createdAt)?.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })
     : ''
   const edited = !!(updatedAt && createdAt && updatedAt !== createdAt)
   const isOwnPost = currentUser && String(currentUser.id) === String(authorId)
@@ -64,9 +64,22 @@ export default function PostCard({ post, onClick, token, highlightQuery, showPin
     <Box
       onClick={onClick}
       className={onClick ? 'tap-scale' : undefined}
+      // Klavye erişimi: kartın kökü role="button" YAPILMIYOR (içinde gerçek
+      // butonlar var - iç içe interaktif öğe ekran okuyucuyu bozar). Bunun
+      // yerine odaklanabilir bir makale: Tab ile karta gelinip Enter/Space
+      // ile açılır; tuş olayı yalnızca kartın kendisinden geldiğinde
+      // (içerideki buton/linkten değil) işlenir.
+      role="article"
+      tabIndex={onClick ? 0 : undefined}
+      aria-label={title ? `Gönderi: ${title}` : undefined}
+      onKeyDown={onClick ? (e) => {
+        if (e.target !== e.currentTarget) return
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(e) }
+      } : undefined}
       sx={{
         py: { xs: 2, md: 2.25 },
         cursor: onClick ? 'pointer' : 'default',
+        '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: -2, borderRadius: 1 },
         transition: 'background-color 0.15s ease',
         // CSS containment: her kart kendi içinde bağımsız bir layout/paint
         // birimi olduğunu tarayıcıya bildiriyor (dialoglar Portal ile

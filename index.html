@@ -18,17 +18,13 @@
          data-theme olarak yazılıyor - bkz. index.css'teki
          html[data-theme='light'] body kuralı ve AccessibilityContext.jsx'in
          aynı STORAGE_KEY'i kullanan kalıcı tercih mekanizması. -->
-    <script>
-      (function () {
-        try {
-          var raw = localStorage.getItem('sagliktan:accessibility');
-          var mode = raw && JSON.parse(raw).themeMode === 'light' ? 'light' : 'dark';
-          document.documentElement.dataset.theme = mode;
-        } catch (e) {
-          document.documentElement.dataset.theme = 'dark';
-        }
-      })();
-    </script>
+    <!-- Inline <script> DEĞİL, harici dosya: vercel.json'daki CSP
+         `script-src 'self'` inline script'e izin vermiyor, bu yüzden prod'da
+         bu kod hiç çalışmıyor ve açık tema kullanıcıları tam da önlenmek
+         istenen koyu->açık flaşı görüyordu (vite preview'da CSP olmadığı
+         için CI'da fark edilmiyordu). Harici, senkron (defer/async YOK)
+         script aynı "React'ten önce çalış" garantisini CSP'ye uyarak verir. -->
+    <script src="/theme-init.js"></script>
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <!-- Safari'den "Ana Ekrana Ekle" ile açılınca tarayıcı arayüzü (adres
          çubuğu vb.) olmadan, gerçek bir uygulama gibi tam ekran çalışsın.

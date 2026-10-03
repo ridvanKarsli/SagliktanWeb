@@ -14,6 +14,10 @@ export function ConfirmProvider({ children }) {
 
   const confirm = useCallback((message, options = {}) => {
     return new Promise((resolve) => {
+      // Önceki bir confirm hâlâ cevapsızsa (ikinci dialog birincinin
+      // üzerine açıldı) onu `false` ile kapat - aksi halde ilk çağıran
+      // sonsuza kadar "acting" durumunda askıda kalıyordu.
+      resolverRef.current?.(false)
       resolverRef.current = resolve
       setState({
         message,

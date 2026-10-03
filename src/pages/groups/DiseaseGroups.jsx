@@ -59,12 +59,19 @@ export default function DiseaseGroups() {
       .catch(() => {})
   }, [token])
 
+  // Yarış koruması: debounced sorgu hızla değişince ("di" -> "diyabet")
+  // yavaş gelen eski yanıt doğru listenin üzerine yazmasın. Her çağrı bir
+  // istek numarası alır; yalnızca en son numaralı yanıt uygulanır.
+  const requestSeqRef = useRef(0)
+
   const load = useCallback(async () => {
     if (!token) { setLoading(false); setInitialLoading(false); return }
+    const seq = ++requestSeqRef.current
     setLoading(true)
     setError('')
     try {
       const all = await listDiseaseGroups(token, { q: debouncedQuery || undefined })
+      if (seq !== requestSeqRef.current) return // daha yeni bir istek var
       const list = Array.isArray(all) ? all : []
       setGroups(list)
       // "Hiç grup yok" ile "aramayla eşleşen yok" durumlarını ayırt etmek
@@ -72,10 +79,13 @@ export default function DiseaseGroups() {
       // önceki değer korunuyor.
       if (!debouncedQuery) setHasAnyGroup(list.length > 0)
     } catch (err) {
+      if (seq !== requestSeqRef.current) return
       setError(err.message || 'Hastalık grupları alınamadı.')
     } finally {
-      setLoading(false)
-      setInitialLoading(false)
+      if (seq === requestSeqRef.current) {
+        setLoading(false)
+        setInitialLoading(false)
+      }
     }
   }, [token, debouncedQuery])
 

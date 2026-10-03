@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { Avatar, Badge, Box, Button, CircularProgress, Divider, Stack, Typography } from '@mui/material'
 import { ChatBubbleOutlineRounded, MailOutlineRounded } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
@@ -6,13 +6,13 @@ import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
 import { useMessaging } from '../../context/MessagingContext.jsx'
 import { listConversations } from '../../services/api.js'
-import { initialsFrom } from '../../utils/format.js'
+import { initialsFrom, parseServerDate } from '../../utils/format.js'
 import { usePaginatedList } from '../../hooks/usePaginatedList.js'
 import EmptyState from '../../components/EmptyState.jsx'
 
 function formatWhen(iso) {
-  if (!iso) return ''
-  const date = new Date(iso)
+  const date = parseServerDate(iso)
+  if (!date) return ''
   const now = new Date()
   const sameDay = date.toDateString() === now.toDateString()
   return sameDay
@@ -38,6 +38,8 @@ export default function Conversations() {
     deps: [token],
     onError: err => showError(err.message || 'Sohbetler alınamadı.')
   })
+  const conversationsRef = useRef(conversations)
+  conversationsRef.current = conversations
 
   // Canlı mesaj geldiğinde tüm listeyi yeniden çekmek yerine (gereksiz ağ
   // trafiği) yerinde güncelliyoruz - konuşma listede zaten varsa önizlemesini
@@ -45,12 +47,14 @@ export default function Conversations() {
   // yapıyoruz.
   useEffect(() => {
     return subscribeToMessages((message) => {
+      // Not: load() gibi yan etkiler state updater'ın İÇİNDE çağrılmamalı
+      // (StrictMode'da iki kez koşar, render fazında saf olmalı) - bu
+      // yüzden "listede var mı" kararı güncel ref üzerinden dışarıda veriliyor.
+      const exists = conversationsRef.current.some(c => c.id === message.conversationId)
+      if (!exists) { load(); return }
       setConversations(prev => {
         const idx = prev.findIndex(c => c.id === message.conversationId)
-        if (idx === -1) {
-          load()
-          return prev
-        }
+        if (idx === -1) return prev
         const updated = {
           ...prev[idx],
           lastMessagePreview: message.content,

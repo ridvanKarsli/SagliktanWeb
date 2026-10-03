@@ -19,3 +19,15 @@ export function reloadOnceForChunkError() {
   sessionStorage.setItem(FLAG_KEY, '1')
   window.location.reload()
 }
+
+// Uygulama BAŞARIYLA açıldıktan bir süre sonra bayrağı temizle. Aksi halde
+// SW kaynaklı tek bir reload'dan sonra bayrak sekmenin ömrü boyunca set
+// kalıyor ve saatler sonra gerçekleşen gerçek bir chunk hatasında otomatik
+// kurtarma yerine hata ekranı gösteriliyordu. Gecikme, reload sonrası anında
+// tekrar patlayan bir hatanın döngüye girmemesi için.
+export function clearChunkReloadFlagAfterBoot(delayMs = 15000) {
+  if (!hasAttemptedChunkReload()) return
+  window.setTimeout(() => {
+    try { sessionStorage.removeItem(FLAG_KEY) } catch { /* depo erişilemez */ }
+  }, delayMs)
+}

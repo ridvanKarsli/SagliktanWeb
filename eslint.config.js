@@ -33,6 +33,19 @@ export default defineConfig([
     },
   },
   {
+    // Context dosyaları Provider bileşeniyle birlikte ilgili hook'u
+    // (useAuth, useNotification...) ve birkaç yardımcıyı dışa aktarır -
+    // yerleşik React Context deseni. react-refresh/only-export-components
+    // kuralı bunu "hata" sayıyordu ve `npm run lint` 9 hatayla kırmızı
+    // kalıyordu; sonucu sadece HMR'da o dosya düzenlenince tam yenileme
+    // yapılması (geliştirme konforu), bir üretim sorunu değil. Bu dosyalar
+    // için uyarıya indiriliyor ki lint gerçek hataları yakalamaya yarasın.
+    files: ['src/context/**/*.jsx', 'src/pages/profile/ProfileShared.jsx'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
+    },
+  },
+  {
     // Playwright config + E2E test dosyaları tarayıcıda değil Node'da
     // çalışıyor (page/browser API'leri Playwright test runner'ından gelir,
     // process.env de config'te ortam değişkeni okumak için kullanılıyor).

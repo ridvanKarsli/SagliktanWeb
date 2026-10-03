@@ -32,6 +32,10 @@ const swPath = path.join(distDir, 'sw.js')
 
 const assetFiles = readdirSync(assetsDir)
 const mainEntry = assetFiles.filter((f) => /^index-.*\.(js|css)$/.test(f))
+// vite.config.js manualChunks: ana giriş bu iki vendor chunk'ını senkron
+// import eder - precache'lenmezlerse "ilk ziyaretten sonra offline açılır"
+// garantisi tutmaz (index.js cache'te olur ama react/mui yüklenemez).
+const vendorChunks = assetFiles.filter((f) => /^(react-vendor|mui-vendor)-.*\.js$/.test(f))
 
 if (mainEntry.length === 0) {
   console.error('generate-sw-precache: dist/assets içinde index-*.js/.css bulunamadı, sw.js değiştirilmedi.')
@@ -40,7 +44,7 @@ if (mainEntry.length === 0) {
 
 let sw = readFileSync(swPath, 'utf8')
 
-const precacheList = mainEntry.map((f) => `/assets/${f}`)
+const precacheList = [...mainEntry, ...vendorChunks].map((f) => `/assets/${f}`)
 const assetsBlock = [
   "  '/',",
   "  '/index.html',",
@@ -58,7 +62,10 @@ sw = sw.replace(
 // bir deploy her zaman yeni bir CACHE_NAME demek, activate handler'daki
 // temizlik eski cache'i otomatik siler (sw.js'teki v3/v4/v5 mantığının
 // devamı, artık elle sürüm numarası artırmaya gerek yok).
-const buildHash = mainEntry[0].match(/-([\w-]+)\.(js|css)$/)?.[1] ?? Date.now().toString(36)
+// Hash'i JS girişinden türet (CSS hash'i sadece-JS değişen deploy'da
+// aynı kalabilir -> cache adı değişmez -> eski JS servis edilirdi).
+const mainJs = mainEntry.find((f) => f.endsWith('.js')) ?? mainEntry[0]
+const buildHash = mainJs.match(/-([\w-]+)\.(js|css)$/)?.[1] ?? Date.now().toString(36)
 sw = sw.replace(/const CACHE_NAME = '[^']*';/, `const CACHE_NAME = 'sagliktan-pwa-${buildHash}';`)
 
 writeFileSync(swPath, sw)

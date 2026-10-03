@@ -6,7 +6,7 @@ import {
 import { ArrowBack } from '@mui/icons-material'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useNotification } from '../context/NotificationContext.jsx'
-import { useNavigate, Link as RouterLink } from 'react-router-dom'
+import { useNavigate, useLocation, Link as RouterLink } from 'react-router-dom'
 import TrustBadges from '../components/TrustBadges.jsx'
 import PasswordField from '../components/PasswordField.jsx'
 
@@ -14,6 +14,7 @@ export default function Login() {
   const { login } = useAuth()
   const { showError } = useNotification()
   const navigate = useNavigate()
+  const location = useLocation()
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
   
@@ -28,7 +29,13 @@ export default function Login() {
     setLoading(true)
     try {
       await login(form.email.trim(), form.pw, rememberMe)
-      navigate('/home', { replace: true })
+      // Deep-link'i koru (bkz. ProtectedRoute -> WelcomeScreen state.from):
+      // sadece uygulama içi, göreli bir yol kabul edilir (open-redirect yok).
+      const from = location.state?.from
+      const target = from?.pathname && from.pathname.startsWith('/') && !from.pathname.startsWith('//')
+        ? `${from.pathname}${from.search || ''}${from.hash || ''}`
+        : '/home'
+      navigate(target, { replace: true })
     } catch (err) {
       const errorMessage = (err && err.message) ? err.message : String(err) || 'Giriş başarısız.'
       setError(errorMessage)

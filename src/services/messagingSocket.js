@@ -6,6 +6,7 @@
 // mesajlaşma birbirinden bağımsız yaşam döngülerine sahip (biri kapansa
 // diğeri etkilenmesin), tek bir "her şeyi bilen" soket yerine.
 import { Client } from '@stomp/stompjs'
+import { attachFreshTokenBeforeConnect } from './socketAuth.js'
 
 const WS_BASE =
   import.meta.env.VITE_WS_BASE?.trim() ||
@@ -50,6 +51,8 @@ export function connectMessagingSocket(token, { onMessage, onMessageRequest, onC
     onConnectionChange?.(true)
   }
 
+  // Her (yeniden) bağlanmada taze JWT - bkz. socketAuth.js
+  attachFreshTokenBeforeConnect(client, token)
   client.activate()
   return client
 }

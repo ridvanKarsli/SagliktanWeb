@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 
 // Basit, bağımlılıksız pull-to-refresh - kontrol listesi "Pull-to-refresh
 // desteği" maddesi için eklendi (bkz. Sagliktan_Mobil_Uyum_Raporu.docx).
-// Sadece sayfa zaten en üstteyken (window.scrollY === 0) başlayan bir aşağı
+// Sadece sayfa zaten en üstteyken (bkz. isScrolledToTop) başlayan bir aşağı
 // çekme jestini izler; index.css'teki overscroll-behavior-y: contain native
 // "lastik" efektini kapattığı için görsel geri bildirimi burada elle veriyoruz.
 const PULL_THRESHOLD = 70 // bu mesafeyi (piksel) geçince bırakınca refresh tetiklenir
@@ -22,6 +22,26 @@ function rubberband(overshoot, limit = RUBBER_LIMIT, constant = RUBBER_CONSTANT)
   return (overshoot * limit * constant) / (limit + constant * Math.abs(overshoot))
 }
 
+// Sayfa gerçekten en üstte mi? Eskiden sadece window.scrollY'ye bakılıyordu
+// ama index.css'teki `html, body, #root { height:100%; overflow-x:hidden }`
+// kuralı yüzünden asıl kaydırma window'da değil #root (ya da iç bir
+// konteyner) üzerinde oluyor - window.scrollY her zaman 0 kalıyor ve feed'in
+// ortasında yukarı doğru her normal kaydırma jesti pull-to-refresh'i
+// tetikleyip sayfayı yeniliyordu. Dokunulan elemandan yukarı doğru
+// yürüyüp kaydırılmış HERHANGİ bir ata varsa "en üstte değil" sayıyoruz;
+// hangi elemanın scroll container olduğundan bağımsız çalışır.
+function isScrolledToTop(target) {
+  if (window.scrollY > 0) return false
+  const doc = document.documentElement
+  if ((doc?.scrollTop || 0) > 0 || (document.body?.scrollTop || 0) > 0) return false
+  let el = target instanceof Element ? target : null
+  while (el && el !== document.body) {
+    if (el.scrollTop > 0) return false
+    el = el.parentElement
+  }
+  return true
+}
+
 export function usePullToRefresh(onRefresh, { disabled = false } = {}) {
   const [pullDistance, setPullDistance] = useState(0)
   const [refreshing, setRefreshing] = useState(false)
@@ -37,14 +57,14 @@ export function usePullToRefresh(onRefresh, { disabled = false } = {}) {
     if (disabled) return undefined
 
     const onTouchStart = (e) => {
-      if (window.scrollY > 0 || refreshingRef.current) { startYRef.current = null; return }
+      if (refreshingRef.current || !isScrolledToTop(e.target)) { startYRef.current = null; return }
       startYRef.current = e.touches[0].clientY
     }
 
     const onTouchMove = (e) => {
       if (startYRef.current === null) return
       const delta = e.touches[0].clientY - startYRef.current
-      if (delta <= 0 || window.scrollY > 0) {
+      if (delta <= 0 || !isScrolledToTop(e.target)) {
         distanceRef.current = 0
         setPullDistance(0)
         return

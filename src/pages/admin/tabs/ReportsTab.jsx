@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useState } from 'react'
 import {
   Box, Button, Chip, CircularProgress, MenuItem, Stack, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, TextField, Typography, useMediaQuery
@@ -7,6 +7,7 @@ import { useTheme } from '@mui/material/styles'
 import { useNotification } from '../../../context/NotificationContext.jsx'
 import { useConfirm } from '../../../context/ConfirmContext.jsx'
 import { listAdminReports, resolveAdminReport } from '../../../services/api.js'
+import { usePaginatedList } from '../../../hooks/usePaginatedList.js'
 
 // AdminPanel.jsx'ten ayrı bir dosyaya taşındı (bkz. clean-code audit).
 
@@ -80,21 +81,18 @@ export default function ReportsTab({ token }) {
   // ihtiyacına uyuyor.
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
   const [status, setStatus] = useState('PENDING')
-  const [reports, setReports] = useState([])
-  const [loading, setLoading] = useState(true)
   const [actingId, setActingId] = useState(null)
   const { showError, showSuccess } = useNotification()
   const confirm = useConfirm()
 
-  const load = useCallback(() => {
-    setLoading(true)
-    listAdminReports(token, { status: status || undefined, size: 50 })
-      .then(res => setReports(Array.isArray(res?.content) ? res.content : []))
-      .catch(err => showError(err.message || 'Şikayetler alınamadı.'))
-      .finally(() => setLoading(false))
-  }, [token, status, showError])
-
-  useEffect(() => { load() }, [load])
+  // Sayfalama: önceden sadece ilk 50 kayıt çekiliyor, fazlası moderatöre
+  // hiç gösterilmiyordu (50'den fazla bekleyen şikayet görünmez kalıyordu).
+  const {
+    items: reports, loading, loadingMore, last, totalCount, loadMore, reload: load,
+  } = usePaginatedList(
+    (pageNum) => listAdminReports(token, { status: status || undefined, page: pageNum, size: 50 }),
+    { deps: [token, status], onError: (err) => showError(err.message || 'Şikayetler alınamadı.') }
+  )
 
   const act = async (id, newStatus, deleteContent = false) => {
     setActingId(id)
@@ -184,6 +182,14 @@ export default function ReportsTab({ token }) {
             </TableBody>
           </Table>
         </TableContainer>
+      )}
+
+      {!loading && !last && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+          <Button variant="outlined" size="small" onClick={loadMore} disabled={loadingMore}>
+            {loadingMore ? 'Yükleniyor…' : `Daha fazla yükle (${reports.length}/${totalCount})`}
+          </Button>
+        </Box>
       )}
     </Box>
   )

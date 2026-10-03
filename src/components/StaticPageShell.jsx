@@ -11,7 +11,7 @@ export default function StaticPageShell({ title, subtitle, children, maxWidth = 
   return (
     <Box sx={{ minHeight: '100dvh', bgcolor: 'background.default' }}>
       <Box sx={{ p: { xs: 2, sm: 3 } }}>
-        <Button startIcon={<ArrowBack />} onClick={() => navigate(-1)} sx={{ color: 'text.secondary' }}>
+        <Button startIcon={<ArrowBack />} onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/'))} sx={{ color: 'text.secondary' }}>
           Geri
         </Button>
       </Box>

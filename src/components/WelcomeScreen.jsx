@@ -1,5 +1,5 @@
 import { Box, Button, Typography, Container, Grid, Link, Stack, Tooltip, useMediaQuery, useTheme } from "@mui/material"
-import { Link as RouterLink, useNavigate } from "react-router-dom"
+import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom"
 import {
   Forum,
   Groups2Rounded,
@@ -43,6 +43,12 @@ const steps = [
 
 export default function WelcomeScreen() {
   const navigate = useNavigate()
+  const location = useLocation()
+  // ProtectedRoute, giriş gerektiren bir deep-link'ten (bildirim maili,
+  // paylaşılan /post/:id, hikaye kartı QR'ı) buraya state.from ile yönlendirir
+  // - login'e giderken o state taşınmazsa kullanıcı girişten sonra hep
+  // /home'a düşüyor, asıl gitmek istediği sayfa kayboluyordu.
+  const goLogin = () => navigate("/login", { state: location.state })
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
 
@@ -101,7 +107,7 @@ export default function WelcomeScreen() {
             <Stack direction="row" spacing={1.5}>
               <Button
                 variant="text"
-                onClick={() => navigate("/login")}
+                onClick={goLogin}
                 sx={{ display: { xs: 'none', sm: 'flex' } }}
               >
                 Giriş Yap
@@ -182,7 +188,7 @@ export default function WelcomeScreen() {
                   <Button
                     variant="outlined"
                     size="large"
-                    onClick={() => navigate("/login")}
+                    onClick={goLogin}
                     sx={{ minWidth: 180 }}
                   >
                     Giriş Yap

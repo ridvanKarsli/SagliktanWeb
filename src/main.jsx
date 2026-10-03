@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client'
 import ThemedApp from './ThemedApp.jsx'
 import { AccessibilityProvider } from './context/AccessibilityContext.jsx'
 import { reportWebVitals } from './utils/reportWebVitals.js'
-import { hasAttemptedChunkReload, reloadOnceForChunkError } from './utils/chunkReloadGuard.js'
+import { clearChunkReloadFlagAfterBoot, hasAttemptedChunkReload, reloadOnceForChunkError } from './utils/chunkReloadGuard.js'
 // Inter fontu artık Google Fonts'tan değil, yerelden (bkz. index.html'deki not).
 import '@fontsource/inter/400.css'
 import '@fontsource/inter/500.css'
@@ -60,6 +60,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     </AccessibilityProvider>
   </React.StrictMode>
 )
+
+// Açılış başarılı - bkz. chunkReloadGuard.clearChunkReloadFlagAfterBoot
+clearChunkReloadFlagAfterBoot()
 
 // Service Worker sadece production'da aktif olsun
 if ('serviceWorker' in navigator && import.meta.env.PROD) {

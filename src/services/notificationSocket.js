@@ -7,6 +7,7 @@
 // Bu yüzden burada backend'e DOĞRUDAN (Vercel'i atlayarak) bağlanıyoruz.
 // (bkz. vercel.json - CSP connect-src'ye backend origin'i bunun için eklendi.)
 import { Client } from '@stomp/stompjs'
+import { attachFreshTokenBeforeConnect } from './socketAuth.js'
 
 const WS_BASE =
   import.meta.env.VITE_WS_BASE?.trim() ||
@@ -59,6 +60,8 @@ export function connectNotificationSocket(token, { onNotification, onConnectionC
     onConnectionChange?.(true)
   }
 
+  // Her (yeniden) bağlanmada taze JWT - bkz. socketAuth.js
+  attachFreshTokenBeforeConnect(client, token)
   client.activate()
   return client
 }

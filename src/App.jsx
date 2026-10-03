@@ -23,6 +23,7 @@ const TermsOfService = lazy(() => import('./pages/TermsOfService.jsx'))
 const AboutUs = lazy(() => import('./pages/AboutUs.jsx'))
 const CommunityGuidelines = lazy(() => import('./pages/CommunityGuidelines.jsx'))
 const Help = lazy(() => import('./pages/Help.jsx'))
+const NotFound = lazy(() => import('./pages/NotFound.jsx'))
 const Home = lazy(() => import('./pages/Home.jsx'))
 const DiseaseGroups = lazy(() => import('./pages/groups/DiseaseGroups.jsx'))
 const SubGroups = lazy(() => import('./pages/groups/SubGroups.jsx'))
@@ -93,7 +94,7 @@ export default function App() {
           <Route path="/messages/:conversationId" element={<Chat />} />
           <Route path="/admin" element={<AdminRoute><AdminPanel /></AdminRoute>} />
         </Route>
-        <Route path="*" element={<WelcomeScreen />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>
   )

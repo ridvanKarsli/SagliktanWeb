@@ -13,7 +13,7 @@ export default function useQuickSearchShortcut() {
   useEffect(() => {
     function onKeyDown(e) {
       const isMod = e.metaKey || e.ctrlKey
-      const isK = isMod && e.key.toLowerCase() === 'k'
+      const isK = isMod && (e.key || '').toLowerCase() === 'k'
       const target = e.target
       const isTyping = !!target && (
         target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable

@@ -87,6 +87,9 @@ export default function Chat() {
         markConversationRead(token, conversationId).then(refreshUnreadCount).catch(() => {})
       })
       .catch(err => {
+        // Bileşen unmount olduysa / konuşma değiştiyse eski isteğin hatası
+        // kullanıcıyı başka bir sohbetten geri atmamalı.
+        if (!mounted) return
         showError(err.message || 'Sohbet açılamadı.')
         navigate('/messages')
       })
@@ -116,7 +119,15 @@ export default function Chat() {
     const prevHeight = box?.scrollHeight || 0
     try {
       const res = await listConversationMessages(token, conversationId, { page: nextPage })
-      setMessages(prev => [...[...(res?.content || [])].reverse(), ...prev])
+      // Offset sayfalama + canlı eklenen yeni mesajlar: biz sohbetteyken
+      // N yeni mesaj geldiyse "sonraki sayfa" bir önceki sayfayla N satır
+      // çakışır - de-dup yapılmazsa aynı baloncuk iki kez çizilir ve
+      // key={m.id} çakışır.
+      setMessages(prev => {
+        const known = new Set(prev.map(m => m.id))
+        const older = [...(res?.content || [])].reverse().filter(m => !known.has(m.id))
+        return [...older, ...prev]
+      })
       setHasMoreOlder(!(res?.last ?? true))
       setPage(nextPage)
       // Eski mesajlar üste eklenince scroll pozisyonu zıplamasın diye,
@@ -154,6 +165,10 @@ export default function Chat() {
 
   const handleSend = async (e) => {
     e.preventDefault()
+    // Enter tuşu gönder butonunun disabled durumunu atlayarak doğrudan
+    // buraya geliyor - taslak ancak yanıt gelince temizlendiği için iki
+    // hızlı Enter aynı mesajı iki kez gönderiyordu.
+    if (sending) return
     const content = draft.trim()
     const hasAttachment = attachment?.status === 'done'
     if (!content && !hasAttachment) return
@@ -165,7 +180,8 @@ export default function Chat() {
         content: content || null,
         attachmentKey: hasAttachment ? attachment.storageKey : null,
       })
-      setMessages(prev => [...prev, message])
+      // WS yankısı REST yanıtından önce gelmiş olabilir - çift ekleme yok.
+      setMessages(prev => (prev.some(m => m.id === message.id) ? prev : [...prev, message]))
       setDraft('')
       removeAttachment()
     } catch (err) {

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useState } from 'react'
 import {
   Box, Button, Chip, CircularProgress, FormControlLabel, Stack, Switch, Table, TableBody,
   TableCell, TableContainer, TableHead, TableRow, TextField, ToggleButton, ToggleButtonGroup,
@@ -12,6 +12,7 @@ import { useNotification } from '../../../context/NotificationContext.jsx'
 import { useConfirm } from '../../../context/ConfirmContext.jsx'
 import { deleteComment, deletePost, listAdminComments, listAdminPosts } from '../../../services/api.js'
 import { prettyDate } from '../../../utils/format.js'
+import { usePaginatedList } from '../../../hooks/usePaginatedList.js'
 
 // AdminPanel.jsx'ten ayrı bir dosyaya taşındı (bkz. clean-code audit).
 
@@ -130,28 +131,19 @@ export default function ContentTab({ token }) {
   // Tehlikeli/uygunsuz görsel içerik denetimi: sadece fotoğraflı gönderileri
   // filtreleme - sadece 'posts' tipinde anlamlı, yorumların fotoğrafı yok.
   const [onlyWithPhotos, setOnlyWithPhotos] = useState(false)
-  const [items, setItems] = useState([])
-  const [loading, setLoading] = useState(true)
   const [deletingId, setDeletingId] = useState(null)
   const { showError, showSuccess } = useNotification()
   const confirm = useConfirm()
 
-  const load = useCallback(() => {
-    setLoading(true)
-    if (type === 'posts') {
-      listAdminPosts(token, { q: q || undefined, hasPhotos: onlyWithPhotos || undefined, size: 50 })
-        .then(res => setItems(Array.isArray(res?.content) ? res.content : []))
-        .catch(err => showError(err.message || 'İçerik alınamadı.'))
-        .finally(() => setLoading(false))
-      return
-    }
-    listAdminComments(token, { q: q || undefined, size: 50 })
-      .then(res => setItems(Array.isArray(res?.content) ? res.content : []))
-      .catch(err => showError(err.message || 'İçerik alınamadı.'))
-      .finally(() => setLoading(false))
-  }, [token, type, q, onlyWithPhotos, showError])
-
-  useEffect(() => { load() }, [load])
+  // Sayfalama: önceden sadece ilk 50 kayıt listeleniyordu (bkz. ReportsTab).
+  const {
+    items, loading, loadingMore, last, totalCount, loadMore, reload: load,
+  } = usePaginatedList(
+    (pageNum) => (type === 'posts'
+      ? listAdminPosts(token, { q: q || undefined, hasPhotos: onlyWithPhotos || undefined, page: pageNum, size: 50 })
+      : listAdminComments(token, { q: q || undefined, page: pageNum, size: 50 })),
+    { deps: [token, type, q, onlyWithPhotos], onError: (err) => showError(err.message || 'İçerik alınamadı.') }
+  )
 
   const remove = async (item) => {
     const label = type === 'posts' ? 'gönderiyi' : 'yorumu'
@@ -261,6 +253,13 @@ export default function ContentTab({ token }) {
             </TableBody>
           </Table>
         </TableContainer>
+      )}
+      {!loading && !last && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+          <Button variant="outlined" size="small" onClick={loadMore} disabled={loadingMore}>
+            {loadingMore ? 'Yükleniyor…' : `Daha fazla yükle (${items.length}/${totalCount})`}
+          </Button>
+        </Box>
       )}
     </Box>
   )
