@@ -91,6 +91,14 @@ function mapUser(u) {
     bio: u.bio || '',
     role: u.role,
     emailVerified: !!u.emailVerified,
+    // V23: profil sağlık özeti + tercihler
+    communityRole: u.communityRole || null,
+    diagnosisYear: u.diagnosisYear ?? null,
+    city: u.city || '',
+    discoverable: !!u.discoverable,
+    // Eski backend alanı hiç göndermiyorsa (undefined) karşılamaya zorlama.
+    onboardingCompleted: u.onboardingCompleted !== false,
+    weeklyDigestEnabled: u.weeklyDigestEnabled !== false,
   }
 }
 
@@ -214,13 +222,19 @@ export function AuthProvider({ children }) {
     setUser(u => (u ? { ...u, ...patch } : u))
   }
 
+  // Sunucunun döndürdüğü tam UserResponse ile yerel kullanıcıyı güncelle
+  // (ör. sağlık özeti / tercih / karşılama uçları).
+  function applyServerUser(profile) {
+    if (profile) setUser(mapUser(profile))
+  }
+
   useEffect(() => {
     setRefreshCallback(refreshAccessToken)
     return () => setRefreshCallback(null)
   }, [refreshAccessToken])
 
   const value = useMemo(
-    () => ({ token, user, isAuthenticated: !!token && !!user, loading, login, logout, register, updateLocalUser, refreshAccessToken }),
+    () => ({ token, user, isAuthenticated: !!token && !!user, loading, login, logout, register, updateLocalUser, applyServerUser, refreshAccessToken }),
     // login/register/updateLocalUser her render'da yeni referans ama sadece
     // setState/API çağırıyor - tüketicilerin gereksiz yeniden render'ını
     // önlemek için bilinçli olarak deps dışında.

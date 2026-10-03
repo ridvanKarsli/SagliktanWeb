@@ -37,7 +37,7 @@ test.describe('Reaksiyonlar (Faydalı / Faydalı Değil)', () => {
     await page.getByRole('button', { name: 'Yeni gönderi' }).click()
     await page.getByTestId('post-title').fill(postTitle)
     await page.getByTestId('post-content').fill('Reaksiyon akışını test etmek için oluşturuldu.')
-    await page.getByRole('button', { name: 'Paylaş' }).click()
+    await page.getByRole('button', { name: 'Paylaş', exact: true }).click()
     await expect(page.getByText('Gönderi oluşturuldu.')).toBeVisible()
     await page.getByText(postTitle).click()
 
@@ -82,7 +82,7 @@ test.describe('Reaksiyonlar (Faydalı / Faydalı Değil)', () => {
     await page.getByRole('button', { name: 'Yeni gönderi' }).click()
     await page.getByTestId('post-title').fill(postTitle)
     await page.getByTestId('post-content').fill('İçerik.')
-    await page.getByRole('button', { name: 'Paylaş' }).click()
+    await page.getByRole('button', { name: 'Paylaş', exact: true }).click()
     await expect(page.getByText('Gönderi oluşturuldu.')).toBeVisible()
     await page.getByText(postTitle).click()
 

@@ -21,7 +21,7 @@ test.describe('İçerik moderasyonu', () => {
     // "salak" backend'in moderation/banned-words-tr.txt listesinde tam
     // kelime olarak yer alıyor (bkz. ContentModerationServiceImpl).
     await page.getByTestId('post-content').fill('Bu konu hakkında gerçekten salak yorumlar var.')
-    await page.getByRole('button', { name: 'Paylaş' }).click()
+    await page.getByRole('button', { name: 'Paylaş', exact: true }).click()
 
     // Backend'in BadRequestException mesajı toast olarak görünmeli, "Gönderi
     // oluşturuldu." ASLA görünmemeli - dialog kapanmadan kalır.
@@ -46,7 +46,7 @@ test.describe('İçerik moderasyonu', () => {
     await page.getByTestId('post-content').fill(
       'Bugünlerde çok zorlanıyorum ve bazen kendime zarar vermeyi düşünüyorum, biriyle konuşmam lazım.'
     )
-    await page.getByRole('button', { name: 'Paylaş' }).click()
+    await page.getByRole('button', { name: 'Paylaş', exact: true }).click()
 
     // Engellenmedi: normal başarı akışı işliyor.
     await expect(page.getByText('Gönderi oluşturuldu.')).toBeVisible()

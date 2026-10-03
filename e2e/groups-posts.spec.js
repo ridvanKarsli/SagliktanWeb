@@ -42,7 +42,7 @@ test.describe('Gruplar, üyelik ve gönderi/yorum akışı', () => {
     await page.getByRole('button', { name: 'Yeni gönderi' }).click()
     await page.getByTestId('post-title').fill(postTitle)
     await page.getByTestId('post-content').fill('Playwright tarafından oluşturulan test içeriği.')
-    await page.getByRole('button', { name: 'Paylaş' }).click()
+    await page.getByRole('button', { name: 'Paylaş', exact: true }).click()
     await expect(page.getByText('Gönderi oluşturuldu.')).toBeVisible()
 
     await page.getByText(postTitle).click()
@@ -98,7 +98,7 @@ test.describe('Gruplar, üyelik ve gönderi/yorum akışı', () => {
     await page.getByRole('button', { name: 'Yeni gönderi' }).click()
     await page.getByTestId('post-title').fill(`Sayaç testi ${Date.now()}`)
     await page.getByTestId('post-content').fill('Sohbet sayacını artırmak için oluşturuldu.')
-    await page.getByRole('button', { name: 'Paylaş' }).click()
+    await page.getByRole('button', { name: 'Paylaş', exact: true }).click()
     await expect(page.getByText('Gönderi oluşturuldu.')).toBeVisible()
 
     // Geri butonunun erişilebilir adı yok (sadece ikon) - grup detayına

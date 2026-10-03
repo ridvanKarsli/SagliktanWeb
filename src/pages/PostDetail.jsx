@@ -3,7 +3,7 @@ import {
   Alert, Avatar, Box, Button, CircularProgress, Divider, IconButton, Skeleton, Stack, TextField, Typography
 } from '@mui/material'
 import {
-  ArrowBack, ChatBubbleOutlineRounded, DeleteOutline, EditOutlined, FlagOutlined, InfoOutlined, IosShareRounded, PushPinOutlined,
+  ArrowBack, ChatBubbleOutlineRounded, CheckCircleRounded, DeleteOutline, EditOutlined, FlagOutlined, InfoOutlined, IosShareRounded, PushPinOutlined,
   PushPinRounded, SendOutlined
 } from '@mui/icons-material'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -18,9 +18,14 @@ import CommentRow from '../components/comments/CommentRow.jsx'
 import CommentRowSkeleton from '../components/comments/CommentRowSkeleton.jsx'
 import ReportDialog from '../components/comments/ReportDialog.jsx'
 import SensitiveContentBanner from '../components/SensitiveContentBanner.jsx'
+import PollView from '../components/PollView.jsx'
+import PostTypeBadges from '../components/PostTypeBadges.jsx'
+import ReadAloudButton from '../components/a11y/ReadAloudButton.jsx'
+import DictationButton from '../components/a11y/DictationButton.jsx'
+import { appendDictation } from '../utils/speech.js'
 import EmptyState from '../components/EmptyState.jsx'
 import {
-  getMyDiseaseGroups, reactToPost, removePostReaction, reportComment, reportPost, savePost, unsavePost
+  acceptAnswer, getMyDiseaseGroups, reactToPost, removePostReaction, reportComment, reportPost, savePost, unacceptAnswer, unsavePost
 } from '../services/api.js'
 import { initialsFrom, prettyDate } from '../utils/format.js'
 import { canManage } from '../utils/permissions.js'
@@ -44,7 +49,7 @@ export default function PostDetail() {
   const { showError, showSuccess } = useNotification()
 
   const {
-    post, loading, error,
+    post, setPost, loading, error,
     editingPost, setEditingPost, editTitle, setEditTitle, editContent, setEditContent,
     savingPost, deletingPost, togglingPin,
     startEditing, savePostEdit, removePost, togglePin
@@ -83,6 +88,32 @@ export default function PostDetail() {
       .catch(() => { if (mounted) setMyGroupIds(new Set()) })
     return () => { mounted = false }
   }, [token])
+
+  // V24: soru sahibi en iyi cevabı seçer/kaldırır.
+  const [acceptPending, setAcceptPending] = useState(false)
+  const chooseAnswer = async (commentId) => {
+    setAcceptPending(true)
+    try {
+      const updated = await acceptAnswer(token, post.id, commentId)
+      setPost(p => ({ ...p, ...updated }))
+      showSuccess('En iyi cevap seçildi. Yazan kişiye haber verdik.')
+    } catch (err) {
+      showError(err.message || 'En iyi cevap seçilemedi.')
+    } finally {
+      setAcceptPending(false)
+    }
+  }
+  const clearAnswer = async () => {
+    setAcceptPending(true)
+    try {
+      const updated = await unacceptAnswer(token, post.id)
+      setPost(p => ({ ...p, ...updated }))
+    } catch (err) {
+      showError(err.message || 'Seçim kaldırılamadı.')
+    } finally {
+      setAcceptPending(false)
+    }
+  }
 
   const goToProfile = useCallback((authorId) => goToUserProfile(navigate, user, authorId), [navigate, user])
 
@@ -152,6 +183,8 @@ export default function PostDetail() {
   // Üyelik henüz yükleniyorsa (myGroupIds === null) yorum kutusunu
   // gösterip sonra "yetkin yok" hatası almasın diye şimdilik gizli tutuyoruz.
   const isMember = myGroupIds != null && myGroupIds.has(post.diseaseGroupId)
+  // Sadece soruyu soran, sadece soru gönderisinde en iyi cevap seçebilir.
+  const canAcceptAnswers = isOwnPost && post.postType === 'QUESTION'
 
   return (
     <Box sx={{ py: { xs: 2, md: 4 } }}>
@@ -287,14 +320,41 @@ export default function PostDetail() {
           </Stack>
         ) : (
           <>
-            <Typography variant="h4" sx={{ fontWeight: 700, mb: 1.5, wordBreak: 'break-word' }}>
+            <PostTypeBadges postType={post.postType} solved={post.acceptedCommentId != null} />
+            <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, wordBreak: 'break-word' }}>
               {post.title}
             </Typography>
+            <ReadAloudButton text={`${post.title}. ${post.content || ''}`} sx={{ ml: -1, mb: 0.5 }} />
             <Typography variant="body1" sx={{ whiteSpace: 'pre-line', wordBreak: 'break-word', color: 'text.primary', mb: post.attachments?.length ? 1.5 : 0 }}>
               {post.content}
             </Typography>
             {post.flaggedSensitive && <SensitiveContentBanner />}
+            {post.postType === 'POLL' && (
+              <PollView
+                postId={post.id}
+                poll={post.poll}
+                isOwner={!!isOwnPost}
+                onChange={(poll) => setPost(p => ({ ...p, poll }))}
+                sx={{ mt: 1.5 }}
+              />
+            )}
             <PostGallery attachments={post.attachments} />
+            {post.postType === 'QUESTION' && post.acceptedCommentId != null && (
+              <Button
+                size="small"
+                color="success"
+                startIcon={<CheckCircleRounded />}
+                onClick={() => document.getElementById(`comment-${post.acceptedCommentId}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                sx={{ mt: 1, ml: -1, fontWeight: 700, minHeight: 36 }}
+              >
+                Çözüldü - en iyi cevaba git
+              </Button>
+            )}
+            {post.postType === 'QUESTION' && post.acceptedCommentId == null && isOwnPost && post.commentCount > 0 && (
+              <Typography variant="caption" sx={{ display: 'block', mt: 1, color: 'text.secondary' }}>
+                İşine yarayan cevabın altındaki <b>En iyi cevap</b> düğmesine dokun - hem yazana teşekkür etmiş olursun hem de soru çözüldü olarak işaretlenir.
+              </Typography>
+            )}
           </>
         )}
       </Box>
@@ -371,6 +431,11 @@ export default function PostDetail() {
               disabled={!isMember}
               inputProps={{ maxLength: 3000, 'aria-label': 'Yorum' }}
             />
+            <DictationButton
+              label="Yorumu sesle yaz"
+              disabled={!isMember || postingComment}
+              onText={(piece) => setNewComment(c => appendDictation(c, piece).slice(0, 3000))}
+            />
             <IconButton
               type="submit"
               color="primary"
@@ -405,6 +470,11 @@ export default function PostDetail() {
               <Box key={c.id} sx={{ borderBottom: '1px solid', borderColor: 'divider', '&:last-of-type': { borderBottom: 'none' } }}>
                 <CommentRow
                   comment={c}
+                  accepted={post.acceptedCommentId === c.id}
+                  canAccept={canAcceptAnswers}
+                  onAccept={chooseAnswer}
+                  onUnaccept={clearAnswer}
+                  acceptPending={acceptPending}
                   canReply={isMember}
                   thread={threads[c.id]}
                   onUpdated={saveCommentUpdate}
@@ -447,6 +517,11 @@ export default function PostDetail() {
                         <CommentRow
                           key={item.key}
                           comment={item.comment}
+                          accepted={post.acceptedCommentId === item.comment.id}
+                          canAccept={canAcceptAnswers}
+                          onAccept={chooseAnswer}
+                          onUnaccept={clearAnswer}
+                          acceptPending={acceptPending}
                           isReply
                           replyingTo={item.replyingTo}
                           canReply={isMember}

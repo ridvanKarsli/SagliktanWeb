@@ -46,7 +46,7 @@ test.describe('Admin paneli', () => {
     await authorPage.getByRole('button', { name: 'Yeni gönderi' }).click()
     await authorPage.getByTestId('post-title').fill(postTitle)
     await authorPage.getByTestId('post-content').fill('Admin şikayet akışını test etmek için oluşturuldu.')
-    await authorPage.getByRole('button', { name: 'Paylaş' }).click()
+    await authorPage.getByRole('button', { name: 'Paylaş', exact: true }).click()
     await expect(authorPage.getByText('Gönderi oluşturuldu.')).toBeVisible()
     await authorPage.getByText(postTitle).click()
     const postUrl = authorPage.url()
@@ -128,7 +128,7 @@ test.describe('Admin paneli', () => {
     await authorPage.getByRole('button', { name: 'Yeni gönderi' }).click()
     await authorPage.getByTestId('post-title').fill(postTitle)
     await authorPage.getByTestId('post-content').fill('İçerik.')
-    await authorPage.getByRole('button', { name: 'Paylaş' }).click()
+    await authorPage.getByRole('button', { name: 'Paylaş', exact: true }).click()
     await expect(authorPage.getByText('Gönderi oluşturuldu.')).toBeVisible()
 
     const adminContext = await browser.newContext()

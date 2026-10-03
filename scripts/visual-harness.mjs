@@ -12,7 +12,7 @@ const iso = (minsAgo) => new Date(now.getTime() - minsAgo * 60000).toISOString()
 const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url')
 const jwt = (type) => `${b64({ alg: 'HS256' })}.${b64({ sub: 'ayse@example.com', type, sid: 's1', exp: Math.floor(Date.now() / 1000) + 86400 })}.sig`
 
-const me = { id: 1, email: 'ayse@example.com', firstName: 'Ayşe', lastName: 'Demir', bio: 'RP tanısı 2021. Kızım için buradayım.', role: process.env.ROLE || 'ADMIN', emailVerified: true, createdAt: iso(99999), postCount: 12, commentCount: 48, likesReceived: 130, dislikesReceived: 3 }
+const me = { id: 1, email: 'ayse@example.com', firstName: 'Ayşe', lastName: 'Demir', bio: 'RP tanısı 2021. Kızım için buradayım.', role: process.env.ROLE || 'ADMIN', emailVerified: true, communityRole: 'CAREGIVER', diagnosisYear: 2021, city: 'İzmir', discoverable: process.env.DISCOVERABLE !== '0', onboardingCompleted: process.env.ONBOARDED !== '0', weeklyDigestEnabled: true, createdAt: iso(99999), postCount: 12, commentCount: 48, likesReceived: 130, dislikesReceived: 3 }
 const names = ['Mehmet Kaya', 'Zeynep Arslan', 'Ali Yılmaz', 'Fatma Çelik', 'Deniz Koç', 'Elif Şahin']
 const post = (i) => ({
   id: i, subGroupId: 2, diseaseGroupId: 1, subGroupName: ['Soru-Cevap', 'Deneyim Paylaşımları', 'Tedavi & Araştırmalar'][i % 3], diseaseGroupName: 'Retinitis Pigmentosa',
@@ -22,6 +22,9 @@ const post = (i) => ({
   helpfulCount: 7 + i * 3, notHelpfulCount: i % 4, myReaction: i % 3 === 0 ? 'HELPFUL' : null, saved: i % 2 === 0, savedCount: 2 + i,
   attachments: i % 4 === 1 ? [{ id: 1, url: 'https://picsum.photos/seed/rp' + i + '/900/600', sortOrder: 0 }, { id: 2, url: 'https://picsum.photos/seed/rq' + i + '/900/600', sortOrder: 1 }] : [],
   flaggedSensitive: i === 4, pinned: i === 1, createdAt: iso(30 * (i + 1)), updatedAt: iso(30 * (i + 1)),
+  postType: i === 0 ? 'QUESTION' : i === 3 ? 'POLL' : i === 2 ? 'QUESTION' : 'DISCUSSION',
+  acceptedCommentId: i === 0 ? 2 : null, commentCount: [7, 3, 0, 12, 1][i % 5],
+  poll: i === 3 ? { options: [{ id: 31, label: 'Luxturna', votes: 4 }, { id: 32, label: 'Klinik araştırma', votes: 7 }, { id: 33, label: 'Henüz bir şey denemedim', votes: 12 }], totalVotes: 23, myOptionId: process.env.VOTED ? 32 : null } : null,
 })
 const comment = (id, parentCommentId, depthText, replyCount = 0, minsAgo = 20) => ({
   id, postId: 1, authorId: 20 + id, authorName: names[id % names.length],
@@ -53,6 +56,12 @@ function route(url, method) {
   const p = url.pathname.replace(/^\/api/, '')
   const m = (re) => p.match(re)
   if (p === '/users/me') return me
+  if (p === '/users/me/similar') return [
+    { id: 11, firstName: 'Zeynep', lastName: 'Arslan', communityRole: 'CAREGIVER', diagnosisYear: 2020, city: 'İzmir', sharedGroups: ['Retinitis Pigmentosa'], reasons: ['Senin gibi hasta yakını', 'Tanı yılınız yakın'] },
+    { id: 12, firstName: 'Ali', lastName: 'Yılmaz', communityRole: 'PATIENT', diagnosisYear: 2019, city: 'Ankara', sharedGroups: ['Retinitis Pigmentosa', 'Multipl Skleroz'], reasons: [] },
+    { id: 13, firstName: 'Fatma', lastName: 'Çelik', communityRole: 'CAREGIVER', diagnosisYear: null, city: 'İzmir', sharedGroups: ['Retinitis Pigmentosa'], reasons: ['Aynı şehirdesiniz'] },
+  ]
+  if (p === '/posts/open-questions') return page([{ ...post(2), subGroupName: 'Soru-Cevap', diseaseGroupName: 'Retinitis Pigmentosa' }, { ...post(0), acceptedCommentId: null, commentCount: 1, subGroupName: 'Soru-Cevap', diseaseGroupName: 'Retinitis Pigmentosa' }])
   if (p === '/users/me/disease-groups') return groups
   if (p === '/users/me/posts') return page([post(0), post(1), post(2)])
   if (p === '/users/me/saved-posts') return page([post(0), post(2)])
@@ -68,7 +77,7 @@ function route(url, method) {
   if (p === '/posts/feed') return page([0, 1, 2, 3, 4].map(post), { last: false })
   if (p === '/posts/search') return page([post(0), post(3)])
   if (m(/^\/posts\/(\d+)\/comments$/)) return page(topComments)
-  if (m(/^\/posts\/(\d+)$/)) return post(1)
+  if (m(/^\/posts\/(\d+)$/)) { const id = Number(p.split('/')[2]); return id === 4 ? { ...post(3), id: 4, authorId: 1, authorName: 'Ayşe Demir' } : id === 1 ? { ...post(0), id: 1, authorId: 1, authorName: 'Ayşe Demir', commentCount: 4 } : post(1) }
   if (m(/^\/comments\/(\d+)\/replies$/)) return page(replies[+m(/^\/comments\/(\d+)\/replies$/)[1]] || [])
   if (p === '/notifications') return page(notifications)
   if (p === '/notifications/unread-count') return { count: 2 }
@@ -92,7 +101,7 @@ function route(url, method) {
 
 const shots = [
   ['home', '/home'], ['groups', '/groups'], ['subgroups', '/groups/1'], ['posts', '/sub-groups/2'], ['post-detail', '/post/1'],
-  ['search', '/search?q=gece'], ['profile', '/profile'], ['profile-groups', '/profile?tab=groups'], ['profile-groups-menu', '/profile?tab=groups'], ['profile-leave-confirm', '/profile?tab=groups'], ['profile-left', '/profile?tab=groups'], ['profile-edit', '/profile'], ['home-compose', '/home'], ['home-compose-picked', '/home'], ['subgroups-compose', '/groups/1'], ['posts-compose', '/sub-groups/2'], ['user-profile', '/users/11'], ['settings', '/profile/settings'],
+  ['search', '/search?q=gece'], ['profile', '/profile'], ['profile-groups', '/profile?tab=groups'], ['profile-groups-menu', '/profile?tab=groups'], ['profile-leave-confirm', '/profile?tab=groups'], ['profile-left', '/profile?tab=groups'], ['profile-edit', '/profile'], ['home-compose', '/home'], ['home-questions', '/home?tab=questions'], ['compose-poll', '/home'], ['post-poll', '/post/4'], ['post-question', '/post/1'], ['onboarding-role', '/hosgeldin'], ['onboarding-groups', '/hosgeldin'], ['onboarding-details', '/hosgeldin'], ['settings-matching', '/profile/settings#eslesme'], ['home-compose-picked', '/home'], ['subgroups-compose', '/groups/1'], ['posts-compose', '/sub-groups/2'], ['user-profile', '/users/11'], ['settings', '/profile/settings'],
   ['messages', '/messages'], ['chat', '/messages/1'], ['requests', '/messages/requests'],
   ['admin-dashboard', '/admin'], ['admin-reports', '/admin?tab=reports'], ['admin-users', '/admin?tab=users'], ['admin-content', '/admin?tab=content'], ['admin-groups', '/admin?tab=groups'],
 ]
@@ -149,8 +158,24 @@ for (const [vpName, vp] of Object.entries(viewports)) {
           await pg.waitForTimeout(300)
         }
       }
+      if (name === 'compose-poll') {
+        await pg.evaluate(() => { try { localStorage.removeItem('sagliktan:post-draft') } catch { /* */ } })
+        await pg.getByRole('button', { name: /paylaş…$/ }).first().click(); await pg.waitForTimeout(600)
+        await pg.getByRole('button', { name: 'Anket' }).click()
+        await pg.getByTestId('post-title').fill('Hangi tedaviyi denediniz?')
+        await pg.getByTestId('poll-option-0').fill('Luxturna')
+        await pg.getByTestId('poll-option-1').fill('Klinik araştırma')
+        await pg.waitForTimeout(900)
+      }
+      if (name.startsWith('onboarding-')) {
+        await pg.getByRole('radio', { name: 'Hasta yakınıyım' }).click()
+        if (name !== 'onboarding-role') { await pg.getByRole('button', { name: 'Devam', exact: true }).click(); await pg.waitForTimeout(500) }
+        if (name === 'onboarding-details') {
+          await pg.getByRole('button', { name: /gruba katıl|Devam/ }).last().click(); await pg.waitForTimeout(500)
+        }
+      }
       if (name === 'profile-edit') { await pg.getByRole('button', { name: 'Profili düzenle' }).click(); await pg.waitForTimeout(500) }
-      const fullPage = !['profile-groups-menu', 'profile-leave-confirm'].includes(name) && !name.includes('compose')
+      const fullPage = !['profile-groups-menu', 'profile-leave-confirm'].includes(name) && !name.includes('compose') && !name.startsWith('onboarding')
       await pg.screenshot({ path: `${OUT}/${vpName}-${name}.png`, fullPage })
       console.log('ok', vpName, name)
     } catch (e) { console.log('FAIL', vpName, name, e.message.split('\n')[0]) }

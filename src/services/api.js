@@ -211,6 +211,32 @@ export function revokeSession(token, id) {
   return request(`/users/me/sessions/${id}`, { method: 'DELETE', token });
 }
 
+// --- Profil sağlık özeti / karşılama / tercihler / benzer üyeler ---
+
+export function updateHealthProfile(token, { communityRole, diagnosisYear, city, discoverable }) {
+  return request('/users/me/health-profile', {
+    method: 'PUT', token,
+    body: { communityRole: communityRole || null, diagnosisYear: diagnosisYear || null, city: city || null, discoverable: !!discoverable }
+  });
+}
+
+export function completeOnboarding(token) {
+  return request('/users/me/onboarding/complete', { method: 'POST', token });
+}
+
+export function updatePreferences(token, { weeklyDigestEnabled }) {
+  return request('/users/me/preferences', { method: 'PUT', token, body: { weeklyDigestEnabled } });
+}
+
+export function getSimilarMembers(token, { limit = 8, signal } = {}) {
+  return request('/users/me/similar', { token, params: { limit }, signal });
+}
+
+// Haftalık e-posta özetinin bu haftaki hâli (HTML metni döner).
+export function getDigestPreview(token) {
+  return request('/users/me/digest-preview', { token });
+}
+
 export function getMyDiseaseGroups(token) {
   return request('/users/me/disease-groups', { token });
 }
@@ -278,10 +304,37 @@ export function listPostsBySubGroup(token, subGroupId, { page = 0, size, sort, s
 
 // attachmentKeys: Faz 2 adım 4 - requestPresignedUpload + uploadToPresignedUrl
 // ile önceden R2'ye yüklenmiş storage key'leri (bkz. PhotoUploadField.jsx).
-export function createPost(token, subGroupId, { title, content, attachmentKeys }) {
-  return request(`/sub-groups/${subGroupId}/posts`, {
-    method: 'POST', token, body: { title, content, attachmentKeys }
-  });
+// postType: 'DISCUSSION' (varsayılan) | 'QUESTION' | 'POLL'; POLL ise
+// pollOptions 2-6 dolu seçenek.
+export function createPost(token, subGroupId, { title, content, attachmentKeys, postType, pollOptions }) {
+  const body = { title, content, attachmentKeys };
+  if (postType && postType !== 'DISCUSSION') body.postType = postType;
+  if (postType === 'POLL') body.pollOptions = pollOptions;
+  return request(`/sub-groups/${subGroupId}/posts`, { method: 'POST', token, body });
+}
+
+// --- Soru / en iyi cevap / cevap bekleyenler ---
+
+export function getOpenQuestions(token, { page = 0, size, signal } = {}) {
+  return request('/posts/open-questions', { token, params: { page, size }, signal });
+}
+
+export function acceptAnswer(token, postId, commentId) {
+  return request(`/posts/${postId}/accepted-answer`, { method: 'PUT', token, body: { commentId } });
+}
+
+export function unacceptAnswer(token, postId) {
+  return request(`/posts/${postId}/accepted-answer`, { method: 'DELETE', token });
+}
+
+// --- Anket ---
+
+export function votePoll(token, postId, optionId) {
+  return request(`/posts/${postId}/poll/vote`, { method: 'PUT', token, body: { optionId } });
+}
+
+export function removePollVote(token, postId) {
+  return request(`/posts/${postId}/poll/vote`, { method: 'DELETE', token });
 }
 
 // Ana sayfa akışı: kullanıcının üye olduğu tüm gruplardaki gönderiler, tek

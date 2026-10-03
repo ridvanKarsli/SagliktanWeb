@@ -100,7 +100,7 @@ export function usePost(postId) {
   }
 
   return {
-    post, loading, error,
+    post, setPost, loading, error,
     editingPost, setEditingPost, editTitle, setEditTitle, editContent, setEditContent,
     savingPost, deletingPost, togglingPin,
     startEditing, savePostEdit, removePost, togglePin

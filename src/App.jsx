@@ -31,6 +31,7 @@ const Posts = lazy(() => import('./pages/Posts.jsx'))
 const PostDetail = lazy(() => import('./pages/PostDetail.jsx'))
 const Search = lazy(() => import('./pages/Search.jsx'))
 const Profile = lazy(() => import('./pages/profile/Profile.jsx'))
+const Onboarding = lazy(() => import('./pages/Onboarding.jsx'))
 const AccountSettings = lazy(() => import('./pages/profile/AccountSettings.jsx'))
 const UserProfile = lazy(() => import('./pages/profile/UserProfile.jsx'))
 const Conversations = lazy(() => import('./pages/messages/Conversations.jsx'))
@@ -79,6 +80,8 @@ export default function App() {
         <Route path="/hakkimizda" element={<AboutUs />} />
         <Route path="/topluluk-kurallari" element={<CommunityGuidelines />} />
         <Route path="/yardim" element={<Help />} />
+        {/* Karşılama: tam ekran, uygulama kabuğu (alt menü) olmadan. */}
+        <Route path="/hosgeldin" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
         <Route element={<ProtectedLayout />}>
           <Route path="/home" element={<Home />} />
           <Route path="/groups" element={<DiseaseGroups />} />

@@ -82,7 +82,13 @@ export async function login(page, user) {
   await page.getByTestId('login-email').fill(user.email)
   await page.getByTestId('login-password').fill(user.password)
   await page.getByRole('button', { name: 'Giriş Yap' }).click()
-  await page.waitForURL('**/home')
+  // Yeni kullanıcılar önce karşılama akışına (/hosgeldin) gider - testler
+  // kendi grup/gönderi kurulumunu yaptığı için akış "Şimdilik geç" ile atlanır.
+  await page.waitForURL(/\/(home|hosgeldin)(\?|$)/)
+  if (page.url().includes('/hosgeldin')) {
+    await page.getByRole('button', { name: 'Şimdilik geç' }).click()
+    await page.waitForURL('**/home')
+  }
 }
 
 // V3 migration ile her ortamda seed edilen sabit grup/alt gruplar - testler

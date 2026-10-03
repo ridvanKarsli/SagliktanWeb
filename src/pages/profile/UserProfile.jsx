@@ -7,6 +7,7 @@ import {
   ArrowBack, BlockRounded, DynamicFeedRounded, FlagOutlined, LockOpenRounded, MailOutlineRounded,
   MoreVertRounded
 } from '@mui/icons-material'
+import HealthSummary from '../../components/profile/HealthSummary.jsx'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
@@ -289,6 +290,7 @@ export default function UserProfile() {
             </Stack>
           </Box>
         </Stack>
+        <HealthSummary profile={profile} sx={{ mt: 1.25 }} />
         {profile.bio && (
           <Typography variant="body2" sx={{ color: 'text.primary', mt: 1.5, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
             {profile.bio}

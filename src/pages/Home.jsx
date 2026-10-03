@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Alert, Box, Button, CircularProgress, Divider, Fab, Stack, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
-import { Add, DynamicFeedRounded, GroupsRounded } from '@mui/icons-material'
-import { useNavigate } from 'react-router-dom'
+import { Alert, Box, Button, CircularProgress, Divider, Fab, Stack, Tab, Tabs, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
+import { Add, AutoAwesomeRounded, DynamicFeedRounded, GroupsRounded, QuestionAnswerOutlined } from '@mui/icons-material'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import SimilarMembers from '../components/SimilarMembers.jsx'
 import PostCard from '../components/PostCard.jsx'
 import PostCardSkeleton from '../components/PostCardSkeleton.jsx'
 import EmptyState from '../components/EmptyState.jsx'
@@ -9,7 +10,7 @@ import NewPostDialog from '../components/NewPostDialog.jsx'
 import ComposerPrompt from '../components/ComposerPrompt.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useNotification } from '../context/NotificationContext.jsx'
-import { getMyDiseaseGroups, getMyFeed } from '../services/api.js'
+import { getMyDiseaseGroups, getMyFeed, getOpenQuestions } from '../services/api.js'
 import { usePaginatedList } from '../hooks/usePaginatedList.js'
 import { usePullToRefresh } from '../hooks/usePullToRefresh.js'
 
@@ -24,9 +25,17 @@ import { usePullToRefresh } from '../hooks/usePullToRefresh.js'
  * ayrı "Gruplar" ikonu).
  */
 export default function Home() {
-  const { token } = useAuth()
+  const { token, user } = useAuth()
   const { showError } = useNotification()
   const navigate = useNavigate()
+  const [params, setParams] = useSearchParams()
+  // ?tab=questions -> "Cevap bekleyenler" (e-posta özetindeki link de buraya gelir)
+  const tab = params.get('tab') === 'questions' ? 'questions' : 'feed'
+  const setTab = (v) => {
+    const next = new URLSearchParams(params)
+    if (v === 'questions') next.set('tab', 'questions'); else next.delete('tab')
+    setParams(next, { replace: true })
+  }
 
   const [error, setError] = useState('')
   // Akış boşsa nedenini ayırt etmek için: hiç gruba katılmamış mı (o zaman
@@ -50,12 +59,15 @@ export default function Home() {
       .finally(() => setCheckingGroups(false))
   }, [token])
 
-  const fetchPage = useCallback((page) => getMyFeed(token, { page, sort }), [token, sort])
+  const fetchPage = useCallback(
+    (page) => (tab === 'questions' ? getOpenQuestions(token, { page }) : getMyFeed(token, { page, sort })),
+    [token, sort, tab]
+  )
   const {
     items: posts, loading, loadingMore, last, loadMore, reload: reloadFeed
   } = usePaginatedList(fetchPage, {
     enabled: !!token,
-    deps: [token, sort],
+    deps: [token, sort, tab],
     onError: (err, phase) => {
       if (phase === 'initial') setError(err.message || 'Akış alınamadı.')
       else showError(err.message || 'Akış alınamadı.')
@@ -71,7 +83,8 @@ export default function Home() {
   // Yeni gönderi en üstte görünsün: "Popüler" sıralamadaysak "Yeni"ye geç
   // (sort değişimi akışı zaten yeniden yükler), değilse akışı tazele.
   const onPostCreated = () => {
-    if (sort !== 'recent') setSort('recent')
+    if (tab !== 'feed') setTab('feed')
+    else if (sort !== 'recent') setSort('recent')
     else reloadFeed()
     try { document.getElementById('root')?.scrollTo({ top: 0, behavior: 'smooth' }); window.scrollTo({ top: 0, behavior: 'smooth' }) } catch { /* yoksay */ }
   }
@@ -101,12 +114,14 @@ export default function Home() {
 
       {/* Sayfa başlığı: diğer sayfalarla (Gruplar, Mesajlar, Profil) aynı
           başlık dili; sıralama anahtarı başlığın karşısında, tek satırda. */}
-      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.5 }}>
+      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
         <Box>
           <Typography variant="h4" component="h1" sx={{ fontWeight: 700, lineHeight: 1.2 }}>Akış</Typography>
-          <Typography variant="body2" sx={{ color: 'text.secondary' }}>Gruplarından son paylaşımlar</Typography>
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+            {tab === 'questions' ? 'Deneyimin birine yol gösterebilir' : 'Gruplarından son paylaşımlar'}
+          </Typography>
         </Box>
-      {!checkingGroups && hasJoinedGroups && (
+        {!checkingGroups && hasJoinedGroups && tab === 'feed' && (
           <ToggleButtonGroup
             size="small"
             value={sort}
@@ -116,10 +131,39 @@ export default function Home() {
             <ToggleButton value="recent">Yeni</ToggleButton>
             <ToggleButton value="popular">Popüler</ToggleButton>
           </ToggleButtonGroup>
-      )}
+        )}
       </Stack>
 
-      {canPost && <ComposerPrompt onClick={() => setComposerOpen(true)} hint="Gruplarına bir şey paylaş…" sx={{ mb: 2 }} />}
+      {/* Karşılamayı atlayanlara nazik hatırlatma (zorlamadan). */}
+      {user && !user.onboardingCompleted && (
+        <Alert
+          severity="info"
+          icon={<AutoAwesomeRounded />}
+          sx={{ mb: 2, alignItems: 'center' }}
+          action={<Button color="inherit" size="small" onClick={() => navigate('/hosgeldin')} sx={{ minHeight: 36, fontWeight: 700 }}>Başla</Button>}
+        >
+          Profilini 1 dakikada tamamla, sana uygun grupları ve üyeleri gösterelim.
+        </Alert>
+      )}
+
+      {canPost && <ComposerPrompt onClick={() => setComposerOpen(true)} hint="Gruplarına bir şey paylaş…" sx={{ mb: 1.5 }} />}
+
+      {canPost && (
+        <Tabs
+          value={tab}
+          onChange={(_, v) => setTab(v)}
+          variant="fullWidth"
+          aria-label="Akış görünümü"
+          sx={{
+            mb: 1, borderBottom: '1px solid', borderColor: 'divider', minHeight: 44,
+            '& .MuiTab-root': { minHeight: 44, textTransform: 'none', fontWeight: 700, px: 1 },
+            '& .MuiTab-icon': { display: { xs: 'none', sm: 'inline-flex' } }
+          }}
+        >
+          <Tab value="feed" label="Tümü" icon={<DynamicFeedRounded sx={{ fontSize: 18 }} />} iconPosition="start" />
+          <Tab value="questions" label="Cevap bekleyenler" icon={<QuestionAnswerOutlined sx={{ fontSize: 18 }} />} iconPosition="start" />
+        </Tabs>
+      )}
 
       {(loading || checkingGroups) ? (
         <Box>
@@ -139,9 +183,26 @@ export default function Home() {
             <Box key={post.id}>
               {i > 0 && <Divider />}
               <PostCard post={post} token={token} onClick={() => navigate(`/post/${post.id}`)} />
+              {/* "Senin gibi üyeler" akışın 3. gönderisinden sonra - en üstte
+                  içeriği aşağı itmesin ama ilk ekranlarda görülsün. */}
+              {tab === 'feed' && (i === 2 || (i === posts.length - 1 && posts.length < 3)) && (
+                <>
+                  <Divider />
+                  <SimilarMembers sx={{ py: 2 }} />
+                </>
+              )}
             </Box>
           ))}
-          {posts.length === 0 && (
+          {posts.length === 0 && tab === 'questions' && (
+            <EmptyState
+              icon={QuestionAnswerOutlined}
+              title="Şu an cevap bekleyen soru yok"
+              description="Gruplarındaki sorular cevaplandıkça burası boşalır. Sen de bir soru sorabilirsin."
+              actionLabel="Soru sor"
+              onAction={() => setComposerOpen(true)}
+            />
+          )}
+          {posts.length === 0 && tab === 'feed' && (
             <EmptyState
               icon={DynamicFeedRounded}
               title="Akışında henüz gönderi yok"
@@ -181,7 +242,12 @@ export default function Home() {
         </Fab>
       )}
 
-      <NewPostDialog open={composerOpen} onClose={() => setComposerOpen(false)} onCreated={onPostCreated} />
+      <NewPostDialog
+        open={composerOpen}
+        onClose={() => setComposerOpen(false)}
+        onCreated={onPostCreated}
+        initialPostType={tab === 'questions' ? 'QUESTION' : 'DISCUSSION'}
+      />
     </Box>
   )
 }

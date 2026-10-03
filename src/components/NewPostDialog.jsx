@@ -1,17 +1,45 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  Alert, Box, Button, Chip, CircularProgress, Dialog, IconButton, Skeleton, Stack, TextField,
+  Alert, Box, Button, ButtonBase, Chip, CircularProgress, Dialog, IconButton, Skeleton, Stack, TextField,
+  ToggleButton, ToggleButtonGroup,
   Typography, useMediaQuery, useTheme
 } from '@mui/material'
 import {
-  CloseRounded, ForumOutlined, GroupsRounded, InfoOutlined, PlaceOutlined
+  AddRounded, CloseRounded, ForumOutlined, GroupsRounded, HelpOutlineRounded, InfoOutlined, PlaceOutlined,
+  PollOutlined, RemoveCircleOutlineRounded, TipsAndUpdatesOutlined
 } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import PhotoUploadField from './PhotoUploadField.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useNotification } from '../context/NotificationContext.jsx'
-import { createPost, getMyDiseaseGroups, listSubGroups } from '../services/api.js'
+import { createPost, getMyDiseaseGroups, listSubGroups, searchPosts } from '../services/api.js'
+import DictationButton from './a11y/DictationButton.jsx'
+import { appendDictation, isDictationSupported } from '../utils/speech.js'
 import { useGroupMembership } from '../hooks/useGroupMembership.js'
+
+const POLL_MAX = 6
+const POLL_OPTION_MAX = 120
+
+const TYPES = [
+  {
+    value: 'DISCUSSION', label: 'Gönderi', icon: ForumOutlined,
+    hint: 'Deneyimini, gününü ya da öğrendiğin bir şeyi paylaş.',
+    titleLabel: 'Başlık', titlePlaceholder: 'Kısa ve anlaşılır bir başlık',
+    contentLabel: 'İçerik', contentPlaceholder: 'Deneyimini anlat…'
+  },
+  {
+    value: 'QUESTION', label: 'Soru', icon: HelpOutlineRounded,
+    hint: 'Sorular "Cevap bekleyenler"de öne çıkar; en iyi cevabı sen seçersin.',
+    titleLabel: 'Sorun', titlePlaceholder: 'Sorunu tek cümleyle yaz',
+    contentLabel: 'Ayrıntılar', contentPlaceholder: 'Durumunu, neler denediğini ve neyi merak ettiğini anlat…'
+  },
+  {
+    value: 'POLL', label: 'Anket', icon: PollOutlined,
+    hint: 'Gruba tek dokunuşla yanıtlanacak bir soru sor (2-6 seçenek).',
+    titleLabel: 'Anket sorusu', titlePlaceholder: 'Örn. Hangi tedaviyi denediniz?',
+    contentLabel: 'Açıklama', contentPlaceholder: 'Neden soruyorsun? Kısa bir açıklama ekle…'
+  },
+]
 
 const TITLE_MAX = 255
 const CONTENT_MAX = 10000
@@ -74,7 +102,8 @@ function ChoiceChips({ items, value, onChange, getLabel, ariaLabel, wrap = false
  * butonlar ekranın dışında kalıyordu.
  */
 export default function NewPostDialog({
-  open, onClose, onCreated, presetSubGroup = null, presetDiseaseGroupId = null, presetDiseaseGroupName = ''
+  open, onClose, onCreated, presetSubGroup = null, presetDiseaseGroupId = null, presetDiseaseGroupName = '',
+  initialTitle = '', initialContent = '', initialPostType = 'DISCUSSION'
 }) {
   const { token } = useAuth()
   const { showError, showSuccess } = useNotification()
@@ -92,6 +121,9 @@ export default function NewPostDialog({
   const [attachments, setAttachments] = useState([])
   const [submitting, setSubmitting] = useState(false)
   const [draftRestored, setDraftRestored] = useState(false)
+  const [postType, setPostType] = useState('DISCUSSION')
+  const [pollOptions, setPollOptions] = useState(['', ''])
+  const [similar, setSimilar] = useState([])
   const initializedRef = useRef(false)
 
   const fixedDgId = presetSubGroup?.diseaseGroupId ?? presetDiseaseGroupId ?? null
@@ -117,13 +149,21 @@ export default function NewPostDialog({
         : fixedDgId ? String(draft.diseaseGroupId) === String(fixedDgId)
           : true
     )
-    if (draftFits && (draft.title || draft.content)) {
+    if (initialTitle || initialContent) {
+      // Hazır şablonla açıldı (ör. karşılamadaki "Kendini tanıt") - taslağı ezme.
+      setTitle(initialTitle); setContent(initialContent); setDraftRestored(false)
+      setPostType(initialPostType || 'DISCUSSION'); setPollOptions(['', ''])
+    } else if (draftFits && (draft.title || draft.content)) {
       setTitle(draft.title || '')
       setContent(draft.content || '')
+      setPostType(TYPES.some(t => t.value === draft.postType) ? draft.postType : 'DISCUSSION')
+      setPollOptions(Array.isArray(draft.pollOptions) && draft.pollOptions.length >= 2 ? draft.pollOptions.slice(0, POLL_MAX) : ['', ''])
       setDraftRestored(true)
     } else {
       setTitle(''); setContent(''); setDraftRestored(false)
+      setPostType(initialPostType || 'DISCUSSION'); setPollOptions(['', ''])
     }
+    setSimilar([])
 
     if (presetSubGroup) {
       setDiseaseGroupId(presetSubGroup.diseaseGroupId)
@@ -139,6 +179,7 @@ export default function NewPostDialog({
     getMyDiseaseGroups(token)
       .then(list => setMyGroups(Array.isArray(list) ? list : []))
       .catch(() => setMyGroups([]))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, token, presetSubGroup, fixedDgId])
 
   /* Grup listesi gelince: seçili grup artık üyelikte yoksa ya da hiç seçim
@@ -178,11 +219,35 @@ export default function NewPostDialog({
   useEffect(() => {
     if (!open) return
     const t = setTimeout(() => {
-      if (title.trim() || content.trim()) store.set(DRAFT_KEY, { title, content, diseaseGroupId, subGroupId })
-      else store.del(DRAFT_KEY)
+      if (title.trim() || content.trim()) {
+        store.set(DRAFT_KEY, { title, content, diseaseGroupId, subGroupId, postType, pollOptions })
+      } else {
+        store.del(DRAFT_KEY)
+      }
     }, 400)
     return () => clearTimeout(t)
-  }, [open, title, content, diseaseGroupId, subGroupId])
+  }, [open, title, content, diseaseGroupId, subGroupId, postType, pollOptions])
+
+  /* Yazarken benzer gönderiler: başlık yeterince uzunsa (600ms bekleyip)
+     platform aramasını çağır, seçili hastalık grubundakileri öne al. Belki
+     sorunun cevabı zaten yazılmış - kişi beklemeden okuyabilir. */
+  useEffect(() => {
+    if (!open) return
+    const q = title.trim()
+    if (q.length < 8) { setSimilar([]); return }
+    const ctrl = new AbortController()
+    const t = setTimeout(() => {
+      searchPosts(token, q, { size: 10, signal: ctrl.signal })
+        .then(res => {
+          const items = Array.isArray(res?.content) ? res.content : []
+          const inGroup = diseaseGroupId != null ? items.filter(p => String(p.diseaseGroupId) === String(diseaseGroupId)) : []
+          const rest = items.filter(p => !inGroup.includes(p))
+          setSimilar([...inGroup, ...rest].slice(0, 3))
+        })
+        .catch(() => { /* öneri - hata kullanıcıya gösterilmez */ })
+    }, 600)
+    return () => { clearTimeout(t); ctrl.abort() }
+  }, [open, title, token, diseaseGroupId])
 
   const isMember = useMemo(() => {
     if (!myGroups || diseaseGroupId == null) return null
@@ -201,6 +266,20 @@ export default function NewPostDialog({
 
   const discardDraft = () => {
     setTitle(''); setContent(''); setDraftRestored(false); store.del(DRAFT_KEY)
+    setPostType('DISCUSSION'); setPollOptions(['', ''])
+  }
+
+  const cleanPollOptions = pollOptions.map(o => o.trim()).filter(Boolean)
+  const pollValid = cleanPollOptions.length >= 2
+    && new Set(cleanPollOptions.map(o => o.toLocaleLowerCase('tr'))).size === cleanPollOptions.length
+  const typeMeta = TYPES.find(t => t.value === postType) || TYPES[0]
+
+  const openSimilar = (postId) => {
+    // Taslak zaten kaydediliyor; gönderiyi okuyup geri dönebilir.
+    store.set(DRAFT_KEY, { title, content, diseaseGroupId, subGroupId, postType, pollOptions })
+    resetAttachments()
+    onClose()
+    navigate(`/post/${postId}`)
   }
 
   const fixedDgName = presetSubGroup?.diseaseGroupName || presetDiseaseGroupName || ''
@@ -211,7 +290,7 @@ export default function NewPostDialog({
   }
 
   const canSubmit = !submitting && !photosBusy && subGroupId != null && isMember !== false
-    && title.trim().length > 0 && content.trim().length > 0
+    && title.trim().length > 0 && content.trim().length > 0 && (postType !== 'POLL' || pollValid)
 
   const submit = async (e) => {
     e?.preventDefault()
@@ -219,14 +298,19 @@ export default function NewPostDialog({
     if (!title.trim()) { showError('Başlık zorunludur.'); return }
     if (!content.trim()) { showError('İçerik zorunludur.'); return }
     if (photosBusy) { showError('Fotoğraflar hâlâ yükleniyor, birazdan tekrar dene.'); return }
+    if (postType === 'POLL' && !pollValid) { showError('Ankette en az 2 farklı seçenek olmalı.'); return }
     const attachmentKeys = attachments.filter(a => a.status === 'done').map(a => a.storageKey)
     setSubmitting(true)
     try {
-      const created = await createPost(token, subGroupId, { title: title.trim(), content: content.trim(), attachmentKeys })
+      const created = await createPost(token, subGroupId, {
+        title: title.trim(), content: content.trim(), attachmentKeys,
+        postType, pollOptions: postType === 'POLL' ? cleanPollOptions : undefined
+      })
       store.del(DRAFT_KEY)
       store.set(LAST_TARGET_KEY, { diseaseGroupId, subGroupId })
       showSuccess('Gönderi oluşturuldu.')
       setTitle(''); setContent(''); setDraftRestored(false)
+      setPostType('DISCUSSION'); setPollOptions(['', ''])
       resetAttachments()
       onCreated?.(created, { diseaseGroupId, subGroupId })
       onClose()
@@ -372,6 +456,30 @@ export default function NewPostDialog({
               </Alert>
             )}
 
+            {/* Gönderi türü */}
+            <Box>
+              <ToggleButtonGroup
+                exclusive
+                fullWidth
+                value={postType}
+                onChange={(_, v) => v && setPostType(v)}
+                aria-label="Gönderi türü"
+                sx={{ '& .MuiToggleButton-root': { minHeight: 44, gap: 0.75, textTransform: 'none', fontWeight: 600, px: 1 } }}
+              >
+                {TYPES.map(t => {
+                  const Icon = t.icon
+                  return (
+                    <ToggleButton key={t.value} value={t.value} aria-label={t.label}>
+                      <Icon sx={{ fontSize: 18 }} />{t.label}
+                    </ToggleButton>
+                  )
+                })}
+              </ToggleButtonGroup>
+              <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.75, px: 0.5 }}>
+                {typeMeta.hint}
+              </Typography>
+            </Box>
+
             {draftRestored && (
               <Stack direction="row" alignItems="center" spacing={1} sx={{ px: 1.5, py: 0.75, borderRadius: 2, bgcolor: 'action.hover' }}>
                 <Typography variant="caption" sx={{ flex: 1, color: 'text.secondary' }}>Kaydedilmiş taslağın yüklendi.</Typography>
@@ -380,33 +488,107 @@ export default function NewPostDialog({
             )}
 
             <TextField
-              label="Başlık"
               value={title}
               onChange={e => setTitle(e.target.value.slice(0, TITLE_MAX))}
               required
               fullWidth
-              placeholder={selectedSub ? `${selectedSub.name} için kısa bir başlık` : 'Kısa ve anlaşılır bir başlık'}
+              label={typeMeta.titleLabel}
+              placeholder={typeMeta.titlePlaceholder}
               helperText={title.length > TITLE_MAX - 40 ? `${title.length}/${TITLE_MAX}` : ' '}
               slotProps={{
                 htmlInput: { maxLength: TITLE_MAX, 'data-testid': 'post-title', enterKeyHint: 'next' },
                 formHelperText: { sx: { textAlign: 'right', mr: 0, minHeight: 0 } }
               }}
             />
+            {similar.length > 0 && (
+              <Box sx={{ mt: -1, p: 1.25, borderRadius: 2.5, bgcolor: 'action.hover' }}>
+                <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mb: 0.5, color: 'text.secondary' }}>
+                  <TipsAndUpdatesOutlined sx={{ fontSize: 16 }} />
+                  <Typography variant="caption" sx={{ fontWeight: 700 }}>
+                    {postType === 'QUESTION' ? 'Belki cevabın burada' : 'Benzer gönderiler'}
+                  </Typography>
+                </Stack>
+                <Stack spacing={0.25}>
+                  {similar.map(p => (
+                    <ButtonBase
+                      key={p.id}
+                      onClick={() => openSimilar(p.id)}
+                      sx={{ justifyContent: 'flex-start', textAlign: 'left', borderRadius: 1.5, px: 0.75, py: 0.75, '&:hover': { bgcolor: 'action.selected' } }}
+                    >
+                      <Box sx={{ minWidth: 0 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>{p.title}</Typography>
+                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                          {p.commentCount ? `${p.commentCount} yorum` : 'Henüz yorum yok'}
+                          {p.postType === 'QUESTION' && p.acceptedCommentId ? ' · Çözüldü' : ''}
+                        </Typography>
+                      </Box>
+                    </ButtonBase>
+                  ))}
+                </Stack>
+              </Box>
+            )}
+
+            {postType === 'POLL' && (
+              <Stack spacing={1}>
+                {pollOptions.map((opt, i) => (
+                  <Stack key={i} direction="row" spacing={0.5} alignItems="center">
+                    <TextField
+                      size="small"
+                      fullWidth
+                      value={opt}
+                      onChange={e => setPollOptions(prev => prev.map((o, j) => (j === i ? e.target.value.slice(0, POLL_OPTION_MAX) : o)))}
+                      placeholder={`Seçenek ${i + 1}`}
+                      slotProps={{ htmlInput: { maxLength: POLL_OPTION_MAX, 'aria-label': `Seçenek ${i + 1}`, 'data-testid': `poll-option-${i}` } }}
+                    />
+                    {pollOptions.length > 2 && (
+                      <IconButton
+                        aria-label={`Seçenek ${i + 1}'i kaldır`}
+                        onClick={() => setPollOptions(prev => prev.filter((_, j) => j !== i))}
+                        sx={{ width: 40, height: 40 }}
+                      >
+                        <RemoveCircleOutlineRounded fontSize="small" />
+                      </IconButton>
+                    )}
+                  </Stack>
+                ))}
+                {pollOptions.length < POLL_MAX && (
+                  <Button
+                    size="small"
+                    startIcon={<AddRounded />}
+                    onClick={() => setPollOptions(prev => [...prev, ''])}
+                    sx={{ alignSelf: 'flex-start', minHeight: 36 }}
+                  >
+                    Seçenek ekle
+                  </Button>
+                )}
+              </Stack>
+            )}
+
             <TextField
-              label="İçerik"
+              label={typeMeta.contentLabel}
               value={content}
               onChange={e => setContent(e.target.value.slice(0, CONTENT_MAX))}
               required
               fullWidth
               multiline
-              minRows={isSmallScreen ? 8 : 5}
-              placeholder="Deneyimini, sorunu ya da merak ettiğini anlat…"
+              minRows={postType === 'POLL' ? 3 : (isSmallScreen ? 8 : 5)}
+              placeholder={typeMeta.contentPlaceholder}
               helperText={content.length > CONTENT_MAX - 500 ? `${content.length}/${CONTENT_MAX}` : ' '}
               slotProps={{
                 htmlInput: { maxLength: CONTENT_MAX, 'data-testid': 'post-content' },
                 formHelperText: { sx: { textAlign: 'right', mr: 0, minHeight: 0 } }
               }}
             />
+            {isDictationSupported() && (
+              <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mt: -2, color: 'text.secondary' }}>
+                <DictationButton
+                  label="Konuşarak yaz"
+                  disabled={submitting}
+                  onText={(piece) => setContent(c => appendDictation(c, piece).slice(0, CONTENT_MAX))}
+                />
+                <Typography variant="caption">Konuşarak yaz - mikrofona dokun, bitince tekrar dokun.</Typography>
+              </Stack>
+            )}
             <PhotoUploadField value={attachments} onChange={setAttachments} token={token} disabled={submitting} />
 
             <Stack direction="row" spacing={1} alignItems="flex-start" sx={{ px: 0.5, color: 'text.secondary' }}>

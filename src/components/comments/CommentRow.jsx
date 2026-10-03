@@ -3,7 +3,7 @@ import {
   Avatar, Box, Button, CircularProgress, IconButton, Menu, MenuItem, ListItemIcon, ListItemText,
   Stack, SwipeableDrawer, TextField, Typography, useMediaQuery, useTheme
 } from '@mui/material'
-import { DeleteOutline, EditOutlined, ExpandLessRounded, ExpandMoreRounded, FlagOutlined, MoreHorizRounded, SubdirectoryArrowRightRounded } from '@mui/icons-material'
+import { CheckCircleRounded, DeleteOutline, EditOutlined, ExpandLessRounded, ExpandMoreRounded, FlagOutlined, MoreHorizRounded, SubdirectoryArrowRightRounded, TaskAltRounded } from '@mui/icons-material'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
 import { useConfirm } from '../../context/ConfirmContext.jsx'
@@ -28,7 +28,9 @@ import { clickableProps } from '../../utils/clickable.js'
 //   onReport(id), onAuthorClick(authorId)
 export default function CommentRow({
   comment, isReply = false, replyingTo = null, canReply, thread,
-  onUpdated, onReplySubmitted, onReport, onAuthorClick, onToggleThread
+  onUpdated, onReplySubmitted, onReport, onAuthorClick, onToggleThread,
+  // V24: soru gönderilerinde "en iyi cevap"
+  accepted = false, canAccept = false, onAccept, onUnaccept, acceptPending = false
 }) {
   const { token, user } = useAuth()
   const { showError, showSuccess } = useNotification()
@@ -134,8 +136,14 @@ export default function CommentRow({
 
   return (
     <Box
+      id={`comment-${comment.id}`}
       sx={{
         py: isReply ? 1 : 1.5,
+        scrollMarginTop: 80,
+        ...(accepted ? {
+          mx: { xs: -1, sm: -1.5 }, px: { xs: 1, sm: 1.5 }, borderRadius: 3,
+          bgcolor: 'rgba(76,184,159,0.08)', boxShadow: 'inset 3px 0 0 #4CB89F'
+        } : {}),
         // Satırlar düz zemin üstünde, kutusuz: kutu/zemin katmanları
         // "iç içe geçmiş" hissini yaratan şeydi. Hiyerarşiyi girinti ve
         // avatar ölçüsü taşıyor, kart kenarları değil.
@@ -212,6 +220,13 @@ export default function CommentRow({
             )}
           </Stack>
 
+          {accepted && !isDeleted && (
+            <Stack direction="row" spacing={0.5} alignItems="center" sx={{ color: 'success.main', mb: 0.25 }}>
+              <CheckCircleRounded sx={{ fontSize: 16 }} />
+              <Typography variant="caption" sx={{ fontWeight: 700, color: 'inherit' }}>En iyi cevap</Typography>
+            </Stack>
+          )}
+
           {/* Bir başka yanıta verilmiş yanıt: bağlamı küçük bir satırla göster */}
           {replyingTo && !isDeleted && (
             <Stack direction="row" spacing={0.5} alignItems="center" sx={{ color: 'text.secondary', mb: 0.25 }}>
@@ -264,6 +279,17 @@ export default function CommentRow({
                       sx={{ color: 'text.secondary', fontWeight: 600, minHeight: 36, px: 1 }}
                     >
                       Yanıtla
+                    </Button>
+                  )}
+                  {canAccept && !isOwnComment && (
+                    <Button
+                      size="small"
+                      onClick={() => (accepted ? onUnaccept?.() : onAccept?.(comment.id))}
+                      disabled={acceptPending}
+                      startIcon={acceptPending ? <CircularProgress size={12} /> : (accepted ? null : <TaskAltRounded sx={{ fontSize: '16px !important' }} />)}
+                      sx={{ color: accepted ? 'text.secondary' : 'success.main', fontWeight: 700, minHeight: 36, px: 1 }}
+                    >
+                      {accepted ? 'Seçimi kaldır' : 'En iyi cevap'}
                     </Button>
                   )}
                 </Stack>

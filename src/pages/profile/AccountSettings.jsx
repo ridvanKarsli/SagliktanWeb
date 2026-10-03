@@ -6,7 +6,8 @@ import {
 import {
   ArrowBackRounded, BlockRounded, DarkModeRounded, DeleteForeverRounded, DescriptionOutlined,
   DevicesOutlined, FileDownloadOutlined, FormatSizeRounded, GroupsRounded, HelpOutlineRounded,
-  InfoOutlined, LightModeRounded, LockOutlined, LogoutRounded, PrivacyTipOutlined, WarningAmberRounded
+  InfoOutlined, LightModeRounded, LockOutlined, LogoutRounded, PrivacyTipOutlined, RecordVoiceOverOutlined,
+  WarningAmberRounded
 } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
@@ -20,6 +21,8 @@ import {
   listBlockedUsers, listSessions, revokeSession, unblockUser
 } from '../../services/api.js'
 import { Section, SettingsRow } from './ProfileShared.jsx'
+import CommunitySettings from './CommunitySettings.jsx'
+import { isDictationSupported, isSpeechSynthesisSupported } from '../../utils/speech.js'
 import { prettyDate } from '../../utils/format.js'
 
 /**
@@ -40,6 +43,10 @@ export default function AccountSettings() {
   const {
     fontScale, highContrast, themeMode, fontScaleOptions, setFontScale, setHighContrast, setThemeMode
   } = useAccessibility()
+
+  const voiceSupport = isDictationSupported() || isSpeechSynthesisSupported()
+    ? ''
+    : ' (bu tarayıcı desteklemiyor; Chrome ya da Safari\'nin güncel sürümünü dene)'
 
   /* ---- Şifre değiştirme ---- */
   const [pwOpen, setPwOpen] = useState(false)
@@ -213,6 +220,9 @@ export default function AccountSettings() {
       </Stack>
 
       <Stack spacing={4}>
+        {/* V23: profil sağlık özeti + görünürlük + haftalık özet */}
+        <CommunitySettings />
+
         {/* Kişiselleştirme: yazı boyutu + yüksek kontrast */}
         <Section title="Erişilebilirlik">
           <Box sx={{ borderRadius: 2, border: '1px solid', borderColor: 'divider', p: 2.5 }}>
@@ -278,6 +288,19 @@ export default function AccountSettings() {
                 }
                 sx={{ m: 0, alignItems: 'flex-start', '& .MuiFormControlLabel-label': { ml: 1 } }}
               />
+
+              <Divider />
+
+              <Stack direction="row" spacing={1} alignItems="flex-start">
+                <RecordVoiceOverOutlined sx={{ fontSize: 20, color: 'text.secondary', mt: 0.25 }} />
+                <Box>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>Sesle yazma ve sesli dinleme</Typography>
+                  <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+                    Gönderi ve yorum alanlarındaki mikrofon düğmesiyle konuşarak yazabilir, gönderilerdeki
+                    "Sesli dinle" ile metni dinleyebilirsin. Cihazının kendi Türkçe sesi kullanılır{voiceSupport}.
+                  </Typography>
+                </Box>
+              </Stack>
             </Stack>
           </Box>
         </Section>

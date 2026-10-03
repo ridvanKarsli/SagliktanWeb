@@ -13,7 +13,7 @@ test.describe('Gelişmiş arama', () => {
     await page.getByRole('button', { name: 'Yeni gönderi' }).click()
     await page.getByTestId('post-title').fill(`${uniqueWord} başlığı`)
     await page.getByTestId('post-content').fill('Arama testi için oluşturulan gönderi içeriği.')
-    await page.getByRole('button', { name: 'Paylaş' }).click()
+    await page.getByRole('button', { name: 'Paylaş', exact: true }).click()
     await expect(page.getByText('Gönderi oluşturuldu.')).toBeVisible()
 
     await page.goto('/search')

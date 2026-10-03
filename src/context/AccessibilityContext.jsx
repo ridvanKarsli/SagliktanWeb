@@ -10,6 +10,8 @@ const FONT_SCALES = {
   small: { label: 'Küçük', rootFontSize: '93.75%' },   // ~15px taban
   medium: { label: 'Orta', rootFontSize: '100%' },      // ~16px taban (varsayılan)
   large: { label: 'Büyük', rootFontSize: '112.5%' },    // ~18px taban
+  // Görme kaybı yaşayan üyeler (ör. RP grubu) için ekstra kademe.
+  xlarge: { label: 'Çok büyük', rootFontSize: '125%' },  // ~20px taban
 }
 
 // Faz6: themeMode ('dark' | 'light') - bkz. theme.js'teki buildTheme notu.

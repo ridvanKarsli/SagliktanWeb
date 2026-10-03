@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Avatar, Box, IconButton, Stack, Typography } from '@mui/material'
-import { FlagOutlined, PushPinRounded, SendOutlined } from '@mui/icons-material'
+import { Avatar, Box, Button, IconButton, Stack, Typography } from '@mui/material'
+import { ChatBubbleOutlineRounded, FlagOutlined, PushPinRounded, SendOutlined } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import ReactionButtons from './ReactionButtons.jsx'
 import SaveButton from './SaveButton.jsx'
@@ -8,6 +8,8 @@ import HighlightText from './HighlightText.jsx'
 import PostGallery from './PostGallery.jsx'
 import SendPostDialog from './SendPostDialog.jsx'
 import SensitiveContentBanner from './SensitiveContentBanner.jsx'
+import PollView from './PollView.jsx'
+import PostTypeBadges from './PostTypeBadges.jsx'
 import ReportDialog from './comments/ReportDialog.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useNotification } from '../context/NotificationContext.jsx'
@@ -38,7 +40,8 @@ export default function PostCard({ post, onClick, token, highlightQuery, showPin
   if (!post) return null
   const {
     id, subGroupId, subGroupName, diseaseGroupName, authorId, authorName, title, content, createdAt, updatedAt,
-    helpfulCount, notHelpfulCount, myReaction, saved, savedCount, attachments, flaggedSensitive, pinned
+    helpfulCount, notHelpfulCount, myReaction, saved, savedCount, attachments, flaggedSensitive, pinned,
+    postType, acceptedCommentId, commentCount, poll
   } = post
 
   const dateLabel = createdAt
@@ -151,6 +154,8 @@ export default function PostCard({ post, onClick, token, highlightQuery, showPin
         </Box>
       </Stack>
 
+      <PostTypeBadges postType={postType} solved={acceptedCommentId != null} />
+
       {/* Okunabilirlik: başlık ve gövde metni, akışta göz yormadan
           okunabilsin diye belirgin biçimde büyük. Gövde artık ikincil gri
           değil ana metin renginde - akışta okunacak asıl içerik bu, ikincil
@@ -172,17 +177,36 @@ export default function PostCard({ post, onClick, token, highlightQuery, showPin
 
       {flaggedSensitive && <SensitiveContentBanner sx={{ mt: 0.5 }} />}
 
+      {postType === 'POLL' && token && <PollView postId={id} poll={poll} isOwner={!!isOwnPost} />}
+
       <PostGallery attachments={attachments} />
 
       {token && (
         <Stack direction="row" alignItems="center" justifyContent="space-between">
-          <ReactionButtons
-            helpfulCount={helpfulCount}
-            notHelpfulCount={notHelpfulCount}
-            myReaction={myReaction}
-            onReact={(value) => reactToPost(token, id, value)}
-            onRemove={() => removePostReaction(token, id)}
-          />
+          <Stack direction="row" alignItems="center" sx={{ minWidth: 0 }}>
+            <ReactionButtons
+              helpfulCount={helpfulCount}
+              notHelpfulCount={notHelpfulCount}
+              myReaction={myReaction}
+              onReact={(value) => reactToPost(token, id, value)}
+              onRemove={() => removePostReaction(token, id)}
+            />
+            {/* Yorum sayısı: sorularda "kaç cevap var" en önemli sinyal. */}
+            {onClick && (
+              <Button
+                size="small"
+                onClick={(e) => { e.stopPropagation(); onClick(e) }}
+                aria-label={`${commentCount || 0} yorum`}
+                startIcon={<ChatBubbleOutlineRounded sx={{ fontSize: '18px !important' }} />}
+                sx={{
+                  minWidth: 0, minHeight: 36, px: 1, borderRadius: 999, color: 'text.secondary',
+                  fontWeight: 700, fontSize: '0.8125rem', '& .MuiButton-startIcon': { mr: commentCount ? 0.5 : 0 }
+                }}
+              >
+                {commentCount ? commentCount : ''}
+              </Button>
+            )}
+          </Stack>
           {/* IG'deki yer bloğuna sadık: yıldızlama (bookmark) + gönder sağ tarafta. */}
           <Stack direction="row" alignItems="center">
             <SaveButton

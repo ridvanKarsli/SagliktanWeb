@@ -7,7 +7,8 @@ import { parseServerDate } from '../utils/format.js'
 
 const TYPE_LABEL = {
   NEW_COMMENT: (actorName) => `${actorName} gönderine yorum yaptı`,
-  COMMENT_REPLY: (actorName) => `${actorName} yorumuna yanıt verdi`
+  COMMENT_REPLY: (actorName) => `${actorName} yorumuna yanıt verdi`,
+  ANSWER_ACCEPTED: (actorName) => `${actorName} yorumunu en iyi cevap seçti 🎉`
 }
 
 export default function NotificationBell() {

@@ -28,13 +28,13 @@ export default function Login() {
     setError('')
     setLoading(true)
     try {
-      await login(form.email.trim(), form.pw, rememberMe)
+      const loggedIn = await login(form.email.trim(), form.pw, rememberMe)
       // Deep-link'i koru (bkz. ProtectedRoute -> WelcomeScreen state.from):
       // sadece uygulama içi, göreli bir yol kabul edilir (open-redirect yok).
       const from = location.state?.from
       const target = from?.pathname && from.pathname.startsWith('/') && !from.pathname.startsWith('//')
         ? `${from.pathname}${from.search || ''}${from.hash || ''}`
-        : '/home'
+        : (loggedIn && loggedIn.onboardingCompleted === false ? '/hosgeldin' : '/home')
       navigate(target, { replace: true })
     } catch (err) {
       const errorMessage = (err && err.message) ? err.message : String(err) || 'Giriş başarısız.'

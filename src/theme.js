@@ -484,6 +484,10 @@ function buildTheme(mode) {
             '&.MuiChip-filled': { backgroundColor: colors.alert.error.bg, color: colors.alert.error.icon },
             '&.MuiChip-outlined': { borderColor: `${colors.alert.error.icon}80`, color: colors.alert.error.icon },
           },
+          colorInfo: {
+            '&.MuiChip-filled': { backgroundColor: colors.alert.info.bg, color: colors.alert.info.icon },
+            '&.MuiChip-outlined': { borderColor: `${colors.alert.info.icon}80`, color: colors.alert.info.icon },
+          },
           colorPrimary: {
             '&.MuiChip-filled': { backgroundColor: colors.primary, color: colors.background },
           },
