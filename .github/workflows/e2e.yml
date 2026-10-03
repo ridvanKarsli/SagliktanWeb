@@ -46,7 +46,7 @@ jobs:
 
     # Playwright testleri gerçek bir tarayıcıda, gerçek backend + Postgres'e
     # karşı çalışıyor - bu yüzden bu job hem frontend'i (bu repo) hem de
-    # backend'i (ridvanKarsli/sagliktan-api, private repo - bkz. BACKEND_REPO_TOKEN) checkout edip
+    # backend'i (ridvanKarsli/SagliktanApi, private repo - bkz. BACKEND_REPO_TOKEN) checkout edip
     # ikisini birden ayağa kaldırıyor. Sadece frontend build/lint için ayrı
     # bir CI'ya gerek yok, çünkü bu workflow zaten frontend'i de build edip
     # çalıştırıyor - build hata verirse Playwright adımı zaten patlar.
@@ -78,7 +78,7 @@ jobs:
       - name: Backend checkout
         uses: actions/checkout@v4
         with:
-          repository: ridvanKarsli/sagliktan-api
+          repository: ridvanKarsli/SagliktanApi
           path: backend
           token: ${{ secrets.BACKEND_REPO_TOKEN }}
 
