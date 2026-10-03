@@ -136,10 +136,10 @@ async function request(path, { method = 'GET', token, body, params, signal, _ret
 
 // --- Auth ---
 
-export function registerUser({ email, password, firstName, lastName, kvkkConsent }) {
+export function registerUser({ email, password, firstName, lastName, kvkkConsent, city }) {
   return request('/auth/register', {
     method: 'POST',
-    body: { email, password, firstName, lastName, kvkkConsent },
+    body: { email, password, firstName, lastName, kvkkConsent, city: city || null },
   });
 }
 
@@ -177,8 +177,9 @@ export function getUserProfile(token) {
   return request('/users/me', { token });
 }
 
-export function updateProfile(token, { firstName, lastName, bio }) {
-  return request('/users/me', { method: 'PUT', token, body: { firstName, lastName, bio } });
+// city: undefined => değiştirme, '' => kaldır
+export function updateProfile(token, { firstName, lastName, bio, city }) {
+  return request('/users/me', { method: 'PUT', token, body: { firstName, lastName, bio, city } });
 }
 
 export function deactivateAccount(token) {

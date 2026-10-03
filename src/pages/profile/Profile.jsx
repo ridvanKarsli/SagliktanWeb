@@ -8,6 +8,7 @@ import {
   LogoutRounded, MoreVertRounded, OpenInNewRounded, PeopleAltRounded, SettingsOutlined
 } from '@mui/icons-material'
 import HealthSummary from '../../components/profile/HealthSummary.jsx'
+import CityField from '../../components/profile/CityField.jsx'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
@@ -176,19 +177,22 @@ export default function Profile() {
   const [firstName, setFirstName] = useState(user?.firstName || '')
   const [lastName, setLastName] = useState(user?.lastName || '')
   const [bio, setBio] = useState(user?.bio || '')
+  const [city, setCity] = useState(user?.city || '')
   const [savingProfile, setSavingProfile] = useState(false)
 
   const resetForm = useCallback(() => {
     setFirstName(user?.firstName || '')
     setLastName(user?.lastName || '')
     setBio(user?.bio || '')
-  }, [user?.firstName, user?.lastName, user?.bio])
+    setCity(user?.city || '')
+  }, [user?.firstName, user?.lastName, user?.bio, user?.city])
 
   useEffect(() => { resetForm() }, [resetForm])
 
   const dirty = firstName.trim() !== (user?.firstName || '')
     || lastName.trim() !== (user?.lastName || '')
     || bio.trim() !== (user?.bio || '')
+    || city.trim() !== (user?.city || '')
 
   const cancelEdit = () => { resetForm(); setEditOpen(false) }
 
@@ -200,7 +204,7 @@ export default function Profile() {
     }
     setSavingProfile(true)
     try {
-      const payload = { firstName: firstName.trim(), lastName: lastName.trim(), bio: bio.trim() }
+      const payload = { firstName: firstName.trim(), lastName: lastName.trim(), bio: bio.trim(), city: city.trim() }
       await updateProfile(token, payload)
       updateLocalUser(payload)
       showSuccess('Profil güncellendi.')
@@ -357,6 +361,7 @@ export default function Profile() {
                 <TextField label="Ad" value={firstName} onChange={e => setFirstName(e.target.value)} fullWidth required autoComplete="given-name" />
                 <TextField label="Soyad" value={lastName} onChange={e => setLastName(e.target.value)} fullWidth required autoComplete="family-name" />
               </Stack>
+              <CityField value={city} onChange={setCity} label="Yaşadığın şehir" />
               <TextField
                 label="Hakkında"
                 value={bio}

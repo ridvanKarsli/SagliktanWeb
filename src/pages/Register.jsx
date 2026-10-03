@@ -11,6 +11,7 @@ import { isValidName } from '../utils/validateName.js'
 import TrustBadges from '../components/TrustBadges.jsx'
 import PasswordStrengthMeter from '../components/PasswordStrengthMeter.jsx'
 import PasswordField from '../components/PasswordField.jsx'
+import CityField from '../components/profile/CityField.jsx'
 
 export default function Register() {
   const { register } = useAuth()
@@ -25,6 +26,7 @@ export default function Register() {
     email: '',
     password: '',
     confirmPassword: '',
+    city: '',
     kvkkConsent: false
   })
   const [error, setError] = useState('')
@@ -66,7 +68,8 @@ export default function Register() {
         lastName: form.lastName.trim(),
         email: form.email.trim(),
         password: form.password,
-        kvkkConsent: form.kvkkConsent
+        kvkkConsent: form.kvkkConsent,
+        city: form.city.trim()
       })
       setRegisteredEmail(form.email.trim())
     } catch (err) {
@@ -235,6 +238,13 @@ export default function Register() {
                   fullWidth
                   placeholder="ornek@email.com"
                   slotProps={{ htmlInput: { 'data-testid': 'register-email' } }}
+                />
+
+                <CityField
+                  value={form.city}
+                  onChange={city => setForm(f => ({ ...f, city }))}
+                  helperText="Profilinde görünür, istediğin zaman değiştirebilirsin."
+                  testId="register-city"
                 />
 
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="flex-start">

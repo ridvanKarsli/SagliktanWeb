@@ -181,8 +181,8 @@ export function AuthProvider({ children }) {
   // Kayıt sonrası kullanıcı e-postasındaki linke tıklayıp login sayfasına gelmeli.
   // kvkkConsent: backend @AssertTrue ile zorunlu kılıyor, kayıt formundaki
   // onay kutusu işaretlenmeden bu istek 400 ile reddedilir.
-  async function register({ email, password, firstName, lastName, kvkkConsent }) {
-    const created = await registerUser({ email, password, firstName, lastName, kvkkConsent })
+  async function register({ email, password, firstName, lastName, kvkkConsent, city }) {
+    const created = await registerUser({ email, password, firstName, lastName, kvkkConsent, city })
     return mapUser(created)
   }
 

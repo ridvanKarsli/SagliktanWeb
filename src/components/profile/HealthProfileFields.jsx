@@ -1,8 +1,9 @@
-import { Autocomplete, Box, ButtonBase, FormControlLabel, MenuItem, Stack, Switch, TextField, Typography } from '@mui/material'
+import { Box, ButtonBase, FormControlLabel, MenuItem, Stack, Switch, TextField, Typography } from '@mui/material'
 import {
   EmojiPeopleOutlined, FavoriteBorderRounded, MedicalServicesOutlined, PersonOutlineRounded
 } from '@mui/icons-material'
-import { COMMUNITY_ROLES, TR_CITIES } from '../../utils/communityProfile.js'
+import { COMMUNITY_ROLES } from '../../utils/communityProfile.js'
+import CityField from './CityField.jsx'
 
 const ROLE_ICONS = {
   PATIENT: PersonOutlineRounded,
@@ -71,14 +72,11 @@ export default function HealthProfileFields({ value, onChange, showRole = false 
         <MenuItem value="">Belirtmek istemiyorum</MenuItem>
         {YEARS.map(y => <MenuItem key={y} value={y}>{y}</MenuItem>)}
       </TextField>
-      <Autocomplete
-        freeSolo
-        options={TR_CITIES}
-        value={v.city || ''}
-        onInputChange={(_, city) => set({ city: city.slice(0, 60) })}
-        renderInput={(params) => (
-          <TextField {...params} label="Şehir" helperText="Yakınındaki üyeleri bulmak için. İsteğe bağlı." />
-        )}
+      <CityField
+        value={v.city}
+        onChange={(city) => set({ city })}
+        label="Yaşadığın şehir"
+        helperText="Profilinde görünür; yakınındaki üyeleri bulmana da yardım eder. İsteğe bağlı."
       />
       <Box sx={{ p: 1.5, borderRadius: 3, border: '1px solid', borderColor: v.discoverable ? 'primary.main' : 'divider' }}>
         <FormControlLabel
@@ -87,7 +85,7 @@ export default function HealthProfileFields({ value, onChange, showRole = false 
           sx={{ m: 0, width: '100%', justifyContent: 'space-between', flexDirection: 'row-reverse', gap: 1 }}
         />
         <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', mt: 0.5, lineHeight: 1.5 }}>
-          Açarsan rolün, tanı yılın ve şehrin profilinde görünür; aynı gruplardaki benzer üyelere önerilirsin
+          Açarsan rolün ve tanı yılın profilinde görünür; aynı gruplardaki benzer üyelere önerilirsin
           ve sen de onları görürsün. Kapalıyken bu bilgiler yalnızca sende kalır. İstediğin zaman Ayarlar'dan değiştirebilirsin.
         </Typography>
       </Box>
