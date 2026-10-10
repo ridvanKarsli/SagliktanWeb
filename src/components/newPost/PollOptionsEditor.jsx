@@ -25,7 +25,6 @@ export default function PollOptionsEditor({
         return (
           <Stack key={i} direction="row" spacing={0.5} alignItems="flex-start">
             <TextField
-              size="small"
               fullWidth
               value={opt}
               onChange={e => setOption(i, e.target.value)}

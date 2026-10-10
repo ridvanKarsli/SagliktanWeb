@@ -1,6 +1,7 @@
 import { ButtonBase, Typography } from '@mui/material'
 import { ArrowBackRounded } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
+import { focusRingSx } from '../../design/focus.js'
 
 // Sayfa başındaki "‹ Üst sayfaya dön" kapsülü. Görünen metin aynı zamanda
 // erişilebilir addır (label-in-name); metin yoksa ariaLabel kullanılır.
@@ -17,7 +18,7 @@ export default function BackLink({ to, label, ariaLabel, sx }) {
         transition: 'background-color 160ms ease, color 160ms ease',
         '&:hover': { bgcolor: 'action.hover', color: 'text.primary' },
         '&:hover svg': { transform: 'translateX(-3px)' },
-        '&.Mui-focusVisible': { outline: '3px solid', outlineColor: 'primary.light', outlineOffset: 2 },
+        '&.Mui-focusVisible': focusRingSx,
         ...sx
       }}
     >

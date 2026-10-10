@@ -63,7 +63,6 @@ export async function registerAndLogin(page, user) {
   await page.getByTestId('register-lastName').fill(user.lastName)
   await page.getByTestId('register-email').fill(user.email)
   await page.getByTestId('register-password').fill(user.password)
-  await page.getByTestId('register-confirmPassword').fill(user.password)
   await page.getByRole('checkbox').check()
   await page.getByRole('button', { name: 'Kayıt Ol' }).click()
 

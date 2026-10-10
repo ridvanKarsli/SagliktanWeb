@@ -1,6 +1,7 @@
 import { Box, ButtonBase, Skeleton, Typography } from '@mui/material'
 import { fonts } from '../../design/tokens.js'
 import { formatCount } from '../../utils/format.js'
+import { focusRingSx } from '../../design/focus.js'
 
 // İstatistik hücresi: sayı + etiket. onClick verilirse ilgili bölüme götüren
 // gerçek bir buton olur (ör. "Gönderi" sayısına dokunmak gönderilere iner).
@@ -36,7 +37,7 @@ export default function ProfileStat({ value, label, onClick, highlight = false, 
         ...cell, display: 'block', minHeight: 44,
         '&:first-of-type': { borderRadius: 0 },
         '&:hover .MuiTypography-root:first-of-type': { color: 'primary.main' },
-        '&.Mui-focusVisible': { outline: '3px solid', outlineColor: 'primary.light', borderRadius: '10px' },
+        '&.Mui-focusVisible': { ...focusRingSx, borderRadius: '10px' },
       }}
     >
       {content}

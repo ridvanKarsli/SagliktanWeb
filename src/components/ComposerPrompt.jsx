@@ -2,6 +2,7 @@ import { Box, ButtonBase, Typography } from '@mui/material'
 import { EditRounded } from '@mui/icons-material'
 import UserAvatar from './avatars/UserAvatar.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
+import { focusRingSx } from '../design/focus.js'
 
 export const DEFAULT_COMPOSER_HINT = 'Bugün nasılsın? Bir deneyim, bir soru ya da küçük bir sevinç…'
 
@@ -22,7 +23,7 @@ export default function ComposerPrompt({ onClick, hint = DEFAULT_COMPOSER_HINT, 
         bgcolor: 'background.paper', border: '1px solid', borderColor: 'brand.border', boxShadow: 1,
         transition: 'border-color 200ms ease, box-shadow 240ms ease, transform 160ms var(--ease-spring)',
         '@media (hover: hover)': { '&:hover': { borderColor: 'primary.light', boxShadow: 3 } },
-        '&.Mui-focusVisible': { outline: '3px solid', outlineColor: 'primary.light', outlineOffset: 2 },
+        '&.Mui-focusVisible': focusRingSx,
         '&:hover .sg-composer-pen': { transform: 'rotate(-12deg)' },
         ...sx
       }}

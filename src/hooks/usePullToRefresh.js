@@ -22,14 +22,11 @@ function rubberband(overshoot, limit = RUBBER_LIMIT, constant = RUBBER_CONSTANT)
   return (overshoot * limit * constant) / (limit + constant * Math.abs(overshoot))
 }
 
-// Sayfa gerçekten en üstte mi? Eskiden sadece window.scrollY'ye bakılıyordu
-// ama index.css'teki `html, body, #root { height:100%; overflow-x:hidden }`
-// kuralı yüzünden asıl kaydırma window'da değil #root (ya da iç bir
-// konteyner) üzerinde oluyor - window.scrollY her zaman 0 kalıyor ve feed'in
-// ortasında yukarı doğru her normal kaydırma jesti pull-to-refresh'i
-// tetikleyip sayfayı yeniliyordu. Dokunulan elemandan yukarı doğru
-// yürüyüp kaydırılmış HERHANGİ bir ata varsa "en üstte değil" sayıyoruz;
-// hangi elemanın scroll container olduğundan bağımsız çalışır.
+// Sayfa gerçekten en üstte mi? Kaydırma kabı artık viewport (bkz. index.css
+// üstündeki not), yani window.scrollY güvenilir. Yine de dokunulan elemandan
+// yukarı doğru yürüyüp kaydırılmış HERHANGİ bir ata (ör. sohbetin iç
+// listesi, yatay fotoğraf şeridi) varsa "en üstte değil" sayıyoruz - iç bir
+// listeyi yukarı kaydırmak sayfayı yenilemesin.
 function isScrolledToTop(target) {
   if (window.scrollY > 0) return false
   const doc = document.documentElement

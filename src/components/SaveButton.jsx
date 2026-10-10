@@ -4,6 +4,8 @@ import BookmarkBorderRoundedIcon from '@mui/icons-material/BookmarkBorderRounded
 import BookmarkRoundedIcon from '@mui/icons-material/BookmarkRounded'
 import { visuallyHidden } from '../utils/visuallyHidden.js'
 import { useServerSyncedState } from '../hooks/useServerSyncedState.js'
+import { useNotification } from '../context/NotificationContext.jsx'
+import { invalidateListCache } from '../hooks/usePaginatedList.js'
 
 /**
  * Gönderi kaydetme (yer imi) butonu + kaydedilme sayısı. ReactionButtons ile
@@ -18,6 +20,7 @@ export default function SaveButton({
   size = 'small',
   disabled = false
 }) {
+  const { showError } = useNotification()
   const [pending, setPending] = useState(false)
   const [local, setLocal] = useServerSyncedState({ saved, count }, { paused: pending })
   const [tuck, setTuck] = useState(0) // kaydedince yer imi kısa bir "oturma" hareketi yapar
@@ -39,9 +42,13 @@ export default function SaveButton({
       } else {
         await onUnsave()
       }
+      // Profil > Kaydedilenler önbelleği artık eski.
+      invalidateListCache('profile:saved')
     } catch (err) {
       console.error('Kaydetme isteği başarısız:', err)
       setLocal({ saved: wasSaved, count: wasCount })
+      // Geri alma görünür olsun (bkz. ReactionButtons'taki aynı not).
+      showError(err?.message || (nextSaved ? 'Gönderi kaydedilemedi, tekrar dene.' : 'Kayıt kaldırılamadı, tekrar dene.'))
     } finally {
       setPending(false)
     }

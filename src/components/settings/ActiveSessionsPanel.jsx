@@ -21,7 +21,7 @@ export default function ActiveSessionsPanel() {
 
   const handleRevoke = async (sessionRowId) => {
     // O cihazda oturum anında düşer - geri alınamaz, bu yüzden onay istenir.
-    const ok = await confirm('Bu cihazdaki oturumu sonlandırmak istiyor musun?', { title: 'Oturumu sonlandır' })
+    const ok = await confirm('Bu cihazdaki oturumu sonlandırmak istiyor musun?', { title: 'Oturumu sonlandır', confirmLabel: 'Sonlandır' })
     if (!ok) return
     setRevokingId(sessionRowId)
     try {

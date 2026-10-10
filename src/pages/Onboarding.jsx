@@ -9,8 +9,9 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useNotification } from '../context/NotificationContext.jsx'
 import {
-  completeOnboarding, getMyDiseaseGroups, joinDiseaseGroup, listDiseaseGroups, updateHealthProfile
+  completeOnboarding, joinDiseaseGroup, listDiseaseGroups, updateHealthProfile
 } from '../services/api.js'
+import { fetchMyGroups, invalidateMyGroups } from '../services/myGroups.js'
 import HealthProfileFields, { RolePicker } from '../components/profile/HealthProfileFields.jsx'
 import NewPostDialog from '../components/NewPostDialog.jsx'
 import Companion from '../components/avatars/Companion.jsx'
@@ -123,7 +124,7 @@ export default function Onboarding() {
 
   useEffect(() => {
     if (!token) return
-    Promise.all([listDiseaseGroups(token), getMyDiseaseGroups(token).catch(() => [])])
+    Promise.all([listDiseaseGroups(token), fetchMyGroups(token).catch(() => [])])
       .then(([all, mine]) => {
         setGroups(Array.isArray(all) ? all : [])
         const mineIds = new Set((Array.isArray(mine) ? mine : []).map(g => g.id))
@@ -159,6 +160,8 @@ export default function Onboarding() {
         showError(err.message || 'Bir gruba katılınamadı.')
       }
     }
+    // Paylaşımlı üyelik önbelleği eskidi (ana sayfa buna göre akış/boş durum seçer).
+    if (toJoin.length > 0) invalidateMyGroups()
   }
 
   const finish = async ({ saveProfile = true } = {}) => {

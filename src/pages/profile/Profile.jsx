@@ -19,7 +19,8 @@ import VerifiedBadge from '../../components/VerifiedBadge.jsx'
 import LoadMoreButton from '../../components/common/LoadMoreButton.jsx'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
-import { getMyDiseaseGroups, getMyPosts, getMySavedPosts, getUserProfile } from '../../services/api.js'
+import { getMyPosts, getMySavedPosts, getUserProfile } from '../../services/api.js'
+import { useMyDiseaseGroups } from '../../hooks/useMyDiseaseGroups.js'
 import { fullNameOf } from '../../utils/text.js'
 import { usePaginatedList } from '../../hooks/usePaginatedList.js'
 import { useGroupMembership } from '../../hooks/useGroupMembership.js'
@@ -61,19 +62,11 @@ function useProfileStats(token) {
   return stats
 }
 
-function useMyGroupsList(token, showError) {
-  const [groups, setGroups] = useState([])
-  const [loading, setLoading] = useState(true)
-  useEffect(() => {
-    if (!token) { setLoading(false); return undefined }
-    let alive = true
-    getMyDiseaseGroups(token)
-      .then(data => { if (alive) setGroups(Array.isArray(data) ? data : []) })
-      .catch(err => { if (alive) showError(err.message || 'Grupların alınamadı. Sayfayı yenileyip tekrar dener misin?') })
-      .finally(() => { if (alive) setLoading(false) })
-    return () => { alive = false }
-  }, [token, showError])
-  return { groups, setGroups, loading }
+// Üye olunan gruplar paylaşımlı önbellekten (bkz. services/myGroups.js);
+// ayrılınca useGroupMembership önbelleği düşürür, liste kendiliğinden tazelenir.
+function useMyGroupsList() {
+  const groups = useMyDiseaseGroups()
+  return { groups: groups ?? [], loading: groups === null }
 }
 
 function PostsSkeleton() {
@@ -102,27 +95,28 @@ export default function Profile() {
   const closePicker = useCallback(() => setPickerOpen(false), [])
 
   const stats = useProfileStats(token)
-  const myGroups = useMyGroupsList(token, showError)
+  const myGroups = useMyGroupsList()
   const { leave, pendingId } = useGroupMembership()
 
-  const postsFetcher = useCallback((page) => getMyPosts(token, { page }), [token])
+  const postsFetcher = useCallback((page, { signal } = {}) => getMyPosts(token, { page, signal }), [token])
   const posts = usePaginatedList(postsFetcher, {
     enabled: !!token,
     deps: [token],
+    cacheKey: token ? 'profile:posts' : null,
     onError: err => showError(err.message || 'Gönderilerin alınamadı. Biraz sonra tekrar dener misin?')
   })
 
-  const savedFetcher = useCallback((page) => getMySavedPosts(token, { page }), [token])
+  const savedFetcher = useCallback((page, { signal } = {}) => getMySavedPosts(token, { page, signal }), [token])
   const saved = usePaginatedList(savedFetcher, {
     enabled: activeTab === 'saved' && !!token,
     once: true,
     deps: [token],
+    cacheKey: token ? 'profile:saved' : null,
     onError: err => showError(err.message || 'Kaydettiğin gönderiler alınamadı. Biraz sonra tekrar dener misin?')
   })
 
-  const handleLeave = async (group) => {
-    if (await leave(group)) myGroups.setGroups(prev => prev.filter(g => g.id !== group.id))
-  }
+  // Ayrılma başarılıysa paylaşımlı önbellek düşer ve liste yeniden çekilir.
+  const handleLeave = (group) => leave(group)
 
   const pageSx = { width: '100%', maxWidth: 680, mx: 'auto', py: { xs: 1.5, md: 4 } }
 

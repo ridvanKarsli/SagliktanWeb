@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { searchComments, searchPosts, searchUsers } from '../services/api.js'
+import { isAbortError, searchComments, searchPosts, searchUsers } from '../services/api.js'
 
 export const SEARCH_TABS = [
   { key: 'posts', label: 'Gönderiler', fetcher: searchPosts },
@@ -13,12 +13,23 @@ const emptyTabState = {
 }
 const emptyStates = () => Object.fromEntries(SEARCH_TABS.map(t => [t.key, emptyTabState]))
 
+// Son aramanın sekme durumları (sorgu bazlı, kısa ömürlü): bir sonuca girip
+// geri dönünce aynı sorgu yeniden çalışmaz, liste olduğu gibi gelir
+// (bkz. usePaginatedList'teki liste önbelleğiyle aynı gerekçe).
+const SEARCH_CACHE_TTL_MS = 5 * 60 * 1000
+let searchCache = { term: '', states: null, ts: 0 }
+const readSearchCache = (term) => (
+  term && searchCache.term === term && searchCache.states && Date.now() - searchCache.ts < SEARCH_CACHE_TTL_MS
+    ? searchCache.states
+    : null
+)
+
 // Sekmeli tam arama sonuçları: yalnızca görüntülenen sekme, gerektiğinde
 // tembel yüklenir; "Daha Fazla Yükle" sonuçların sonuna ekler. Sorgu
 // değişince (ya da reset() ile aynı sorgu yeniden çalıştırılınca) tüm
 // sekmeler sıfırlanıp yeniden yüklenir.
 export function useTabbedSearch(token, query, tabIndex, { onError } = {}) {
-  const [states, setStates] = useState(emptyStates)
+  const [states, setStates] = useState(() => readSearchCache(query.trim()) ?? emptyStates())
   const [generation, setGeneration] = useState(0)
   const onErrorRef = useRef(onError)
   useEffect(() => { onErrorRef.current = onError }, [onError])
@@ -39,6 +50,11 @@ export function useTabbedSearch(token, query, tabIndex, { onError } = {}) {
     setGeneration(g => g + 1)
   }, [])
 
+  // Her değişimde önbelleği güncelle (ucuz: referans ataması).
+  useEffect(() => {
+    if (term) searchCache = { term, states, ts: searchCache.term === term ? searchCache.ts || Date.now() : Date.now() }
+  }, [term, states])
+
   useEffect(() => {
     if (!token || !term) return undefined
     const key = tab.key
@@ -47,8 +63,10 @@ export function useTabbedSearch(token, query, tabIndex, { onError } = {}) {
 
     const isLoadMore = active.page > 0
     let alive = true
+    // Sekme/sorgu değişince ya da sayfadan çıkınca ağdaki istek de kesilir.
+    const controller = new AbortController()
     setStates(prev => ({ ...prev, [key]: { ...prev[key], loading: !isLoadMore, loadingMore: isLoadMore } }))
-    tab.fetcher(token, term, { page: active.page })
+    tab.fetcher(token, term, { page: active.page, signal: controller.signal })
       .then(res => {
         if (!alive) return
         const newResults = Array.isArray(res?.content) ? res.content : []
@@ -57,7 +75,7 @@ export function useTabbedSearch(token, query, tabIndex, { onError } = {}) {
           [key]: {
             results: isLoadMore ? [...prev[key].results, ...newResults] : newResults,
             page: active.page,
-            totalElements: res?.totalElements ?? 0,
+            totalElements: Math.max(0, res?.totalElements ?? 0),
             last: res?.last ?? true,
             loading: false,
             loadingMore: false,
@@ -67,7 +85,7 @@ export function useTabbedSearch(token, query, tabIndex, { onError } = {}) {
         }))
       })
       .catch(err => {
-        if (!alive) return
+        if (!alive || isAbortError(err)) return
         onErrorRef.current?.(err)
         // Başarısız "daha fazla" denemesinde sayfayı geri al ki tekrar denenebilsin.
         setStates(prev => ({
@@ -75,7 +93,7 @@ export function useTabbedSearch(token, query, tabIndex, { onError } = {}) {
           [key]: { ...prev[key], loading: false, loadingMore: false, page: isLoadMore ? prev[key].page - 1 : prev[key].page }
         }))
       })
-    return () => { alive = false }
+    return () => { alive = false; controller.abort() }
     // active.loadedKey kasıtlı olarak bağımlılık değil: yükleme bitince
     // effect'in kendini yeniden tetiklemesine gerek yok.
     // eslint-disable-next-line react-hooks/exhaustive-deps

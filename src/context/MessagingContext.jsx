@@ -10,7 +10,8 @@ import { getPendingMessageRequestCount, getUnreadMessageCount } from '../service
 const MessagingContext = createContext(null)
 
 export function MessagingProvider({ children }) {
-  const { token } = useAuth()
+  const { token, user } = useAuth()
+  const userId = user?.id ?? null
   const [pendingRequestCount, setPendingRequestCount] = useState(0)
   const [unreadMessageCount, setUnreadMessageCount] = useState(0)
   const clientRef = useRef(null)
@@ -39,8 +40,17 @@ export function MessagingProvider({ children }) {
       .catch(() => {})
   }, [token])
 
+  // Sayaçlar / soket KULLANICI ömürlü, token ömürlü değil: access token her
+  // saat yenilenir, bağlantıyı o zaman koparıp yeniden kurmaya gerek yok
+  // (soket zaten her bağlanmada depodan taze token okur - bkz. socketAuth.js).
+  // Bu yüzden effect user.id'ye bağlı; token'a ref üzerinden erişilir.
+  const tokenRef = useRef(token)
+  tokenRef.current = token
+  const refreshersRef = useRef({ refreshPendingCount, refreshUnreadCount })
+  refreshersRef.current = { refreshPendingCount, refreshUnreadCount }
+
   useEffect(() => {
-    if (!token) {
+    if (!userId || !tokenRef.current) {
       setPendingRequestCount(0)
       setUnreadMessageCount(0)
       clientRef.current?.deactivate()
@@ -48,16 +58,25 @@ export function MessagingProvider({ children }) {
       return undefined
     }
 
-    refreshPendingCount()
-    refreshUnreadCount()
+    refreshersRef.current.refreshPendingCount()
+    refreshersRef.current.refreshUnreadCount()
 
-    const client = connectMessagingSocket(token, {
+    // Sekme arka plandayken soket kapanmış olabilir (bkz. realtimeSocket.js):
+    // görünür olunca sayaçları sunucudan tazele, kaçan olay kalmasın.
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible') return
+      refreshersRef.current.refreshPendingCount()
+      refreshersRef.current.refreshUnreadCount()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+
+    const client = connectMessagingSocket(tokenRef.current, {
       // Aktif bir sohbet ekranı açıksa (Chat.jsx) mesajı orada canlı
       // gösterecek ve okundu işaretleyecek, kapalıysa nav rozetine yansır -
       // her konuşmanın kendi unreadCount'u ayrıca listConversations
       // yanıtında geliyor (bkz. Conversations.jsx), burada sadece TOPLAM.
       onMessage: (message) => {
-        refreshUnreadCount()
+        refreshersRef.current.refreshUnreadCount()
         messageListenersRef.current.forEach(fn => fn(message))
       },
       onMessageRequest: (req) => {
@@ -68,10 +87,11 @@ export function MessagingProvider({ children }) {
     clientRef.current = client
 
     return () => {
+      document.removeEventListener('visibilitychange', onVisible)
       client.deactivate()
       if (clientRef.current === client) clientRef.current = null
     }
-  }, [token, refreshPendingCount, refreshUnreadCount])
+  }, [userId])
 
   const subscribeToMessages = useCallback((fn) => {
     messageListenersRef.current.add(fn)

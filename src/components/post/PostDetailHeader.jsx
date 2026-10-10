@@ -3,6 +3,7 @@ import { DeleteOutline, EditOutlined, FlagOutlined, PushPinOutlined, PushPinRoun
 import UserAvatar from '../avatars/UserAvatar.jsx'
 import { prettyDate, relativeTime } from '../../utils/format.js'
 import { clickableProps } from '../../utils/clickable.js'
+import { focusRingSx } from '../../design/focus.js'
 
 const actionSx = { width: 44, height: 44 }
 
@@ -24,7 +25,7 @@ export default function PostDetailHeader({
       <Box
         {...clickableProps(goToAuthor)}
         aria-label={`${authorName} profiline git`}
-        sx={{ borderRadius: '50%', cursor: 'pointer', flexShrink: 0, '&:focus-visible': { outline: '3px solid', outlineColor: 'primary.light', outlineOffset: 2 } }}
+        sx={{ borderRadius: '50%', cursor: 'pointer', flexShrink: 0, '&:focus-visible': focusRingSx }}
       >
         <UserAvatar avatarKey={post.authorAvatarKey} name={authorName} size={50} />
       </Box>
@@ -36,7 +37,7 @@ export default function PostDetailHeader({
           sx={{
             fontWeight: 800, display: 'inline-block', cursor: 'pointer', lineHeight: 1.3, borderRadius: '6px',
             '&:hover': { textDecoration: 'underline' },
-            '&:focus-visible': { outline: '3px solid', outlineColor: 'primary.light', outlineOffset: 2 }
+            '&:focus-visible': focusRingSx
           }}
         >
           {authorName}

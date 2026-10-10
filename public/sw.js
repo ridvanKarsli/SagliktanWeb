@@ -29,17 +29,31 @@
 // navigasyon dalı da 4xx/5xx HTML'i "/" olarak saklıyordu. Ayrıca /api/
 // dalında caches.match hep undefined döndüğü için offline'da respondWith
 // (undefined) TypeError'ı oluşuyordu - artık düzgün bir 503 JSON dönüyor.
-const CACHE_NAME = 'sagliktan-pwa-v7';
-const ASSETS = [
+// v8: precache listesi ikiye ayrıldı. CRITICAL_ASSETS (kabuk + index.html'in
+// referans verdiği giriş JS/CSS - build script'i dist/index.html'den okur,
+// böylece Sentry gibi dinamik import chunk'ları artık yanlışlıkla
+// precache'e girmiyor) biri bile indirilemezse install başarısız olur.
+// OPTIONAL_ASSETS (manifest + küçük marka görseli) toleranslı: biri 404
+// dönse bile SW kurulur (Promise.allSettled) - eskiden tek bir eksik ikon
+// tüm offline desteğini sessizce devre dışı bırakıyordu.
+const CACHE_NAME = 'sagliktan-pwa-v8';
+const CRITICAL_ASSETS = [
   '/',
-  '/index.html',
+  '/index.html'
+];
+const OPTIONAL_ASSETS = [
   '/manifest.webmanifest',
-  '/sagliktanLogo.png'
+  '/sagliktanLogo-96.png'
 ];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)).then(() => self.skipWaiting())
+    caches.open(CACHE_NAME)
+      .then((cache) => Promise.all([
+        cache.addAll(CRITICAL_ASSETS),
+        Promise.allSettled(OPTIONAL_ASSETS.map((url) => cache.add(url)))
+      ]))
+      .then(() => self.skipWaiting())
   );
 });
 

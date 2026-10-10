@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useState } from 'react'
 import { Alert, Box, Button, Stack, Tab, Tabs, Typography } from '@mui/material'
 import { AutoAwesomeRounded, DynamicFeedRounded, ExploreRounded, QuestionAnswerOutlined } from '@mui/icons-material'
 import { useNavigate, useSearchParams } from 'react-router-dom'
@@ -6,7 +6,6 @@ import SimilarMembers from '../components/SimilarMembers.jsx'
 import PostList from '../components/PostList.jsx'
 import PostCardSkeleton from '../components/PostCardSkeleton.jsx'
 import EmptyState from '../components/EmptyState.jsx'
-import NewPostDialog from '../components/NewPostDialog.jsx'
 import ComposerPrompt from '../components/ComposerPrompt.jsx'
 import CreatePostFab from '../components/CreatePostFab.jsx'
 import SortToggle from '../components/SortToggle.jsx'
@@ -14,9 +13,15 @@ import PullToRefreshIndicator from '../components/PullToRefreshIndicator.jsx'
 import LoadMoreButton from '../components/common/LoadMoreButton.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useNotification } from '../context/NotificationContext.jsx'
-import { getMyDiseaseGroups, getMyFeed, getOpenQuestions } from '../services/api.js'
+import { getMyFeed, getOpenQuestions } from '../services/api.js'
 import { usePaginatedList } from '../hooks/usePaginatedList.js'
+import { useMyDiseaseGroups } from '../hooks/useMyDiseaseGroups.js'
 import { pillTabsSx } from '../components/shell/pillTabs.js'
+
+// Gönderi penceresi (~9 KB gz + alt bileşenleri) ilk açılışa kadar
+// indirilmez; FAB ve "Ne paylaşmak istersin?" istemi anında tepki verir,
+// pencere ilk dokunuşta mount olur ve sonra açık/kapalı ağaçta kalır.
+const NewPostDialog = lazy(() => import('../components/NewPostDialog.jsx'))
 
 const FEED_TAB = 'feed'
 const QUESTIONS_TAB = 'questions'
@@ -35,25 +40,17 @@ function greetingFor(date = new Date()) {
 
 function scrollFeedToTop() {
   try {
-    document.getElementById('root')?.scrollTo({ top: 0, behavior: 'smooth' })
     window.scrollTo({ top: 0, behavior: 'smooth' })
   } catch { /* eski tarayıcı: kaydırma kritik değil */ }
 }
 
 // Kullanıcının herhangi bir gruba üye olup olmadığı: akış boşsa "grup keşfet"
-// mi yoksa "ilk gönderiyi paylaş" mı gösterileceğini belirler.
-function useHasJoinedGroups(token) {
-  const [state, setState] = useState({ checking: true, hasJoined: true })
-  useEffect(() => {
-    if (!token) { setState({ checking: false, hasJoined: false }); return undefined }
-    let alive = true
-    getMyDiseaseGroups(token)
-      .then(mine => { if (alive) setState({ checking: false, hasJoined: Array.isArray(mine) && mine.length > 0 }) })
-      // İkincil veri: bilinemiyorsa akışı normal göster (varsayılan "üye").
-      .catch(() => { if (alive) setState({ checking: false, hasJoined: true }) })
-    return () => { alive = false }
-  }, [token])
-  return state
+// mi yoksa "ilk gönderiyi paylaş" mı gösterileceğini belirler. Paylaşımlı
+// önbellekten (useMyDiseaseGroups) gelir; null = henüz bilinmiyor. Akış
+// iskeleti buna BAĞLI DEĞİL - yalnızca boş-durum dalı bekler.
+function useHasJoinedGroups() {
+  const groups = useMyDiseaseGroups()
+  return { checking: groups === null, hasJoined: groups === null ? true : groups.length > 0 }
 }
 
 /**
@@ -73,19 +70,33 @@ export default function Home() {
     if (value === QUESTIONS_TAB) next.set('tab', QUESTIONS_TAB); else next.delete('tab')
     setParams(next, { replace: true })
   }
+  // ?sirala=popular -> sıralama da URL'de: geri/yenile sonrası korunur ve
+  // önbellek anahtarı (feed:tab:sort) ile aynı kaynaktan beslenir.
+  const sort = params.get('sirala') === 'popular' ? 'popular' : 'recent'
+  const setSort = (value) => {
+    const next = new URLSearchParams(params)
+    if (value === 'popular') next.set('sirala', 'popular'); else next.delete('sirala')
+    setParams(next, { replace: true })
+  }
 
   const [error, setError] = useState('')
-  const [sort, setSort] = useState('recent')
   const [composerOpen, setComposerOpen] = useState(false)
-  const { checking: checkingGroups, hasJoined: hasJoinedGroups } = useHasJoinedGroups(token)
+  // Pencere bir kez açıldıktan sonra ağaçta kalır (form taslağı korunur).
+  const [composerMounted, setComposerMounted] = useState(false)
+  const openComposer = useCallback(() => { setComposerMounted(true); setComposerOpen(true) }, [])
+  const { checking: checkingGroups, hasJoined: hasJoinedGroups } = useHasJoinedGroups()
 
   const fetchPage = useCallback(
-    (page) => (tab === QUESTIONS_TAB ? getOpenQuestions(token, { page }) : getMyFeed(token, { page, sort })),
+    (page, { signal } = {}) => (
+      tab === QUESTIONS_TAB ? getOpenQuestions(token, { page, signal }) : getMyFeed(token, { page, sort, signal })
+    ),
     [token, sort, tab]
   )
   const { items: posts, loading, loadingMore, last, loadMore, reload } = usePaginatedList(fetchPage, {
     enabled: !!token,
     deps: [token, sort, tab],
+    // Geri dönüşte iskelet yerine son liste anında (bkz. usePaginatedList).
+    cacheKey: token ? `feed:${tab}:${sort}` : null,
     onError: (err, phase) => {
       if (phase === 'initial') setError(err.message || 'Akış alınamadı.')
       else showError(err.message || 'Akış alınamadı.')
@@ -109,14 +120,20 @@ export default function Home() {
     scrollFeedToTop()
   }
 
-  const canPost = !checkingGroups && hasJoinedGroups
+  // Üyelik henüz bilinmiyorken varsayılan "üye" (kullanıcıların büyük
+  // çoğunluğu): sekmeler/istem ilk boyamada yerinde durur, sonradan
+  // belirip içeriği itmez. Üyeliksiz çıkarsa boş durum zaten devralır.
+  const canPost = hasJoinedGroups
   const showSimilarMembersAfter = (index) => tab === FEED_TAB && (
     index === SIMILAR_MEMBERS_AFTER_INDEX
     || (index === posts.length - 1 && posts.length <= SIMILAR_MEMBERS_AFTER_INDEX)
   )
 
   const renderFeed = () => {
-    if (loading || checkingGroups) return <PostCardSkeleton count={3} />
+    if (loading) return <PostCardSkeleton count={3} />
+    // Akış boşsa ve üyelik hâlâ bilinmiyorsa kısa bir iskelet; dolu akış
+    // üyelik yanıtını hiç beklemez.
+    if (posts.length === 0 && checkingGroups && !error) return <PostCardSkeleton count={3} />
     if (!hasJoinedGroups) {
       return (
         <EmptyState
@@ -137,7 +154,7 @@ export default function Home() {
           title="Şu an cevap bekleyen soru yok"
           description="Gruplarındaki her soru bir cevap buldu. Merak ettiğin bir şey varsa sorman yeter; deneyimi olan biri mutlaka yazar."
           actionLabel="Soru sor"
-          onAction={() => setComposerOpen(true)}
+          onAction={openComposer}
         />
       ) : (
         <EmptyState
@@ -145,7 +162,7 @@ export default function Home() {
           title="Akışın henüz sessiz"
           description="Katıldığın gruplarda henüz paylaşım yok. İlk sözü sen söylemek ister misin? Küçük bir merhaba bile yeter."
           actionLabel="İlk gönderiyi paylaş"
-          onAction={() => setComposerOpen(true)}
+          onAction={openComposer}
         />
       )
     }
@@ -200,7 +217,7 @@ export default function Home() {
         </Alert>
       )}
 
-      {canPost && <ComposerPrompt onClick={() => setComposerOpen(true)} sx={{ mb: 2.5 }} />}
+      {canPost && <ComposerPrompt onClick={openComposer} sx={{ mb: 2.5 }} />}
 
       {canPost && (
         <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 2 }}>
@@ -228,14 +245,18 @@ export default function Home() {
 
       {renderFeed()}
 
-      {canPost && <CreatePostFab onClick={() => setComposerOpen(true)} />}
+      {canPost && <CreatePostFab onClick={openComposer} />}
 
-      <NewPostDialog
-        open={composerOpen}
-        onClose={() => setComposerOpen(false)}
-        onCreated={onPostCreated}
-        initialPostType={tab === QUESTIONS_TAB ? 'QUESTION' : 'DISCUSSION'}
-      />
+      {composerMounted && (
+        <Suspense fallback={null}>
+          <NewPostDialog
+            open={composerOpen}
+            onClose={() => setComposerOpen(false)}
+            onCreated={onPostCreated}
+            initialPostType={tab === QUESTIONS_TAB ? 'QUESTION' : 'DISCUSSION'}
+          />
+        </Suspense>
+      )}
     </Box>
   )
 }

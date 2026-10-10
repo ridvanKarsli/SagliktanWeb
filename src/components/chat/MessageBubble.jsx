@@ -66,7 +66,23 @@ export default function MessageBubble({
             aria-label="Fotoğrafı yeni sekmede aç"
             sx={{ display: 'block', mb: hasText ? 0.75 : 0, mx: -0.75, mt: -0.25 }}
           >
-            <Box component="img" src={m.attachmentUrl} alt="" loading="lazy" sx={{ maxWidth: '100%', borderRadius: `${radius.md}px`, display: 'block' }} />
+            {/* Sabit boyutlu küçük resim kutusu: fotoğraf inmeden önce de yer
+                ayrılır, yüklenince sohbet akışı zıplamaz (CLS). */}
+            <Box
+              sx={{
+                width: { xs: 220, sm: 260 }, maxWidth: '100%', aspectRatio: '4 / 3',
+                borderRadius: `${radius.md}px`, overflow: 'hidden', bgcolor: 'brand.surfaceAlt'
+              }}
+            >
+              <Box
+                component="img"
+                src={m.attachmentUrl}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              />
+            </Box>
           </Box>
         )}
         {hasText && (

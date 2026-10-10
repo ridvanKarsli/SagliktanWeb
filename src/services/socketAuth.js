@@ -35,7 +35,7 @@ function isJwtExpired(token, bufferSeconds = 60) {
   }
 }
 
-async function resolveFreshAccessToken(fallbackToken) {
+export async function resolveFreshAccessToken(fallbackToken) {
   const stored = readStoredAccessToken() || fallbackToken
   if (stored && !isJwtExpired(stored)) return stored
   try {
@@ -49,6 +49,9 @@ async function resolveFreshAccessToken(fallbackToken) {
   }
 }
 
+// Paylaşımlı istemci (realtimeSocket.js) resolveFreshAccessToken'ı kendi
+// beforeConnect'inde doğrudan kullanır (jitter ile birlikte); bu sarmalayıcı
+// tekil bir Client kuran olası başka kullanımlar için duruyor.
 export function attachFreshTokenBeforeConnect(client, initialToken) {
   client.beforeConnect = async () => {
     const fresh = await resolveFreshAccessToken(initialToken)

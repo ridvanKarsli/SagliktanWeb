@@ -25,14 +25,16 @@ import '../../styles/companions.css'
 import { fullNameOf } from '../../utils/text.js'
 
 function usePublicProfile(token, userId) {
-  const [state, setState] = useState({ profile: null, loading: true, error: '' })
+  const [state, setState] = useState({ profile: null, loading: true, error: '', notFound: false })
   useEffect(() => {
     if (!token || !userId) return undefined
     let alive = true
-    setState({ profile: null, loading: true, error: '' })
+    setState({ profile: null, loading: true, error: '', notFound: false })
     getUserPublicProfile(token, userId)
-      .then(profile => { if (alive) setState({ profile, loading: false, error: '' }) })
-      .catch(err => { if (alive) setState({ profile: null, loading: false, error: err.message || 'Kullanıcı bulunamadı.' }) })
+      .then(profile => { if (alive) setState({ profile, loading: false, error: '', notFound: false }) })
+      // 404: hesap yok, gizli ya da taraflardan biri diğerini engellemiş -
+      // backend bu durumları bilerek ayırt etmez; biz de "görüntülenemiyor" deriz.
+      .catch(err => { if (alive) setState({ profile: null, loading: false, error: err.message || 'Kullanıcı bulunamadı.', notFound: err?.status === 404 }) })
     return () => { alive = false }
   }, [token, userId])
   return state
@@ -57,7 +59,7 @@ function useBlockToggle(token, userId, displayName) {
   const block = async () => {
     const ok = await confirm(
       `${displayName || 'Bu kullanıcıyı'} kullanıcısını engellemek istiyor musun? Birbirinize mesaj gönderemezsiniz.`,
-      { title: 'Kullanıcıyı engelle' }
+      { title: 'Kullanıcıyı engelle', confirmLabel: 'Engelle' }
     )
     if (!ok) return
     try {
@@ -90,7 +92,7 @@ export default function UserProfile() {
   const { token, user: currentUser } = useAuth()
   const { showError, showSuccess } = useNotification()
 
-  const { profile, loading, error } = usePublicProfile(token, userId)
+  const { profile, loading, error, notFound } = usePublicProfile(token, userId)
   const fullName = fullNameOf(profile, 'Kullanıcı')
   const blocking = useBlockToggle(token, userId, profile ? fullName : '')
   const report = useReportDialog((id, reason) => reportUser(token, id, reason))
@@ -153,13 +155,23 @@ export default function UserProfile() {
     return (
       <Box sx={pageSx}>
         <Button startIcon={<ArrowBackRounded />} onClick={() => navigate(-1)} sx={{ mb: 1 }}>Geri</Button>
-        <CompanionEmpty
-          companion="bulut"
-          title="Bu profili bulamadık"
-          description={error ? `${error} Bağlantı eski olabilir ya da kişi hesabını kapatmış olabilir.` : 'Bağlantı eski olabilir ya da kişi hesabını kapatmış olabilir.'}
-          actionLabel="Ana sayfaya dön"
-          onAction={() => navigate('/home')}
-        />
+        {notFound ? (
+          <CompanionEmpty
+            companion="bulut"
+            title="Bu profil görüntülenemiyor"
+            description="Kişi profilini gizlemiş, hesabını kapatmış ya da aranızda bir engel olabilir. Bağlantı eski de olabilir."
+            actionLabel="Ana sayfaya dön"
+            onAction={() => navigate('/home')}
+          />
+        ) : (
+          <CompanionEmpty
+            companion="bulut"
+            title="Bu profili bulamadık"
+            description={error ? `${error} Bağlantını kontrol edip tekrar deneyebilirsin.` : 'Bağlantı eski olabilir ya da kişi hesabını kapatmış olabilir.'}
+            actionLabel="Ana sayfaya dön"
+            onAction={() => navigate('/home')}
+          />
+        )}
       </Box>
     )
   }

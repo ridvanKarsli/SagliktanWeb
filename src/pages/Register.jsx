@@ -16,17 +16,31 @@ import CityField from '../components/profile/CityField.jsx'
 import EmailField from '../components/forms/EmailField.jsx'
 import { useFormValidation } from '../hooks/useFormValidation.js'
 import {
-  LIMITS, cityError, cleanLine, confirmPasswordError, emailError, fieldErrorsFrom, fieldFromMessage,
+  LIMITS, cityError, cleanLine, emailError, fieldErrorsFrom, fieldFromMessage,
   nameError, newPasswordError, normalizeCity, normalizeEmail
 } from '../utils/validation.js'
+
+// Kayıt tamamlanınca "E-postanı kontrol et" ekranı sayfa yenilense de
+// kalsın (kullanıcı posta uygulamasına geçip geri dönüyor). Sekmeye özel.
+const REGISTERED_EMAIL_KEY = 'sagliktan:registeredEmail'
+function readRegisteredEmail() {
+  try { return sessionStorage.getItem(REGISTERED_EMAIL_KEY) || '' } catch { return '' }
+}
+function writeRegisteredEmail(email) {
+  try {
+    if (email) sessionStorage.setItem(REGISTERED_EMAIL_KEY, email)
+    else sessionStorage.removeItem(REGISTERED_EMAIL_KEY)
+  } catch { /* depolama kapalıysa ekran yalnızca bu render'da kalır */ }
+}
 
 const validateRegister = (f) => ({
   firstName: nameError(f.firstName, 'first'),
   lastName: nameError(f.lastName, 'last'),
   email: emailError(f.email),
   city: cityError(f.city),
+  // Şifre tekrarı yok: göster/gizle + güç göstergesi yazım hatasını zaten
+  // görünür kılıyor; ikinci alan özellikle mobilde kaydı yarıda bıraktırıyordu.
   password: newPasswordError(f.password),
-  confirmPassword: confirmPasswordError(f.confirmPassword, f.password),
   kvkkConsent: f.kvkkConsent ? null : 'Kayıt olmak için aydınlatma metnini onaylaman gerekiyor.',
 })
 
@@ -50,11 +64,11 @@ export default function Register() {
     lastName: '',
     email: '',
     password: '',
-    confirmPassword: '',
     city: '',
     kvkkConsent: false
   })
-  const [registeredEmail, setRegisteredEmail] = useState('')
+  const [registeredEmail, setRegisteredEmailState] = useState(readRegisteredEmail)
+  const setRegisteredEmail = (email) => { writeRegisteredEmail(email); setRegisteredEmailState(email) }
   const [loading, setLoading] = useState(false)
   const v = useFormValidation(form, validateRegister)
   const set = (key) => (value) => setForm(f => ({ ...f, [key]: value }))
@@ -105,7 +119,7 @@ export default function Register() {
           <Typography variant="body2" sx={{ color: 'text.secondary', mb: 4, p: 1.5, borderRadius: `${radius.md}px`, bgcolor: 'brand.surfaceAlt' }}>
             Birkaç dakika içinde gelmezse gereksiz (spam) klasörüne de bakmayı unutma.
           </Typography>
-          <Button variant="contained" size="large" fullWidth onClick={() => navigate('/login', { replace: true })}>
+          <Button variant="contained" size="large" fullWidth onClick={() => { setRegisteredEmail(''); navigate('/login', { replace: true }) }}>
             Giriş sayfasına dön
           </Button>
         </Box>
@@ -199,23 +213,10 @@ export default function Register() {
                 autoComplete="new-password"
                 fullWidth
                 placeholder="••••••••"
-                slotProps={{ htmlInput: { minLength: LIMITS.PASSWORD_MIN, enterKeyHint: 'next', 'data-testid': 'register-password' } }}
+                slotProps={{ htmlInput: { minLength: LIMITS.PASSWORD_MIN, enterKeyHint: 'done', 'data-testid': 'register-password' } }}
               />
               <PasswordStrengthMeter password={form.password} />
             </Box>
-
-            <PasswordField
-              label="Şifre (tekrar)"
-              required
-              value={form.confirmPassword}
-              onChange={e => set('confirmPassword')(e.target.value)}
-              {...v.field('confirmPassword')}
-              helperText={v.error('confirmPassword')}
-              autoComplete="new-password"
-              fullWidth
-              placeholder="••••••••"
-              slotProps={{ htmlInput: { enterKeyHint: 'done', 'data-testid': 'register-confirmPassword' } }}
-            />
           </Stack>
 
           <Box>

@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { getSimilarMembers } from '../services/api.js'
 import { healthSummaryParts } from '../utils/communityProfile.js'
 import UserAvatar from './avatars/UserAvatar.jsx'
+import { focusRingSx } from '../design/focus.js'
 
 const DISMISS_KEY = 'sagliktan:similar-invite-dismissed'
 
@@ -97,7 +98,7 @@ export default function SimilarMembers({ sx }) {
                   border: '1px solid', borderColor: 'brand.border', bgcolor: 'background.paper', boxShadow: 1,
                   transition: 'border-color 200ms ease, box-shadow 240ms ease, transform 160ms var(--ease-spring)',
                   '&:hover': { borderColor: 'primary.light', boxShadow: 3 },
-                  '&.Mui-focusVisible': { outline: '3px solid', outlineColor: 'primary.light', outlineOffset: 2 }
+                  '&.Mui-focusVisible': focusRingSx
                 }}
               >
                 <UserAvatar avatarKey={m.avatarKey} name={name} size={52} />

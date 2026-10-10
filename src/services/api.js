@@ -23,15 +23,67 @@ async function tryRefreshAndGetToken() {
 }
 
 class ApiError extends Error {
-  constructor(message, status, fieldErrors) {
+  constructor(message, status, fieldErrors, retryAfterSeconds = null) {
     super(message);
     this.status = status;
     this.fieldErrors = fieldErrors || null;
+    // 429'da backend'in Retry-After başlığı (saniye); yoksa null.
+    this.retryAfterSeconds = retryAfterSeconds;
   }
+}
+
+// Backend (RateLimiter) giriş/sıfırlama uçlarında 429 + Retry-After döner.
+// Ham "Too Many Requests" yerine bekleme süresini de söyleyen tek bir mesaj.
+export const RATE_LIMIT_MESSAGE = 'Çok fazla deneme yaptın, biraz bekleyip tekrar dene.';
+function rateLimitMessage(retryAfterSeconds) {
+  if (!retryAfterSeconds || retryAfterSeconds < 60) return RATE_LIMIT_MESSAGE;
+  const minutes = Math.ceil(retryAfterSeconds / 60);
+  return `Çok fazla deneme yaptın, yaklaşık ${minutes} dakika sonra tekrar dene.`;
+}
+
+function parseRetryAfter(res) {
+  const raw = res.headers?.get?.('Retry-After');
+  if (!raw) return null;
+  const secs = Number(raw);
+  if (Number.isFinite(secs)) return Math.max(0, Math.round(secs));
+  const at = Date.parse(raw);
+  return Number.isNaN(at) ? null : Math.max(0, Math.round((at - Date.now()) / 1000));
 }
 
 function authHeaders(token) {
   return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+// Mobil ağda "sonsuza kadar dönen" istek olmasın: her istek en fazla bu kadar
+// bekler, sonra anlaşılır bir mesajla düşer.
+const REQUEST_TIMEOUT_MS = 15000;
+export const TIMEOUT_MESSAGE = 'Bağlantı yavaş görünüyor, tekrar dene.';
+
+// Çağıranın isteğe bağlı AbortSignal'i ile zaman aşımını TEK bir signal'de
+// birleştirir. AbortSignal.any / AbortSignal.timeout eski Safari'de yok;
+// bu küçük yardımcı her tarayıcıda aynı çalışır. Dönen cleanup() istek
+// bitince çağrılmalı (zamanlayıcı ve dinleyici sızmasın).
+function withTimeout(signal, ms = REQUEST_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const forward = () => controller.abort(signal.reason);
+  if (signal) {
+    if (signal.aborted) controller.abort(signal.reason);
+    else signal.addEventListener('abort', forward, { once: true });
+  }
+  const timer = setTimeout(() => {
+    controller.abort(new DOMException('İstek zaman aşımına uğradı', 'TimeoutError'));
+  }, ms);
+  const cleanup = () => {
+    clearTimeout(timer);
+    signal?.removeEventListener('abort', forward);
+  };
+  return { signal: controller.signal, cleanup };
+}
+
+// Kasıtlı iptal (bileşen unmount oldu, yeni bir istek eskisini geçersiz
+// kıldı) bir hata DEĞİLDİR: çağıran taraf bunu kullanıcıya göstermemeli.
+export function isAbortError(err) {
+  return err?.name === 'AbortError';
 }
 
 // Backend her zaman bir `message` gövdesi dönmez (proxy/LB hatası, beklenmeyen
@@ -46,7 +98,11 @@ function friendlyFallbackMessage(status) {
 }
 
 // Backend'in ErrorResponse zarfı: { status, error, message, timestamp, fieldErrors }
-async function request(path, { method = 'GET', token, body, params, signal, _retried = false } = {}) {
+// fresh: true => tarayıcı HTTP önbelleğini atla (cache: 'no-store'). Backend
+// bazı GET uçlarına (grup/alt grup listesi) kısa süreli "Cache-Control:
+// private, max-age=60" veriyor; admin panelindeki "oluştur/sil -> listeyi
+// yenile" akışı bu önbelleğe takılmasın diye oradan fresh ile çağrılır.
+async function request(path, { method = 'GET', token, body, params, signal, fresh = false, _retried = false } = {}) {
   let url = `${API_BASE}${path}`;
   if (params && Object.keys(params).length) {
     const qs = new URLSearchParams();
@@ -67,12 +123,25 @@ async function request(path, { method = 'GET', token, body, params, signal, _ret
   // fetch() HTTP yanıtı bile almadan reject edebilir (uçuş modu, kopan mobil
   // bağlantı, DNS). Tarayıcının İngilizce "Failed to fetch" metni yerine
   // anlaşılır bir mesaj verilir. AbortError kasıtlı iptaldir, aynen iletilir.
+  // Zaman aşımı yalnızca bu fonksiyon içinde yaşar; çağıranın kendi signal'i
+  // iptal ederse AbortError aynen iletilir (bkz. isAbortError).
+  const timed = withTimeout(signal);
   let res;
+  let text;
   try {
-    res = await fetch(url, { method, headers, body: payload, signal });
+    res = await fetch(url, { method, headers, body: payload, signal: timed.signal, cache: fresh ? 'no-store' : undefined });
+    // Gövde de aynı zaman aşımına tabi (başlıklar gelip gövde takılabilir).
+    text = res.status === 204 ? '' : await res.text();
   } catch (err) {
+    // Önce zaman aşımı: abort "reason" taşımayan eski tarayıcılar zaman
+    // aşımını da düz AbortError olarak bildirir, kaynağı signal'den anlarız.
+    if (err?.name === 'TimeoutError' || timed.signal.reason?.name === 'TimeoutError') {
+      throw new ApiError(TIMEOUT_MESSAGE, 0, null);
+    }
     if (err?.name === 'AbortError') throw err;
     throw new ApiError('İnternet bağlantını kontrol edip tekrar dene.', 0, null);
+  } finally {
+    timed.cleanup();
   }
 
   // Access token süresi dolmuşsa (401) ve bu bir login/refresh isteği değilse,
@@ -81,7 +150,7 @@ async function request(path, { method = 'GET', token, body, params, signal, _ret
     try {
       const newToken = await tryRefreshAndGetToken();
       if (newToken) {
-        return request(path, { method, token: newToken, body, params, signal, _retried: true });
+        return request(path, { method, token: newToken, body, params, signal, fresh, _retried: true });
       }
     } catch {
       // refresh de başarısız oldu, aşağıda normal 401 hatası fırlatılacak
@@ -91,7 +160,6 @@ async function request(path, { method = 'GET', token, body, params, signal, _ret
   // 204 No Content ya da boş gövde
   if (res.status === 204) return null;
   let data = null;
-  const text = await res.text();
   if (text) {
     try { data = JSON.parse(text); } catch { data = text; }
   }
@@ -104,6 +172,10 @@ async function request(path, { method = 'GET', token, body, params, signal, _ret
     const specificMessage = fieldErrors && Object.keys(fieldErrors).length
       ? Object.values(fieldErrors).join(' ')
       : null;
+    if (res.status === 429) {
+      const retryAfter = parseRetryAfter(res);
+      throw new ApiError(rateLimitMessage(retryAfter), 429, null, retryAfter);
+    }
     const message = specificMessage || (data && data.message) || friendlyFallbackMessage(res.status);
     throw new ApiError(message, res.status, fieldErrors);
   }
@@ -154,8 +226,10 @@ export function updateProfile(token, { firstName, lastName, bio, city }) {
   return request('/users/me', { method: 'PUT', token, body: { firstName, lastName, bio, city } });
 }
 
-export function deactivateAccount(token) {
-  return request('/users/me', { method: 'DELETE', token });
+// Deaktivasyon da artik sifre teyidi ister (backend: DELETE /users/me gövdesi
+// { password } - bkz. UserController#deactivate).
+export function deactivateAccount(token, password) {
+  return request('/users/me', { method: 'DELETE', token, body: { password } });
 }
 
 // KVKK "veri taşınabilirliği" hakkı - kullanıcının kendi verisini JSON
@@ -225,8 +299,10 @@ export function getDigestPreview(token) {
   return request('/users/me/digest-preview', { token });
 }
 
-export function getMyDiseaseGroups(token) {
-  return request('/users/me/disease-groups', { token });
+// Çağıranlar doğrudan değil, services/myGroups.js üzerinden (paylaşımlı
+// önbellek) kullanmalı - aynı liste bir oturumda 7 ayrı ekrandan isteniyordu.
+export function getMyDiseaseGroups(token, { signal } = {}) {
+  return request('/users/me/disease-groups', { token, signal });
 }
 
 export function getMyPosts(token, { page = 0, size, signal } = {}) {
@@ -253,8 +329,8 @@ export function getUserPosts(token, id, { page = 0, size, signal } = {}) {
 // q verilirse backend'in prefix + pg_trgm fuzzy tam metin araması devreye
 // girer (bkz. DiseaseGroupController.listAll) - searchPosts/searchComments
 // ile aynı arama altyapısı, DiseaseGroups.jsx'teki arama kutusu için.
-export function listDiseaseGroups(token, { q, signal } = {}) {
-  return request('/disease-groups', { token, params: { q }, signal });
+export function listDiseaseGroups(token, { q, signal, fresh } = {}) {
+  return request('/disease-groups', { token, params: { q }, signal, fresh });
 }
 
 export function getDiseaseGroup(token, id) {
@@ -275,8 +351,8 @@ export function leaveDiseaseGroup(token, id) {
 
 // --- Alt gruplar ---
 
-export function listSubGroups(token, diseaseGroupId) {
-  return request(`/disease-groups/${diseaseGroupId}/sub-groups`, { token });
+export function listSubGroups(token, diseaseGroupId, { fresh } = {}) {
+  return request(`/disease-groups/${diseaseGroupId}/sub-groups`, { token, fresh });
 }
 
 export function getSubGroup(token, id) {
@@ -354,8 +430,8 @@ export function quickSearch(token, q, { signal } = {}) {
   return request('/search', { token, params: { q }, signal });
 }
 
-export function getPost(token, id) {
-  return request(`/posts/${id}`, { token });
+export function getPost(token, id, { signal } = {}) {
+  return request(`/posts/${id}`, { token, signal });
 }
 
 export function updatePost(token, id, { title, content }) {

@@ -22,7 +22,10 @@ export function ConfirmProvider({ children }) {
       setState({
         message,
         title: options.title || 'Emin misiniz?',
-        confirmLabel: options.confirmLabel || 'Sil',
+        // Varsayılan etiket tarafsız: yıkıcı eylemler ('Sil', 'Ayrıl'...)
+        // kendi etiketini açıkça vermeli - ekranı okumayan biri "Sil"e
+        // yanlışlıkla basmasın.
+        confirmLabel: options.confirmLabel || 'Onayla',
         cancelLabel: options.cancelLabel || 'Vazgeç',
         danger: options.danger !== false, // varsayılan: yıkıcı aksiyon (kırmızı buton)
       })
@@ -44,12 +47,12 @@ export function ConfirmProvider({ children }) {
           <DialogContentText sx={{ color: 'text.primary' }}>{state?.message}</DialogContentText>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => handleClose(false)}>{state?.cancelLabel}</Button>
+          {/* Odak güvenli seçenekte başlar: Enter/boşluk kazara silmesin. */}
+          <Button onClick={() => handleClose(false)} autoFocus>{state?.cancelLabel}</Button>
           <Button
             variant="contained"
             color={state?.danger ? 'error' : 'primary'}
             onClick={() => handleClose(true)}
-            autoFocus
           >
             {state?.confirmLabel}
           </Button>

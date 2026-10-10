@@ -1,10 +1,9 @@
-import { useCallback, useEffect, useState } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useState } from 'react'
 import { Alert, Box, IconButton, Skeleton, Stack, TextField, Typography } from '@mui/material'
 import { CloseRounded, ForumRounded, SearchRounded } from '@mui/icons-material'
 import { useParams } from 'react-router-dom'
 import PostList from '../components/PostList.jsx'
 import PostCardSkeleton from '../components/PostCardSkeleton.jsx'
-import NewPostDialog from '../components/NewPostDialog.jsx'
 import ComposerPrompt from '../components/ComposerPrompt.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import CreatePostFab from '../components/CreatePostFab.jsx'
@@ -18,6 +17,9 @@ import { getSubGroup, listPostsBySubGroup, searchPostsInSubGroup } from '../serv
 import { usePaginatedList } from '../hooks/usePaginatedList.js'
 import { useDebouncedValue } from '../hooks/useDebouncedValue.js'
 import { LIMITS, clampLength } from '../utils/validation.js'
+
+// Gönderi penceresi ilk açılışa kadar indirilmez (bkz. Home.jsx'teki not).
+const NewPostDialog = lazy(() => import('../components/NewPostDialog.jsx'))
 
 // Alt grubun (forum) gönderi akışı: sıralama, gruba özel arama ve paylaşım.
 export default function Posts() {
@@ -33,6 +35,7 @@ export default function Posts() {
   const debouncedQuery = useDebouncedValue(query.trim(), 300)
   const isSearching = debouncedQuery.length > 0
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [dialogMounted, setDialogMounted] = useState(false)
 
   useEffect(() => {
     if (!token || !subGroupId) return undefined
@@ -48,15 +51,17 @@ export default function Posts() {
   }, [token, subGroupId, showError])
 
   // Arama modunda gruba özel arama ucu (alaka sıralı), değilse sıralı listeleme.
-  const fetchPage = useCallback((pageNum) => (
+  const fetchPage = useCallback((pageNum, { signal } = {}) => (
     isSearching
-      ? searchPostsInSubGroup(token, subGroupId, debouncedQuery, { page: pageNum })
-      : listPostsBySubGroup(token, subGroupId, { page: pageNum, sort })
+      ? searchPostsInSubGroup(token, subGroupId, debouncedQuery, { page: pageNum, signal })
+      : listPostsBySubGroup(token, subGroupId, { page: pageNum, sort, signal })
   ), [token, subGroupId, sort, isSearching, debouncedQuery])
 
   const { items: posts, loading, loadingMore, last, loadMore, reload } = usePaginatedList(fetchPage, {
     enabled: !!token && !!subGroupId,
     deps: [token, subGroupId, sort, debouncedQuery],
+    // Arama sonuçları önbelleğe girmez (sorgu başına anahtar şişirmeye değmez).
+    cacheKey: token && !isSearching ? `subgroup:${subGroupId}:${sort}` : null,
     // İlk yükleme hatası kalıcı bir Alert; "Daha Fazla Yükle" hatası (liste
     // zaten dolu) yalnızca bir toast.
     onError: (err, phase) => {
@@ -80,7 +85,7 @@ export default function Posts() {
     if (!isSearching) reloadPosts()
   }
 
-  const openDialog = () => setDialogOpen(true)
+  const openDialog = () => { setDialogMounted(true); setDialogOpen(true) }
 
   return (
     <Box sx={{ py: { xs: 2, md: 4 } }}>
@@ -134,7 +139,7 @@ export default function Posts() {
           placeholder="Bu grupta ara..."
           value={query}
           onChange={e => setQuery(clampLength(e.target.value, LIMITS.SEARCH_MAX))}
-          sx={{ '& .MuiOutlinedInput-root': { borderRadius: '999px', bgcolor: 'background.paper', minHeight: 46 } }}
+          sx={{ '& .MuiOutlinedInput-root': { borderRadius: '999px', bgcolor: 'background.paper', minHeight: 48 } }}
           slotProps={{
             input: {
               startAdornment: <SearchRounded sx={{ color: 'text.secondary', mr: 1, fontSize: 22 }} />,
@@ -179,12 +184,16 @@ export default function Posts() {
 
       <CreatePostFab onClick={openDialog} />
 
-      <NewPostDialog
-        open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
-        presetSubGroup={subGroup ? { id: subGroup.id, name: subGroup.name, diseaseGroupId: subGroup.diseaseGroupId } : null}
-        onCreated={onPostCreated}
-      />
+      {dialogMounted && (
+        <Suspense fallback={null}>
+          <NewPostDialog
+            open={dialogOpen}
+            onClose={() => setDialogOpen(false)}
+            presetSubGroup={subGroup ? { id: subGroup.id, name: subGroup.name, diseaseGroupId: subGroup.diseaseGroupId } : null}
+            onCreated={onPostCreated}
+          />
+        </Suspense>
+      )}
     </Box>
   )
 }

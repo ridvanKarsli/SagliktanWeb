@@ -7,6 +7,7 @@ import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
 import { getAvatarOptions, selectAvatar } from '../../services/api.js'
 import { radius } from '../../design/tokens.js'
+import { useDialogHistory } from '../../hooks/useDialogHistory.js'
 import LeafBurst from '../celebration/LeafBurst.jsx'
 import UserAvatar from './UserAvatar.jsx'
 import Companion from './Companion.jsx'
@@ -184,6 +185,7 @@ export default function AvatarPicker({ open, onClose }) {
   const { showError, showSuccess, showInfo } = useNotification()
   const theme = useTheme()
   const fullScreen = useMediaQuery(theme.breakpoints.down('sm'))
+  useDialogHistory(open && fullScreen, onClose)
   const [data, setData] = useState(null)
   const [saving, setSaving] = useState(false)
   const [fresh, setFresh] = useState([])

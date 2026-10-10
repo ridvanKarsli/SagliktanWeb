@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useNotification } from '../context/NotificationContext.jsx'
 import { useConfirm } from '../context/ConfirmContext.jsx'
-import { deletePost, getPost, pinPost, unpinPost, updatePost } from '../services/api.js'
+import { deletePost, getPost, isAbortError, pinPost, unpinPost, updatePost } from '../services/api.js'
 import { cleanLine, cleanText, fieldErrorsFrom, postContentError, postTitleError } from '../utils/validation.js'
 
 // Bir gönderinin kendisini (yorumlar hariç) yükleme + düzenleme + silme +
@@ -23,27 +23,36 @@ export function usePost(postId) {
   const [deletingPost, setDeletingPost] = useState(false)
   const [togglingPin, setTogglingPin] = useState(false)
 
-  // Yalnızca en son isteğin yanıtı uygulanır (gönderi değişimi / unmount).
+  // Yalnızca en son isteğin yanıtı uygulanır (gönderi değişimi / unmount);
+  // önceki istek ağda da kesilir (AbortController).
   const loadSeqRef = useRef(0)
+  const controllerRef = useRef(null)
 
   const loadPost = useCallback(() => {
     if (!token || !postId) return
+    controllerRef.current?.abort()
+    const controller = new AbortController()
+    controllerRef.current = controller
     const seq = ++loadSeqRef.current
     const isCurrent = () => seq === loadSeqRef.current
     setLoading(true)
     setError('')
-    getPost(token, postId)
+    getPost(token, postId, { signal: controller.signal })
       .then(data => {
         if (!isCurrent()) return
         setPost(data)
         setEditTitle(data.title)
         setEditContent(data.content)
       })
-      .catch(err => { if (isCurrent()) setError(err.message || 'Gönderi yüklenemedi.') })
+      .catch(err => { if (isCurrent() && !isAbortError(err)) setError(err.message || 'Gönderi yüklenemedi.') })
       .finally(() => { if (isCurrent()) setLoading(false) })
   }, [token, postId])
 
-  const invalidatePending = useCallback(() => { loadSeqRef.current += 1 }, [])
+  const invalidatePending = useCallback(() => {
+    loadSeqRef.current += 1
+    controllerRef.current?.abort()
+    controllerRef.current = null
+  }, [])
 
   useEffect(() => {
     loadPost()

@@ -18,6 +18,7 @@ import { canManage } from '../../utils/permissions.js'
 import { clickableProps } from '../../utils/clickable.js'
 import { COMMENT_MAX_LENGTH } from './commentLimits.js'
 import { clampLength, cleanText, commentError, counterText, fieldErrorsFrom } from '../../utils/validation.js'
+import { focusRingSx } from '../../design/focus.js'
 
 // Tek bir yorum ya da yanıt satırı. Girinti/bağlantı çizgisi BURADA değil,
 // PostDetail'deki thread bloğunda çizilir - bu bileşen hiçbir zaman kendi
@@ -81,7 +82,7 @@ export default function CommentRow({
   }
 
   const remove = async () => {
-    if (!(await confirm('Bu yorumu silmek istiyor musun?', { title: 'Yorumu sil' }))) return
+    if (!(await confirm('Bu yorumu silmek istiyor musun?', { title: 'Yorumu sil', confirmLabel: 'Sil' }))) return
     setDeleting(true)
     try {
       await deleteComment(token, comment.id)
@@ -122,7 +123,7 @@ export default function CommentRow({
             aria-label={`${authorName} profiline git`}
             sx={{
               borderRadius: '50%', flexShrink: 0, cursor: 'pointer', mt: '2px',
-              '&:focus-visible': { outline: '3px solid', outlineColor: 'primary.light', outlineOffset: 2 }
+              '&:focus-visible': focusRingSx
             }}
           >
             <UserAvatar avatarKey={comment.authorAvatarKey} name={authorName} size={avatarSize} />

@@ -8,6 +8,7 @@ import { CheckCircleRounded, CloseRounded, SendRounded } from '@mui/icons-materi
 import { useAuth } from '../context/AuthContext.jsx'
 import UserAvatar from './avatars/UserAvatar.jsx'
 import SlideUp from './shell/SlideUp.jsx'
+import { useDialogHistory } from '../hooks/useDialogHistory.js'
 import { useNotification } from '../context/NotificationContext.jsx'
 import { listConversations, sendChatMessage } from '../services/api.js'
 
@@ -23,6 +24,7 @@ export default function SendPostDialog({ open, onClose, post }) {
   // barındırdığında dar alana sıkışıyordu - tam ekran, konuşma listesini
   // rahat kaydırılabilir ve dokunma hedefleri daha ferah hale getiriyor.
   const fullScreen = useMediaQuery(theme.breakpoints.down('sm'))
+  useDialogHistory(open && fullScreen, onClose)
 
   const [conversations, setConversations] = useState([])
   const [loading, setLoading] = useState(true)

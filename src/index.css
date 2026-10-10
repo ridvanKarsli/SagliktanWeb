@@ -1,9 +1,12 @@
-* { box-sizing: border-box; }
-html, body, #root {
-  height: 100%;
-  overflow-x: hidden;
-  width: 100%;
-}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+/* Kaydırma kabı VIEWPORT'un kendisidir, #root değil. Eskiden `html, body,
+   #root { height:100%; overflow-x:hidden }` #root'u gizli bir kaydırma
+   kabına çeviriyordu: window.scrollY hep 0 kalıyor, tarayıcının adres
+   çubuğu gizleme/geri-ileri kaydırma geri yükleme, pull-to-refresh ve MUI
+   Dialog'un gövde kilidi çalışmıyordu. overflow-x: clip yatay taşmayı
+   kaydırma kabı yaratmadan keser (hidden'ın aksine). */
+html, body { min-height: 100%; }
+body { overflow-x: clip; }
 
 /* İlk boyamada (JS yüklenmeden) zemin, theme.js ile aynı olmalı - bkz.
    public/theme-init.js, <html data-theme> değerini React'tan önce yazar. */
@@ -20,15 +23,35 @@ html[data-theme='dark'] body { background-color: #0F1F1C; }
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --ease-flow: cubic-bezier(0.2, 0.8, 0.2, 1);
+  /* Odak halkası (bkz. theme.js focusRing ve design/focus.js): ana renkte
+     3px dış çizgi + zemin renginde 2px iç boşluk. Değerler tokens.js
+     primary/background ile aynı; tema değişince html[data-theme] üzerinden
+     güncellenir (theme-init.js React'tan önce yazar). */
+  --sg-focus-color: #157461;
+  --sg-focus-halo: #F2F7F4;
+  --sg-focus-ring: 0 0 0 2px var(--sg-focus-halo);
+  color-scheme: light;
+}
+html[data-theme='dark'] {
+  --sg-focus-color: #5CC7AD;
+  --sg-focus-halo: #0F1F1C;
+  color-scheme: dark;
 }
 
 /* Ana ekrana eklenmiş (standalone) kullanımda lastik zıplamasını kapat. */
 html, body { overscroll-behavior-y: contain; }
 
 :focus-visible {
-  outline: 3px solid rgba(76, 184, 159, 0.75);
+  outline: 3px solid var(--sg-focus-color);
   outline-offset: 2px;
+  box-shadow: var(--sg-focus-ring);
   border-radius: 10px;
+}
+
+/* iOS Safari, 16px'in altındaki giriş alanına odaklanınca sayfayı yakınlaştırır
+   (tema zaten 17px veriyor; bu, tema dışı/ham alanlar için güvence). */
+@media (max-width: 599.95px) {
+  input, select, textarea { font-size: max(1rem, 1em); }
 }
 
 img, video, iframe {
@@ -93,4 +116,7 @@ img, video, iframe {
     animation-iteration-count: 1 !important;
     transition-duration: 1ms !important;
   }
+  /* Basınca küçülme efektleri de kapanır (MUI Button/IconButton/Fab tema
+     içinde aynı sorguyla kapatılıyor - bkz. theme.js). */
+  .tap-scale:active { transform: none; }
 }

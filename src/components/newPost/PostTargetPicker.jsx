@@ -3,6 +3,7 @@ import { Alert, Box, Button, ButtonBase, Skeleton, Stack, Typography } from '@mu
 import {
   CheckCircleRounded, ChevronRightRounded, ForumOutlined, GroupsRounded, PlaceOutlined, RadioButtonUncheckedRounded
 } from '@mui/icons-material'
+import { focusRingSx } from '../../design/focus.js'
 
 const sameId = (a, b) => a != null && b != null && String(a) === String(b)
 
@@ -54,7 +55,7 @@ function GroupCards({ groups, value, onChange }) {
               textAlign: 'left', border: '2px solid', borderColor: selected ? 'primary.main' : 'brand.border',
               bgcolor: selected ? 'brand.primarySoft' : 'background.paper',
               transition: 'border-color 160ms ease, background-color 160ms ease',
-              '&.Mui-focusVisible': { outline: '3px solid', outlineColor: 'primary.light', outlineOffset: 2 }
+              '&.Mui-focusVisible': focusRingSx
             }}
           >
             <Stack direction="row" justifyContent="space-between" sx={{ width: '100%' }}>
@@ -91,7 +92,7 @@ function TopicList({ topics, value, onChange }) {
               justifyContent: 'flex-start', textAlign: 'left', gap: 1.5, px: 1.5, py: 1.25, minHeight: 56, borderRadius: 3,
               border: '1.5px solid', borderColor: selected ? 'primary.main' : 'brand.border',
               bgcolor: selected ? 'brand.primarySoft' : 'background.paper',
-              '&.Mui-focusVisible': { outline: '3px solid', outlineColor: 'primary.light', outlineOffset: 2 }
+              '&.Mui-focusVisible': focusRingSx
             }}
           >
             <ForumOutlined sx={{ color: selected ? 'primary.main' : 'text.secondary', flexShrink: 0 }} />

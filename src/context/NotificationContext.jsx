@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback, useMemo } from 'react'
 import LumoNotification from '../components/LumoNotification.jsx'
+import { NOTIFICATION_DURATION } from '../utils/notificationDuration.js'
 import { Box, Stack } from '@mui/material'
 
 const NotificationContext = createContext(null)
@@ -7,13 +8,14 @@ const NotificationContext = createContext(null)
 export function NotificationProvider({ children }) {
   const [notifications, setNotifications] = useState([])
 
-  const showNotification = useCallback((message, type = 'info', duration = 4000) => {
+  // Süre verilmezse türe göre varsayılan (bkz. NOTIFICATION_DURATION).
+  const showNotification = useCallback((message, type = 'info', duration) => {
     const id = Date.now() + Math.random()
     setNotifications(prev => {
       // Aynı mesajı tekrar gösterme (spam önleme)
       if (prev.some(n => n.message === message && n.type === type)) return prev
       // En fazla 3 bildirim göster
-      const next = [...prev, { id, message, type, duration }]
+      const next = [...prev, { id, message, type, duration: duration ?? NOTIFICATION_DURATION[type] ?? NOTIFICATION_DURATION.info }]
       return next.length > 3 ? next.slice(-3) : next
     })
     return id
@@ -23,19 +25,19 @@ export function NotificationProvider({ children }) {
     setNotifications(prev => prev.filter(n => n.id !== id))
   }, [])
 
-  const showError = useCallback((message, duration = 5000) => {
+  const showError = useCallback((message, duration) => {
     return showNotification(message, 'error', duration)
   }, [showNotification])
 
-  const showSuccess = useCallback((message, duration = 3000) => {
+  const showSuccess = useCallback((message, duration) => {
     return showNotification(message, 'success', duration)
   }, [showNotification])
 
-  const showWarning = useCallback((message, duration = 4000) => {
+  const showWarning = useCallback((message, duration) => {
     return showNotification(message, 'warning', duration)
   }, [showNotification])
 
-  const showInfo = useCallback((message, duration = 4000) => {
+  const showInfo = useCallback((message, duration) => {
     return showNotification(message, 'info', duration)
   }, [showNotification])
 

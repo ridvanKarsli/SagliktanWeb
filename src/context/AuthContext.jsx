@@ -1,6 +1,8 @@
-import { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react'
+import { createContext, useContext, useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { loginUser, registerUser, getUserProfile, refreshToken as refreshTokenApi, logoutUser } from '../services/api.js'
 import { clearRecentSearches } from '../utils/recentSearches.js'
+import { clearMyGroups } from '../services/myGroups.js'
+import { invalidateListCache } from '../hooks/usePaginatedList.js'
 
 // --- JWT yardımcıları (sadece expiry kontrolü için; kullanıcı bilgisi her zaman /users/me'den alınır) ---
 function b64urlToUtf8(b64url) {
@@ -30,6 +32,19 @@ function isTokenExpired(token) {
   const bufferSeconds = 120
   return p.exp <= (Math.floor(Date.now() / 1000) + bufferSeconds)
 }
+
+// Proaktif yenileme için: token'ın `exp`'ine (saniye) kalan süre, ms.
+// exp yoksa null (süresiz token - zamanlayıcı kurulmaz).
+function msUntilExpiry(token) {
+  const p = parseJwt(token)
+  if (!p?.exp) return null
+  return p.exp * 1000 - Date.now()
+}
+// exp'ten bu kadar önce yenile: reaktif 401->refresh yolu (api.js) yedek
+// olarak kalır ama normalde hiç devreye girmez; kullanıcı "yetkin yok"
+// anlarını ve çift istek maliyetini görmez.
+const PROACTIVE_REFRESH_LEAD_MS = 120 * 1000
+const MIN_REFRESH_DELAY_MS = 5 * 1000
 
 // Global refresh lock - aynı anda birden fazla refresh yapılmasını engelle.
 // api.js'in 401 retry mantığı bunu kullanır.
@@ -173,6 +188,9 @@ export function AuthProvider({ children }) {
     // Sağlık verisi niteliğindeki son aramalar (hastalık adları) ortak
     // cihazda bir sonraki kullanıcıya kalmasın.
     clearRecentSearches()
+    // Bellekteki liste/üyelik önbellekleri de bir sonraki kullanıcıya sızmasın.
+    clearMyGroups()
+    invalidateListCache()
   }, [token])
 
   // Backend e-posta doğrulaması zorunlu kılıyor: register token döndürmez.
@@ -226,6 +244,51 @@ export function AuthProvider({ children }) {
     setRefreshCallback(refreshAccessToken)
     return () => setRefreshCallback(null)
   }, [refreshAccessToken])
+
+  // Proaktif yenileme: access token dolmadan 2 dk önce arka planda yenile.
+  // Her yeni token'da zamanlayıcı yeniden kurulur (setToken -> bu effect).
+  // Sekme uyuyup uyandığında (mobil) zamanlayıcılar geç/hiç çalışmamış
+  // olabilir: görünür olunca kalan süreye bakılıp gerekirse hemen yenilenir.
+  const refreshTimerRef = useRef(null)
+  useEffect(() => {
+    if (!token) return undefined
+    let cancelled = false
+
+    const arm = () => {
+      clearTimeout(refreshTimerRef.current)
+      const remaining = msUntilExpiry(token)
+      if (remaining == null) return
+      const delay = Math.max(MIN_REFRESH_DELAY_MS, remaining - PROACTIVE_REFRESH_LEAD_MS)
+      refreshTimerRef.current = setTimeout(() => {
+        if (cancelled) return
+        // attemptTokenRefresh: api.js ile aynı tek-uçuş kilidi (aynı anda
+        // bir 401 yeniden denemesi de refresh istiyorsa ikinci istek açılmaz).
+        attemptTokenRefresh().catch(() => {
+          // Ağ hatasında sessiz kal: reaktif yol (401 -> refresh) ve bir
+          // sonraki visibilitychange yeniden dener; sunucu reddettiyse
+          // refreshAccessToken zaten çıkış yaptırdı.
+        })
+      }, delay)
+    }
+
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible' || cancelled) return
+      const remaining = msUntilExpiry(token)
+      if (remaining != null && remaining <= PROACTIVE_REFRESH_LEAD_MS) {
+        attemptTokenRefresh().catch(() => {})
+      } else {
+        arm()
+      }
+    }
+
+    arm()
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      cancelled = true
+      clearTimeout(refreshTimerRef.current)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
+  }, [token])
 
   const value = useMemo(
     () => ({ token, user, isAuthenticated: !!token && !!user, loading, login, logout, register, updateLocalUser, applyServerUser, refreshAccessToken }),

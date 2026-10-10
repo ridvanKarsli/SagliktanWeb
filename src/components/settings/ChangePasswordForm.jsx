@@ -48,14 +48,14 @@ export default function ChangePasswordForm({ onDone }) {
         <PasswordField
           label="Mevcut Şifre" value={fields.currentPassword} autoComplete="current-password"
           onChange={set('currentPassword')} {...v.field('currentPassword')} helperText={v.error('currentPassword')}
-          fullWidth required size="small" slotProps={{ htmlInput: { enterKeyHint: 'next' } }}
+          fullWidth required slotProps={{ htmlInput: { enterKeyHint: 'next' } }}
         />
         <Box>
           <PasswordField
             label="Yeni Şifre" value={fields.newPassword} autoComplete="new-password"
             onChange={set('newPassword')} {...v.field('newPassword')}
             helperText={v.error('newPassword') || `En az ${LIMITS.PASSWORD_MIN} karakter`}
-            fullWidth required size="small" slotProps={{ htmlInput: { enterKeyHint: 'next' } }}
+            fullWidth required slotProps={{ htmlInput: { enterKeyHint: 'next' } }}
           />
           <Box sx={{ mt: 1 }}>
             <PasswordStrengthMeter password={fields.newPassword} />
@@ -64,7 +64,7 @@ export default function ChangePasswordForm({ onDone }) {
         <PasswordField
           label="Yeni Şifre (Tekrar)" value={fields.confirmPassword} autoComplete="new-password"
           onChange={set('confirmPassword')} {...v.field('confirmPassword')} helperText={v.error('confirmPassword')}
-          fullWidth required size="small" slotProps={{ htmlInput: { enterKeyHint: 'done' } }}
+          fullWidth required slotProps={{ htmlInput: { enterKeyHint: 'done' } }}
         />
         <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
           <Button type="submit" variant="contained" disabled={saving}>

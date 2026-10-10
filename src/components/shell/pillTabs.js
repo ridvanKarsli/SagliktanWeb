@@ -1,3 +1,4 @@
+import { focusRingSx } from '../../design/focus.js'
 // Yumuşak "kapsül" sekmeler: seçili sekmenin arkasındaki yeşil kapsül
 // (MUI göstergesi) sekmeler arasında yaylanarak kayar. Ana sayfa ve arama
 // sekmeleri aynı görünümü kullanır. <Tabs sx={pillTabsSx}> ile.
@@ -23,7 +24,7 @@ export const pillTabsSx = {
     color: 'text.secondary',
     transition: 'color 200ms ease',
     '&.Mui-selected': { color: 'primary.main' },
-    '&.Mui-focusVisible': { outline: '3px solid', outlineColor: 'primary.light', outlineOffset: -3 }
+    '&.Mui-focusVisible': { ...focusRingSx, outlineOffset: '-3px' }
   },
   '& .MuiTabs-scrollButtons': { width: 32, borderRadius: '999px' }
 }

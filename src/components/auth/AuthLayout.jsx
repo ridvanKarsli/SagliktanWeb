@@ -38,7 +38,7 @@ export default function AuthLayout({
         }}
       >
         <Stack direction="row" alignItems="center" spacing={1.25}>
-          <Box component="img" src="/sagliktanLogo.png" alt="" sx={{ width: 44, height: 44, borderRadius: `${radius.sm}px` }} />
+          <Box component="img" src="/sagliktanLogo-96.png" alt="" sx={{ width: 44, height: 44, borderRadius: `${radius.sm}px` }} />
           <Typography variant="h5" component="p" sx={{ color: 'primary.main', fontWeight: 800 }}>Sağlıktan</Typography>
         </Stack>
         <Box sx={{ maxWidth: 440 }}>

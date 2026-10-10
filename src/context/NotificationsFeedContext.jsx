@@ -13,7 +13,8 @@ const NotificationsFeedContext = createContext(null)
 const FEED_PAGE_SIZE = 10
 
 export function NotificationsFeedProvider({ children }) {
-  const { token } = useAuth()
+  const { token, user } = useAuth()
+  const userId = user?.id ?? null
   const [items, setItems] = useState([])
   const [unreadCount, setUnreadCount] = useState(0)
   // Sadece E2E testleri için: STOMP aboneliği gerçekten kurulana kadar
@@ -36,8 +37,14 @@ export function NotificationsFeedProvider({ children }) {
       .catch(() => {})
   }, [token])
 
+  // Soket KULLANICI ömürlü (token değil) - gerekçe için bkz. MessagingContext.
+  const tokenRef = useRef(token)
+  tokenRef.current = token
+  const refreshRef = useRef(refresh)
+  refreshRef.current = refresh
+
   useEffect(() => {
-    if (!token) {
+    if (!userId || !tokenRef.current) {
       setItems([])
       setUnreadCount(0)
       setWsConnected(false)
@@ -46,9 +53,13 @@ export function NotificationsFeedProvider({ children }) {
       return undefined
     }
 
-    refresh()
+    refreshRef.current()
 
-    const client = connectNotificationSocket(token, {
+    // Arka planda soket kapanmış olabilir: görünür olunca listeyi tazele.
+    const onVisible = () => { if (document.visibilityState === 'visible') refreshRef.current() }
+    document.addEventListener('visibilitychange', onVisible)
+
+    const client = connectNotificationSocket(tokenRef.current, {
       onNotification: (notification) => {
         setItems(prev => [notification, ...prev].slice(0, FEED_PAGE_SIZE))
         setUnreadCount(prev => prev + 1)
@@ -58,11 +69,12 @@ export function NotificationsFeedProvider({ children }) {
     clientRef.current = client
 
     return () => {
+      document.removeEventListener('visibilitychange', onVisible)
       setWsConnected(false)
       client.deactivate()
       if (clientRef.current === client) clientRef.current = null
     }
-  }, [token, refresh])
+  }, [userId])
 
   const markRead = useCallback(async (id) => {
     setItems(prev => prev.map(n => (n.id === id ? { ...n, read: true } : n)))

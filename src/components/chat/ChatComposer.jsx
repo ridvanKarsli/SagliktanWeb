@@ -28,7 +28,7 @@ export default function ChatComposer({ draft, onDraftChange, attachment, onAttac
             aria-label="Eki kaldır"
             sx={{
               position: 'absolute', top: 0, right: 0, width: 44, height: 44,
-              color: 'common.white', '&:hover': { color: 'common.white', bgcolor: 'transparent' },
+              '&:hover': { bgcolor: 'transparent' },
             }}
           >
             <Box component="span" sx={{ width: 24, height: 24, borderRadius: '50%', display: 'grid', placeItems: 'center', bgcolor: 'text.primary', color: 'background.paper' }}>

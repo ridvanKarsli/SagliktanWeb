@@ -8,7 +8,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Sağlıktan – Hastalık Toplulukları için Destek Platformu</title>
     <meta name="description" content="Kronik ve nadir hastalıklarla yaşayan bireyleri ve yakınlarını hastalık gruplarında bir araya getiren, deneyim paylaşımına dayalı güvenli bir topluluk platformu." />
-    <meta name="theme-color" content="#F2F7F4" />
+    <!-- Tarayıcı çubuğu rengi: tokens.js background (açık/koyu). Kullanıcı
+         uygulama içinde tema seçerse AccessibilityContext ilk etiketi günceller. -->
+    <meta name="theme-color" content="#F2F7F4" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0F1F1C" media="(prefers-color-scheme: dark)" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="canonical" href="https://sagliktan.com/" />
+    <!-- Paylaşım kartları (WhatsApp, X, LinkedIn...) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Sağlıktan" />
+    <meta property="og:locale" content="tr_TR" />
+    <meta property="og:url" content="https://sagliktan.com/" />
+    <meta property="og:title" content="Sağlıktan – Kronik hastalıkla yaşayanların topluluğu" />
+    <meta property="og:description" content="Seninle aynı yoldan geçenlerle tanış, deneyimini paylaş, yalnız olmadığını hisset." />
+    <meta property="og:image" content="https://sagliktan.com/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Sağlıktan logosu ve 'Kronik hastalıkla yaşayanların topluluğu' yazısı" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Sağlıktan – Kronik hastalıkla yaşayanların topluluğu" />
+    <meta name="twitter:description" content="Seninle aynı yoldan geçenlerle tanış, deneyimini paylaş, yalnız olmadığını hisset." />
+    <meta name="twitter:image" content="https://sagliktan.com/og-image.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <!-- Faz6: açık tema desteği - React yüklenip AccessibilityProvider
          çalışana kadar body varsayılan (koyu) zeminle boyanır, kullanıcı
@@ -32,7 +52,9 @@
          Safari kısayolu olarak açar, uygulama gibi görünmez. -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <!-- "default": durum çubuğu sistem renginde, içerik altına kaymaz
+         (black-translucent açık temada okunmaz beyaz-üstü-beyaz veriyordu). -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Sağlıktan" />
     <!-- Fontlar (Nunito, Baloo 2) kendi sunucumuzdan yükleniyor - bkz.
          src/main.jsx. KVKK: Google Fonts'a doğrudan istek kullanıcının IP

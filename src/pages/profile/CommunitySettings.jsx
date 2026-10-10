@@ -151,7 +151,7 @@ export default function CommunitySettings() {
               title="Haftalık özet önizlemesi"
               srcDoc={preview.html}
               sandbox="allow-popups allow-popups-to-escape-sandbox"
-              sx={{ display: 'block', width: '100%', height: '70vh', border: 0, bgcolor: 'grey.100' }}
+              sx={{ display: 'block', width: '100%', height: '70vh', border: 0, bgcolor: 'background.paper' }}
             />
           )}
         </DialogContent>

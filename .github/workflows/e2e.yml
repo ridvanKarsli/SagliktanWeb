@@ -119,6 +119,12 @@ jobs:
           # AuthServiceImpl.register). helpers.js#uniqueAdminUser bu öneki
           # kullanıyor. Prod/staging'de bu değişken asla tanımlanmamalı.
           APP_TESTING_AUTO_ADMIN_EMAIL_PREFIX: "e2e-admin."
+          # Backend'in varsayılan CORS/WebSocket origin listesinden
+          # http://localhost:3000 güvenlik gerekçesiyle çıkarıldı (bkz. backend
+          # application.properties app.cors.allowed-origins). Bu job'da tarayıcı
+          # (vite preview, :3000) WS'e doğrudan :8080'e bağlandığı için origin
+          # burada açıkça veriliyor.
+          ALLOWED_ORIGINS: "http://localhost:3000"
           # SADECE burada - tek bir CI job'ında art arda çok sayıda test
           # kullanıcısı kayıt/login olduğu için IP bazlı rate limiter (bkz.
           # RateLimitFilter) gerçek bir saldırı sanıp "Çok fazla istek

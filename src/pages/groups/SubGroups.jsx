@@ -4,7 +4,8 @@ import { CheckRounded, PeopleAltRounded } from '@mui/icons-material'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
-import { getDiseaseGroup, getMyDiseaseGroups, listSubGroups, listDiseaseGroupMembers } from '../../services/api.js'
+import { getDiseaseGroup, listSubGroups, listDiseaseGroupMembers } from '../../services/api.js'
+import { fetchMyGroups } from '../../services/myGroups.js'
 import { useGroupMembership } from '../../hooks/useGroupMembership.js'
 import { usePaginatedList } from '../../hooks/usePaginatedList.js'
 import { goToUserProfile } from '../../utils/navigation.js'
@@ -30,7 +31,7 @@ function useDiseaseGroupPage(groupId) {
     Promise.all([
       getDiseaseGroup(token, groupId),
       listSubGroups(token, groupId),
-      getMyDiseaseGroups(token).catch(() => null)
+      fetchMyGroups(token).catch(() => null)
     ])
       .then(([group, subs, mine]) => {
         if (!alive) return

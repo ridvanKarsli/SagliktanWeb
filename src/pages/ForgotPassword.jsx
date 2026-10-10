@@ -38,6 +38,10 @@ export default function ForgotPassword() {
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  // Backend 5 yanlış denemeden sonra kodu kilitler ve her durumda aynı
+  // "Kod hatalı ya da süresi dolmuş" mesajını döner - o anda tek çıkış yeni kod.
+  const [codeRejected, setCodeRejected] = useState(false)
+  const [resending, setResending] = useState(false)
   const requestForm = useFormValidation({ email }, validateRequest)
   const resetForm = useFormValidation({ code, newPassword, confirmPassword }, validateReset)
 
@@ -67,9 +71,27 @@ export default function ForgotPassword() {
       setStep('done')
     } catch (err) {
       const mapped = { ...fieldFromMessage(err, RESET_MESSAGE_FIELDS), ...fieldErrorsFrom(err) }
+      if (/kod hatalı|süresi dolmuş/i.test(err.message || '')) setCodeRejected(true)
       if (!resetForm.applyServerErrors(mapped)) showError(err.message || 'Şifre sıfırlanamadı.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  // "Yeni kod iste": aynı adrese yeni kod gönderilir, kod alanı temizlenir.
+  const requestNewCode = async () => {
+    if (resending) return
+    setResending(true)
+    try {
+      await forgotPassword({ email: normalizeEmail(email) })
+      setCode('')
+      setCodeRejected(false)
+      resetForm.reset()
+      showSuccess('Yeni kod gönderildi. E-postanı kontrol et.')
+    } catch (err) {
+      showError(err.message || 'Kod gönderilemedi.')
+    } finally {
+      setResending(false)
     }
   }
 
@@ -140,7 +162,7 @@ export default function ForgotPassword() {
           <TextField
             label="Sıfırlama Kodu"
             value={code}
-            onChange={e => setCode(sanitizeCode(e.target.value))}
+            onChange={e => { setCode(sanitizeCode(e.target.value)); setCodeRejected(false) }}
             {...resetForm.field('code')}
             helperText={resetForm.error('code') || `E-postana gelen ${LIMITS.CODE_LENGTH} haneli kod`}
             required
@@ -155,6 +177,16 @@ export default function ForgotPassword() {
               }
             }}
           />
+          {codeRejected && (
+            <Button
+              variant="outlined"
+              onClick={requestNewCode}
+              disabled={resending}
+              sx={{ alignSelf: 'flex-start', mt: -1.5 }}
+            >
+              {resending ? 'Gönderiliyor...' : 'Yeni kod iste'}
+            </Button>
+          )}
           <Box>
             <PasswordField
               label="Yeni Şifre"

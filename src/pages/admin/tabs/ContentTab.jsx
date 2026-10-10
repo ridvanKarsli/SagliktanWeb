@@ -115,7 +115,7 @@ export default function ContentTab({ token }) {
 
   const remove = async (item) => {
     const label = type === 'posts' ? 'gönderiyi' : 'yorumu'
-    const ok = await confirm(`Bu ${label} kalıcı olarak silmek istiyor musun? Bu işlem geri alınamaz.`, { title: 'İçeriği sil' })
+    const ok = await confirm(`Bu ${label} kalıcı olarak silmek istiyor musun? Bu işlem geri alınamaz.`, { title: 'İçeriği sil', confirmLabel: 'Sil' })
     if (!ok) return
     setDeletingId(item.id)
     try {

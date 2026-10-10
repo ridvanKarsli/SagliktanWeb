@@ -18,13 +18,21 @@ export default defineConfig({
         // (nadiren değişen) kullanıcının önbelleğinde kalmaya devam ediyor.
         // Sentry zaten main.jsx'te dynamic import() ile ayrı bir chunk
         // (ilk yüklemeyi bloklamıyor) - ayrıca elle bölünmesine gerek yok.
+        //
+        // MUI bilerek manualChunks'ta DEĞİL: `'mui-vendor': ['@mui/material',
+        // '@mui/icons-material']` yazmak paketin TAMAMINI (kullanılmayan
+        // bileşenler ve 2000+ ikon dahil - ~430 KB / 132 KB gz) tek bir senkron
+        // chunk'a sokuyor ve tree-shaking'i etkisizleştiriyordu. Rollup'a
+        // bırakınca yalnızca gerçekten import edilen bileşenler/ikonlar, onları
+        // kullanan chunk'lara (çoğu lazy route) dağılıyor.
         manualChunks: {
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'mui-vendor': [
-            '@mui/material', '@mui/icons-material', '@mui/x-date-pickers',
-            '@emotion/react', '@emotion/styled'
-          ]
-        }
+          'react-vendor': ['react', 'react-dom', 'react-router-dom']
+        },
+        // MUI'yi elle bölmeyince ikonlar gibi 200-400 baytlık onlarca mikro
+        // chunk oluşuyordu (her biri ayrı istek). Rollup'ın bu eşiğin
+        // altındaki chunk'ları, fazladan yükleme yaratmayacak bir komşuya
+        // katmasına izin ver.
+        experimentalMinChunkSize: 3000
       }
     }
   },

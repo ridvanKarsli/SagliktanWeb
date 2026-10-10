@@ -46,7 +46,7 @@ export default function PasswordField({ slotProps, helperText, error, onKeyDown,
                 edge="end"
                 size="small"
                 aria-label={visible ? 'Şifreyi gizle' : 'Şifreyi göster'}
-                tabIndex={-1}
+                aria-pressed={visible}
               >
                 {visible ? <VisibilityOffOutlined fontSize="small" /> : <VisibilityOutlined fontSize="small" />}
               </IconButton>

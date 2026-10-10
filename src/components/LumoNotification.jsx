@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { Box, Typography, IconButton } from '@mui/material'
 import { alpha, useTheme } from '@mui/material/styles'
 import { paletteFor } from '../design/tokens.js'
+import { NOTIFICATION_DURATION } from '../utils/notificationDuration.js'
 import {
   CheckCircleOutline as SuccessIcon,
   ErrorOutline as ErrorIcon,
@@ -13,10 +14,15 @@ import {
 // Hafif bir kapsül bildirim: açık temada çam mürekkebi rengi koyu bir
 // yüzey, koyu temada tersi (açık yüzey) - her iki temada da içerikten net
 // ayrılır. Tür, renkli bir ikon dairesiyle (ikon + metin, renk tek başına
-// değil) anlatılır. Yukarıdan yaylanarak süzülür, dokununca kapanır.
+// değil) anlatılır. Yukarıdan yaylanarak süzülür; yalnızca × düğmesiyle
+// kapanır (kapsülün tamamına dokunmak kazara kapatmaya yol açıyordu).
+// Ekran okuyucu: hata/uyarı "alert" (kesen), başarı/bilgi "status" (sırada
+// bekleyen) - başarı mesajı okunmakta olan cümleyi yarıda kesmesin.
 const EXIT_ANIMATION_MS = 260
 
-export default function LumoNotification({ id, message, type = 'info', onClose, duration = 4000 }) {
+export default function LumoNotification({ id, message, type = 'info', onClose, duration }) {
+  const autoDuration = duration ?? NOTIFICATION_DURATION[type] ?? NOTIFICATION_DURATION.info
+  const interruptive = type === 'error' || type === 'warning'
   const [phase, setPhase] = useState('enter')   // enter | visible | exit
   // onClose'u ref'te tutuyoruz: sağlayıcı her yeni bildirimde yeniden render
   // olduğunda değişen bir callback, otomatik kapanma zamanlayıcısını sıfırdan
@@ -34,10 +40,10 @@ export default function LumoNotification({ id, message, type = 'info', onClose, 
 
   /* ---------- Auto-dismiss timer ---------- */
   useEffect(() => {
-    if (duration <= 0) return undefined
-    const t = setTimeout(triggerExit, duration)
+    if (autoDuration <= 0) return undefined
+    const t = setTimeout(triggerExit, autoDuration)
     return () => clearTimeout(t)
-  }, [duration, triggerExit])
+  }, [autoDuration, triggerExit])
 
   /* ---------- Enter animation ---------- */
   useEffect(() => {
@@ -70,9 +76,8 @@ export default function LumoNotification({ id, message, type = 'info', onClose, 
 
   return (
     <Box
-      role="alert"
-      aria-live="assertive"
-      onClick={triggerExit}
+      role={interruptive ? 'alert' : 'status'}
+      aria-live={interruptive ? 'assertive' : 'polite'}
       sx={{
         display: 'flex',
         alignItems: 'center',
@@ -88,7 +93,6 @@ export default function LumoNotification({ id, message, type = 'info', onClose, 
         backdropFilter: 'blur(16px) saturate(1.4)',
         WebkitBackdropFilter: 'blur(16px) saturate(1.4)',
         boxShadow: `0 14px 34px rgba(${theme.palette.brand.shadowRgb}, 0.28), 0 2px 8px rgba(${theme.palette.brand.shadowRgb}, 0.18)`,
-        cursor: 'pointer',
         opacity: entering || exiting ? 0 : 1,
         transform: entering
           ? 'translateY(-14px) scale(0.92)'
@@ -123,7 +127,7 @@ export default function LumoNotification({ id, message, type = 'info', onClose, 
       {/* WCAG 2.2.1: zaman sınırlı içerik elle de kapatılabilmeli. */}
       <IconButton
         size="small"
-        onClick={(e) => { e.stopPropagation(); triggerExit() }}
+        onClick={triggerExit}
         aria-label="Bildirimi kapat"
         sx={{
           color: alpha(textColor, 0.75),

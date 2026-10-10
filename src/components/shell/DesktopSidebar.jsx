@@ -8,6 +8,7 @@ import { clickableProps } from '../../utils/clickable.js'
 import NavIcon from './NavIcon.jsx'
 import BrandMark from './BrandMark.jsx'
 import { isNavItemActive, useNavItems } from './navConfig.jsx'
+import { focusRingSx } from '../../design/focus.js'
 
 export const SIDEBAR_WIDTH = 256
 
@@ -21,7 +22,7 @@ const rowSx = {
   borderRadius: '999px',
   cursor: 'pointer',
   transition: 'background-color 160ms ease, color 160ms ease',
-  '&:focus-visible': { outline: '3px solid', outlineColor: 'primary.light', outlineOffset: 2 }
+  '&:focus-visible': focusRingSx
 }
 
 // Masaüstü sol gezinme: marka + bildirimler, sekmeler, altta "sen" kartı
@@ -115,7 +116,7 @@ export default function DesktopSidebar({ onLogout }) {
             p: 1.25, mb: 1, borderRadius: '18px', bgcolor: 'brand.surfaceAlt',
             transition: 'background-color 160ms ease',
             '&:hover': { bgcolor: 'brand.primarySoft' },
-            '&.Mui-focusVisible': { outline: '3px solid', outlineColor: 'primary.light', outlineOffset: 2 }
+            '&.Mui-focusVisible': focusRingSx
           }}
         >
           <UserAvatar avatarKey={user.avatarKey} name={fullName} size={40} />

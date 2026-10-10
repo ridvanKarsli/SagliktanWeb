@@ -40,7 +40,11 @@ export default function Login() {
         : (loggedIn && loggedIn.onboardingCompleted === false ? '/hosgeldin' : '/home')
       navigate(target, { replace: true })
     } catch (err) {
-      showError(err?.message || 'Giriş başarısız.')
+      // 401: hatayı şifre alanının altında göster (ekran okuyucu ve küçük
+      // ekranda toast kaçabiliyor); 429 ve diğerleri genel bildirim.
+      const message = err?.message || 'Giriş başarısız.'
+      if (err?.status === 401 && v.applyServerErrors({ pw: message })) return
+      showError(message)
     } finally {
       setLoading(false)
     }

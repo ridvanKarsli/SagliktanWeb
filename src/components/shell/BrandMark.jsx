@@ -16,7 +16,7 @@ export default function BrandMark({ size = 32, fontSize = '1.3rem' }) {
     >
       <Box
         component="img"
-        src="/sagliktanLogo.png"
+        src="/sagliktanLogo-96.png"
         alt=""
         sx={{ width: size, height: size, borderRadius: `${Math.round(size * 0.3)}px`, transition: 'transform 240ms var(--ease-spring)' }}
       />

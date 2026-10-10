@@ -2,6 +2,7 @@ import { Box, Skeleton, Stack, Typography } from '@mui/material'
 import { ChatBubbleOutlineRounded, ChevronRightRounded } from '@mui/icons-material'
 import GroupIcon from './GroupIcon.jsx'
 import { cardActivationProps } from '../../utils/clickable.js'
+import { focusRingSx } from '../../design/focus.js'
 
 const cardSx = {
   p: { xs: 1.75, sm: 2.25 },
@@ -25,7 +26,7 @@ export default function SubGroupCard({ subGroup, onOpen }) {
         cursor: 'pointer',
         transition: 'border-color 200ms ease, box-shadow 240ms ease, transform 160ms var(--ease-spring)',
         '@media (hover: hover)': { '&:hover': { boxShadow: 3, borderColor: 'brand.borderStrong' }, '&:hover .sg-chevron': { transform: 'translateX(3px)' } },
-        '&:focus-visible': { outline: '3px solid', outlineColor: 'primary.light', outlineOffset: 2 }
+        '&:focus-visible': focusRingSx
       }}
     >
       <Stack direction="row" spacing={1.75} alignItems="center">

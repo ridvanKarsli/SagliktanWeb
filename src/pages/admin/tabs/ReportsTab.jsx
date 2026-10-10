@@ -121,7 +121,7 @@ export default function ReportsTab({ token, onResolved }) {
 
   const deleteContent = async (r) => {
     const label = { POST: 'gönderiyi', COMMENT: 'yorumu', MESSAGE: 'mesajı' }[r.targetType] || 'içeriği'
-    const ok = await confirm(`Bu ${label} kalıcı olarak silmek istiyor musun? Bu işlem geri alınamaz.`, { title: 'İçeriği sil' })
+    const ok = await confirm(`Bu ${label} kalıcı olarak silmek istiyor musun? Bu işlem geri alınamaz.`, { title: 'İçeriği sil', confirmLabel: 'Sil' })
     if (!ok) return
     act(r.id, 'REVIEWED', true)
   }

@@ -18,11 +18,13 @@ import {
 import { clearDraft, loadDraft, loadLastTarget, saveDraft, saveLastTarget } from './newPost/postDraftStorage.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useNotification } from '../context/NotificationContext.jsx'
-import { createPost, getMyDiseaseGroups, listSubGroups } from '../services/api.js'
+import { createPost, listSubGroups } from '../services/api.js'
+import { fetchMyGroups } from '../services/myGroups.js'
 import { appendDictation, isDictationSupported } from '../utils/speech.js'
 import { useGroupMembership } from '../hooks/useGroupMembership.js'
 import { useSimilarPosts } from '../hooks/useSimilarPosts.js'
 import { useFormValidation } from '../hooks/useFormValidation.js'
+import { useDialogHistory } from '../hooks/useDialogHistory.js'
 import {
   clampLength, cleanLine, cleanText, counterText, fieldErrorsFrom, isAtLimit, postContentError, postTitleError
 } from '../utils/validation.js'
@@ -162,13 +164,14 @@ export default function NewPostDialog({
     setSubGroupId(presetSubGroupId)
   }, [open, presetSubGroupId, presetSubGroupDgId])
 
-  /* Her açılışta üye olunan grupları (taze) çek. */
+  /* Her açılışta üye olunan grupları paylaşımlı önbellekten al (katıl/ayrıl
+     sonrası önbellek zaten düşürülür - bkz. services/myGroups.js). */
   useEffect(() => {
     if (!open) return undefined
     let alive = true
     setMyGroups(null)
-    getMyDiseaseGroups(token)
-      .then(list => { if (alive) setMyGroups(Array.isArray(list) ? list : []) })
+    fetchMyGroups(token)
+      .then(list => { if (alive) setMyGroups(list) })
       .catch(() => { if (alive) setMyGroups([]) })
     return () => { alive = false }
   }, [open, token])
@@ -244,6 +247,8 @@ export default function NewPostDialog({
     resetAttachments()
     onClose()
   }
+  // Mobilde tam ekran: cihazın Geri tuşu pencereyi kapatır (taslak korunur).
+  useDialogHistory(open && isSmallScreen, close)
 
   const discardDraft = () => {
     resetText()

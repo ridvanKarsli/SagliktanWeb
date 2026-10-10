@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useNotification } from '../context/NotificationContext.jsx'
-import { createComment, listComments, listCommentReplies } from '../services/api.js'
+import { createComment, isAbortError, listComments, listCommentReplies } from '../services/api.js'
 import { cleanText, commentError, fieldErrorsFrom } from '../utils/validation.js'
 
 // Bir gönderinin yorum ağacı - YERİNDE AÇILAN thread modeli: yanıtlar
@@ -36,26 +36,36 @@ export function usePostComments(postId, { onCountChange } = {}) {
   // Eski yanıt (yeniden yükleme ya da başka gönderi sonrası gelen) geçerli
   // listeyi ezmesin diye istek sıra numarası.
   const loadSeqRef = useRef(0)
+  // Süren ilk-sayfa / daha-fazla isteklerinin kesilmesi için (unmount,
+  // başka gönderiye geçiş).
+  const controllerRef = useRef(null)
   const onCountChangeRef = useRef(onCountChange)
   useEffect(() => { onCountChangeRef.current = onCountChange }, [onCountChange])
 
   const loadComments = useCallback(() => {
     if (!token || !postId) return
+    controllerRef.current?.abort()
+    const controller = new AbortController()
+    controllerRef.current = controller
     const seq = ++loadSeqRef.current
     setCommentsLoading(true)
     setPage(0)
     setThreads({})
-    listComments(token, postId, { page: 0 })
+    listComments(token, postId, { page: 0, signal: controller.signal })
       .then(res => {
         if (seq !== loadSeqRef.current) return
         setComments(Array.isArray(res?.content) ? res.content : [])
         setLast(res?.last ?? true)
       })
-      .catch(err => { if (seq === loadSeqRef.current) showError(err.message || 'Yorumlar alınamadı.') })
+      .catch(err => { if (seq === loadSeqRef.current && !isAbortError(err)) showError(err.message || 'Yorumlar alınamadı.') })
       .finally(() => { if (seq === loadSeqRef.current) setCommentsLoading(false) })
   }, [token, postId, showError])
 
-  const invalidatePending = useCallback(() => { loadSeqRef.current += 1 }, [])
+  const invalidatePending = useCallback(() => {
+    loadSeqRef.current += 1
+    controllerRef.current?.abort()
+    controllerRef.current = null
+  }, [])
 
   useEffect(() => {
     loadComments()
@@ -119,7 +129,7 @@ export function usePostComments(postId, { onCountChange } = {}) {
     const nextPage = page + 1
     setCommentsLoadingMore(true)
     try {
-      const res = await listComments(token, postId, { page: nextPage })
+      const res = await listComments(token, postId, { page: nextPage, signal: controllerRef.current?.signal })
       if (seq !== loadSeqRef.current) return
       setComments(prev => {
         const known = new Set(prev.map(c => c.id))
@@ -128,7 +138,7 @@ export function usePostComments(postId, { onCountChange } = {}) {
       setLast(res?.last ?? true)
       setPage(nextPage)
     } catch (err) {
-      showError(err.message || 'Yorumlar alınamadı.')
+      if (!isAbortError(err)) showError(err.message || 'Yorumlar alınamadı.')
     } finally {
       setCommentsLoadingMore(false)
     }

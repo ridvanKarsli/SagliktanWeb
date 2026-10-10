@@ -41,7 +41,7 @@ export default function PostContent({ post, isOwnPost, onPollChange }) {
       {post.postType === 'POLL' && (
         <PollView postId={post.id} poll={post.poll} isOwner={!!isOwnPost} onChange={onPollChange} sx={{ mt: 1.5 }} />
       )}
-      <PostGallery attachments={post.attachments} />
+      <PostGallery attachments={post.attachments} eagerFirst />
       {isQuestion && solved && (
         <Button
           size="small"

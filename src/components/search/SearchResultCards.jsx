@@ -5,6 +5,7 @@ import UserAvatar from '../avatars/UserAvatar.jsx'
 import { relativeTime } from '../../utils/format.js'
 import { cardActivationProps } from '../../utils/clickable.js'
 import { fullNameOf } from '../../utils/text.js'
+import { focusRingSx } from '../../design/focus.js'
 
 const surfaceSx = {
   p: { xs: 2, sm: 2.25 },
@@ -20,7 +21,7 @@ const cardSx = {
   cursor: 'pointer',
   transition: 'border-color 200ms ease, box-shadow 240ms ease, transform 160ms var(--ease-spring)',
   '@media (hover: hover)': { '&:hover': { boxShadow: 3, borderColor: 'brand.borderStrong' } },
-  '&:focus-visible': { outline: '3px solid', outlineColor: 'primary.light', outlineOffset: 2 }
+  '&:focus-visible': focusRingSx
 }
 
 // Yorum arama sonucu: kart yorumun gönderisini açar, yazar adı profiline gider.
@@ -38,7 +39,7 @@ export function CommentResultCard({ comment, onClick, onAuthorClick, query }) {
           sx={{
             color: 'text.primary', fontWeight: 800, cursor: 'pointer', p: 0, border: 0, bgcolor: 'transparent',
             font: 'inherit', minHeight: 32, '&:hover': { textDecoration: 'underline' },
-            '&:focus-visible': { outline: '3px solid', outlineColor: 'primary.light', outlineOffset: 2, borderRadius: '6px' }
+            '&:focus-visible': { ...focusRingSx, borderRadius: '6px' }
           }}
         >
           {authorName}

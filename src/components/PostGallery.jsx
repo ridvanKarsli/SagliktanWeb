@@ -1,23 +1,37 @@
-import { useState } from 'react'
+import { Suspense, lazy, useState } from 'react'
 import { Box, ButtonBase } from '@mui/material'
-import Lightbox from 'yet-another-react-lightbox'
-import Zoom from 'yet-another-react-lightbox/plugins/zoom'
-import 'yet-another-react-lightbox/styles.css'
-import { alpha } from '@mui/material/styles'
-import { paletteFor } from '../design/tokens.js'
+import { focusRingSx } from '../design/focus.js'
 
-// Lightbox her temada koyu (fotoğrafa odaklanılsın): gece çamı zemin.
-const LIGHTBOX_BG = alpha(paletteFor('dark').background, 0.96)
+// Lightbox (yet-another-react-lightbox + zoom eklentisi + CSS'i) yalnızca
+// kullanıcı bir fotoğrafa dokunup büyütmek istediğinde yüklenir: akıştaki her
+// kart bu bileşeni render ediyor ama büyütme nadir bir eylem; kütüphaneyi
+// giriş paketine koymak her ziyarette boşuna indirtiyordu.
+const LazyLightbox = lazy(() => import('./post/PostLightbox.jsx'))
 
 /**
  * Gönderi fotoğrafları: CSS scroll-snap ile yatay kaydırmalı bir şerit
  * (backend sortOrder'a göre sıralı döner). Dokununca/Enter ile büyütülür;
  * lightbox pinch/çift-tık zoom, klavye gezinmesi ve odak tuzağını sağlar.
+ *
+ * Her görsel sabit 4:3 oranlı bir kutuda durur: fotoğraf gelmeden önce de
+ * yer ayrılmış olur, yüklenince sayfa zıplamaz (CLS). Kutu yumuşak bir
+ * zeminle (surfaceAlt) "yükleniyor" hissi verir.
+ *
+ * eagerFirst: detay sayfasında ilk fotoğraf çoğunlukla LCP öğesidir -
+ * lazy yerine hemen yüklenir; akış kartlarında hepsi lazy kalır.
  */
-export default function PostGallery({ attachments }) {
+export default function PostGallery({ attachments, eagerFirst = false }) {
   const [lightboxIndex, setLightboxIndex] = useState(-1)
+  // Lightbox bir kez açıldıktan sonra ağaçta kalır: kapatıp tekrar açmak
+  // yeniden chunk indirmesin / Suspense yanıp sönmesin.
+  const [lightboxMounted, setLightboxMounted] = useState(false)
 
   if (!attachments || attachments.length === 0) return null
+
+  const openAt = (i) => {
+    setLightboxMounted(true)
+    setLightboxIndex(i)
+  }
 
   return (
     <>
@@ -37,48 +51,49 @@ export default function PostGallery({ attachments }) {
         {attachments.map((a, i) => (
           <ButtonBase
             key={a.id}
-            onClick={() => setLightboxIndex(i)}
+            onClick={() => openAt(i)}
             aria-label={attachments.length > 1 ? `Fotoğraf ${i + 1} / ${attachments.length} - büyüt` : 'Fotoğrafı büyüt'}
             className="tap-scale"
             sx={{
               scrollSnapAlign: 'start',
               flex: '0 0 auto',
               width: attachments.length === 1 ? '100%' : '85%',
+              aspectRatio: '4 / 3',
+              maxHeight: 420,
               borderRadius: '16px',
               overflow: 'hidden',
               border: '1px solid',
               borderColor: 'brand.border',
+              bgcolor: 'brand.surfaceAlt',
               cursor: 'zoom-in',
-              '&.Mui-focusVisible': { outline: '3px solid', outlineColor: 'primary.light', outlineOffset: 2 }
+              '&.Mui-focusVisible': focusRingSx
             }}
           >
             <Box
               component="img"
               src={a.url}
               alt=""
-              loading="lazy"
-              sx={{ display: 'block', width: '100%', maxHeight: 420, objectFit: 'cover' }}
+              loading={eagerFirst && i === 0 ? 'eager' : 'lazy'}
+              fetchPriority={eagerFirst && i === 0 ? 'high' : undefined}
+              decoding="async"
+              sx={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }}
             />
           </ButtonBase>
         ))}
       </Box>
 
-      <Lightbox
-        open={lightboxIndex >= 0}
-        close={() => setLightboxIndex(-1)}
-        index={lightboxIndex}
-        slides={attachments.map(a => ({ src: a.url }))}
-        plugins={[Zoom]}
-        zoom={{
-          maxZoomPixelRatio: 4,
-          doubleTapDelay: 300,
-          doubleClickDelay: 300,
-          scrollToZoom: true
-        }}
-        // closeOnPullDown: iOS Fotoğraflar'daki gibi aşağı sürükleyerek kapatma.
-        controller={{ closeOnBackdropClick: true, closeOnPullDown: true }}
-        styles={{ container: { backgroundColor: LIGHTBOX_BG } }}
-      />
+      {lightboxMounted && (
+        // Chunk inene kadar hiçbir şey gösterme: dokunuştan sonra bir an boş
+        // kalması, yarım bir overlay'den daha az rahatsız edici.
+        <Suspense fallback={null}>
+          <LazyLightbox
+            open={lightboxIndex >= 0}
+            index={lightboxIndex}
+            attachments={attachments}
+            onClose={() => setLightboxIndex(-1)}
+          />
+        </Suspense>
+      )}
     </>
   )
 }

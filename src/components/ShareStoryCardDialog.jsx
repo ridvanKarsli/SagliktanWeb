@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react'
 import { Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Stack, Typography } from '@mui/material'
 import { CloseRounded, DownloadRounded, IosShareRounded } from '@mui/icons-material'
-import { generateStoryCardBlob } from '../utils/generateStoryCard.js'
 import { useNotification } from '../context/NotificationContext.jsx'
 
 // Gönderiyi Instagram/WhatsApp hikayesi olarak paylaşılabilir bir görsele
 // çeviren dialog. Kart üretimi (canvas -> PNG) generateStoryCard.js'te; bu
 // bileşen önizleme + paylaşma/indirme arayüzünü sağlar.
+//
+// generateStoryCard.js (ve bağımlılığı qrcode) dinamik import ile yalnızca
+// dialog gerçekten açıldığında yüklenir - her gönderi detayında taşınacak
+// kadar sık kullanılan bir özellik değil.
 export default function ShareStoryCardDialog({ open, onClose, post }) {
   const [loading, setLoading] = useState(true)
   const [blob, setBlob] = useState(null)
@@ -23,7 +26,8 @@ export default function ShareStoryCardDialog({ open, onClose, post }) {
     setLoading(true)
     setBlob(null)
     setPreviewUrl(null)
-    generateStoryCardBlob(post)
+    import('../utils/generateStoryCard.js')
+      .then(({ generateStoryCardBlob }) => generateStoryCardBlob(post))
       .then(generated => {
         if (cancelled) return
         url = URL.createObjectURL(generated)

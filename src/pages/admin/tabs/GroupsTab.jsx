@@ -62,7 +62,7 @@ function SubGroupRow({ subGroup, token, onChanged }) {
   const confirm = useConfirm()
 
   const remove = async () => {
-    const ok = await confirm(`"${subGroup.name}" alt grubunu silmek istiyor musun? İçindeki tüm gönderiler de silinir.`, { title: 'Alt grubu sil' })
+    const ok = await confirm(`"${subGroup.name}" alt grubunu silmek istiyor musun? İçindeki tüm gönderiler de silinir.`, { title: 'Alt grubu sil', confirmLabel: 'Sil' })
     if (!ok) return
     try {
       await deleteSubGroup(token, subGroup.id)
@@ -105,7 +105,7 @@ function DiseaseGroupAccordion({ group, token, onChanged }) {
   const confirm = useConfirm()
 
   const loadSubGroups = useCallback(() => {
-    listSubGroups(token, group.id)
+    listSubGroups(token, group.id, { fresh: true })
       .then(list => setSubGroups(Array.isArray(list) ? list : []))
       .catch(err => {
         setSubGroups([])
@@ -115,7 +115,7 @@ function DiseaseGroupAccordion({ group, token, onChanged }) {
 
   const remove = async (e) => {
     e.stopPropagation()
-    const ok = await confirm(`"${group.name}" hastalık grubunu silmek istiyor musun? Tüm alt gruplar ve içerikler de silinir.`, { title: 'Hastalık grubunu sil' })
+    const ok = await confirm(`"${group.name}" hastalık grubunu silmek istiyor musun? Tüm alt gruplar ve içerikler de silinir.`, { title: 'Hastalık grubunu sil', confirmLabel: 'Sil' })
     if (!ok) return
     try {
       await deleteDiseaseGroup(token, group.id)
@@ -201,7 +201,7 @@ export default function GroupsTab({ token }) {
   // Değişiklik sonrası yeniden yüklemede liste yerinde güncellenir (tam sayfa
   // spinner yok): açık akordeonlar ve kaydırma konumu korunur.
   const load = useCallback(() => {
-    listDiseaseGroups(token)
+    listDiseaseGroups(token, { fresh: true })
       .then(res => setGroups(Array.isArray(res) ? res : []))
       .catch(err => {
         setGroups(prev => prev ?? [])

@@ -196,7 +196,7 @@ async function publicFormShots(vpName, vp) {
       await pp.goto('http://localhost:4173' + path, { waitUntil: 'networkidle', timeout: 20000 }); await pp.waitForTimeout(1500)
       if (name === 'public-register') {
         await pp.getByTestId('register-firstName').fill('Ali3'); await pp.getByTestId('register-email').fill('ali@gmial.com')
-        await pp.getByTestId('register-password').fill('kisa'); await pp.getByTestId('register-confirmPassword').fill('baska')
+        await pp.getByTestId('register-password').fill('kisa')
         await pp.getByTestId('register-city').fill('izm'); await pp.waitForTimeout(300); await pp.keyboard.press('Escape')
       }
       if (name === 'public-login') await pp.getByTestId('login-email').fill('ali')

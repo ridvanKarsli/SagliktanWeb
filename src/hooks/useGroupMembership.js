@@ -3,6 +3,8 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { useNotification } from '../context/NotificationContext.jsx'
 import { useConfirm } from '../context/ConfirmContext.jsx'
 import { joinDiseaseGroup, leaveDiseaseGroup } from '../services/api.js'
+import { invalidateMyGroups } from '../services/myGroups.js'
+import { invalidateListCache } from './usePaginatedList.js'
 
 // Katıl/ayrıl akışı üç ekranda (grup listesi, grup detayı, profil > Gruplarım)
 // aynı olmalı: aynı onay metni, aynı bildirim, aynı "istek sürerken buton
@@ -22,6 +24,10 @@ export function useGroupMembership() {
     setPendingId(group.id)
     try {
       await joinDiseaseGroup(token, group.id)
+      // Paylaşımlı üyelik önbelleği + akış önbelleği artık eski (yeni grubun
+      // gönderileri akışa girer).
+      invalidateMyGroups()
+      invalidateListCache('feed:')
       showSuccess(`"${group.name}" grubuna katıldın.`)
       return true
     } catch (err) {
@@ -42,6 +48,8 @@ export function useGroupMembership() {
     setPendingId(group.id)
     try {
       await leaveDiseaseGroup(token, group.id)
+      invalidateMyGroups()
+      invalidateListCache('feed:')
       showSuccess(`"${group.name}" grubundan ayrıldın.`)
       return true
     } catch (err) {

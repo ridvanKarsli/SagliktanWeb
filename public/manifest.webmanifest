@@ -1,4 +1,5 @@
 {
+  "id": "/",
   "name": "Sağlıktan",
   "short_name": "Sağlıktan",
   "start_url": "/",
@@ -9,55 +10,115 @@
   "theme_color": "#F2F7F4",
   "description": "Kronik ve nadir hastalıklarla yaşayanların ve yakınlarının deneyim paylaştığı, birbirine destek olduğu topluluk.",
   "lang": "tr",
-  "categories": ["health", "social"],
+  "dir": "ltr",
+  "categories": [
+    "health",
+    "social"
+  ],
   "icons": [
     {
       "src": "/icon-72.png",
       "sizes": "72x72",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/icon-96.png",
       "sizes": "96x96",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/icon-128.png",
       "sizes": "128x128",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/icon-144.png",
       "sizes": "144x144",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/icon-152.png",
       "sizes": "152x152",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/icon-384.png",
       "sizes": "384x384",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Cevap bekleyen sorular",
+      "short_name": "Cevap bekleyenler",
+      "description": "Gruplarında henüz cevaplanmamış sorular",
+      "url": "/home?tab=questions",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Mesajlar",
+      "short_name": "Mesajlar",
+      "description": "Konuşmaların",
+      "url": "/messages",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/home-narrow.png",
+      "sizes": "780x1688",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Ana akış: gruplarındaki paylaşımlar ve cevap bekleyen sorular"
+    },
+    {
+      "src": "/screenshots/register-narrow.png",
+      "sizes": "780x1688",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Bir dakikada kayıt"
     }
   ]
 }

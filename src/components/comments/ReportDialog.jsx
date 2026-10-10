@@ -6,6 +6,7 @@ import {
 import { useTheme } from '@mui/material/styles'
 import { LIMITS, clampLength, cleanText, counterText } from '../../utils/validation.js'
 import SlideUp from '../shell/SlideUp.jsx'
+import { useDialogHistory } from '../../hooks/useDialogHistory.js'
 
 // Gönderi, yorum, mesaj ve kullanıcı şikayetleri için ortak dialog. Gerekçe
 // isteğe bağlı; gönderim sürerken dialog kapatılamaz ve hata olursa yazılan
@@ -25,6 +26,7 @@ export default function ReportDialog({
     setReason('')
     onClose()
   }
+  useDialogHistory(open && fullScreen, handleClose)
 
   const handleSubmit = async () => {
     if (submitting) return

@@ -60,10 +60,13 @@ export function AccessibilityProvider({ children }) {
     // Mobil tarayıcı adres çubuğu/durum çubuğu rengi (PWA'da da kullanılıyor,
     // bkz. manifest.webmanifest theme_color) - temayla uyumsuz kalırsa
     // sistem çubuğu ile sayfa arasında göze batan bir renk sıçraması olur.
-    const themeColorMeta = document.querySelector('meta[name="theme-color"]')
-    if (themeColorMeta) {
-      themeColorMeta.setAttribute('content', state.themeMode === 'light' ? '#F2F7F4' : '#0F1F1C')
-    }
+    // index.html'de media'lı iki etiket var (cihaz ayarı için); uygulama
+    // içi tercih ikisini de o anki temaya çeker ki sistem ayarı ne olursa
+    // olsun çubuk sayfayla aynı renkte kalsın.
+    const themeColor = state.themeMode === 'light' ? '#F2F7F4' : '#0F1F1C'
+    document.querySelectorAll('meta[name="theme-color"]').forEach(meta => {
+      meta.setAttribute('content', themeColor)
+    })
   }, [state])
 
   const value = useMemo(() => ({

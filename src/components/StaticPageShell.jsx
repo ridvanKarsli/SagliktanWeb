@@ -17,7 +17,7 @@ export default function StaticPageShell({ title, subtitle, children, maxWidth = 
             Geri
           </Button>
           <Stack direction="row" alignItems="center" spacing={1}>
-            <Box component="img" src="/sagliktanLogo.png" alt="" sx={{ width: 32, height: 32, borderRadius: '8px' }} />
+            <Box component="img" src="/sagliktanLogo-96.png" alt="" sx={{ width: 32, height: 32, borderRadius: '8px' }} />
             <Typography variant="subtitle1" component="p" sx={{ color: 'primary.main', fontWeight: 800 }}>Sağlıktan</Typography>
           </Stack>
         </Stack>

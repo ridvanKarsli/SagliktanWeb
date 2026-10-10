@@ -9,64 +9,85 @@
 // altında 100'den fazla küçük lazy-route chunk'ı var (AdminPanel, Chat,
 // PostDetail...). Bunların TAMAMINI install sırasında precache etmek code
 // splitting'in tüm amacını (ilk yüklemede sadece gerekeni indirmek) boşa
-// çıkarır. Bu yüzden burada SADECE her sayfada kullanılan ana giriş
-// bundle'ını (index-HASH.js / index-HASH.css) precache listesine ekliyoruz;
-// lazy route chunk'ları önceden olduğu gibi ilk ziyaret edildiklerinde
-// fetch handler'ın cache-first dalıyla fırsatçı şekilde önbelleğe girmeye
-// devam ediyor.
+// çıkarır. Bu yüzden burada SADECE her sayfada kullanılan kritik giriş
+// dosyalarını precache listesine ekliyoruz; lazy route chunk'ları önceden
+// olduğu gibi ilk ziyaret edildiklerinde fetch handler'ın cache-first
+// dalıyla fırsatçı şekilde önbelleğe girmeye devam ediyor.
+//
+// Kritik dosyalar dist/assets'i regex'le taramak yerine dist/index.html'den
+// okunur: önceden `/^index-.*\.(js|css)$/` deseni, main.jsx'teki dinamik
+// import()'tan doğan Sentry chunk'ını da (o da index-HASH.js adıyla üretilir,
+// ~160 KB gz) yakalayıp ilk ziyarette indirtiyordu. index.html'deki
+// <script type="module">, <link rel="modulepreload"> ve <link rel="stylesheet">
+// etiketleri tam olarak "ilk boyama için gereken" kümedir - başka hiçbir
+// şey değil.
 //
 // `vite build`'den SONRA çalışır (bkz. package.json "build" script'i),
-// dist/assets içindeki gerçek (hash'li) dosya adlarını okuyup dist/sw.js
-// içine yazar ve CACHE_NAME'i otomatik artırır ki eski cache geçersiz olsun
-// (sw.js'teki v3/v4/v5 geçmişindeki aynı gerekçeyle - bkz. dosya başındaki
-// yorumlar).
+// dist/sw.js içine yazar ve CACHE_NAME'i giriş hash'inden türetir ki eski
+// cache geçersiz olsun (sw.js'teki v3/v4/v5 geçmişindeki aynı gerekçeyle).
 
-import { readFileSync, writeFileSync, readdirSync } from 'node:fs'
+import { readFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const distDir = path.join(__dirname, '..', 'dist')
-const assetsDir = path.join(distDir, 'assets')
+const htmlPath = path.join(distDir, 'index.html')
 const swPath = path.join(distDir, 'sw.js')
 
-const assetFiles = readdirSync(assetsDir)
-const mainEntry = assetFiles.filter((f) => /^index-.*\.(js|css)$/.test(f))
-// vite.config.js manualChunks: ana giriş bu iki vendor chunk'ını senkron
-// import eder - precache'lenmezlerse "ilk ziyaretten sonra offline açılır"
-// garantisi tutmaz (index.js cache'te olur ama react/mui yüklenemez).
-const vendorChunks = assetFiles.filter((f) => /^(react-vendor|mui-vendor)-.*\.js$/.test(f))
+const html = readFileSync(htmlPath, 'utf8')
 
-if (mainEntry.length === 0) {
-  console.error('generate-sw-precache: dist/assets içinde index-*.js/.css bulunamadı, sw.js değiştirilmedi.')
+// Bir etiketin attribute'unu (src/href) çek - sırası ne olursa olsun.
+function attr(tag, name) {
+  return tag.match(new RegExp(`\\s${name}=["']([^"']+)["']`))?.[1] ?? null
+}
+
+const scriptTags = html.match(/<script\b[^>]*>/g) ?? []
+const linkTags = html.match(/<link\b[^>]*>/g) ?? []
+
+const entryScripts = scriptTags
+  .filter(t => /\stype=["']module["']/.test(t))
+  .map(t => attr(t, 'src'))
+  .filter(Boolean)
+const preloads = linkTags
+  .filter(t => /\srel=["']modulepreload["']/.test(t))
+  .map(t => attr(t, 'href'))
+  .filter(Boolean)
+const stylesheets = linkTags
+  .filter(t => /\srel=["']stylesheet["']/.test(t))
+  .map(t => attr(t, 'href'))
+  .filter(Boolean)
+  // Sadece vite'ın ürettiği (hash'li) giriş CSS'i; harici bir stylesheet
+  // (olursa) SW cache kapsamı dışında kalsın.
+  .filter(h => h.startsWith('/assets/'))
+
+if (entryScripts.length === 0) {
+  console.error('generate-sw-precache: dist/index.html içinde <script type="module"> bulunamadı, sw.js değiştirilmedi.')
   process.exit(1)
 }
 
+// Aynı origin, kök-göreli yollar; tekrarlar ayıklanır.
+const criticalAssets = [...new Set([...entryScripts, ...preloads, ...stylesheets])]
+  .filter(p => p.startsWith('/'))
+
 let sw = readFileSync(swPath, 'utf8')
 
-const precacheList = [...mainEntry, ...vendorChunks].map((f) => `/assets/${f}`)
-const assetsBlock = [
-  "  '/',",
-  "  '/index.html',",
-  "  '/manifest.webmanifest',",
-  "  '/sagliktanLogo.png',",
-  ...precacheList.map((f) => `  '${f}',`),
-].join('\n')
-
+// İki ayrı liste: CRITICAL_ASSETS başarısız olursa install başarısız olur
+// (eksik bir giriş dosyasıyla "offline açılır" sözü tutulamaz), OPTIONAL_
+// ASSETS (küçük marka görselleri) ise toleranslı - biri 404 dönse bile SW
+// kurulur (bkz. sw.js install handler'ındaki Promise.allSettled).
+const toBlock = (list) => list.map(f => `  '${f}',`).join('\n')
 sw = sw.replace(
-  /const ASSETS = \[[\s\S]*?\];/,
-  `const ASSETS = [\n${assetsBlock}\n];`
+  /const CRITICAL_ASSETS = \[[\s\S]*?\];/,
+  `const CRITICAL_ASSETS = [\n  '/',\n  '/index.html',\n${toBlock(criticalAssets)}\n];`
 )
 
-// Cache adını build'e özgü hale getir (ana bundle hash'inden türet) - yeni
-// bir deploy her zaman yeni bir CACHE_NAME demek, activate handler'daki
-// temizlik eski cache'i otomatik siler (sw.js'teki v3/v4/v5 mantığının
-// devamı, artık elle sürüm numarası artırmaya gerek yok).
-// Hash'i JS girişinden türet (CSS hash'i sadece-JS değişen deploy'da
-// aynı kalabilir -> cache adı değişmez -> eski JS servis edilirdi).
-const mainJs = mainEntry.find((f) => f.endsWith('.js')) ?? mainEntry[0]
-const buildHash = mainJs.match(/-([\w-]+)\.(js|css)$/)?.[1] ?? Date.now().toString(36)
+// Cache adını build'e özgü hale getir (giriş script'inin hash'inden türet) -
+// yeni bir deploy her zaman yeni bir CACHE_NAME demek, activate handler'daki
+// temizlik eski cache'i otomatik siler. Hash CSS'ten değil JS'ten alınır:
+// sadece-JS değişen deploy'da CSS hash'i aynı kalabilir.
+const buildHash = entryScripts[0].match(/-([\w-]+)\.js$/)?.[1] ?? Date.now().toString(36)
 sw = sw.replace(/const CACHE_NAME = '[^']*';/, `const CACHE_NAME = 'sagliktan-pwa-${buildHash}';`)
 
 writeFileSync(swPath, sw)
-console.log(`generate-sw-precache: ${precacheList.length} ana bundle dosyası precache listesine eklendi, CACHE_NAME=sagliktan-pwa-${buildHash}`)
+console.log(`generate-sw-precache: ${criticalAssets.length} kritik giriş dosyası precache listesine eklendi (${criticalAssets.join(', ')}), CACHE_NAME=sagliktan-pwa-${buildHash}`)

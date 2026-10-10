@@ -45,7 +45,12 @@ function buildShadows(c) {
 function buildTheme(mode) {
   const c = palettes[mode]
   const overlay = (a) => `rgba(${c.overlayRgb}, ${a})`
-  const focusRing = `0 0 0 3px ${alpha(c.primaryBright, 0.45)}`
+  // Çift halka odak göstergesi: içte zemin renginde ince bir boşluk, dışta
+  // ana renk. Böylece halka hem açık yüzeyde hem de ana renkli (dolu) bir
+  // butonun üstünde görünür kalır (tek renkli, yarı saydam halka dolu
+  // butonda kayboluyordu). index.css'teki --sg-focus-* değişkenleriyle aynı.
+  const onDark = c.background
+  const focusRing = `0 0 0 2px ${c.background}, 0 0 0 5px ${c.primary}`
 
   return createTheme({
     palette: {
@@ -53,9 +58,11 @@ function buildTheme(mode) {
       primary: { main: c.primary, light: c.primaryBright, dark: c.primaryDeep, contrastText: mode === 'light' ? '#FFFFFF' : c.background },
       secondary: { main: c.apricot, light: c.apricot, dark: c.apricotInk, contrastText: '#173530' },
       success: { main: c.primary, light: c.primaryBright, dark: c.primaryDeep, contrastText: mode === 'light' ? '#FFFFFF' : c.background },
-      info: { main: c.sky, contrastText: '#FFFFFF' },
-      warning: { main: c.amber, contrastText: '#FFFFFF' },
-      error: { main: c.rose, contrastText: '#FFFFFF' },
+      // Koyu temada gök/kehribar/gül tonları açık; üstlerine beyaz metin
+      // 1.8-2.6:1 ile AA'yı geçemiyordu. Koyu zemin mürekkebi kullanılır.
+      info: { main: c.sky, contrastText: mode === 'light' ? '#FFFFFF' : onDark },
+      warning: { main: c.amber, contrastText: mode === 'light' ? '#FFFFFF' : onDark },
+      error: { main: c.rose, contrastText: mode === 'light' ? '#FFFFFF' : onDark },
       background: { default: c.background, paper: c.surface },
       text: { primary: c.ink, secondary: c.inkSoft, disabled: c.inkMuted },
       divider: c.divider,
@@ -68,7 +75,7 @@ function buildTheme(mode) {
       brand: c,
     },
     typography,
-    shape: { borderRadius: 4 },
+    shape: { borderRadius: radius.sm },
     shadows: buildShadows(c),
     transitions: {
       easing: { easeOut: motion.flow, easeInOut: motion.flow },
@@ -86,6 +93,10 @@ function buildTheme(mode) {
       },
       MuiButtonBase: {
         defaultProps: { disableRipple: false },
+        // Tüm ButtonBase türevleri (sekme, menü öğesi, alt gezinme, onay
+        // kutusu...) aynı çift halkayı alır; Button/IconButton ayrıca kendi
+        // gölgeleriyle birleştirmek için aşağıda tekrar tanımlar.
+        styleOverrides: { root: { '&.Mui-focusVisible': { boxShadow: focusRing } } },
       },
       MuiButton: {
         styleOverrides: {
@@ -134,6 +145,7 @@ function buildTheme(mode) {
             '&:hover': { backgroundColor: overlay(0.06), color: c.ink },
             '&:active': { transform: 'scale(0.9)' },
             '&.Mui-focusVisible': { boxShadow: focusRing },
+            '@media (prefers-reduced-motion: reduce)': { '&:active': { transform: 'none' } },
           },
           sizeSmall: { minWidth: 40, minHeight: 40 },
         },
@@ -144,6 +156,8 @@ function buildTheme(mode) {
             boxShadow: `0 10px 24px ${alpha(c.primary, 0.35)}`,
             transition: `transform ${motion.base}ms ${motion.spring}, box-shadow ${motion.base}ms ease`,
             '&:active': { transform: 'scale(0.92)' },
+            '&.Mui-focusVisible': { boxShadow: focusRing },
+            '@media (prefers-reduced-motion: reduce)': { '&:active': { transform: 'none' } },
           },
         },
       },
@@ -236,12 +250,15 @@ function buildTheme(mode) {
         styleOverrides: { paper: { backgroundColor: c.surface, borderRight: `1px solid ${c.border}` } },
       },
       MuiBottomNavigation: {
-        styleOverrides: { root: { backgroundColor: c.surface, borderTop: `1px solid ${c.border}`, height: 64 } },
+        styleOverrides: { root: { backgroundColor: c.surface, borderTop: `1px solid ${c.border}`, height: 'auto', minHeight: 64 } },
       },
       MuiBottomNavigationAction: {
         styleOverrides: {
           root: {
-            color: c.inkMuted,
+            // Seçili olmayan sekme: inkMuted 12px kalın etikette AA'yı
+            // geçemiyordu; inkSoft her iki temada da ≥4.5:1. inkMuted yalnızca
+            // gerçekten devre dışı öğeler için.
+            color: c.inkSoft,
             minWidth: 'auto',
             padding: '6px 8px',
             '& .MuiSvgIcon-root': {
@@ -253,10 +270,10 @@ function buildTheme(mode) {
             '&.Mui-selected': { color: c.primary },
             '&.Mui-selected .MuiSvgIcon-root': { backgroundColor: c.primarySoft, transform: 'translateY(-1px)' },
             '& .MuiBottomNavigationAction-label': {
-              fontSize: '0.75rem',
+              fontSize: '0.8125rem',
               fontWeight: 700,
               marginTop: 4,
-              '&.Mui-selected': { fontSize: '0.75rem', fontWeight: 800 },
+              '&.Mui-selected': { fontSize: '0.8125rem', fontWeight: 800 },
             },
           },
         },

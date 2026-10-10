@@ -6,6 +6,7 @@ import ThumbDownAltOutlinedIcon from '@mui/icons-material/ThumbDownAltOutlined'
 import ThumbDownAltIcon from '@mui/icons-material/ThumbDownAlt'
 import { visuallyHidden } from '../utils/visuallyHidden.js'
 import { useServerSyncedState } from '../hooks/useServerSyncedState.js'
+import { useNotification } from '../context/NotificationContext.jsx'
 
 /**
  * Beğeni yerine: "Faydalı" / "Faydalı Değil" reaksiyonu. Sağlık içerikli bir
@@ -27,6 +28,7 @@ export default function ReactionButtons({
   size = 'small',
   disabled = false
 }) {
+  const { showError } = useNotification()
   const [pending, setPending] = useState(false)
   const [local, setLocal] = useServerSyncedState({ helpfulCount, notHelpfulCount, myReaction }, { paused: pending })
   // Art arda hızlı tıklamalar engellenmiyor (optimistic güncelleme anında
@@ -79,6 +81,9 @@ export default function ReactionButtons({
       // güncelse (bkz. yukarıdaki requestIdRef notu).
       if (requestIdRef.current === myRequestId) {
         setLocal({ helpfulCount: wasHelpful, notHelpfulCount: wasNotHelpful, myReaction: current })
+        // Geri alma GÖRÜNÜR olmalı: sayaç sessizce eski haline dönünce
+        // kullanıcı "dokunmadım mı?" diye tekrar tekrar deniyordu.
+        showError(err?.message || 'Oyun kaydedilemedi, tekrar dene.')
       }
     } finally {
       if (requestIdRef.current === myRequestId) setPending(false)

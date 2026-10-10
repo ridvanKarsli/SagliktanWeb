@@ -7,6 +7,7 @@ import EmptyState from '../EmptyState.jsx'
 import LoadMoreButton from '../common/LoadMoreButton.jsx'
 import UserAvatar from '../avatars/UserAvatar.jsx'
 import SlideUp from '../shell/SlideUp.jsx'
+import { useDialogHistory } from '../../hooks/useDialogHistory.js'
 import { fullNameOf } from '../../utils/text.js'
 
 function MemberRowSkeleton() {
@@ -23,6 +24,7 @@ function MemberRowSkeleton() {
 export default function GroupMembersDialog({ open, onClose, members, loading, loadingMore, hasMore, onLoadMore, onOpenProfile }) {
   const theme = useTheme()
   const fullScreen = useMediaQuery(theme.breakpoints.down('sm'))
+  useDialogHistory(open && fullScreen, onClose)
   return (
     <Dialog
       open={open}

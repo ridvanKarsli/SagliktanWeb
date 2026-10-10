@@ -6,6 +6,7 @@ import ProtectedRoute from './components/ProtectedRoute.jsx'
 import PublicOnlyRoute from './components/PublicOnlyRoute.jsx'
 import AdminRoute from './components/AdminRoute.jsx'
 import ResponsiveShell from './components/ResponsiveShell.jsx'
+import RouteErrorBoundary from './components/RouteErrorBoundary.jsx'
 import WelcomeScreen from './components/WelcomeScreen.jsx'
 
 // Kontrol listesi "CSS/JS minify, kritik CSS inline" + rapor yol haritası
@@ -50,11 +51,15 @@ function RouteFallback() {
   )
 }
 
+// RouteErrorBoundary: bir sayfanın hatası kabuğu (üst bar/alt menü) ayakta
+// bırakır, kullanıcı başka sekmeye geçebilir. Kök sınır (ThemedApp) kalır.
 function ProtectedLayout() {
   return (
     <ProtectedRoute>
       <ResponsiveShell>
-        <Outlet />
+        <RouteErrorBoundary>
+          <Outlet />
+        </RouteErrorBoundary>
       </ResponsiveShell>
     </ProtectedRoute>
   )
