@@ -9,6 +9,7 @@ import PostList from '../components/PostList.jsx'
 import PostCardSkeleton from '../components/PostCardSkeleton.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import ComposerPrompt from '../components/ComposerPrompt.jsx'
+import MahalleCard from '../components/MahalleCard.jsx'
 import CreatePostFab from '../components/CreatePostFab.jsx'
 import SortToggle from '../components/SortToggle.jsx'
 import PullToRefreshIndicator from '../components/PullToRefreshIndicator.jsx'
@@ -224,6 +225,8 @@ export default function Home() {
       )}
 
       {canPost && <ComposerPrompt onClick={openComposer} sx={{ mb: 2.5 }} />}
+
+      <MahalleCard sx={{ mb: 2.5 }} />
 
       {canPost && (
         <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 2 }}>

@@ -713,4 +713,4 @@ export function deleteSubGroup(token, id) {
   return request(`/sub-groups/${id}`, { method: 'DELETE', token });
 }
 
-export { ApiError, API_BASE };
+export { ApiError, API_BASE, request };

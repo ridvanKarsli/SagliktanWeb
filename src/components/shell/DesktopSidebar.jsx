@@ -30,7 +30,7 @@ const rowSx = {
 export default function DesktopSidebar({ onLogout }) {
   const navigate = useNavigate()
   const { pathname } = useLocation()
-  const navItems = useNavItems()
+  const navItems = useNavItems({ desktop: true })
   const { user } = useAuth()
   const fullName = [user?.firstName, user?.lastName].filter(Boolean).join(' ')
 

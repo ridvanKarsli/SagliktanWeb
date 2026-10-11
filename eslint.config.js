@@ -40,7 +40,16 @@ export default defineConfig([
     // kalıyordu; sonucu sadece HMR'da o dosya düzenlenince tam yenileme
     // yapılması (geliştirme konforu), bir üretim sorunu değil. Bu dosyalar
     // için uyarıya indiriliyor ki lint gerçek hataları yakalamaya yarasın.
-    files: ['src/context/**/*.jsx', 'src/components/avatars/avatarArt.jsx'],
+    files: ['src/context/**/*.jsx', 'src/components/avatars/avatarArt.jsx', 'src/game/state/**/*.jsx'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
+    },
+  },
+  {
+    // Mahalle çizim seti: her dosya bileşenlerin yanında kayıt nesnelerini
+    // (PROPS, FURNITURE, TOPS...) ve yardımcıları da dışa aktarır - avatarArt.jsx
+    // ile aynı desen. Yalnızca HMR konforunu etkiler, üretimde sorun değil.
+    files: ['src/game/art/**/*.jsx'],
     rules: {
       'react-refresh/only-export-components': 'off',
     },

@@ -26,9 +26,12 @@ export function parseServerDate(value) {
   const str = String(value)
   // Sadece "YYYY-MM-DDTHH:mm[:ss[.fff]]" biçimindeki dilimsiz tarih-saat'e
   // dokunuyoruz; salt tarih ("2026-10-03") zaten UTC gece yarısı sayılır.
-  const dt = /^\d{4}-\d{2}-\d{2}T/.test(str) && !HAS_ZONE.test(str)
-    ? new Date(str + 'Z')
-    : new Date(str)
+  // Java LocalDateTime 6 haneli kesir (mikrosaniye) yazabilir; eski Safari
+  // 3 haneden uzun kesri geçersiz sayıyor - milisaniyeye kırpılır.
+  const norm = str.replace(/(\.\d{3})\d+/, '$1')
+  const dt = /^\d{4}-\d{2}-\d{2}T/.test(norm) && !HAS_ZONE.test(norm)
+    ? new Date(norm + 'Z')
+    : new Date(norm)
   return isNaN(dt) ? null : dt
 }
 

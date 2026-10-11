@@ -3,6 +3,8 @@
 // Kullanım: node scripts/visual-harness.mjs [outDir] (vite preview 4173'te açık olmalı)
 import { chromium } from '@playwright/test'
 import { mkdirSync } from 'node:fs'
+import { FALLBACK_CATALOG } from '../src/game/data/catalog.js'
+import { ZONES, buildWalkable } from '../src/game/world/zones.js'
 
 const OUT = process.argv[2] || 'visual-out'
 mkdirSync(OUT, { recursive: true })
@@ -154,7 +156,7 @@ const shots = [
   ['form-profile-city', '/profile'], ['form-profile-errors', '/profile'], ['form-compose-errors', '/sub-groups/2'], ['form-poll-dup', '/home'], ['form-password', '/profile/settings'],
   ['admin-dashboard', '/admin'], ['admin-dashboard-7', '/admin?gun=7'], ['admin-dashboard-90', '/admin?gun=90'], ['admin-dashboard-tooltip', '/admin'], ['admin-dashboard-table', '/admin'], ['admin-reports', '/admin?tab=reports'], ['admin-users', '/admin?tab=users'], ['admin-content', '/admin?tab=content'], ['admin-groups', '/admin?tab=groups'],
 ]
-const viewports = { mobile: { width: Number(process.env.VW) || 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }, desktop: { width: 1280, height: 800 } }
+const viewports = { mobile: { width: Number(process.env.VW) || 390, height: Number(process.env.VH) || 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }, desktop: { width: 1280, height: 800 } }
 const only = process.env.ONLY ? process.env.ONLY.split(',') : null
 const theme = process.env.THEME || 'dark'
 let holdApi = false // *-loading çekimleri: API yanıtları bekletilir, iskeletler görünür
@@ -210,6 +212,280 @@ async function publicFormShots(vpName, vp) {
     } catch (e) { console.log('FAIL', vpName, name, e.message.split('\n')[0]) }
   }
   await pctx.close()
+}
+
+
+// ------------------------------------------------------------------ Mahalle (oyun)
+// /api/game/* sahte cevapları. gameState.hasProfile=false iken GET /me 404 döner
+// (karakter oluşturma ekranı). Dünya katılımı her bölgede ~6 oyuncuyu yürünebilir
+// hücrelere koyar. STOMP olayları taklit edilmez (yalnızca anlık görüntü).
+const gameState = { hasProfile: true, crowd: false, calls: [] }
+const blockedList = () => [
+  { player: card(['p8sessiz00', 'Sessiz Kuş', look('s4', 'curly', 'brown', 'tee_mint', 'jeans'), null]), blockedAt: iso(60 * 26) },
+  { player: card(['p9ruzgar00', 'Rüzgar', look('s1', 'buzz', 'blonde', 'hoodie_sky', 'joggers', 'cap'), 'serce']), blockedAt: iso(60 * 24 * 9) },
+]
+const look = (skin, hair, hairColor, top, bottom, accessory = null) => ({ skin, hair, hairColor, top, bottom, accessory })
+const gamePlayers = [
+  ['p1papatya0', 'Papatya', look('s1', 'bun', 'gray', 'cardigan_rose', 'long_skirt', 'glasses_round'), 'kedi'],
+  ['p2deniz420', 'Deniz_42', look('s3', 'curly', 'black', 'raincoat_sun', 'jeans'), null],
+  ['p3gulteyze', 'Gül Teyze', look('s2', 'bob', 'auburn', 'sweater_cream', 'skirt', 'flower_pin'), 'papatya'],
+  ['p4mavibulu', 'Mavi Bulut', look('s4', 'short', 'black', 'hoodie_sky', 'joggers', 'headphones'), 'bulut'],
+  ['p5cinar000', 'Çınar', look('s5', 'buzz', 'black', 'jacket_denim', 'chinos', 'cap'), null],
+  ['p6kuzey000', 'Kuzey Yıldızı', look('s2', 'long', 'blonde', 'vest_knit', 'shorts', 'sunhat'), 'kaplumbaga'],
+]
+const card = ([publicId, nickname, appearance, petKey]) => ({ publicId, nickname, appearance, petKey })
+const myGame = () => ({
+  publicId: 'mepublic01', nickname: 'Ayşe_Bahçe', appearance: look('s2', 'long', 'brown', 'cardigan_rose', 'jeans', 'scarf'), petKey: 'kirpi',
+  seeds: 135, roomVisibility: 'EVERYONE', dailyAvailable: true, unseenGifts: 2, nicknameChangeableAt: null,
+  ownedItems: [
+    ...FALLBACK_CATALOG.clothing.filter((c) => c.starter).map((c) => ({ itemKey: c.key, quantity: 1 })),
+    { itemKey: 'cardigan_rose', quantity: 1 }, { itemKey: 'scarf', quantity: 1 },
+    { itemKey: 'sofa', quantity: 1 }, { itemKey: 'rug', quantity: 1 }, { itemKey: 'coffee_table', quantity: 1 }, { itemKey: 'floor_lamp', quantity: 1 },
+    { itemKey: 'monstera', quantity: 2 }, { itemKey: 'bookshelf', quantity: 1 }, { itemKey: 'aquarium', quantity: 1 }, { itemKey: 'armchair', quantity: 1 },
+    { itemKey: 'radio', quantity: 1 }, { itemKey: 'cat_bed', quantity: 1 }, { itemKey: 'piano', quantity: 1 },
+  ],
+})
+const myRoom = () => ({
+  owner: card(['mepublic01', 'Ayşe_Bahçe', myGame().appearance, 'kirpi']), visibility: 'EVERYONE', mine: true,
+  items: [
+    { itemKey: 'rug', x: 3, y: 3, rot: 0 }, { itemKey: 'sofa', x: 1, y: 1, rot: 0 }, { itemKey: 'coffee_table', x: 4, y: 4, rot: 0 },
+    { itemKey: 'floor_lamp', x: 0, y: 0, rot: 0 }, { itemKey: 'monstera', x: 6, y: 1, rot: 0 }, { itemKey: 'bookshelf', x: 0, y: 3, rot: 1 },
+    { itemKey: 'armchair', x: 5, y: 3, rot: 1 }, { itemKey: 'radio', x: 3, y: 0, rot: 0 }, { itemKey: 'cat_bed', x: 6, y: 6, rot: 0 },
+  ],
+})
+function zonePlayers(zone) {
+  const z = ZONES[zone]
+  if (!z) return []
+  const g = buildWalkable(z)
+  const out = []
+  const cells = []
+  for (let y = 0; y < z.height; y++) for (let x = 0; x < z.width; x++) if (g[y][x]) cells.push({ x, y })
+  // spawn çevresinde ama birbirinden ayrık, deterministik dağılım (kapı karelerinden uzak)
+  const sp = z.spawn
+  const near = cells
+    .filter((c) => !z.portals.some((p) => c.x >= p.x && c.x < p.x + p.w && c.y >= p.y && c.y < p.y + p.d))
+    .filter((c) => Math.abs(c.x - sp.x) + Math.abs(c.y - sp.y) >= 2)
+    .sort((a, b) => (Math.abs(a.x - sp.x) + Math.abs(a.y - sp.y)) - (Math.abs(b.x - sp.x) + Math.abs(b.y - sp.y)))
+  const taken = []
+  for (const c of near) {
+    if (taken.length >= gamePlayers.length) break
+    if (taken.every((t) => Math.abs(t.x - c.x) + Math.abs(t.y - c.y) >= 3)) taken.push(c)
+  }
+  // kalabalık çekimi: herkes doğma noktasının dibinde (etiket çakışması denemesi)
+  if (gameState.crowd) { gamePlayers.forEach((p, i) => { const c = near[i]; out.push({ ...card(p), x: c.x, y: c.y }) }); return out }
+  gamePlayers.forEach((p, i) => { const c = taken[i] || near[i]; out.push({ ...card(p), x: c.x, y: c.y }) })
+  return out
+}
+function gameRoute(p, method, url, body) {
+  if (p === '/game/players/blocked') return blockedList()
+  if (p === '/game/me' && method === 'GET') return gameState.hasProfile ? myGame() : { status: 404, body: { message: 'Mahalle profili yok' } }
+  if (p === '/game/me' && method === 'POST') { gameState.hasProfile = true; return myGame() }
+  if (p.startsWith('/game/me/')) return p === '/game/me/daily' ? { granted: true, amount: 15, seeds: 150 } : myGame()
+  if (p === '/game/catalog') return FALLBACK_CATALOG
+  if (p === '/game/rooms/me' && method === 'GET') return myRoom()
+  if (p === '/game/rooms/me') return myRoom()
+  if (p === '/game/rooms/p2deniz420') return { status: 404, body: { message: 'Bu eve şu an girilemiyor' } }
+  if (p.startsWith('/game/rooms/')) {
+    const id = p.split('/').pop()
+    const pl = gamePlayers.find((x) => x[0] === id) || gamePlayers[0]
+    return { owner: card(pl), visibility: 'EVERYONE', mine: false, items: [{ itemKey: 'rug', x: 2, y: 2, rot: 0 }, { itemKey: 'bed', x: 5, y: 0, rot: 0 }, { itemKey: 'piano', x: 0, y: 2, rot: 1 }, { itemKey: 'flower_vase', x: 4, y: 4, rot: 0 }, { itemKey: 'fireplace', x: 2, y: 0, rot: 0 }] }
+  }
+  if (p === '/game/neighbors') return { content: gamePlayers.map((x, i) => ({ player: card(x), visitedByMeAt: i % 2 ? iso(60 * i) : null, lastActiveAt: iso(15 * (i + 1)) })), page: 0, size: 20, totalElements: 6, totalPages: 1, last: true }
+  if (p === '/game/visitors') return gamePlayers.slice(0, 4).map((x, i) => ({ player: card(x), visitedAt: iso(40 * (i + 1)) }))
+  if (p === '/game/gifts' && method === 'GET') {
+    const pg = Number(url.searchParams.get('page') || 0)
+    const g = [['flower', 'gecmis_olsun'], ['tea', 'yanindayim'], ['lantern', 'iyi_ki_varsin'], ['soup', 'kendine_iyi_bak']]
+    return { content: g.map(([giftKey, messageKey], i) => ({ id: pg * 10 + i + 1, from: card(gamePlayers[i]), giftKey, messageKey, createdAt: iso(25 * (i + 1) + pg * 600), seen: i > 1 })), page: pg, size: 20, totalElements: -1, totalPages: -1, last: pg > 0 }
+  }
+  if (p === '/game/gifts') return { seeds: 130 }
+  const jm = p.match(/^\/game\/world\/(\w+)\/join$/)
+  if (jm) {
+    // doğma ipucu {x,y}: sınır içindeyse oraya, değilse ortaya (sunucuyla aynı)
+    const z = ZONES[jm[1]]
+    const ok = body && Number.isInteger(body.x) && Number.isInteger(body.y) && body.x >= 0 && body.y >= 0 && body.x < z.width && body.y < z.height
+    gameState.lastJoin = body || null
+    return { zone: jm[1], instance: 1, me: ok ? { x: body.x, y: body.y } : { x: Math.floor(z.width / 2), y: Math.floor(z.height / 2) }, players: zonePlayers(jm[1]) }
+  }
+  if (p.startsWith('/game/')) return { status: 204 }
+  return undefined
+}
+
+const gameShots = [
+  ['game-create', { hasProfile: false }],
+  ['game-world-meydan', { zone: 'meydan', hint: true }],
+  ['game-world-carsi-shop', { zone: 'carsi' }],
+  ['game-world-sahil', { zone: 'sahil' }],
+  ['game-world-park', { zone: 'park' }],
+  ['game-mahalle', { zone: 'mahalle' }],
+  ['game-speech', { zone: 'meydan' }],
+  ['game-speech-bubble', { zone: 'meydan' }],
+  ['game-player-card', { zone: 'meydan' }],
+  ['game-players-here', { zone: 'meydan' }],
+  ['game-map', { zone: 'meydan' }],
+  ['game-neighbors', { zone: 'meydan' }],
+  ['game-gifts', { zone: 'meydan' }],
+  ['game-gift-send', { zone: 'meydan' }],
+  ['game-settings', { zone: 'meydan' }],
+  ['game-shop-furniture', { zone: 'carsi' }],
+  ['game-room', { path: '/game/ev' }],
+  ['game-room-edit', { path: '/game/ev' }],
+  ['game-room-visit', { path: '/game/ev/p1papatya0' }],
+  ['game-edit-look', { path: '/game/karakter' }],
+  ['game-zone-switch', { zone: 'meydan' }],
+  ['game-portal-walk', { zone: 'carsi' }],
+  ['game-daily', { zone: 'park' }],
+  ['game-room-exit', { path: '/game/ev' }],
+  ['game-walking', { zone: 'park' }],
+  ['game-live', { zone: 'meydan' }],
+  ['game-crowd', { zone: 'meydan', crowd: true }],
+  ['game-settings-blocked', { zone: 'meydan' }],
+]
+
+async function runGameShots(vpName, vp) {
+  if (!gameShots.some(([n]) => !only || only.includes(n))) return
+  const gctx = await browser.newContext({ viewport: { width: vp.width, height: vp.height }, isMobile: !!vp.isMobile, hasTouch: !!vp.hasTouch, deviceScaleFactor: vp.deviceScaleFactor || 1, locale: 'tr-TR', timezoneId: 'Europe/Istanbul', reducedMotion: process.env.REDUCED ? 'reduce' : 'no-preference' })
+  await gctx.addInitScript(([access, refresh]) => {
+    localStorage.setItem('auth', JSON.stringify({ accessToken: access, refreshToken: refresh }))
+    localStorage.setItem('sagliktan:accessibility', JSON.stringify({ themeMode: 'light' }))
+    localStorage.setItem('sagliktan:install-prompt-dismissed', String(Date.now()))
+  }, [jwt('access'), jwt('refresh')])
+  await gctx.route('**/api/**', async (r) => {
+    const req = r.request(); const u = new URL(req.url())
+    const p = u.pathname.replace(/^\/api/, '')
+    let reqBody = null
+    try { reqBody = req.postDataJSON() } catch { /* gövdesiz */ }
+    if (/\/world\/(move|\w+\/join)$/.test(p)) gameState.calls.push(`${p} ${JSON.stringify(reqBody)}`)
+    const g = gameRoute(p, req.method(), u, reqBody)
+    if (g !== undefined) {
+      if (g && g.status) return r.fulfill({ status: g.status, contentType: 'application/json', body: g.body ? JSON.stringify(g.body) : '' })
+      return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(g) })
+    }
+    const body = route(u, req.method(), req)
+    if (body === null) return r.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({ message: 'mock yok: ' + u.pathname }) })
+    return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) })
+  })
+  // Sahte STOMP sunucusu (Playwright routeWebSocket): CONNECT'e CONNECTED,
+  // SUBSCRIBE'ı kaydeder; game-live çekiminde oyun olayları yollanır.
+  let stomp = null
+  await gctx.routeWebSocket(/\/ws/, (ws) => {
+    const subs = new Map()
+    stomp = {
+      send: (dest, body) => {
+        const id = subs.get(dest)
+        if (id == null) return false
+        ws.send(`MESSAGE\ndestination:${dest}\nsubscription:${id}\nmessage-id:${Date.now()}\ncontent-type:application/json\n\n${JSON.stringify(body)}\0`)
+        return true
+      },
+    }
+    ws.onMessage((raw) => {
+      for (const frame of String(raw).split('\0')) {
+        const f = frame.replace(/^\n+/, '')
+        if (!f) continue
+        const [head] = f.split('\n\n')
+        const lines = head.split('\n')
+        const cmd = lines[0]
+        const h = Object.fromEntries(lines.slice(1).map((l) => [l.slice(0, l.indexOf(':')), l.slice(l.indexOf(':') + 1)]))
+        if (cmd === 'CONNECT' || cmd === 'STOMP') ws.send('CONNECTED\nversion:1.2\nheart-beat:0,0\n\n\0')
+        if (cmd === 'SUBSCRIBE') subs.set(h.destination, h.id)
+      }
+    })
+  })
+  const gp = await gctx.newPage()
+  const errs = []
+  gp.on('pageerror', (e) => errs.push(e.message))
+  gp.on('console', (m) => { if (m.type() === 'error' && !/WebSocket|ws:\/\//.test(m.text())) errs.push(m.text().slice(0, 200)) })
+  await gp.goto('http://localhost:4173/home', { waitUntil: 'networkidle' })
+  for (const [name, o] of gameShots) {
+    if (only && !only.includes(name)) continue
+    try {
+      gameState.hasProfile = o.hasProfile !== false
+      gameState.crowd = !!o.crowd
+      gameState.calls = []
+      await gp.evaluate(([zone, hint]) => {
+        try {
+          if (zone) localStorage.setItem('sagliktan:mahalle:last-zone', zone)
+          if (hint) localStorage.removeItem('sagliktan:mahalle:hint-seen'); else localStorage.setItem('sagliktan:mahalle:hint-seen', '1')
+        } catch { /* */ }
+      }, [o.zone || null, !!o.hint])
+      await gp.goto('http://localhost:4173/home', { waitUntil: 'networkidle' })
+      await gp.goto('http://localhost:4173' + (o.path || '/game'), { waitUntil: 'networkidle', timeout: 20000 })
+      await gp.waitForTimeout(1400)
+      const tapActor = async (id) => {
+        const b = await gp.locator(`[data-actor="${id}"]`).last().boundingBox()
+        if (process.env.DEBUG) console.log('tap', id, b, await gp.evaluate(([x, y]) => { const el = document.elementFromPoint(x, y); return el?.tagName + ' ' + (el?.closest('[data-actor]')?.getAttribute('data-actor') || '-') }, [b.x + b.width / 2, b.y + b.height / 2]))
+        if (vp.hasTouch) await gp.touchscreen.tap(b.x + b.width / 2, b.y + b.height / 2); else await gp.mouse.click(b.x + b.width / 2, b.y + b.height / 2)
+      }
+      // nesnenin gerçekten dokunulabilir (üstünde karakter/etiket olmayan) bir noktasını bul
+      const tapObj = async (idx) => {
+        const pt = await gp.evaluate((i) => {
+          const el = document.querySelector(`[data-obj="${i}"]`)
+          const r = el.getBoundingClientRect()
+          for (let fy = 0.9; fy > 0.05; fy -= 0.05) for (let fx = 0.2; fx < 0.85; fx += 0.1) {
+            const x = r.left + r.width * fx; const y = r.top + r.height * fy
+            if (x < 0 || y < 0 || x > innerWidth || y > innerHeight) continue
+            const hit = document.elementFromPoint(x, y)
+            if (hit?.closest('[data-obj]')?.getAttribute('data-obj') === String(i) && !hit.closest('[data-actor]')) return { x, y }
+          }
+          return { x: r.left + r.width / 2, y: r.top + r.height * 0.7 }
+        }, idx)
+        if (vp.hasTouch) await gp.touchscreen.tap(pt.x, pt.y); else await gp.mouse.click(pt.x, pt.y)
+      }
+      const bar = (label) => gp.getByRole('navigation', { name: 'Mahalle menüsü' }).getByRole('button', { name: new RegExp('^' + label) }).click()
+      if (name === 'game-world-carsi-shop') { await tapObj(1); await gp.waitForTimeout(3200) }
+      if (name === 'game-shop-furniture') { await tapObj(1); await gp.waitForTimeout(3200); await gp.getByRole('tab', { name: 'Mobilya' }).click(); await gp.waitForTimeout(500) }
+      if (name === 'game-speech') { await bar('Konuş'); await gp.waitForTimeout(600) }
+      if (name === 'game-speech-bubble') {
+        await bar('Konuş'); await gp.waitForTimeout(500)
+        await gp.getByRole('button', { name: 'Çay içelim mi?' }).click(); await gp.waitForTimeout(700)
+      }
+      if (name === 'game-player-card') { await tapActor('p3gulteyze'); await gp.waitForTimeout(700) }
+      if (name === 'game-players-here') { await gp.getByRole('button', { name: /^Buradakiler/ }).click(); await gp.waitForTimeout(600) }
+      if (name === 'game-map') { await bar('Harita'); await gp.waitForTimeout(600) }
+      if (name === 'game-neighbors') { await bar('Komşular'); await gp.waitForTimeout(900) }
+      if (name === 'game-gifts') { await bar('Hediyeler'); await gp.waitForTimeout(900) }
+      if (name === 'game-gift-send') {
+        await tapActor('p1papatya0'); await gp.waitForTimeout(600)
+        await gp.getByRole('button', { name: 'Hediye bırak' }).click(); await gp.waitForTimeout(600)
+        await gp.getByRole('radio', { name: /^Sıcak çay/ }).click(); await gp.getByRole('radio', { name: /Yanındayım/ }).click(); await gp.waitForTimeout(300)
+      }
+      if (name === 'game-zone-switch') { await bar('Harita'); await gp.waitForTimeout(500); await gp.getByRole('button', { name: /^Sahil/ }).click(); await gp.waitForTimeout(1800) }
+      if (name === 'game-portal-walk') { await tapObj(0); await gp.waitForTimeout(2600) }
+      if (name === 'game-daily') { await gp.getByRole('button', { name: 'Günlük tohumunu al' }).click(); await gp.waitForTimeout(700) }
+      if (name === 'game-room-exit') {
+        await gp.getByRole('navigation', { name: 'Mahalle menüsü' }).getByRole('button', { name: 'Sokağa çık' }).click(); await gp.waitForTimeout(1500)
+      }
+      if (name === 'game-live') {
+        const at = new Date().toISOString()
+        const ev = (o) => stomp?.send('/user/queue/game', { zone: 'meydan', instance: 1, at, ...o })
+        await gp.waitForTimeout(800)
+        ev({ type: 'SAY', publicId: 'p1papatya0', phraseKey: 'hosgeldin' })
+        ev({ type: 'SAY', publicId: 'p4mavibulu', emoteKey: 'heart' })
+        ev({ type: 'MOVE', publicId: 'p2deniz420', x: 9, y: 11 })
+        ev({ type: 'LEAVE', publicId: 'p5cinar000' })
+        ev({ type: 'JOIN', publicId: 'p7yeni0000', player: { publicId: 'p7yeni0000', nickname: 'Yeni Komşu', appearance: look('s3', 'bob', 'black', 'shirt_check', 'skirt', 'beanie'), petKey: 'serce', x: 5, y: 10 }, x: 5, y: 10 })
+        const ok = ev({ type: 'GIFT', publicId: 'p3gulteyze', giftKey: 'tea', messageKey: 'yanindayim', fromNickname: 'Gül Teyze' })
+        console.log('stomp delivered:', ok)
+        await gp.waitForTimeout(1300)
+      }
+      if (name === 'game-walking') {
+        const W = vp.width; if (vp.hasTouch) await gp.touchscreen.tap(W * 0.3, 330); else await gp.mouse.click(W * 0.35, 260)
+        await gp.waitForTimeout(650)
+      }
+      if (name === 'game-settings-blocked') {
+        await gp.getByRole('button', { name: 'Ayarlar', exact: true }).click(); await gp.waitForTimeout(800)
+        await gp.getByText('Engellediklerin').scrollIntoViewIfNeeded(); await gp.waitForTimeout(300)
+      }
+      if (name === 'game-settings') { await gp.getByRole('button', { name: 'Ayarlar', exact: true }).click(); await gp.waitForTimeout(800) }
+      if (name === 'game-room-edit') {
+        await bar('Düzenle'); await gp.waitForTimeout(500)
+        await gp.getByRole('button', { name: /^Akvaryum/ }).click(); await gp.waitForTimeout(600)
+      }
+      await gp.screenshot({ path: `${OUT}/${vpName}-${name}.png` })
+      console.log('ok', vpName, name, process.env.DEBUG ? gameState.calls.join(' | ') : '')
+    } catch (e) { console.log('FAIL', vpName, name, e.message.split('\n')[0]) }
+  }
+  if (errs.length) console.log(`[${vpName}] game console/page errors:`, [...new Set(errs)].slice(0, 8))
+  await gctx.close()
 }
 
 const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' })
@@ -305,6 +581,7 @@ for (const [vpName, vp] of Object.entries(viewports)) {
     } catch (e) { console.log('FAIL', vpName, name, e.message.split('\n')[0]) }
   }
   await publicFormShots(vpName, vp)
+  await runGameShots(vpName, vp)
   if (errors.length) console.log(`[${vpName}] console/page errors:`, [...new Set(errors)].slice(0, 8))
   await ctx.close()
 }

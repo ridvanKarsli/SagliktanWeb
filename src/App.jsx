@@ -39,6 +39,8 @@ const Conversations = lazy(() => import('./pages/messages/Conversations.jsx'))
 const Chat = lazy(() => import('./pages/messages/Chat.jsx'))
 const MessageRequests = lazy(() => import('./pages/messages/MessageRequests.jsx'))
 const AdminPanel = lazy(() => import('./pages/admin/AdminPanel.jsx'))
+// Sağlıktan Mahalle (oyun): çizim seti + sahne motoru yalnızca /game'de iner.
+const GameRoot = lazy(() => import('./game/GameRoot.jsx'))
 
 // Sayfa geçişlerinde (lazy route chunk'ı inerken) görünen gösterge:
 // Sağlıktan filizi. Hızlı geçişlerde hiç görünmesin diye kısa bir
@@ -83,6 +85,9 @@ export default function App() {
         <Route path="/yardim" element={<Help />} />
         {/* Karşılama: tam ekran, uygulama kabuğu (alt menü) olmadan. */}
         <Route path="/hosgeldin" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
+        {/* Mahalle: tam ekran oyun, uygulama kabuğu (alt menü/kenar çubuğu) olmadan.
+            Kendi hata sınırını ve "Sağlıktan'a dön" düğmesini taşır. */}
+        <Route path="/game/*" element={<ProtectedRoute><GameRoot /></ProtectedRoute>} />
         <Route element={<ProtectedLayout />}>
           <Route path="/home" element={<Home />} />
           <Route path="/groups" element={<DiseaseGroups />} />
