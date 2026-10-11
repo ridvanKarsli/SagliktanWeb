@@ -24,22 +24,55 @@ function logReactionResponses(page) {
 // satırı olduğundan DOM sırasına güveniyoruz: gönderinin satırı yorumlardan
 // önce render olduğu için .first() her zaman gönderiye, .last() en son
 // eklenen yoruma karşılık gelir (bkz. report.spec.js'teki aynı .last() deseni).
-test.describe('Reaksiyonlar (Faydalı / Faydalı Değil)', () => {
-  test('bir gönderiye Faydalı / Faydalı Değil verilip kaldırılabilir', async ({ page }) => {
-    logReactionResponses(page)
-    const user = uniqueUser('reaction')
-    await registerAndLogin(page, user)
-    await joinSeedGroup(page)
-    await page.getByRole('heading', { name: SEED_GROUP }).click()
-    await page.getByRole('heading', { name: SEED_SUB_GROUP }).click()
+// Yazar bir gönderi (ve yorum) açar; oyları AYRI bir context'teki ikinci
+// üye verir - kendi paylaşımına oy verilemez (sunucu reddeder, düğmeler pasif).
+async function authorCreatesPost(browser, prefix, { withComment = false } = {}) {
+  const author = uniqueUser(prefix)
+  const context = await browser.newContext()
+  const page = await context.newPage()
+  await registerAndLogin(page, author)
+  await joinSeedGroup(page)
+  await page.getByRole('heading', { name: SEED_GROUP }).click()
+  await page.getByRole('heading', { name: SEED_SUB_GROUP }).click()
 
-    const postTitle = `Reaksiyon test gönderisi ${Date.now()}`
-    await page.getByRole('button', { name: 'Yeni gönderi' }).click()
-    await page.getByTestId('post-title').fill(postTitle)
-    await page.getByTestId('post-content').fill('Reaksiyon akışını test etmek için oluşturuldu.')
-    await page.getByRole('button', { name: 'Paylaş', exact: true }).click()
-    await expect(page.getByText('Gönderi oluşturuldu.')).toBeVisible()
-    await page.getByText(postTitle).click()
+  const postTitle = `Reaksiyon test gönderisi ${Date.now()}`
+  await page.getByRole('button', { name: 'Yeni gönderi' }).click()
+  await page.getByTestId('post-title').fill(postTitle)
+  await page.getByTestId('post-content').fill('Reaksiyon akışını test etmek için oluşturuldu.')
+  await page.getByRole('button', { name: 'Paylaş', exact: true }).click()
+  await expect(page.getByText('Gönderi oluşturuldu.')).toBeVisible()
+  await page.getByText(postTitle).click()
+
+  let commentText = null
+  if (withComment) {
+    commentText = `Reaksiyon verilecek yorum ${Date.now()}`
+    await page.getByPlaceholder(/Deneyimini ya da sorunu yaz/).fill(commentText)
+    await page.getByRole('button', { name: 'Yorumu gönder' }).click()
+    await expect(page.getByText(commentText)).toBeVisible()
+  }
+  return { context, page, postUrl: page.url(), commentText }
+}
+
+async function voterOpens(browser, prefix, postUrl) {
+  const context = await browser.newContext()
+  const page = await context.newPage()
+  logReactionResponses(page)
+  await registerAndLogin(page, uniqueUser(prefix))
+  await joinSeedGroup(page)
+  await page.goto(postUrl)
+  return { context, page }
+}
+
+test.describe('Reaksiyonlar (Faydalı / Faydalı Değil)', () => {
+  test('kendi paylaşımına oy verilemez', async ({ browser }) => {
+    const author = await authorCreatesPost(browser, 'reactionown')
+    await expect(author.page.getByRole('button', { name: /kendi paylaşımına oy veremezsin/ }).first()).toBeDisabled()
+    await author.context.close()
+  })
+
+  test('bir gönderiye Faydalı / Faydalı Değil verilip kaldırılabilir', async ({ browser }) => {
+    const author = await authorCreatesPost(browser, 'reactionauthor')
+    const { context, page } = await voterOpens(browser, 'reaction', author.postUrl)
 
     const helpfulBtn = page.getByRole('button', { name: 'Faydalı', exact: true }).first()
     const notHelpfulBtn = page.getByRole('button', { name: 'Faydalı Değil' }).first()
@@ -68,45 +101,29 @@ test.describe('Reaksiyonlar (Faydalı / Faydalı Değil)', () => {
     await page.reload()
     await expect(page.getByTestId('reaction-helpful-count').first()).toHaveText('0')
     await expect(page.getByTestId('reaction-not-helpful-count').first()).toHaveText('0')
+
+    await context.close()
+    await author.context.close()
   })
 
-  test('bir yoruma Faydalı verilebilir ve gönderinin reaksiyonundan bağımsızdır', async ({ page }) => {
-    logReactionResponses(page)
-    const user = uniqueUser('reactioncomment')
-    await registerAndLogin(page, user)
-    await joinSeedGroup(page)
-    await page.getByRole('heading', { name: SEED_GROUP }).click()
-    await page.getByRole('heading', { name: SEED_SUB_GROUP }).click()
-
-    const postTitle = `Yorum reaksiyon testi ${Date.now()}`
-    await page.getByRole('button', { name: 'Yeni gönderi' }).click()
-    await page.getByTestId('post-title').fill(postTitle)
-    await page.getByTestId('post-content').fill('İçerik.')
-    await page.getByRole('button', { name: 'Paylaş', exact: true }).click()
-    await expect(page.getByText('Gönderi oluşturuldu.')).toBeVisible()
-    await page.getByText(postTitle).click()
+  test('bir yoruma Faydalı verilebilir ve gönderinin reaksiyonundan bağımsızdır', async ({ browser }) => {
+    const author = await authorCreatesPost(browser, 'reactioncommentauthor', { withComment: true })
+    const { context, page } = await voterOpens(browser, 'reactioncomment', author.postUrl)
 
     // Gönderiye Faydalı ver.
     await page.getByRole('button', { name: 'Faydalı', exact: true }).first().click()
     await expect(page.getByTestId('reaction-helpful-count').first()).toHaveText('1')
 
-    const commentText = `Reaksiyon verilecek yorum ${Date.now()}`
-    await page.getByPlaceholder(/Deneyimini ya da sorunu yaz/).fill(commentText)
-    await page.getByRole('button', { name: 'Yorumu gönder' }).click()
-    await expect(page.getByText(commentText)).toBeVisible()
-
     // Yorumun kendi reaksiyon satırı en sonda (.last()) - gönderinin
     // sayacını etkilememeli.
-    // GEÇİCİ TEŞHİS: yorum metni görünür olsa bile CommentRow'un kendi
-    // ReactionButtons'ı (yorumun "Faydalı" butonu) henüz DOM'a
-    // eklenmemiş/stabilize olmamış olabilir - explicit count bekleyerek
-    // hem olası bir race'i tolere ediyoruz hem de eğer gerçek bir render
-    // sorunuysa (buton hiç 2'ye çıkmıyorsa) net bir timeout hatasıyla
-    // görünür kılıyoruz.
+    await expect(page.getByText(author.commentText)).toBeVisible()
     const faydaliButtons = page.getByRole('button', { name: 'Faydalı', exact: true })
     await expect(faydaliButtons).toHaveCount(2, { timeout: 10000 })
     await faydaliButtons.last().click()
     await expect(page.getByTestId('reaction-helpful-count').last()).toHaveText('1')
     await expect(page.getByTestId('reaction-helpful-count').first()).toHaveText('1') // gönderi değişmedi
+
+    await context.close()
+    await author.context.close()
   })
 })

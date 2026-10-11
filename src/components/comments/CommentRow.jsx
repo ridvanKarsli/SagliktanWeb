@@ -216,6 +216,7 @@ export default function CommentRow({
                     myReaction={comment.myReaction}
                     onReact={(value) => reactToComment(token, comment.id, value)}
                     onRemove={() => removeCommentReaction(token, comment.id)}
+                    ownContent={isOwnComment}
                   />
                   {canReply && (
                     <Button

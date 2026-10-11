@@ -26,8 +26,12 @@ export default function ReactionButtons({
   onReact,
   onRemove,
   size = 'small',
-  disabled = false
+  disabled: disabledProp = false,
+  // Kendi paylaşımı: sayılar görünür ama oy verilemez ("Faydalı" sayısı ve
+  // yol arkadaşları başkalarının teşekkürüyle büyür; sunucu da reddeder).
+  ownContent = false
 }) {
+  const disabled = disabledProp || ownContent
   const { showError } = useNotification()
   const [pending, setPending] = useState(false)
   const [local, setLocal] = useServerSyncedState({ helpfulCount, notHelpfulCount, myReaction }, { paused: pending })
@@ -133,13 +137,13 @@ export default function ReactionButtons({
       onClick={(e) => e.stopPropagation()}
       sx={{ opacity: pending ? 0.7 : 1, transition: 'opacity 0.15s ease' }}
     >
-      <Tooltip title="Faydalı">
+      <Tooltip title={ownContent ? 'Kendi paylaşımın: oylar başkalarından gelir' : 'Faydalı'}>
         <span>
           <Button
             size={size}
             disabled={disabled}
             onClick={(e) => handleClick(e, 'HELPFUL')}
-            aria-label="Faydalı"
+            aria-label={ownContent ? `Faydalı: ${shownHelpful} (kendi paylaşımına oy veremezsin)` : 'Faydalı'}
             aria-pressed={shownReaction === 'HELPFUL'}
             sx={btnSx(shownReaction === 'HELPFUL', 'warm')}
           >
@@ -153,7 +157,7 @@ export default function ReactionButtons({
           </Button>
         </span>
       </Tooltip>
-      <Tooltip title="Faydalı değil">
+      <Tooltip title={ownContent ? 'Kendi paylaşımın: oylar başkalarından gelir' : 'Faydalı değil'}>
         <span>
           <Button
             size={size}

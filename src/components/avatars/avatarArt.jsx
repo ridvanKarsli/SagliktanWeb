@@ -1,4 +1,4 @@
-// Sağlıktan'ın "yol arkadaşları": faydalı oy aldıkça açılan profil
+// Sağlıktan'ın "yol arkadaşları": farklı kişilere faydalı olundukça ve zamanla açılan profil
 // avatarları. Hepsi aynı çizim dilinde: dolu renkli zemin dairesi, yumuşak
 // gövde, nokta gözler, pembe yanaklar, küçük gülümseme. Anahtarlar backend'deki
 // AvatarCatalog ile birebir aynı olmalı.

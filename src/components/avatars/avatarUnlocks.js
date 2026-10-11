@@ -132,21 +132,49 @@ export function requestAvatarRecheck() {
 
 export const AVATAR_RECHECK_EVENT = RECHECK_EVENT
 
-/** Sıradaki kilitli avatar ve ona kalan oy (yoksa null). */
+// Gün sayısını insan diliyle: 7 -> "1 hafta", 30 -> "1 ay", 365 -> "1 yıl".
+export function durationLabel(days) {
+  if (days >= 365 && days % 365 === 0) return `${days / 365} yıl`
+  if (days >= 30 && days % 30 === 0) return `${days / 30} ay`
+  if (days >= 7 && days % 7 === 0) return `${days / 7} hafta`
+  return `${days} gün`
+}
+
+/**
+ * Sıradaki kilitli avatar ve ona kalan yol (yoksa null).
+ * Açılmak için iki koşul birlikte gerekir: kaç farklı kişiye faydalı
+ * olunduğu (helpedPeople) + en az üyelik süresi (memberDays).
+ */
 export function nextCompanion(options) {
   if (!options?.avatars) return null
-  const helpful = options.helpfulReceived || 0
+  const people = options.helpedPeople || 0
+  const days = options.memberDays || 0
   const next = options.avatars
     .filter(a => !a.unlocked)
-    .sort((a, b) => a.requiredHelpful - b.requiredHelpful)[0]
+    .sort((a, b) => a.level - b.level)[0]
   if (!next) return null
   const prev = options.avatars
     .filter(a => a.unlocked)
-    .reduce((m, a) => Math.max(m, a.requiredHelpful), 0)
-  const span = Math.max(1, next.requiredHelpful - prev)
+    .reduce((m, a) => Math.max(m, a.requiredPeople), 0)
+  const remainingPeople = Math.max(0, next.requiredPeople - people)
+  const remainingDays = Math.max(0, next.requiredDays - days)
+  const peopleProgress = Math.min(1, Math.max(0, (people - prev) / Math.max(1, next.requiredPeople - prev)))
+  const dayProgress = next.requiredDays > 0 ? Math.min(1, days / next.requiredDays) : 1
   return {
     avatar: next,
-    remaining: Math.max(0, next.requiredHelpful - helpful),
-    progress: Math.min(100, Math.max(0, ((helpful - prev) / span) * 100)),
+    remainingPeople,
+    remainingDays,
+    // İki koşuldan hangisi gerideyse ilerleme ona göre görünür.
+    progress: Math.round(Math.min(peopleProgress, dayProgress) * 100),
   }
+}
+
+/** "3 kişiye daha faydalı ol" / "12 gün sonra açılır" gibi kısa açıklama. */
+export function nextStepText(next) {
+  if (!next) return ''
+  const { remainingPeople: p, remainingDays: d } = next
+  if (p > 0 && d > 0) return `${p} kişiye daha faydalı ol, ${d} gün sonra açılır`
+  if (p > 0) return `${p} kişiye daha faydalı olunca açılır`
+  if (d > 0) return `${d} gün sonra açılır`
+  return 'Birazdan açılıyor'
 }

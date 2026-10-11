@@ -12,7 +12,7 @@ import LeafBurst from '../celebration/LeafBurst.jsx'
 import UserAvatar from './UserAvatar.jsx'
 import Companion from './Companion.jsx'
 import { hasAvatarArt } from './avatarArt.jsx'
-import { clearFresh, nextCompanion, readUnlockMemory, setAvatarOptions, syncUnlockMemory } from './avatarUnlocks.js'
+import { clearFresh, durationLabel, nextCompanion, nextStepText, readUnlockMemory, setAvatarOptions, syncUnlockMemory } from './avatarUnlocks.js'
 import '../../styles/companions.css'
 
 const GRID = { display: 'grid', gridTemplateColumns: { xs: 'repeat(4, minmax(0, 1fr))', sm: 'repeat(5, minmax(0, 1fr))' }, gap: { xs: 0.5, sm: 1 } }
@@ -39,7 +39,7 @@ function Tile({ option, selected, isNew, onPick, disabled, justPicked }) {
       disabled={disabled}
       aria-pressed={locked ? undefined : selected}
       aria-label={locked
-        ? `${option.name}, kilitli: ${option.requiredHelpful} faydalı oyda açılır`
+        ? `${option.name}, kilitli: ${option.requiredPeople} kişiye faydalı olunca ve ${durationLabel(option.requiredDays)} üyelikte açılır`
         : `${option.name}${isNew ? ' (yeni)' : ''}${selected ? ', seçili' : ' avatarını seç'}`}
       className={locked ? undefined : 'sg-sway-on-hover'}
       sx={{
@@ -97,7 +97,7 @@ function Tile({ option, selected, isNew, onPick, disabled, justPicked }) {
       </Typography>
       {locked && (
         <Typography variant="caption" component="span" sx={{ color: 'text.secondary', lineHeight: 1, fontSize: '0.72rem', fontWeight: 700 }}>
-          {option.requiredHelpful} oy
+          {option.requiredPeople} kişi · {durationLabel(option.requiredDays)}
         </Typography>
       )}
     </ButtonBase>
@@ -114,7 +114,7 @@ function SectionTitle({ children, count }) {
 }
 
 function ProgressCard({ data, fullName }) {
-  const helpful = data?.helpfulReceived ?? 0
+  const helped = data?.helpedPeople ?? 0
   const next = nextCompanion(data)
   const currentKey = hasAvatarArt(data?.selectedKey) ? data.selectedKey : null
   return (
@@ -137,7 +137,7 @@ function ProgressCard({ data, fullName }) {
           <ThumbUpAltRounded sx={{ fontSize: 18, color: 'brand.apricotInk' }} />
           {data ? (
             <Typography variant="subtitle1" component="p" sx={{ color: 'brand.apricotInk', fontWeight: 800 }}>
-              {helpful} faydalı oy
+              {helped} kişiye faydalı oldun
             </Typography>
           ) : <Skeleton width={110} />}
         </Stack>
@@ -149,7 +149,7 @@ function ProgressCard({ data, fullName }) {
         ) : next ? (
           <>
             <Typography variant="body2" sx={{ mt: 0.25 }}>
-              Sıradaki yol arkadaşın <b>{next.avatar.name}</b>, {next.remaining} oy kaldı.
+              Sıradaki yol arkadaşın <b>{next.avatar.name}</b>: {nextStepText(next)}.
             </Typography>
             <Stack direction="row" alignItems="center" spacing={1} sx={{ mt: 1 }}>
               <Box
@@ -176,7 +176,8 @@ function ProgressCard({ data, fullName }) {
 }
 
 /**
- * Avatar seçici: kişinin aldığı "Faydalı" oylarla açılan yol arkadaşları.
+ * Avatar seçici: kaç farklı kişiye faydalı olunduğu ve üyelik süresiyle
+ * açılan yol arkadaşları (açılan kalıcıdır).
  * Açık olanlar üstte, sıradakiler altta soluk ve kilitli; yeni açılan bir
  * yol arkadaşını ilk kez seçmek küçük bir yaprak yağmuruyla kutlanır.
  */
@@ -215,14 +216,17 @@ export default function AvatarPicker({ open, onClose }) {
     const all = data?.avatars || []
     return {
       unlocked: all.filter(a => a.unlocked),
-      locked: all.filter(a => !a.unlocked).sort((a, b) => a.requiredHelpful - b.requiredHelpful),
+      locked: all.filter(a => !a.unlocked).sort((a, b) => a.level - b.level),
     }
   }, [data])
 
   const pick = async (option) => {
     if (!option.unlocked) {
-      const left = option.requiredHelpful - (data?.helpfulReceived || 0)
-      showInfo(`${option.name} için ${left} faydalı oy daha gerekiyor. Paylaşımların ve yorumların faydalı bulundukça açılır.`)
+      const step = nextStepText({
+        remainingPeople: Math.max(0, option.requiredPeople - (data?.helpedPeople || 0)),
+        remainingDays: Math.max(0, option.requiredDays - (data?.memberDays || 0)),
+      })
+      showInfo(`${option.name}: ${step}. Yol arkadaşları, paylaşımların farklı kişilere faydalı geldikçe ve zamanla açılır.`)
       return
     }
     if (option.key === data?.selectedKey) return
@@ -282,7 +286,7 @@ export default function AvatarPicker({ open, onClose }) {
 
       <Box sx={{ px: { xs: 2, sm: 3 }, pb: 'calc(24px + env(safe-area-inset-bottom))', overflowY: 'auto' }}>
         <Typography id="avatar-picker-desc" variant="body2" sx={{ color: 'text.secondary', mb: 2, mt: 0.5 }}>
-          Profilinde seni yol arkadaşın temsil eder. Paylaşımların ve yorumların başkalarına faydalı geldikçe
+          Profilinde seni yol arkadaşın temsil eder. Paylaşımların farklı kişilere faydalı geldikçe ve zamanla
           yenileri açılır.
         </Typography>
 

@@ -250,7 +250,7 @@ export default function Onboarding() {
             </Box>
             <Typography variant="h2" component="h1">Hazırsın{user?.firstName ? `, ${user.firstName}` : ''}!</Typography>
             <Typography variant="body1" sx={{ color: 'text.secondary', maxWidth: 440 }}>
-              İlk yol arkadaşın Filiz seninle. Paylaşımların başkalarına faydalı geldikçe yeni yol arkadaşları açılır.
+              İlk yol arkadaşın Filiz seninle. Paylaşımların farklı insanlara faydalı geldikçe ve zamanla yeni yol arkadaşları açılır.
             </Typography>
             <Typography variant="body1" sx={{ color: 'text.secondary', maxWidth: 440 }}>
               Kısaca kendini tanıtmak ister misin? İlk paylaşımlara genelde sıcak karşılamalar gelir.

@@ -49,12 +49,12 @@ function useProfileTab() {
 // Yorum ve "faydalı" sayıları /users/me yanıtında gelir. İkincil veri:
 // yüklenemezse 0 gösterilir, sayfa akışı bozulmaz.
 function useProfileStats(token) {
-  const [stats, setStats] = useState({ commentCount: 0, likesReceived: 0, loading: true })
+  const [stats, setStats] = useState({ commentCount: 0, helpedPeople: 0, loading: true })
   useEffect(() => {
     if (!token) return undefined
     let alive = true
     getUserProfile(token)
-      .then(res => { if (alive) setStats({ commentCount: res?.commentCount ?? 0, likesReceived: res?.likesReceived ?? 0, loading: false }) })
+      .then(res => { if (alive) setStats({ commentCount: res?.commentCount ?? 0, helpedPeople: res?.helpedPeople ?? 0, loading: false }) })
       .catch(() => { if (alive) setStats(s => ({ ...s, loading: false })) })
     return () => { alive = false }
   }, [token])
@@ -163,7 +163,7 @@ export default function Profile() {
             <ProfileStat value={posts.totalCount} label="Gönderi" onClick={() => setTab('posts')} loading={posts.loading} />
             <ProfileStat value={stats.commentCount} label="Yorum" loading={stats.loading} />
             <ProfileStat value={myGroups.groups.length} label="Grup" onClick={() => setTab('groups')} loading={myGroups.loading} />
-            <ProfileStat value={stats.likesReceived} label="Faydalı" highlight loading={stats.loading} />
+            <ProfileStat value={stats.helpedPeople} label="Kişiye faydalı" highlight loading={stats.loading} />
           </StatStrip>
         )}
       >

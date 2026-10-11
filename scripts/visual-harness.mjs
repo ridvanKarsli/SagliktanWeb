@@ -12,12 +12,15 @@ const iso = (minsAgo) => new Date(now.getTime() - minsAgo * 60000).toISOString()
 const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url')
 const jwt = (type) => `${b64({ alg: 'HS256' })}.${b64({ sub: 'ayse@example.com', type, sid: 's1', exp: Math.floor(Date.now() / 1000) + 86400 })}.sig`
 
-const me = { id: 1, email: 'ayse@example.com', firstName: 'Ayşe', lastName: 'Demir', bio: 'RP tanısı 2021. Kızım için buradayım.', role: process.env.ROLE || 'ADMIN', emailVerified: true, communityRole: 'CAREGIVER', city: 'İzmir', discoverable: process.env.DISCOVERABLE !== '0', onboardingCompleted: process.env.ONBOARDED !== '0', weeklyDigestEnabled: true, createdAt: iso(99999), postCount: 12, commentCount: 48, likesReceived: 130, dislikesReceived: 3 }
+const me = { id: 1, email: 'ayse@example.com', firstName: 'Ayşe', lastName: 'Demir', bio: 'RP tanısı 2021. Kızım için buradayım.', role: process.env.ROLE || 'ADMIN', emailVerified: true, communityRole: 'CAREGIVER', city: 'İzmir', discoverable: process.env.DISCOVERABLE !== '0', onboardingCompleted: process.env.ONBOARDED !== '0', weeklyDigestEnabled: true, createdAt: iso(99999), postCount: 12, commentCount: 48, likesReceived: 130, dislikesReceived: 3, helpedPeople: 11 }
 // [profil/avatar] yol arkadaşları kataloğu (backend AvatarCatalog ile aynı) + avatarKey alanları
 me.avatarKey = process.env.NOAVATAR ? null : 'kirpi'
-const HELPFUL = Number(process.env.HELPFUL ?? 27)
-const avatarCatalog = [['filiz', 'Filiz', 0], ['damla', 'Damla', 0], ['bulut', 'Bulut', 0], ['cakil', 'Çakıl', 0], ['papatya', 'Papatya', 5], ['kirpi', 'Kirpi', 5], ['kaplumbaga', 'Kaplumbağa', 15], ['serce', 'Serçe', 15], ['kedi', 'Pamuk', 30], ['ayicik', 'Ayıcık', 30], ['baykus', 'Bilge', 60], ['tilki', 'Tilki', 60], ['gunes', 'Güneş', 120], ['deniz-feneri', 'Fener', 120], ['ay-cicegi', 'Ayçiçeği', 250], ['yildiz', 'Yıldız', 500]]
-const avatarOptions = () => ({ helpfulReceived: HELPFUL, selectedKey: me.avatarKey, avatars: avatarCatalog.map(([key, name, requiredHelpful]) => ({ key, name, requiredHelpful, unlocked: HELPFUL >= requiredHelpful })) })
+const HELPED = Number(process.env.HELPED ?? 11)
+const MEMBER_DAYS = Number(process.env.MEMBER_DAYS ?? 40)
+const LEVELS = [[0, 0], [3, 7], [8, 14], [15, 30], [30, 60], [60, 120], [120, 180], [250, 365]]
+const avatarCatalog = [['filiz', 'Filiz', 0], ['damla', 'Damla', 0], ['bulut', 'Bulut', 0], ['cakil', 'Çakıl', 0], ['papatya', 'Papatya', 1], ['kirpi', 'Kirpi', 1], ['kaplumbaga', 'Kaplumbağa', 2], ['serce', 'Serçe', 2], ['kedi', 'Pamuk', 3], ['ayicik', 'Ayıcık', 3], ['baykus', 'Bilge', 4], ['tilki', 'Tilki', 4], ['gunes', 'Güneş', 5], ['deniz-feneri', 'Fener', 5], ['ay-cicegi', 'Ayçiçeği', 6], ['yildiz', 'Yıldız', 7]]
+const unlockedLevel = LEVELS.reduce((m, [p, d], i) => (HELPED >= p && MEMBER_DAYS >= d ? i : m), 0)
+const avatarOptions = () => ({ helpedPeople: HELPED, memberDays: MEMBER_DAYS, unlockedLevel, selectedKey: me.avatarKey, avatars: avatarCatalog.map(([key, name, level]) => ({ key, name, level, requiredPeople: LEVELS[level][0], requiredDays: LEVELS[level][1], unlocked: level <= unlockedLevel })) })
 const names = ['Mehmet Kaya', 'Zeynep Arslan', 'Ali Yılmaz', 'Fatma Çelik', 'Deniz Koç', 'Elif Şahin']
 // [akış] kişilerin avatarları (biri null: baş harf geri dönüşü de görünsün)
 const avatarFor = (i) => ['kaplumbaga', 'papatya', null, 'baykus', 'deniz-feneri', 'tilki'][i % 6]
@@ -108,7 +111,7 @@ function route(url, method, req) {
   if (p === '/users/me/sessions') return [{ id: 1, deviceLabel: 'iPhone · Safari', ipAddress: '85.1.2.3', lastUsedAt: iso(1), createdAt: iso(999), current: true }, { id: 2, deviceLabel: 'Mac · Chrome', ipAddress: '85.1.2.4', lastUsedAt: iso(300), createdAt: iso(5000), current: false }]
   if (m(/^\/users\/\d+\/posts$/)) return page([post(1), post(3)])
   if (m(/^\/users\/12$/)) return { id: 12, firstName: 'Ali', lastName: 'Yılmaz', avatarKey: 'gunes', profileHidden: true, postCount: 0, commentCount: 0, likesReceived: 0, dislikesReceived: 0 }
-  if (m(/^\/users\/(\d+)$/)) return { ...me, id: 11, firstName: 'Mehmet', lastName: 'Kaya', bio: 'RP ile 10 yıl. Sorularınıza elimden geldiğince yanıt veririm.', avatarKey: 'kaplumbaga', likesReceived: 64 }
+  if (m(/^\/users\/(\d+)$/)) return { ...me, id: 11, firstName: 'Mehmet', lastName: 'Kaya', bio: 'RP ile 10 yıl. Sorularınıza elimden geldiğince yanıt veririm.', avatarKey: 'kaplumbaga', likesReceived: 64, helpedPeople: 23 }
   if (p === '/disease-groups') return groups
   if (m(/^\/disease-groups\/\d+$/)) return groups[0]
   if (m(/^\/disease-groups\/\d+\/sub-groups$/)) return subGroups

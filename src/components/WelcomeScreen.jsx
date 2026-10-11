@@ -27,7 +27,7 @@ const FEATURES = [
     Icon: ThumbUpAltRounded,
     tone: 'apricot',
     title: 'Faydalı oldukça açılan yol arkadaşları',
-    text: 'Paylaşımın birine iyi geldiğinde "Faydalı" oyu alırsın. Oylar arttıkça profilin için yeni yol arkadaşları açılır.',
+    text: 'Paylaşımın birine iyi geldiğinde teşekkürü sana ulaşır. Farklı insanlara dokundukça ve zamanla profilin için yeni yol arkadaşları açılır.',
   },
   {
     Icon: SpaOutlined,
@@ -232,7 +232,7 @@ export default function WelcomeScreen() {
             <SectionTitle
               align="center"
               title="Yol arkadaşların seni bekliyor"
-              lead="Herkes ilk dört yol arkadaşıyla başlar. Paylaşımların başkalarına faydalı geldikçe yenileri açılır; profilinde seni onlar temsil eder."
+              lead="Herkes ilk dört yol arkadaşıyla başlar. Paylaşımların farklı insanlara faydalı geldikçe, acele etmeden yenileri açılır; profilinde seni onlar temsil eder."
             />
             <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(6, auto)', justifyContent: 'center', gap: { xs: 1, sm: 2 } }} aria-hidden>
               {GALLERY.map((name, i) => {

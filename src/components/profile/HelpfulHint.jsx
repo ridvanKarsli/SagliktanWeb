@@ -1,13 +1,13 @@
 import { Box, ButtonBase, Typography } from '@mui/material'
 import { ChevronRightRounded } from '@mui/icons-material'
 import Companion from '../avatars/Companion.jsx'
-import { nextCompanion, useAvatarOptions } from '../avatars/avatarUnlocks.js'
+import { nextCompanion, nextStepText, useAvatarOptions } from '../avatars/avatarUnlocks.js'
 import { radius } from '../../design/tokens.js'
 import '../../styles/companions.css'
 
 /**
  * Profilde istatistiklerin altında küçük ipucu: yeni açılan yol arkadaşı
- * varsa onu, yoksa sıradakine kaç faydalı oy kaldığını söyler. Dokununca
+ * varsa onu, yoksa sıradakinin ne zaman açılacağını söyler. Dokununca
  * seçici açılır. Seçenekler henüz gelmediyse yer kaplamaz.
  */
 export default function HelpfulHint({ userId, onOpen }) {
@@ -27,7 +27,7 @@ export default function HelpfulHint({ userId, onOpen }) {
   } else if (next) {
     companion = next.avatar.key
     ghost = true
-    text = `Sıradaki yol arkadaşına ${next.remaining} faydalı oy kaldı`
+    text = `Sıradaki yol arkadaşın ${next.avatar.name}: ${nextStepText(next)}`
   } else {
     return null
   }

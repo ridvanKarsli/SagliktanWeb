@@ -156,6 +156,7 @@ function PostCard({ post, onOpen, onSend, onReport, token, highlightQuery, showP
               myReaction={myReaction}
               onReact={(value) => reactToPost(token, id, value)}
               onRemove={() => removePostReaction(token, id)}
+              ownContent={!!isOwnPost}
             />
             {/* Yorum sayısı: sorularda "kaç cevap var" en önemli sinyal. */}
             {onClick && (

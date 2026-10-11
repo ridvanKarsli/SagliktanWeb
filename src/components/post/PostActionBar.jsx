@@ -11,7 +11,8 @@ import { reactToPost, removePostReaction, savePost, unsavePost } from '../../ser
 // Gönderi detayındaki eylem çubuğu: faydalı/değil, kaydet, hikaye olarak
 // paylaş, mesajla gönder. Gönderi kartının alt kenarında, ince bir çizgiyle.
 export default function PostActionBar({ post }) {
-  const { token } = useAuth()
+  const { token, user } = useAuth()
+  const isOwnPost = !!user && String(user.id) === String(post.authorId)
   const [shareCardOpen, setShareCardOpen] = useState(false)
   const [sendDialogOpen, setSendDialogOpen] = useState(false)
 
@@ -31,6 +32,7 @@ export default function PostActionBar({ post }) {
           onReact={(value) => reactToPost(token, post.id, value)}
           onRemove={() => removePostReaction(token, post.id)}
           size="medium"
+          ownContent={isOwnPost}
         />
         <Stack direction="row" spacing={0.25} alignItems="center">
           <SaveButton
