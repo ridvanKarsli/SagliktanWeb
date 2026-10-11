@@ -14,7 +14,7 @@ import PasswordStrengthMeter from '../components/PasswordStrengthMeter.jsx'
 import PasswordField from '../components/PasswordField.jsx'
 import CityField from '../components/profile/CityField.jsx'
 import EmailField from '../components/forms/EmailField.jsx'
-import { DiscoverableSwitch, ProfilePublicSwitch, RolePicker } from '../components/profile/HealthProfileFields.jsx'
+import { RolePicker } from '../components/profile/HealthProfileFields.jsx'
 import { useFormValidation } from '../hooks/useFormValidation.js'
 import {
   LIMITS, cityError, cleanLine, confirmPasswordError, emailError, fieldErrorsFrom, fieldFromMessage,
@@ -69,8 +69,6 @@ export default function Register() {
     confirmPassword: '',
     city: '',
     communityRole: null,
-    profilePublic: true,
-    discoverable: false,
     kvkkConsent: false
   })
   const [registeredEmail, setRegisteredEmailState] = useState(readRegisteredEmail)
@@ -95,8 +93,10 @@ export default function Register() {
         kvkkConsent: form.kvkkConsent,
         city: normalizeCity(form.city),
         communityRole: form.communityRole,
-        profilePublic: form.profilePublic,
-        discoverable: form.profilePublic && form.discoverable
+        // Görünürlük kayıtta sorulmaz: profil açık, eşleşme önerileri kapalı
+        // başlar; ikisi de Ayarlar > Profil ve eşleşme'den değiştirilir.
+        profilePublic: true,
+        discoverable: false
       })
       setRegisteredEmail(email)
     } catch (err) {
@@ -243,14 +243,6 @@ export default function Register() {
             </Typography>
             <RolePicker value={form.communityRole} onChange={set('communityRole')} />
           </Box>
-
-          <Stack spacing={1.25}>
-            <ProfilePublicSwitch
-              checked={form.profilePublic}
-              onChange={(on) => setForm(f => ({ ...f, profilePublic: on, discoverable: on ? f.discoverable : false }))}
-            />
-            <DiscoverableSwitch checked={form.discoverable} profilePublic={form.profilePublic} onChange={set('discoverable')} />
-          </Stack>
 
           <Box>
           <FormControlLabel
