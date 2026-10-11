@@ -3,7 +3,6 @@ import {
   EmojiPeopleOutlined, FavoriteBorderRounded, MedicalServicesOutlined, PersonOutlineRounded
 } from '@mui/icons-material'
 import { COMMUNITY_ROLES } from '../../utils/communityProfile.js'
-import CityField from './CityField.jsx'
 import { radius } from '../../design/tokens.js'
 
 const ROLE_ICONS = {
@@ -106,17 +105,14 @@ export function DiscoverableSwitch({ checked, onChange, profilePublic = true }) 
 }
 
 /**
- * Rol (isteğe bağlı) + şehir + iki görünürlük anahtarı.
- * value: { communityRole, city, discoverable, profilePublic }.
+ * Rol (isteğe bağlı) + iki görünürlük anahtarı.
+ * value: { communityRole, discoverable, profilePublic }. Şehir burada yok:
+ * yalnızca "Profili düzenle"den değişir.
  * Hepsi isteğe bağlı; görünürlük açılmadıkça bu bilgiler başkalarına gösterilmez.
  */
-// validation: isteğe bağlı useFormValidation örneği - verilirse sunucu/alan
-// hataları (şehir) ilgili alanın altında gösterilir.
-export default function HealthProfileFields({ value, onChange, showRole = false, validation }) {
+export default function HealthProfileFields({ value, onChange, showRole = false }) {
   const v = value || {}
   const set = (patch) => onChange({ ...v, ...patch })
-  const fieldProps = (name) => (validation ? validation.field(name) : {})
-  const errorText = (name) => (validation ? validation.error(name) : null)
   return (
     <Stack spacing={2.25}>
       {showRole && (
@@ -125,13 +121,6 @@ export default function HealthProfileFields({ value, onChange, showRole = false,
           <RolePicker value={v.communityRole} onChange={(communityRole) => set({ communityRole })} />
         </Box>
       )}
-      <CityField
-        value={v.city}
-        onChange={(city) => set({ city })}
-        label="Yaşadığın şehir"
-        {...fieldProps('city')}
-        helperText={errorText('city') || 'Profilinde görünür; yakınındaki üyeleri bulmana da yardım eder. İsteğe bağlı.'}
-      />
       <ProfilePublicSwitch
         checked={v.profilePublic !== false}
         onChange={(profilePublic) => set(profilePublic ? { profilePublic } : { profilePublic, discoverable: false })}

@@ -10,15 +10,11 @@ import { useNotification } from '../../context/NotificationContext.jsx'
 import { getDigestPreview, updateHealthProfile, updatePreferences } from '../../services/api.js'
 import HealthProfileFields from '../../components/profile/HealthProfileFields.jsx'
 import SettingsSection, { SettingsCard } from '../../components/settings/SettingsSection.jsx'
-import { useFormValidation } from '../../hooks/useFormValidation.js'
-import { cleanHealthProfile, fieldErrorsFrom, fieldFromMessage, healthProfileErrors } from '../../utils/validation.js'
+import { cleanHealthProfile } from '../../utils/validation.js'
 import SaglikLoader from '../../components/common/SaglikLoader.jsx'
-
-const MESSAGE_FIELDS = [[/il seçin|şehir/i, 'city']]
 
 function sameProfile(a, b) {
   return (a.communityRole || null) === (b.communityRole || null)
-    && (a.city || '').trim() === (b.city || '').trim()
     && !!a.discoverable === !!b.discoverable
     && (a.profilePublic !== false) === (b.profilePublic !== false)
 }
@@ -34,10 +30,9 @@ export default function CommunitySettings() {
   const location = useLocation()
   const sectionRef = useRef(null)
 
-  // Kayıtlı değerler geçerli kümeye indirgenir (ör. listede olmayan eski şehir boş görünür).
+  // Kayıtlı değerler geçerli kümeye indirgenir (bilinmeyen rol boş görünür).
   const fromUser = () => cleanHealthProfile(user || {})
   const [profile, setProfile] = useState(fromUser)
-  const v = useFormValidation(profile, healthProfileErrors)
   const [saving, setSaving] = useState(false)
   const [digestSaving, setDigestSaving] = useState(false)
   const [preview, setPreview] = useState({ open: false, html: '', loading: false })
@@ -46,19 +41,16 @@ export default function CommunitySettings() {
     if (location.hash === '#eslesme') sectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, [location.hash])
 
-  // Kayıtlı şehir listede yoksa (temizlendi) kaydetmek de anlamlı bir değişiklik.
-  const staleCity = !!user?.city && !fromUser().city
-  const dirty = user && (staleCity || !sameProfile(profile, fromUser()))
+  const dirty = user && !sameProfile(profile, fromUser())
 
   const saveProfile = async () => {
-    if (saving || !v.validateAll()) return
+    if (saving) return
     setSaving(true)
     try {
       applyServerUser(await updateHealthProfile(token, cleanHealthProfile(profile)))
       showSuccess('Profil bilgilerin kaydedildi.')
     } catch (err) {
-      const mapped = { ...fieldFromMessage(err, MESSAGE_FIELDS), ...fieldErrorsFrom(err) }
-      if (!v.applyServerErrors(mapped)) showError(err.message || 'Kaydedilemedi.')
+      showError(err.message || 'Kaydedilemedi.')
     } finally {
       setSaving(false)
     }
@@ -91,12 +83,12 @@ export default function CommunitySettings() {
   return (
     <>
       <Box ref={sectionRef} id="eslesme" sx={{ scrollMarginTop: 72 }}>
-        <SettingsSection title="Profil ve eşleşme" description="Benzer süreçteki üyelerle tanışman için. Hepsi isteğe bağlı.">
+        <SettingsSection title="Profil ve eşleşme" description="Toplulukta kim olduğun ve kimlerin seni görebileceği. Şehrini &quot;Profili düzenle&quot;den değiştirebilirsin.">
           <SettingsCard padded>
-            <HealthProfileFields value={profile} onChange={setProfile} showRole validation={v} />
+            <HealthProfileFields value={profile} onChange={setProfile} showRole />
             <Stack direction="row" justifyContent="flex-end" spacing={1} sx={{ mt: 2 }}>
               {dirty && (
-                <Button onClick={() => { setProfile(fromUser()); v.reset() }} disabled={saving} sx={{ minHeight: 44 }}>Vazgeç</Button>
+                <Button onClick={() => setProfile(fromUser())} disabled={saving} sx={{ minHeight: 44 }}>Vazgeç</Button>
               )}
               <Button variant="contained" onClick={saveProfile} disabled={!dirty || saving} sx={{ minHeight: 44, minWidth: 110 }}>
                 {saving ? <SaglikLoader size="sm" color="inherit" /> : 'Kaydet'}

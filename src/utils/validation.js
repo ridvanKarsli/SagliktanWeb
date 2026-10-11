@@ -297,21 +297,15 @@ export function cityError(value) {
 
 const ROLE_VALUES = new Set(['PATIENT', 'CAREGIVER', 'PROFESSIONAL', 'OTHER'])
 
-// Sağlık özeti (HealthProfileRequest): kayıtlı/girilen değerleri geçerli
-// kümeye indirger - listede olmayan şehir ve bilinmeyen rol boşalır.
+// Ayarlar > Profil ve eşleşme (HealthProfileRequest): kayıtlı/girilen
+// değerleri geçerli kümeye indirger - bilinmeyen rol boşalır. Şehir burada
+// yok; yalnızca "Profili düzenle"den değişir.
 export function cleanHealthProfile(p = {}) {
   return {
     communityRole: ROLE_VALUES.has(p.communityRole) ? p.communityRole : null,
-    city: normalizeCity(p.city),
     // Profil kapalıyken eşleşme görünürlüğü de kapalı (backend de böyle kaydeder).
     discoverable: p.profilePublic !== false && !!p.discoverable,
     profilePublic: p.profilePublic !== false,
-  }
-}
-
-export function healthProfileErrors(p = {}) {
-  return {
-    city: cityError(p.city),
   }
 }
 

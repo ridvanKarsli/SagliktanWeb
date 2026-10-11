@@ -266,11 +266,12 @@ export function revokeSession(token, id) {
 
 // --- Profil sağlık özeti / karşılama / tercihler / benzer üyeler ---
 
-export function updateHealthProfile(token, { communityRole, city, discoverable, profilePublic }) {
+// Topluluk rolü + görünürlük. Şehir burada gönderilmez (bkz. updateUserProfile).
+export function updateHealthProfile(token, { communityRole, discoverable, profilePublic }) {
   return request('/users/me/health-profile', {
     method: 'PUT', token,
     body: {
-      communityRole: communityRole || null, city: city || null,
+      communityRole: communityRole || null,
       discoverable: profilePublic !== false && !!discoverable, profilePublic: profilePublic !== false,
     }
   });
