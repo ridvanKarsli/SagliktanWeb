@@ -1,4 +1,4 @@
-// Sağlıktan Mahalle giriş noktası (/game/*). App.jsx bunu React.lazy ile
+// Sağlıktan Mahalle giriş noktası (/mahalle/*). App.jsx bunu React.lazy ile
 // yükler: oyun kodu, çizim seti ve sahne motoru yalnızca bu rotada iner,
 // uygulamanın ana paketine girmez.
 //
@@ -41,7 +41,7 @@ function GameRoutes() {
     return (
       <Routes>
         <Route index element={<CharacterCreator mode="create" />} />
-        <Route path="*" element={<Navigate to="/game" replace />} />
+        <Route path="*" element={<Navigate to="/mahalle" replace />} />
       </Routes>
     )
   }
@@ -51,7 +51,7 @@ function GameRoutes() {
       <Route path="ev" element={<RoomScreen />} />
       <Route path="ev/:publicId" element={<RoomScreen />} />
       <Route path="karakter" element={<CharacterCreator mode="edit" />} />
-      <Route path="*" element={<Navigate to="/game" replace />} />
+      <Route path="*" element={<Navigate to="/mahalle" replace />} />
     </Routes>
   )
 }

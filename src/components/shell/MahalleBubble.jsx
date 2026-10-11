@@ -9,10 +9,10 @@ import {
 } from '../../utils/mahalleBubblePrefs.js'
 
 // iOS AssistiveTouch benzeri "Mahalle kısayolu": ekranın kenarında duran,
-// sürüklenebilen, dokununca /game'e giden küçük yuvarlak düğme.
+// sürüklenebilen, dokununca Mahalle'yi (/mahalle) açan küçük yuvarlak düğme.
 //  - Bırakınca en yakın sol/sağ kenara yaylanarak yapışır; dikeyde üst bar ile
 //    alt menü arasında kalır, sağda "Yeni gönderi" düğmesinin alanına girmez.
-//  - 3 sn dokunulmazsa kenara yarı saklanır (küçülür, soluklaşır); dokunma,
+//  - (mobilde) 3 sn dokunulmazsa kenara yarı saklanır (küçülür, soluklaşır); dokunma,
 //    üzerine gelme ya da klavye odağı onu geri getirir. Saklıyken de dokununca açar.
 //  - Konum ve açık/kapalı tercihi bu cihazda saklanır (Ayarlar > Erişilebilirlik).
 // Oyun koduna ve MUI Tooltip/Popper'a bağımlı DEĞİL: ana pakete ~2 KB ekler.
@@ -124,7 +124,9 @@ export default function MahalleBubble({ desktop }) {
   const range = verticalRange(vp.h, desktop, pos.side, insets)
   const restY = range.min + (range.max - range.min) * pos.frac
   const restX = pos.side === 'left' ? EDGE : vp.w - SIZE - EDGE
-  const showTucked = tucked && !focused && !drag
+  // Masaüstünde saklanma yok: geniş ekranda yer derdi yok, yarı saklı soluk
+  // düğme büyük ekranda gözden kaçıyordu. Saklanma yalnızca dokunmatik/mobilde.
+  const showTucked = !desktop && tucked && !focused && !drag
 
   const onPointerDown = (e) => {
     if (e.button !== undefined && e.button !== 0 && e.pointerType === 'mouse') return
@@ -163,7 +165,7 @@ export default function MahalleBubble({ desktop }) {
       suppressClick.current = false
       return
     }
-    navigate('/game')
+    navigate('/mahalle')
   }
 
   // Odaktayken ok tuşlarıyla yukarı/aşağı, sol/sağ ile kenar değiştir

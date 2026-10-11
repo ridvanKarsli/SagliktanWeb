@@ -188,7 +188,7 @@ export default function RoomScreen() {
 
   const exit = useCallback(() => {
     const back = location.state?.from || returnTo.current || { zone: 'mahalle', x: 2, y: 4 }
-    navigate('/game', { state: { world: back } })
+    navigate('/mahalle', { state: { world: back } })
   }, [navigate, location.state, returnTo])
 
   const isOn = useCallback((it) => {

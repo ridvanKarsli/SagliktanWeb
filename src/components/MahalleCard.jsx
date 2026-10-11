@@ -13,7 +13,7 @@ function isDismissed() {
 /**
  * Anasayfadaki küçük, sıcak davet: Sağlıktan Mahalle (oyun). Kapatılabilir;
  * tercih tarayıcıda tutulur. Oyun kodunu içe aktarmaz (ana paket büyümesin) -
- * yalnızca /game'e gider.
+ * yalnızca /mahalle'ye gider.
  */
 export default function MahalleCard({ sx }) {
   const navigate = useNavigate()
@@ -33,7 +33,7 @@ export default function MahalleCard({ sx }) {
       }}
     >
       <ButtonBase
-        onClick={() => navigate('/game')}
+        onClick={() => navigate('/mahalle')}
         sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 1.5, textAlign: 'left', borderRadius: '14px', flex: 1, minWidth: 0, '&.Mui-focusVisible': focusRingSx }}
       >
         <Box aria-hidden="true" sx={{ width: 48, height: 48, borderRadius: '14px', bgcolor: 'background.paper', display: 'grid', placeItems: 'center', color: 'brand.apricot', flexShrink: 0 }}>

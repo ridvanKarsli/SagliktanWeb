@@ -127,7 +127,7 @@ export default function CharacterCreator({ mode = 'create' }) {
       } else {
         const p = await api.createMe(token, { nickname: nickname.trim(), appearance, petKey })
         setProfile(p)
-        navigate('/game', { replace: true })
+        navigate('/mahalle', { replace: true })
       }
     } catch (err) {
       const nick = !editing && nicknameServerError(err)
@@ -179,7 +179,7 @@ export default function CharacterCreator({ mode = 'create' }) {
               <Preview appearance={appearance} petKey={petKey} facing={facing} onRotate={() => setFacing((f) => (f === 'front' ? 'back' : 'front'))} />
               <Typography variant="body2" sx={{ color: 'text.secondary', mt: 1.5, display: 'flex', gap: 1, alignItems: 'flex-start' }}>
                 <LockRounded sx={{ fontSize: 18, mt: 0.2 }} aria-hidden="true" />
-                Oyunda yalnızca takma adın görünür; gerçek adın ve grupların asla görünmez.
+                Mahalle'de yalnızca takma adın görünür; gerçek adın ve grupların asla görünmez.
               </Typography>
             </Box>
           </Box>
@@ -258,7 +258,7 @@ export default function CharacterCreator({ mode = 'create' }) {
                   slotProps={{ htmlInput: { maxLength: 20, autoComplete: 'off', autoCapitalize: 'off', spellCheck: false } }}
                 />
                 <Typography variant="body2" sx={{ color: 'text.secondary', mt: 1.25, display: { md: 'none' }, gap: 1, alignItems: 'flex-start' }}>
-                  Oyunda yalnızca takma adın görünür; gerçek adın ve grupların asla görünmez.
+                  Mahalle'de yalnızca takma adın görünür; gerçek adın ve grupların asla görünmez.
                 </Typography>
               </Section>
             )}

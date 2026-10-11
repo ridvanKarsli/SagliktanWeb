@@ -332,23 +332,23 @@ const gameShots = [
   ['game-gift-send', { zone: 'meydan' }],
   ['game-settings', { zone: 'meydan' }],
   ['game-shop-furniture', { zone: 'carsi' }],
-  ['game-room', { path: '/game/ev' }],
-  ['game-room-edit', { path: '/game/ev' }],
-  ['game-room-visit', { path: '/game/ev/p1papatya0' }],
-  ['game-edit-look', { path: '/game/karakter' }],
+  ['game-room', { path: '/mahalle/ev' }],
+  ['game-room-edit', { path: '/mahalle/ev' }],
+  ['game-room-visit', { path: '/mahalle/ev/p1papatya0' }],
+  ['game-edit-look', { path: '/mahalle/karakter' }],
   ['game-zone-switch', { zone: 'meydan' }],
   ['game-portal-walk', { zone: 'carsi' }],
   ['game-daily', { zone: 'park' }],
-  ['game-room-exit', { path: '/game/ev' }],
+  ['game-room-exit', { path: '/mahalle/ev' }],
   ['game-walking', { zone: 'park' }],
   ['game-live', { zone: 'meydan' }],
   ['game-crowd', { zone: 'meydan', crowd: true }],
   ['game-settings-blocked', { zone: 'meydan' }],
   // EK v1.1
   ['game-create-body', { hasProfile: false }],
-  ['game-room-sit', { path: '/game/ev?atmo=ogle:clear' }],
-  ['game-room-tv', { path: '/game/ev?atmo=gece:clear' }],
-  ['game-room-piano', { path: '/game/ev?atmo=aksam:clear' }],
+  ['game-room-sit', { path: '/mahalle/ev?atmo=ogle:clear' }],
+  ['game-room-tv', { path: '/mahalle/ev?atmo=gece:clear' }],
+  ['game-room-piano', { path: '/mahalle/ev?atmo=aksam:clear' }],
   ['game-world-bench', { zone: 'meydan', query: '?atmo=ogle:clear' }],
   ['game-world-tea', { zone: 'carsi', query: '?atmo=sabah:partly' }],
   ['game-world-night', { zone: 'mahalle', query: '?atmo=gece:clear' }],
@@ -432,7 +432,7 @@ async function runGameShots(vpName, vp) {
         } catch { /* */ }
       }, [o.zone || null, !!o.hint])
       await gp.goto('http://localhost:4173/home', { waitUntil: 'networkidle' })
-      await gp.goto('http://localhost:4173' + (o.path || '/game') + (o.query || ''), { waitUntil: 'networkidle', timeout: 20000 })
+      await gp.goto('http://localhost:4173' + (o.path || '/mahalle') + (o.query || ''), { waitUntil: 'networkidle', timeout: 20000 })
       await gp.waitForTimeout(1400)
       const tapActor = async (id) => {
         const b = await gp.locator(`[data-actor="${id}"]`).last().boundingBox()

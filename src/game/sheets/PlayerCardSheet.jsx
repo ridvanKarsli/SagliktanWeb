@@ -43,7 +43,7 @@ export default function PlayerCardSheet({ player, open, onClose, onGift, onBlock
     try {
       const room = await api.getRoom(token, player.publicId)
       onClose()
-      navigate(`/game/ev/${player.publicId}`, { state: { room, from: returnTo.current } })
+      navigate(`/mahalle/ev/${player.publicId}`, { state: { room, from: returnTo.current } })
     } catch (err) {
       if (err?.status === 404) setRoomError('Bu eve şu an girilemiyor. Belki başka bir zaman.')
       else setRoomError(err?.message || 'Ev şu an açılamadı.')

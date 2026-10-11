@@ -311,7 +311,7 @@ export default function WorldScreen() {
   const openMyRoom = useCallback(() => {
     // dönüşte evin önünde başla
     returnTo.current = zoneKey === 'mahalle' ? { zone: 'mahalle', x: 2, y: 4 } : { zone: zoneKey, ...(engine.cellOf(me) || zone.spawn) }
-    navigate('/game/ev')
+    navigate('/mahalle/ev')
   }, [navigate, returnTo, zoneKey, engine, me, zone])
 
   // ------------------------------------------------------------ etkileşimler

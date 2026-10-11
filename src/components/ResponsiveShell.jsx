@@ -107,7 +107,7 @@ export default function ResponsiveShell({ children }) {
       {!isMdUp && <MobileBottomNav />}
 
       {/* Mahalle (oyun) kısa yolu: kenarda duran sürüklenebilir düğme.
-          Kabuk yalnızca oturumlu uygulama sayfalarında var (/game, giriş ve
+          Kabuk yalnızca oturumlu uygulama sayfalarında var (/mahalle, giriş ve
           karşılama sayfalarında yok). */}
       <Suspense fallback={null}>
         <MahalleBubble key={isMdUp ? 'd' : 'm'} desktop={isMdUp} />

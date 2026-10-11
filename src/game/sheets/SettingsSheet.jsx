@@ -213,7 +213,7 @@ export default function SettingsSheet({ open, onClose }) {
         <H>Görünümün</H>
         <Button
           variant="outlined" startIcon={<CheckroomRounded />}
-          onClick={() => { onClose(); navigate('/game/karakter') }}
+          onClick={() => { onClose(); navigate('/mahalle/karakter') }}
           sx={{ minHeight: 48, borderRadius: 999, fontWeight: 800 }}
         >
           Görünümünü değiştir

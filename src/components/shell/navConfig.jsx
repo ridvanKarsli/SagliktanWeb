@@ -29,7 +29,7 @@ const ADMIN_NAV_ITEM = {
 // menü 5 sekmeyle dolu; mobilde giriş Anasayfa kartı ve Profil'deki
 // "Evimi gör" düğmesinden.
 const GAME_NAV_ITEM = {
-  label: 'Mahalle', icon: <CottageRounded />, iconOutline: <CottageOutlined />, to: '/game'
+  label: 'Mahalle', icon: <CottageRounded />, iconOutline: <CottageOutlined />, to: '/mahalle'
 }
 
 // Kullanıcının rolüne göre gezinme sekmeleri. desktop: kenar çubuğuna özel

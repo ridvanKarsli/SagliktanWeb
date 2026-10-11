@@ -87,7 +87,7 @@ export default function ReactionButtons({
         setLocal({ helpfulCount: wasHelpful, notHelpfulCount: wasNotHelpful, myReaction: current })
         // Geri alma GÖRÜNÜR olmalı: sayaç sessizce eski haline dönünce
         // kullanıcı "dokunmadım mı?" diye tekrar tekrar deniyordu.
-        showError(err?.message || 'Oyun kaydedilemedi, tekrar dene.')
+        showError(err?.message || 'Tepkin kaydedilemedi, tekrar dene.')
       }
     } finally {
       if (requestIdRef.current === myRequestId) setPending(false)

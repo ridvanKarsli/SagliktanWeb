@@ -57,7 +57,7 @@ export default function NeighborsSheet({ open, onClose, onGift }) {
     try {
       const room = await api.getRoom(token, player.publicId)
       onClose()
-      navigate(`/game/ev/${player.publicId}`, { state: { room, from: returnTo.current } })
+      navigate(`/mahalle/ev/${player.publicId}`, { state: { room, from: returnTo.current } })
     } catch (err) {
       setRowError((m) => ({ ...m, [player.publicId]: err?.status === 404 ? 'Bu eve şu an girilemiyor.' : (err?.message || 'Ev açılamadı.') }))
     } finally {
