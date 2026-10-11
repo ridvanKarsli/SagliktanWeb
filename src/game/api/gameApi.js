@@ -49,6 +49,9 @@ export const joinZone = (token, zone, { spawn, signal } = {}) =>
 export const moveTo = (token, x, y) => request(`${B}/world/move`, { method: 'POST', token, body: { x, y } })
 export const say = (token, { phraseKey, emoteKey }) =>
   request(`${B}/world/say`, { method: 'POST', token, body: phraseKey ? { phraseKey } : { emoteKey } })
+// Duruş (EK v1.1): { pose: 'stand'|'sit'|'lie', facing, flip, held|null }
+export const setPose = (token, { pose, facing, flip, held }) =>
+  request(`${B}/world/pose`, { method: 'POST', token, body: { pose, facing, flip: !!flip, held: held || null } })
 export const heartbeat = (token) => request(`${B}/world/heartbeat`, { method: 'POST', token })
 export const leaveWorld = (token) => request(`${B}/world/leave`, { method: 'POST', token })
 

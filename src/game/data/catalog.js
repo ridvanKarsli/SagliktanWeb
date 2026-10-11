@@ -27,8 +27,9 @@ export const FALLBACK_CATALOG = {
     ['cat_bed', 'Kedi yatağı', 1, 1, 30], ['aquarium', 'Akvaryum', 1, 1, 90], ['piano', 'Piyano', 2, 1, 120],
     ['desk', 'Çalışma masası', 2, 1, 70], ['chair', 'Sandalye', 1, 1, 25], ['radio', 'Eski radyo', 1, 1, 45],
     ['flower_vase', 'Çiçek vazosu', 1, 1, 25], ['beanbag', 'Armut koltuk', 1, 1, 40], ['dining_table', 'Yemek masası', 2, 2, 90],
-    ['fireplace', 'Şömine', 2, 1, 110], ['easel', 'Resim sehpası', 1, 1, 55],
+    ['fireplace', 'Şömine', 2, 1, 110], ['easel', 'Resim sehpası', 1, 1, 55], ['tv', 'Televizyon', 2, 1, 90],
   ].map(([key, name, w, d, price]) => ({ key, name, w, d, price, floor: key === 'rug' })),
+  bodies: [{ key: 'female', name: 'Kadın' }, { key: 'male', name: 'Erkek' }],
   gifts: [
     { key: 'flower', name: 'Çiçek', price: 5 }, { key: 'tea', name: 'Sıcak çay', price: 5 }, { key: 'soup', name: 'Sıcak çorba', price: 8 },
     { key: 'blanket', name: 'Battaniye', price: 10 }, { key: 'book', name: 'Kitap', price: 10 }, { key: 'lantern', name: 'Dilek feneri', price: 15 },

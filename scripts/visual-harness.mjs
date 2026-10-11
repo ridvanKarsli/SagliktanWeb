@@ -242,7 +242,7 @@ const myGame = () => ({
     { itemKey: 'cardigan_rose', quantity: 1 }, { itemKey: 'scarf', quantity: 1 },
     { itemKey: 'sofa', quantity: 1 }, { itemKey: 'rug', quantity: 1 }, { itemKey: 'coffee_table', quantity: 1 }, { itemKey: 'floor_lamp', quantity: 1 },
     { itemKey: 'monstera', quantity: 2 }, { itemKey: 'bookshelf', quantity: 1 }, { itemKey: 'aquarium', quantity: 1 }, { itemKey: 'armchair', quantity: 1 },
-    { itemKey: 'radio', quantity: 1 }, { itemKey: 'cat_bed', quantity: 1 }, { itemKey: 'piano', quantity: 1 },
+    { itemKey: 'radio', quantity: 1 }, { itemKey: 'cat_bed', quantity: 1 }, { itemKey: 'piano', quantity: 1 }, { itemKey: 'tv', quantity: 1 },
   ],
 })
 const myRoom = () => ({
@@ -250,7 +250,8 @@ const myRoom = () => ({
   items: [
     { itemKey: 'rug', x: 3, y: 3, rot: 0 }, { itemKey: 'sofa', x: 1, y: 1, rot: 0 }, { itemKey: 'coffee_table', x: 4, y: 4, rot: 0 },
     { itemKey: 'floor_lamp', x: 0, y: 0, rot: 0 }, { itemKey: 'monstera', x: 6, y: 1, rot: 0 }, { itemKey: 'bookshelf', x: 0, y: 3, rot: 1 },
-    { itemKey: 'armchair', x: 5, y: 3, rot: 1 }, { itemKey: 'radio', x: 3, y: 0, rot: 0 }, { itemKey: 'cat_bed', x: 6, y: 6, rot: 0 },
+    { itemKey: 'armchair', x: 5, y: 3, rot: 1 }, { itemKey: 'radio', x: 5, y: 0, rot: 0 }, { itemKey: 'cat_bed', x: 6, y: 6, rot: 0 },
+    { itemKey: 'tv', x: 2, y: 0, rot: 0 }, { itemKey: 'piano', x: 3, y: 6, rot: 0 },
   ],
 })
 function zonePlayers(zone) {
@@ -273,7 +274,10 @@ function zonePlayers(zone) {
   }
   // kalabalık çekimi: herkes doğma noktasının dibinde (etiket çakışması denemesi)
   if (gameState.crowd) { gamePlayers.forEach((p, i) => { const c = near[i]; out.push({ ...card(p), x: c.x, y: c.y }) }); return out }
-  gamePlayers.forEach((p, i) => { const c = taken[i] || near[i]; out.push({ ...card(p), x: c.x, y: c.y }) })
+  gamePlayers.forEach((p, i) => { const c = taken[i] || near[i]; out.push({ ...card(p), x: c.x, y: c.y, pose: 'stand', facing: 'front', flip: false, held: null }) })
+  // EK v1.1 duruşlar: Meydan'da biri bankta oturuyor, biri çay içiyor; Sahil'de biri şezlongda
+  if (zone === 'meydan') { Object.assign(out[0], { x: 9, y: 4, pose: 'sit', facing: 'front', flip: true }); out[2].held = 'tea' }
+  if (zone === 'sahil') Object.assign(out[5], { x: 10, y: 2, pose: 'lie', facing: 'front', flip: false })
   return out
 }
 function gameRoute(p, method, url, body) {
@@ -290,7 +294,7 @@ function gameRoute(p, method, url, body) {
     const pl = gamePlayers.find((x) => x[0] === id) || gamePlayers[0]
     return { owner: card(pl), visibility: 'EVERYONE', mine: false, items: [{ itemKey: 'rug', x: 2, y: 2, rot: 0 }, { itemKey: 'bed', x: 5, y: 0, rot: 0 }, { itemKey: 'piano', x: 0, y: 2, rot: 1 }, { itemKey: 'flower_vase', x: 4, y: 4, rot: 0 }, { itemKey: 'fireplace', x: 2, y: 0, rot: 0 }] }
   }
-  if (p === '/game/neighbors') return { content: gamePlayers.map((x, i) => ({ player: card(x), visitedByMeAt: i % 2 ? iso(60 * i) : null, lastActiveAt: iso(15 * (i + 1)) })), page: 0, size: 20, totalElements: 6, totalPages: 1, last: true }
+  if (p === '/game/neighbors') return { content: gamePlayers.map((x, i) => ({ player: card(x), known: i < 2, visitedByMeAt: i % 2 ? iso(60 * i) : null, lastActiveAt: iso(15 * (i + 1)) })), page: 0, size: 20, totalElements: 6, totalPages: 1, last: true }
   if (p === '/game/visitors') return gamePlayers.slice(0, 4).map((x, i) => ({ player: card(x), visitedAt: iso(40 * (i + 1)) }))
   if (p === '/game/gifts' && method === 'GET') {
     const pg = Number(url.searchParams.get('page') || 0)
@@ -306,6 +310,7 @@ function gameRoute(p, method, url, body) {
     gameState.lastJoin = body || null
     return { zone: jm[1], instance: 1, me: ok ? { x: body.x, y: body.y } : { x: Math.floor(z.width / 2), y: Math.floor(z.height / 2) }, players: zonePlayers(jm[1]) }
   }
+  if (p === '/game/world/pose') { gameState.calls.push(`pose ${JSON.stringify(body)}`); return { status: 204 } }
   if (p.startsWith('/game/')) return { status: 204 }
   return undefined
 }
@@ -339,12 +344,26 @@ const gameShots = [
   ['game-live', { zone: 'meydan' }],
   ['game-crowd', { zone: 'meydan', crowd: true }],
   ['game-settings-blocked', { zone: 'meydan' }],
+  // EK v1.1
+  ['game-create-body', { hasProfile: false }],
+  ['game-room-sit', { path: '/game/ev?atmo=ogle:clear' }],
+  ['game-room-tv', { path: '/game/ev?atmo=gece:clear' }],
+  ['game-room-piano', { path: '/game/ev?atmo=aksam:clear' }],
+  ['game-world-bench', { zone: 'meydan', query: '?atmo=ogle:clear' }],
+  ['game-world-tea', { zone: 'carsi', query: '?atmo=sabah:partly' }],
+  ['game-world-night', { zone: 'mahalle', query: '?atmo=gece:clear' }],
+  ['game-world-rain', { zone: 'meydan', query: '?atmo=aksam:rain' }],
+  ['game-world-snow', { zone: 'park', query: '?atmo=ogle:snow' }],
+  ['game-world-sahil-lie', { zone: 'sahil', query: '?atmo=ogle:clear' }],
+  ['game-neighbors-known', { zone: 'meydan', query: '?atmo=ogle:clear' }],
+  ['app-topbar-mahalle', { path: '/home' }],
 ]
 
 async function runGameShots(vpName, vp) {
   if (!gameShots.some(([n]) => !only || only.includes(n))) return
   const gctx = await browser.newContext({ viewport: { width: vp.width, height: vp.height }, isMobile: !!vp.isMobile, hasTouch: !!vp.hasTouch, deviceScaleFactor: vp.deviceScaleFactor || 1, locale: 'tr-TR', timezoneId: 'Europe/Istanbul', reducedMotion: process.env.REDUCED ? 'reduce' : 'no-preference' })
   await gctx.addInitScript(([access, refresh]) => {
+    window.__SG_HARNESS__ = true // ?atmo= test kancası yalnızca bununla açılır
     localStorage.setItem('auth', JSON.stringify({ accessToken: access, refreshToken: refresh }))
     localStorage.setItem('sagliktan:accessibility', JSON.stringify({ themeMode: 'light' }))
     localStorage.setItem('sagliktan:install-prompt-dismissed', String(Date.now()))
@@ -408,7 +427,7 @@ async function runGameShots(vpName, vp) {
         } catch { /* */ }
       }, [o.zone || null, !!o.hint])
       await gp.goto('http://localhost:4173/home', { waitUntil: 'networkidle' })
-      await gp.goto('http://localhost:4173' + (o.path || '/game'), { waitUntil: 'networkidle', timeout: 20000 })
+      await gp.goto('http://localhost:4173' + (o.path || '/game') + (o.query || ''), { waitUntil: 'networkidle', timeout: 20000 })
       await gp.waitForTimeout(1400)
       const tapActor = async (id) => {
         const b = await gp.locator(`[data-actor="${id}"]`).last().boundingBox()
@@ -444,7 +463,7 @@ async function runGameShots(vpName, vp) {
       if (name === 'game-neighbors') { await bar('Komşular'); await gp.waitForTimeout(900) }
       if (name === 'game-gifts') { await bar('Hediyeler'); await gp.waitForTimeout(900) }
       if (name === 'game-gift-send') {
-        await tapActor('p1papatya0'); await gp.waitForTimeout(600)
+        await tapActor('p3gulteyze'); await gp.waitForTimeout(600)
         await gp.getByRole('button', { name: 'Hediye bırak' }).click(); await gp.waitForTimeout(600)
         await gp.getByRole('radio', { name: /^Sıcak çay/ }).click(); await gp.getByRole('radio', { name: /Yanındayım/ }).click(); await gp.waitForTimeout(300)
       }
@@ -471,6 +490,28 @@ async function runGameShots(vpName, vp) {
         const W = vp.width; if (vp.hasTouch) await gp.touchscreen.tap(W * 0.3, 330); else await gp.mouse.click(W * 0.35, 260)
         await gp.waitForTimeout(650)
       }
+      const tapKey = async (key) => {
+        const idx = await gp.evaluate((k) => document.querySelector(`[data-key="${k}"]`)?.getAttribute('data-obj'), key)
+        await tapObj(idx)
+      }
+      const menuPick = async (label) => { await gp.waitForTimeout(500); await gp.getByRole('menuitem', { name: label }).click() }
+      if (name === 'game-create-body') { await gp.getByRole('radio', { name: 'Erkek' }).click(); await gp.waitForTimeout(400) }
+      if (name === 'game-room-sit') {
+        await tapKey('sofa'); await menuPick('Otur'); await gp.waitForTimeout(2600)
+        if (process.env.DEBUG) console.log(await gp.evaluate(() => JSON.stringify([...window.__SG_ENGINE__.actors.values()].map((a) => ({ id: a.id, pose: a.pose, seat: a.seat, cell: a.cell, moving: a.moving })))))
+      }
+      if (name === 'game-room-tv') {
+        await tapKey('tv'); await menuPick('Televizyonu aç'); await gp.waitForTimeout(500)
+        await tapKey('sofa'); await menuPick('Otur'); await gp.waitForTimeout(2600)
+      }
+      if (name === 'game-room-piano') { await tapKey('piano'); await menuPick('Piyano çal'); await gp.waitForTimeout(3000) }
+      if (name === 'game-world-bench') {
+        await tapKey('bench'); await menuPick('Otur'); await gp.waitForTimeout(3000)
+        if (process.env.DEBUG) console.log(await gp.evaluate(() => JSON.stringify([...window.__SG_ENGINE__.actors.values()].filter((a) => a.pose.posture !== 'stand' || a.pose.held).map((a) => ({ id: a.id, p: a.pose.posture, h: a.pose.held, seat: a.seat, cell: a.cell })))))
+        if (process.env.DEBUG) console.log(gameState.calls.join(' | '))
+      }
+      if (name === 'game-world-tea') { await tapKey('tea_kiosk'); await menuPick('Çay al'); await gp.waitForTimeout(3500) }
+      if (name === 'game-neighbors-known') { await bar('Komşular'); await gp.waitForTimeout(900) }
       if (name === 'game-settings-blocked') {
         await gp.getByRole('button', { name: 'Ayarlar', exact: true }).click(); await gp.waitForTimeout(800)
         await gp.getByText('Engellediklerin').scrollIntoViewIfNeeded(); await gp.waitForTimeout(300)

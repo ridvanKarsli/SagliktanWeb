@@ -19,6 +19,14 @@ import { TileLayer, TapMarker } from '../render/layers.jsx'
 import { Actor } from '../render/Actor.jsx'
 import { prefersReducedMotion } from '../render/gameStyles.js'
 import { useWorldSession } from '../hooks/useWorldSession.js'
+import { useAtmosphere } from '../hooks/useAtmosphere.js'
+import { useViewportSize } from '../hooks/useViewportSize.js'
+import { SkyLayer, WeatherLayer } from '../render/AtmosphereLayers.jsx'
+import { AtmoPill } from '../hud/AtmoPill.jsx'
+import ActionSheet from '../sheets/ActionSheet.jsx'
+import { worldActions, seatsOf, seatApproach, bestApproach, faceToward, fxPointOf, PROP_NAMES } from '../engine/interactions.js'
+import { propCells } from '../world/zones.js'
+import { FX } from '../art/index.js'
 import { TopHud, BottomBar, ZoomControls, RoundButton } from '../hud/Hud.jsx'
 import { pillSx } from '../hud/hudStyle.js'
 import { SpeechSheet, PlayersHereSheet, ZoneMapSheet } from '../sheets/WorldSheets.jsx'
@@ -33,6 +41,10 @@ const ZOOMS = [0.55, 0.7, 0.85, 1, 1.2, 1.45, 1.75]
 const TAP_THROTTLE_MS = 250
 const BUBBLE_MS = 5000
 const LAST_ZONE_KEY = 'sagliktan:mahalle:last-zone'
+const ITEM_FX_MS = 4500
+// akşam/gece ışıkları yanan dünya nesneleri
+const LIT_KEYS = new Set(['lamp_post', 'house_a', 'house_b', 'house_c', 'house_d', 'tea_kiosk', 'lighthouse_small'])
+const seatId = (obj, seat) => `${obj.key}@${obj.x},${obj.y}#${seat.index}`
 const HINT_KEY = 'sagliktan:mahalle:hint-seen'
 
 const store = {
@@ -115,6 +127,8 @@ export default function WorldScreen() {
   useEffect(() => () => engine.destroy(), [engine])
 
   const [zoneKey, setZoneKey] = useState(start.zone)
+  const zoneKeyRef = useRef(start.zone)
+  zoneKeyRef.current = zoneKey
   const zone = ZONES[zoneKey]
   const setup = setupFor(zone)
   const zoneName = catalog.zonesByKey[zoneKey]?.name || zone.name
@@ -133,6 +147,12 @@ export default function WorldScreen() {
   const [hint, setHint] = useState(() => start.zone === 'meydan' && !store.get(HINT_KEY))
   const lastTap = useRef(0)
   const pendingAction = useRef(null)
+  const [menu, setMenu] = useState(null) // { obj, actions }
+  const [itemFx, setItemFx] = useState([]) // eşya üstü kısa efektler
+  const heldTimer = useRef(0)
+  const remoteSeats = useRef({}) // publicId -> seatId (dolu yerler)
+  const atmo = useAtmosphere()
+  const vp = useViewportSize()
   const transitioning = useRef(false)
   const timers = useRef(new Set())
   const bubbleSeq = useRef(0)
@@ -155,6 +175,30 @@ export default function WorldScreen() {
     later(() => setBubbles((b) => (b[id]?.id === seq ? omit(b, id) : b)), BUBBLE_MS)
   }, [catalog, reduced, later])
 
+  // ------------------------------------------------------------ duruşlar
+  // Başkasının duruşu: oturuyor/uzanıyorsa ve bir oturma yerinin karesindeyse
+  // oraya (aynı ofsetlerle) yerleştir; değilse ayakta göster.
+  const applyRemotePose = useCallback((id, p, cell) => {
+    if (!p) return
+    const posture = p.pose === 'sit' || p.pose === 'lie' ? p.pose : 'stand'
+    let seat = null
+    delete remoteSeats.current[id]
+    if (posture !== 'stand' && cell) {
+      const objs = setupFor(ZONES[zoneKeyRef.current]).objects
+      for (const o of objs) {
+        const cands = seatsOf(o, posture).filter((st) => st.cell.x === cell.x && st.cell.y === cell.y)
+        if (!cands.length) continue
+        seat = cands.find((st) => st.facing === p.facing) || cands[0]
+        remoteSeats.current[id] = seatId(o, seat)
+        break
+      }
+    }
+    engine.ensure(id, cell?.x ?? 0, cell?.y ?? 0)
+    engine.setPosture(id, seat
+      ? { posture, facing: seat.facing, flip: seat.flip, held: p.held || null, seat }
+      : { posture: 'stand', facing: p.facing, flip: !!p.flip, held: p.held || null })
+  }, [engine])
+
   // ------------------------------------------------------------ oturum
   const onSnapshot = useCallback((r, reason) => {
     const list = (r.players || []).filter((p) => p.publicId !== me)
@@ -165,7 +209,14 @@ export default function WorldScreen() {
       else if (id !== me) engine.place(id, pos[id].x, pos[id].y)
     }
     posRef.current = pos
+    remoteSeats.current = {}
+    for (const p of list) if (p.pose && (p.pose !== 'stand' || p.held)) applyRemotePose(p.publicId, p, { x: p.x, y: p.y })
     setPlayers(Object.fromEntries(list.map((p) => [p.publicId, p])))
+    // yeniden katılımda kendi duruşumu yeniden bildir (sunucu düşürdüyse kayboldu)
+    const mine = engine.poseOf(me)
+    if (reason !== 'enter' && mine && (mine.posture !== 'stand' || mine.held)) {
+      api.setPose(token, { pose: mine.posture, facing: mine.facing, flip: mine.flip, held: mine.held }).catch(() => {})
+    }
     // Konum katılımla birlikte gönderildi (doğma ipucu). Sunucu yine de başka
     // bir yere koyduysa (eski sunucu / sınır dışı) yerel konumu bir kez bildir.
     const cell = reason === 'enter' ? spawnRef.current : (engine.destinationOf(me) || spawnRef.current)
@@ -175,7 +226,7 @@ export default function WorldScreen() {
     setFading(false)
     transitioning.current = false
     if (reason === 'enter') announce(list.length ? `${zoneName}. Burada ${list.length} kişi var.` : `${zoneName}. Şu an burada kimse yok.`)
-  }, [engine, me, token, announce, zoneName])
+  }, [engine, me, token, announce, zoneName, applyRemotePose])
 
   const onEvent = useCallback((ev) => {
     const id = ev.publicId
@@ -187,6 +238,7 @@ export default function WorldScreen() {
         const y = ev.y ?? p.y ?? 0
         posRef.current[id] = { x, y }
         if (engine.has(id)) engine.place(id, x, y)
+        if (p.pose && (p.pose !== 'stand' || p.held)) applyRemotePose(id, p, { x, y })
         setPlayers((cur) => ({ ...cur, [id]: { ...p, x, y } }))
         if (p.nickname) announce(`${p.nickname} geldi`)
         break
@@ -194,13 +246,24 @@ export default function WorldScreen() {
       case 'MOVE':
         if (ev.x == null || ev.y == null) break
         posRef.current[id] = { x: ev.x, y: ev.y }
+        delete remoteSeats.current[id]
         if (engine.has(id)) engine.walkTo(id, ev.x, ev.y)
+        // sunucu: hareket duruşu "stand" yapar, eldeki kalır
+        setPlayers((cur) => (cur[id] ? { ...cur, [id]: { ...cur[id], pose: 'stand' } } : cur))
         break
+      case 'POSE': {
+        // varış animasyonu bitmeden oturmasın diye hedef kareyi kullan
+        const cell = posRef.current[id] || engine.destinationOf(id)
+        applyRemotePose(id, { pose: ev.pose, facing: ev.facing, flip: ev.flip, held: ev.held || null }, cell)
+        setPlayers((cur) => (cur[id] ? { ...cur, [id]: { ...cur[id], pose: ev.pose, held: ev.held || null } } : cur))
+        break
+      }
       case 'SAY':
         showBubble(id, ev)
         break
       case 'LEAVE':
         delete posRef.current[id]
+        delete remoteSeats.current[id]
         engine.remove(id)
         setPlayers((cur) => omit(cur, id))
         break
@@ -209,7 +272,7 @@ export default function WorldScreen() {
         break
       default:
     }
-  }, [engine, me, showBubble, announce])
+  }, [engine, me, showBubble, announce, applyRemotePose])
 
   const getSpawn = useCallback(
     (reason) => (reason === 'enter' ? spawnRef.current : (engine.destinationOf(me) || spawnRef.current)),
@@ -231,6 +294,10 @@ export default function WorldScreen() {
     spawnRef.current = target
     posRef.current = {}
     pendingAction.current = null
+    remoteSeats.current = {}
+    clearTimeout(heldTimer.current)
+    setMenu(null)
+    setItemFx([])
     setPlayers({})
     setBubbles({})
     setMarker(null)
@@ -246,6 +313,53 @@ export default function WorldScreen() {
     returnTo.current = zoneKey === 'mahalle' ? { zone: 'mahalle', x: 2, y: 4 } : { zone: zoneKey, ...(engine.cellOf(me) || zone.spawn) }
     navigate('/game/ev')
   }, [navigate, returnTo, zoneKey, engine, me, zone])
+
+  // ------------------------------------------------------------ etkileşimler
+  const sendPose = useCallback(() => {
+    const p = engine.poseOf(me)
+    if (!p) return
+    session.call(() => api.setPose(token, { pose: p.posture, facing: p.facing, flip: p.flip, held: p.held }))
+      .catch(() => {}) // duruş paylaşımı ikincil: başkaları bir sonraki duruşta görür
+  }, [engine, me, session, token])
+
+  const showItemFx = useCallback((obj, fx) => {
+    const pt = fxPointOf(obj)
+    if (!pt || !FX[fx]) return
+    const k = `${obj.key}@${obj.x},${obj.y}:${Date.now()}`
+    setItemFx((list) => [...list, { k, sx: pt.sx, sy: pt.sy, fx }])
+    later(() => setItemFx((list) => list.filter((f) => f.k !== k)), ITEM_FX_MS)
+  }, [later])
+
+  // Varınca: otur/uzan (yer karesini + duruşu bildir) ya da eşyaya dönüp eyle.
+  const applyInteraction = useCallback(async (plan, cell) => {
+    const { action, obj } = plan
+    if (plan.seat) {
+      const seat = plan.seat
+      engine.setPosture(me, { posture: seat.kind, facing: seat.facing, flip: seat.flip, seat })
+      // başkaları beni yer karesinde görsün: önce move (duruşu sıfırlar), sonra pose
+      try { await session.call(() => api.moveTo(token, seat.cell.x, seat.cell.y)) } catch { /* bir sonraki adımda düzelir */ }
+      sendPose()
+      return
+    }
+    const d = faceToward(cell, plan.target)
+    engine.face(me, d.dx, d.dy)
+    if (action.held) {
+      engine.setPosture(me, { posture: 'stand', held: action.held })
+      clearTimeout(heldTimer.current)
+      if (action.heldMs) {
+        // elde tutulan 60 sn sonra biter (sunucu yalnızca saklar)
+        heldTimer.current = setTimeout(() => {
+          if (engine.poseOf(me)?.held === action.held) {
+            engine.setHeld(me, null)
+            sendPose()
+          }
+        }, action.heldMs)
+      }
+      sendPose()
+    }
+    if (action.fx && action.fxAt === 'item') showItemFx(obj, action.fx)
+  }, [engine, me, session, token, sendPose, showItemFx])
+  useEffect(() => () => clearTimeout(heldTimer.current), [])
 
   // ------------------------------------------------------------ yürüme
   const handleArrival = useCallback((cell) => {
@@ -266,7 +380,8 @@ export default function WorldScreen() {
       return setSheet({ type: 'neighbors' })
     }
     if (action?.type === 'hint') setHint(true)
-  }, [zone, zoneKey, engine, me, goToZone, openMyRoom, returnTo])
+    if (action?.type === 'interact') applyInteraction(action, cell)
+  }, [zone, zoneKey, engine, me, goToZone, openMyRoom, returnTo, applyInteraction])
 
   const arrivalRef = useRef(handleArrival)
   useEffect(() => { arrivalRef.current = handleArrival }, [handleArrival])
@@ -308,9 +423,42 @@ export default function WorldScreen() {
       }
       return walk(s.x, s.y, obj.action)
     }
+    if (obj?.interact) {
+      setMenu({ obj, actions: worldActions(obj.key) })
+      return
+    }
     if (cell.x < 0 || cell.y < 0 || cell.x >= zone.width || cell.y >= zone.height) return
     walk(cell.x, cell.y)
   }, [me, setup, engine, walk, zone, handleArrival])
+
+  // Eylem seçildi: oturma yerine ya da eşyanın yanına yürü
+  const runWorldAction = (obj, action) => {
+    setMenu(null)
+    const grid = setup.grid
+    const from = engine.cellOf(me)
+    let plan = null
+    if (action.kind === 'sit' || action.kind === 'lie') {
+      const taken = new Set(Object.values(remoteSeats.current))
+      for (const seat of seatsOf(obj, action.kind)) {
+        if (taken.has(seatId(obj, seat))) continue
+        const ap = seatApproach(grid, from, seat)
+        if (ap && (!plan || (ap.d ?? 0) < plan.d)) plan = { seat, cell: ap.cell, d: ap.d ?? 0 }
+      }
+      if (!plan) return showInfo('Burası şu an dolu. Biraz sonra yine bak.')
+    } else {
+      const ap = bestApproach(grid, from, propCells(obj))
+      if (!ap) return showInfo('Yanına geçecek yer yok.')
+      plan = { cell: ap.cell, target: ap.target }
+    }
+    const pend = { type: 'interact', ...plan, action, obj }
+    const here = engine.cellOf(me)
+    if (here.x === plan.cell.x && here.y === plan.cell.y && engine.destinationOf(me)?.x === here.x && engine.destinationOf(me)?.y === here.y) {
+      engine.setPosture(me, { posture: 'stand' })
+      applyInteraction(pend, here)
+      return
+    }
+    walk(plan.cell.x, plan.cell.y, pend)
+  }
 
   // Klavye: ok tuşları ekran yönünde iki kare yürütür (erişilebilirlik)
   useEffect(() => {
@@ -378,6 +526,19 @@ export default function WorldScreen() {
 
   // ------------------------------------------------------------ çizim
   const playerList = useMemo(() => Object.values(players).sort((a, b) => a.nickname?.localeCompare(b.nickname, 'tr')), [players])
+  const lit = !!atmo.lightsOn
+  const objects = useMemo(
+    () => (lit ? setup.objects.map((o) => (LIT_KEYS.has(o.key) ? { ...o, props: { ...o.props, lit: true } } : o)) : setup.objects),
+    [setup, lit],
+  )
+  const fxOverlay = itemFx.length ? (
+    <g pointerEvents="none">
+      {itemFx.map((f) => {
+        const Comp = FX[f.fx]
+        return <g key={f.k} transform={`translate(${f.sx} ${f.sy})`}><Comp /></g>
+      })}
+    </g>
+  ) : null
   const tiles = useMemo(() => <TileLayer tiles={zone.tiles} />, [zone])
   const background = useMemo(() => <ZoneEdge tiles={zone.tiles} />, [zone])
   const floor = marker ? <TapMarker key={marker.k} x={marker.x} y={marker.y} /> : null
@@ -403,12 +564,15 @@ export default function WorldScreen() {
   const close = () => setSheet(null)
 
   return (
-    <Box sx={{ position: 'fixed', inset: 0, overflow: 'hidden', bgcolor: zone.ambience?.sky || '#D7EEF3' }}>
+    <Box sx={{ position: 'fixed', inset: 0, overflow: 'hidden', bgcolor: atmo.skyBottom || zone.ambience?.sky || '#D7EEF3' }}>
+      <SkyLayer atmo={atmo} w={vp.w} h={vp.h} />
       <Stage
         key={zoneKey}
         engine={engine}
-        objects={setup.objects}
+        objects={objects}
         maxDepth={setup.maxDepth}
+        overlay={fxOverlay}
+        transparent
         background={background}
         tiles={tiles}
         floor={floor}
@@ -420,8 +584,11 @@ export default function WorldScreen() {
         ariaLabel={`${zoneName}. Yürümek için bir yere dokun. Buradaki kişiler için “Buradakiler” düğmesini kullan.`}
       />
 
+      <WeatherLayer atmo={atmo} w={vp.w} h={vp.h} />
+
       <TopHud
         profile={profile}
+        rightExtra={<AtmoPill atmo={atmo} />}
         zoneName={zoneName}
         onProfile={() => setSheet({ type: 'settings' })}
         onSettings={() => setSheet({ type: 'settings' })}
@@ -470,6 +637,11 @@ export default function WorldScreen() {
 
       <LeafBurst trigger={burst} />
 
+      <ActionSheet
+        open={!!menu} onClose={() => setMenu(null)}
+        title={menu ? PROP_NAMES[menu.obj.key] : ''} itemKey={menu?.obj.key} actions={menu?.actions}
+        onPick={(a) => runWorldAction(menu.obj, a)}
+      />
       <SpeechSheet open={sheet?.type === 'speech'} onClose={close} onSay={say} />
       <PlayersHereSheet open={sheet?.type === 'players'} onClose={close} players={playerList} zoneName={zoneName} onPick={(id) => setSheet({ type: 'player', id })} />
       <ZoneMapSheet open={sheet?.type === 'map'} onClose={close} current={zoneKey} onPick={(k) => goToZone(k)} />

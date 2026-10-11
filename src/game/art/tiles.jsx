@@ -2,9 +2,9 @@
 // (0,0) = elmasın üst köşesi; motor <g transform="translate(sx sy)"> ile yerleştirir.
 // `variant` (0-3) aynı karonun küçük farklılıklarını seçer; motor için öneri:
 // variant = (x * 7 + y * 13) % 4.
-import { memo } from 'react'
+import { memo, useId } from 'react'
 import { C, INK, shade } from './palette.js'
-import { P, LINE, faceV, faceU } from './primitives.jsx'
+import { P, LINE, faceV, faceU, onV, UNIT } from './primitives.jsx'
 import { TILE_LEGEND } from './legend.js'
 import './styles.js'
 
@@ -305,7 +305,90 @@ function Curtain({ u1, u2, side }) {
   )
 }
 
-export const RoomWalls = memo(function RoomWalls({ size = 8 }) {
+// Pencereden görünen dış dünya (2B yan görünüş; RoomWalls içinde duvar düzlemine yatırılır).
+const WIN_SKY = {
+  sabah: { sky: '#CDEAF5', low: '#FDEBD3', hill: '#9ED3A4', hill2: '#86C690' },
+  ogle: { sky: '#BFE3F5', low: '#DDF1F7', hill: '#9ED3A4', hill2: '#86C690' },
+  aksam: { sky: '#F4B58E', low: '#FCE0C2', hill: '#B9BE86', hill2: '#9EAE74' },
+  gece: { sky: '#22304F', low: '#34446A', hill: '#3D5856', hill2: '#31494A' },
+}
+
+function WindowView({ timeOfDay = 'ogle', weather = 'clear', W, H }) {
+  const clip = `sm-win-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`
+  const t = WIN_SKY[timeOfDay] || WIN_SKY.ogle
+  const night = timeOfDay === 'gece'
+  const grey = weather === 'cloudy' || weather === 'rain' || weather === 'snow'
+  const sky = grey ? (night ? '#283047' : '#C8D3DB') : t.sky
+  const low = grey ? (night ? '#323B55' : '#DDE4E8') : t.low
+  const snow = weather === 'snow'
+  const hill = snow ? '#F1F5F8' : t.hill
+  const hill2 = snow ? '#E2EAF0' : t.hill2
+  const cloud = night ? '#46557A' : grey ? '#EEF1F4' : '#FFFFFF'
+  return (
+    <g>
+      <defs>
+        <clipPath id={clip}><rect x={0} y={0} width={W} height={H} /></clipPath>
+      </defs>
+      <g clipPath={`url(#${clip})`}>
+        <rect width={W} height={H} fill={sky} />
+        <rect y={H * 0.45} width={W} height={H * 0.55} fill={low} opacity="0.8" />
+        {night && !grey && [[8, 8], [22, 14], [40, 6], [30, 24], [62, 20], [50, 30]].map(([x, y], i) => <circle key={i} cx={x} cy={y} r={0.9} fill="#FFF8E1" />)}
+        {night && <path d="M58 6 A7 7 0 1 0 58 20 A5.4 5.4 0 1 1 58 6Z" fill="#F6F1D8" opacity={grey ? 0.4 : 1} />}
+        {!night && !grey && timeOfDay !== 'aksam' && <circle cx={timeOfDay === 'sabah' ? 14 : 56} cy={timeOfDay === 'sabah' ? 18 : 12} r={6} fill={C.sun} opacity="0.95" />}
+        {timeOfDay === 'aksam' && !grey && <circle cx={20} cy={34} r={9} fill="#FFB067" />}
+        {(weather === 'partly' || (!grey && weather === 'clear' && !night)) && <ellipse cx={weather === 'partly' ? 30 : 22} cy={12} rx={10} ry={3.6} fill={cloud} opacity="0.9" />}
+        {grey && (
+          <g fill={cloud}>
+            <ellipse cx={18} cy={10} rx={16} ry={6} />
+            <ellipse cx={50} cy={16} rx={18} ry={6.5} />
+          </g>
+        )}
+        <path d={`M0 ${H - 16} Q${W * 0.3} ${H - 30} ${W * 0.55} ${H - 20} T${W} ${H - 22} L${W} ${H} L0 ${H}Z`} fill={hill} />
+        <path d={`M0 ${H - 8} Q${W * 0.45} ${H - 22} ${W} ${H - 12} L${W} ${H} L0 ${H}Z`} fill={hill2} />
+        {night && <circle cx={W * 0.7} cy={H - 13} r={1.4} fill="#FFD98A" />}
+        {weather === 'rain' && (
+          <g className="sm-win-rain" stroke="#E2EEF6" strokeWidth="1" strokeLinecap="round" opacity="0.8">
+            {[[6, -6], [18, 4], [30, -2], [44, 8], [56, -4], [66, 6], [12, 22], [38, 26], [60, 30], [24, 38]].map(([x, y], i) => <path key={i} d={`M${x} ${y} l-2 7`} />)}
+          </g>
+        )}
+        {snow && (
+          <g className="sm-win-rain" style={{ animationDuration: '3s' }} fill="#FFFFFF">
+            {[[6, -4], [20, 6], [34, -2], [46, 10], [60, 2], [12, 20], [28, 28], [52, 24], [66, 34], [40, 40]].map(([x, y], i) => <circle key={i} cx={x} cy={y} r={1.2} />)}
+          </g>
+        )}
+        {weather === 'fog' && <rect width={W} height={H} fill="#F4F6F6" opacity="0.5" />}
+        {night && <path d={`M6 ${H - 6} L${W * 0.42} 4`} stroke="#fff" strokeWidth="2" opacity="0.08" />}
+      </g>
+    </g>
+  )
+}
+
+// Pencereden odaya düşen ışık lekesi (gündüz güneş, akşam turuncu, gece ay ışığı).
+// Zemin katmanında (karolardan sonra, eşyalardan önce) oda kökeninde çizilir.
+export const RoomWindowLight = memo(function RoomWindowLight({ timeOfDay = 'ogle', weather = 'clear', size = 8 }) {
+  const wu1 = size * 0.52
+  const wu2 = wu1 + 2
+  const grey = weather === 'cloudy' || weather === 'rain' || weather === 'snow'
+  const spec = {
+    sabah: { c: '#FFF0C4', o: 0.32, reach: 2.0, shift: 0.9 },
+    ogle: { c: '#FFF7DA', o: 0.26, reach: 1.5, shift: 0.4 },
+    aksam: { c: '#FFC48A', o: 0.32, reach: 2.8, shift: 1.6 },
+    gece: { c: '#CFDCFF', o: 0.2, reach: 2.2, shift: 0.8 },
+  }[timeOfDay] || { c: '#FFF7DA', o: 0.26, reach: 1.5, shift: 0.4 }
+  const o = spec.o * (weather === 'fog' ? 0.35 : grey ? 0.45 : 1)
+  const a = 0.15
+  const b = a + spec.reach
+  const s = spec.shift
+  const mu = (wu1 + wu2) / 2
+  return (
+    <g style={{ pointerEvents: 'none' }} aria-hidden="true">
+      <polygon points={`${P(wu1, a)} ${P(wu2, a)} ${P(wu2 + s, b)} ${P(wu1 + s, b)}`} fill={spec.c} opacity={o} />
+      <path d={`M${P(mu, a)} L${P(mu + s, b)} M${P(wu1 + s * 0.5, (a + b) / 2)} L${P(wu2 + s * 0.5, (a + b) / 2)}`} stroke={INK} strokeOpacity={o * 0.25} strokeWidth="2.5" />
+    </g>
+  )
+})
+
+export const RoomWalls = memo(function RoomWalls({ size = 8, timeOfDay = 'ogle', weather = 'clear' }) {
   const S = size
   const H = WALL_H
   const paperR = '#EEF5EC' // +y'ye bakan (sağ ekran) duvar, ışık alır
@@ -347,12 +430,9 @@ export const RoomWalls = memo(function RoomWalls({ size = 8 }) {
 
       {/* pencere (sağ duvar) */}
       <polygon points={faceV(0, wu1 - 0.12, wu2 + 0.12, 34, 98)} fill={C.white} {...LINE} />
-      <polygon points={faceV(0, wu1, wu2, 40, 92)} fill="#BFE3F5" />
-      <polygon points={faceV(0, wu1, wu2, 40, 56)} fill="#9ED3A4" />
-      <path d={`M${pt0(wu1, 0, 56)} Q${pt0(wu1 + 0.6, 0, 66)} ${pt0(wu1 + 1.1, 0, 58)} T${pt0(wu2, 0, 60)}`} fill="#9ED3A4" />
-      <path d={`M${pt0(wu1, 0, 52)} Q${pt0(wu1 + 1, 0, 62)} ${pt0(wu2, 0, 54)} L${pt0(wu2, 0, 40)} L${pt0(wu1, 0, 40)} Z`} fill="#86C690" />
-      <circle cx={pt0(wu2 - 0.45, 0, 80)[0]} cy={pt0(wu2 - 0.45, 0, 80)[1]} r="6" fill={C.sun} opacity="0.9" />
-      <ellipse cx={pt0(wu1 + 0.6, 0, 82)[0]} cy={pt0(wu1 + 0.6, 0, 82)[1]} rx="9" ry="3.6" fill="#fff" opacity="0.85" />
+      <g transform={onV(wu1, 0, 92)}>
+        <WindowView timeOfDay={timeOfDay} weather={weather} W={(wu2 - wu1) * UNIT} H={52} />
+      </g>
       <path d={`M${pt0((wu1 + wu2) / 2, 0, 40)} L${pt0((wu1 + wu2) / 2, 0, 92)} M${pt0(wu1, 0, 66)} L${pt0(wu2, 0, 66)}`} stroke={C.white} strokeWidth="3" />
       <polygon points={faceV(0, wu1, wu2, 40, 92)} fill="none" stroke={C.white} strokeWidth="2.5" />
       <Curtain u1={wu1 - 0.35} u2={wu1 + 0.1} side="r" />

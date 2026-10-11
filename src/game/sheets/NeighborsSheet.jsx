@@ -1,6 +1,6 @@
 // Komşular: bana açık evler, son aktif olan önce. Sonsuz kaydırma
 // (sayfanın kendi kaydırma kabı kök alınır).
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Alert, Box, Button, Chip, Stack, Typography } from '@mui/material'
 import { CottageRounded, GroupsRounded, RedeemRounded } from '@mui/icons-material'
@@ -50,6 +50,8 @@ export default function NeighborsSheet({ open, onClose, onGift }) {
     return () => ctrlRef.current?.abort()
   }, [open, load])
 
+  const mixed = items.some((n) => n.known) && items.some((n) => !n.known)
+
   const visit = async (player) => {
     setVisitingId(player.publicId)
     try {
@@ -73,13 +75,21 @@ export default function NeighborsSheet({ open, onClose, onGift }) {
         </Box>
       )}
       <Stack component="ul" spacing={1} sx={{ listStyle: 'none', p: 0, m: 0 }}>
-        {items.map(({ player, visitedByMeAt, lastActiveAt }) => (
-          <Box component="li" key={player.publicId} sx={{ p: 1.25, borderRadius: '18px', border: '1px solid', borderColor: 'divider' }}>
+        {items.map(({ player, visitedByMeAt, lastActiveAt, known }, i) => (
+          <Fragment key={player.publicId}>
+          {/* sunucu tanıdıkları önce sıralar; ikisi de varsa bölüm başlıkları */}
+          {mixed && (i === 0 || !!items[i - 1].known !== !!known) && (
+            <Typography component="li" sx={{ fontWeight: 800, color: 'text.secondary', fontSize: '0.9rem', pt: i ? 1 : 0, listStyle: 'none' }}>
+              {known ? 'Tanıdıkların' : 'Mahalleden'}
+            </Typography>
+          )}
+          <Box component="li" sx={{ p: 1.25, borderRadius: '18px', border: '1px solid', borderColor: 'divider' }}>
             <Stack direction="row" spacing={1.5} alignItems="center">
               <CharacterBust appearance={player.appearance} size={56} />
               <Box sx={{ flex: 1, minWidth: 0 }}>
                 <Typography sx={{ fontWeight: 800 }} noWrap>{player.nickname}</Typography>
-                <Stack direction="row" spacing={0.75} alignItems="center" sx={{ flexWrap: 'wrap' }}>
+                <Stack direction="row" spacing={0.75} alignItems="center" sx={{ flexWrap: 'wrap', rowGap: 0.5 }}>
+                  {known && <Chip size="small" label="Tanıdık" color="primary" sx={{ height: 22, fontWeight: 800 }} />}
                   {visitedByMeAt && <Chip size="small" label="Uğradın" color="success" variant="outlined" sx={{ height: 22, fontWeight: 700 }} />}
                   {lastActiveAt && <Typography variant="caption" sx={{ color: 'text.secondary' }}>Son görülme {relativeTime(lastActiveAt)}</Typography>}
                 </Stack>
@@ -99,6 +109,7 @@ export default function NeighborsSheet({ open, onClose, onGift }) {
             </Stack>
             {rowError[player.publicId] && <Alert severity="info" sx={{ mt: 1 }}>{rowError[player.publicId]}</Alert>}
           </Box>
+          </Fragment>
         ))}
       </Stack>
       {page >= 0 && (

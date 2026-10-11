@@ -61,6 +61,8 @@ export class StageEngine {
     this.cameraSettled = false
     this.focusOffset = 0 // ekranın altını bir kart kaplıyorsa karakter o kadar yukarıda dursun (px)
     this.tick = this.tick.bind(this)
+    // görsel test betiği motoru inceleyebilsin (yalnızca harness bayrağıyla)
+    if (typeof window !== 'undefined' && window.__SG_HARNESS__) window.__SG_ENGINE__ = this
   }
 
   // ------------------------------------------------------------ sahne
@@ -216,7 +218,9 @@ export class StageEngine {
         t: 0,
         path: [],
         moving: false,
-        pose: { facing: 'front', flip: false, walking: false },
+        // duruş: posture stand|sit|lie, held (elde), seatHeight/stool (oturuşta)
+        pose: { facing: 'front', flip: false, walking: false, posture: 'stand', held: null, seatHeight: 22, stool: false },
+        seat: null, // { sx, sy, slot, labelDy } oturuyor/uzanıyorsa ekran noktası
         pet: { x: x - 0.75, y: y + 0.35, flip: false },
         host: null,
         petHost: null,
@@ -346,7 +350,8 @@ export class StageEngine {
     a.path = []
     a.moving = false
     a.pet = { x: x - 0.75, y: y + 0.35, flip: false }
-    this.setPose(a, { ...a.pose, walking: false })
+    a.seat = null
+    this.setPose(a, { ...a.pose, walking: false, posture: 'stand', stool: false })
     this.render(a)
     if (id === this.follow) {
       this.pan = { x: 0, y: 0 }
@@ -360,6 +365,13 @@ export class StageEngine {
   walkTo(id, x, y) {
     const a = this.actors.get(id)
     if (!a || !this.grid) return null
+    // oturuyorsa önce kalkar (elindeki kalır)
+    if (a.seat || a.pose.posture !== 'stand') {
+      a.seat = null
+      a.pos = { ...a.cell }
+      this.setPose(a, { ...a.pose, posture: 'stand', stool: false })
+      this.render(a)
+    }
     const start = a.moving ? a.to : a.cell
     const path = routeTo(this.grid, start, { x, y })
     if (!path.length) {
@@ -397,9 +409,48 @@ export class StageEngine {
   }
 
   setPose(a, pose) {
-    if (pose.facing === a.pose.facing && pose.flip === a.pose.flip && pose.walking === a.pose.walking) return
+    if (Object.keys(pose).every((k) => pose[k] === a.pose[k])) return
     a.pose = pose
     a.onPose?.(pose)
+  }
+
+  // Oturt/uzandır ya da ayakta bir duruş ver. seat: seatsOf() kaydı (sx, sy, slot);
+  // verilmezse karakter bulunduğu karede durur. held: elde tutulan (ya da null).
+  setPosture(id, { posture = 'stand', facing, flip, held, seat = null } = {}) {
+    const a = this.actors.get(id)
+    if (!a) return
+    if (a.moving) {
+      a.moving = false
+      a.path = []
+      a.t = 0
+      a.cell = { ...a.to }
+      a.pos = { ...a.cell }
+    }
+    a.seat = seat && posture !== 'stand'
+      ? { sx: seat.sx, sy: seat.sy, slot: seat.slot, labelDy: posture === 'lie' ? 46 : 22 }
+      : null
+    this.setPose(a, {
+      ...a.pose,
+      walking: false,
+      posture: a.seat ? posture : 'stand',
+      facing: facing ?? a.pose.facing,
+      flip: flip ?? a.pose.flip,
+      held: held === undefined ? a.pose.held : held,
+      seatHeight: seat?.seatHeight ?? 22,
+      stool: !!(a.seat && seat?.stool),
+    })
+    a.slot = -1
+    this.render(a)
+    this.kick()
+  }
+
+  setHeld(id, held) {
+    const a = this.actors.get(id)
+    if (a) this.setPose(a, { ...a.pose, held: held || null })
+  }
+
+  poseOf(id) {
+    return this.actors.get(id)?.pose || null
   }
 
   // Durağan haldeyken yüzünü bir yöne çevir (ör. tezgâha bak)
@@ -486,10 +537,10 @@ export class StageEngine {
   }
 
   render(a) {
-    const c = isoCenter(a.pos.x, a.pos.y)
+    const c = a.seat ? { sx: a.seat.sx, sy: a.seat.sy } : isoCenter(a.pos.x, a.pos.y)
     if (a.host) {
       a.host.setAttribute('transform', `translate(${c.sx.toFixed(2)} ${c.sy.toFixed(2)})`)
-      const depth = a.moving ? Math.max(a.from.x + a.from.y, a.to.x + a.to.y) : a.cell.x + a.cell.y
+      const depth = a.seat ? a.seat.slot : a.moving ? Math.max(a.from.x + a.from.y, a.to.x + a.to.y) : a.cell.x + a.cell.y
       const slot = Math.round(depth)
       if (slot !== a.slot || !a.host.isConnected) {
         const el = this.slotFor(slot)
@@ -499,10 +550,12 @@ export class StageEngine {
         }
       }
     }
-    // etiket konumu layoutLabels'ta (çakışma önleme ile) uygulanır
-    if (a.sx !== c.sx || a.sy !== c.sy) {
+    // etiket konumu layoutLabels'ta (çakışma önleme ile) uygulanır;
+    // oturan/uzanan karakterde etiket başın hizasına iner
+    const ly = c.sy + (a.seat ? a.seat.labelDy : 0)
+    if (a.sx !== c.sx || a.sy !== ly) {
       a.sx = c.sx
-      a.sy = c.sy
+      a.sy = ly
       this.labelsDirty = true
     }
     if (a.petHost) {

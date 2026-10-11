@@ -29,7 +29,7 @@ export function RoundButton({ label, onClick, children, sx, badge, showLabel = f
   )
 }
 
-export function TopHud({ profile, zoneName, onProfile, onSettings, onExit, onDaily, dailyBusy, extraLeft }) {
+export function TopHud({ profile, zoneName, onProfile, onSettings, onExit, onDaily, dailyBusy, extraLeft, rightExtra }) {
   return (
     <Box
       sx={{
@@ -62,16 +62,19 @@ export function TopHud({ profile, zoneName, onProfile, onSettings, onExit, onDai
             sx={{ ...pillSx, pointerEvents: 'auto', bgcolor: '#FFF4E0', px: 1.5, height: '2.6rem', gap: 0.75, border: '2px solid #F2A33A', '&.Mui-focusVisible': focusRingSx }}
           >
             <SeedGlyph size={20} />
-            <Typography sx={{ fontWeight: 800, fontSize: '0.9rem', color: '#8A5300' }}>Günlük tohumunu al</Typography>
+            <Typography sx={{ fontWeight: 800, fontSize: '0.9rem', color: '#8A5300', whiteSpace: 'nowrap' }}>Günlük tohumunu al</Typography>
           </ButtonBase>
         )}
         {extraLeft}
       </Box>
-      <Box sx={{ display: 'flex', gap: 0.75, flexShrink: 0, pr: 'env(safe-area-inset-right)' }}>
-        <RoundButton label="Ayarlar" onClick={onSettings}><SettingsRounded /></RoundButton>
-        <RoundButton label="Sağlıktan’a dön" onClick={onExit} sx={{ bgcolor: '#2F8F78', color: '#fff', '&:hover': { bgcolor: '#2A806B' } }}>
-          <LogoutRounded />
-        </RoundButton>
+      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.75, flexShrink: 0, pr: 'env(safe-area-inset-right)' }}>
+        <Box sx={{ display: 'flex', gap: 0.75 }}>
+          <RoundButton label="Ayarlar" onClick={onSettings}><SettingsRounded /></RoundButton>
+          <RoundButton label="Sağlıktan’a dön" onClick={onExit} sx={{ bgcolor: '#2F8F78', color: '#fff', '&:hover': { bgcolor: '#2A806B' } }}>
+            <LogoutRounded />
+          </RoundButton>
+        </Box>
+        {rightExtra}
       </Box>
     </Box>
   )
@@ -109,7 +112,7 @@ export function BottomBar({ items }) {
             <Badge color="error" badgeContent={it.badge || 0} max={99}>
               <Box sx={{ display: 'flex', '& svg': { fontSize: '1.7rem' } }} aria-hidden="true">{it.icon}</Box>
             </Badge>
-            <Typography sx={{ fontWeight: 800, fontSize: '0.78rem', lineHeight: 1.1, maxWidth: '100%' }} noWrap>{it.label}</Typography>
+            <Typography sx={{ fontWeight: 800, fontSize: '0.78rem', lineHeight: 1.1, maxWidth: '100%', '@media (max-width: 359px)': { fontSize: '0.68rem' } }} noWrap>{it.label}</Typography>
           </ButtonBase>
         ))}
       </Box>

@@ -7,7 +7,7 @@ import {
   ArrowBackRounded, CheckRounded, CloseRounded, DeleteOutlineRounded, EditRounded, ExitToAppRounded,
   OpenWithRounded, PeopleAltRounded, RedeemRounded, RotateRightRounded, UndoRounded,
 } from '@mui/icons-material'
-import { FURNITURE, RoomWalls, footprintPolygon, toPoints } from '../art/index.js'
+import { FURNITURE, FX, RoomWalls, RoomWindowLight, TvGlow, footprintPolygon, toPoints, iso } from '../art/index.js'
 import SaglikLoader from '../../components/common/SaglikLoader.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
 import { isAbortError } from '../../services/api.js'
@@ -22,27 +22,50 @@ import Stage from '../render/Stage.jsx'
 import { TileLayer, PlacedObject, TapMarker } from '../render/layers.jsx'
 import { Actor } from '../render/Actor.jsx'
 import { prefersReducedMotion } from '../render/gameStyles.js'
-import { TopHud, BottomBar } from '../hud/Hud.jsx'
+import { TopHud, BottomBar, ZoomControls } from '../hud/Hud.jsx'
 import { pillSx, HUD_INK } from '../hud/hudStyle.js'
 import GiftSendSheet from '../sheets/GiftSendSheet.jsx'
 import GiftInboxSheet from '../sheets/GiftInboxSheet.jsx'
 import SettingsSheet from '../sheets/SettingsSheet.jsx'
 import VisitorsSheet from '../sheets/VisitorsSheet.jsx'
 import { FurniturePreview } from '../sheets/ShopSheet.jsx'
+import ActionSheet from '../sheets/ActionSheet.jsx'
+import { AtmoPill } from '../hud/AtmoPill.jsx'
+import { roomActions, seatsOf, seatApproach, bestApproach, faceToward, fxPointOf } from '../engine/interactions.js'
+import { cellsOf } from '../engine/room.js'
+import { useAtmosphere } from '../hooks/useAtmosphere.js'
 
 const FLOOR_TILES = Array.from({ length: ROOM_SIZE }, () => Array(ROOM_SIZE).fill('floor_room'))
 const ROOM_SKY = '#F3E9DA'
+// odanın çevresi gün dilimine göre (gece koyu lacivert: oda sıcak bir ada gibi)
+const ROOM_BG = { sabah: '#F6EBDC', ogle: '#F3E9DA', aksam: '#F0D8C4', gece: '#2A3350' }
+const SEAT_KEYS = ['sofa', 'armchair', 'chair', 'beanbag']
+const placeKey = (it) => `${it.itemKey}@${it.x},${it.y},${it.rot ? 1 : 0}`
 const FLOOR_OFFSET = 1000 // halılar zemin katmanında: data-obj = 1000 + taslak sırası
 
-function toObject(item, draftIndex) {
+function toObject(item, draftIndex, on) {
   const f = FURNITURE[item.itemKey]
   const { w, d } = footprintOf(item)
-  return { key: item.itemKey, x: item.x, y: item.y, rot: item.rot ? 1 : 0, w, d, Component: f?.Component || (() => null), draftIndex, tappable: true }
+  return {
+    key: item.itemKey, x: item.x, y: item.y, rot: item.rot ? 1 : 0, w, d, Component: f?.Component || (() => null), draftIndex, tappable: true,
+    props: f?.toggle ? { on: !!on } : undefined,
+  }
 }
 
 // Oda ekrana sığsın. Düzenlerken envanter paneli geniş ekranda sağda,
 // telefonda altta durur; oda kalan alana ortalanır.
 const SIDE_PANEL_W = 380
+// Oda kamerası.
+//  - Gezerken (telefon): zemin elması ekran genişliğinin ~%120'si kadar (dış duvar
+//    köşeleri kırpılır, kapı ve karakter görünür kalır); kamera karakteri izler,
+//    sürükleme/yakınlaştırma serbest, oda sınırları içinde.
+//  - Gezerken (masaüstü): oda rahatça sığar.
+//  - Düzenlerken: sabit kamera, oda envanter panelinin dışındaki alana sığar.
+const ROOM_FLOOR_W = ROOM_SIZE * 64 // zemin elmasının genişliği (px)
+const ROOM_ZOOMS = [0.5, 0.65, 0.8, 0.95, 1.1, 1.3, 1.6, 1.9]
+const ROOM_BOUNDS = { minX: -ROOM_SIZE * 32, maxX: ROOM_SIZE * 32, minY: -130, maxY: ROOM_SIZE * 32 + 6 }
+const TOP_HUD = 120 // üst HUD (kimlik + hava hapı) yaklaşık yüksekliği
+const BOTTOM_BAR = 92
 function useFitZoom(editing) {
   const [vp, setVp] = useState(() => ({ w: window.innerWidth, h: window.innerHeight }))
   useEffect(() => {
@@ -50,16 +73,21 @@ function useFitZoom(editing) {
     window.addEventListener('resize', on)
     return () => window.removeEventListener('resize', on)
   }, [])
-  const side = editing && vp.w >= 900
+  const phone = vp.w < 900
+  const side = editing && !phone
   const panelH = editing && !side ? Math.min(300, vp.h * 0.38) : 0
-  const reservedH = (editing ? 70 : 170) + panelH
-  const availW = vp.w - (side ? SIDE_PANEL_W : 0)
-  const z = Math.max(0.45, Math.min(availW / 490, (vp.h - reservedH) / 400, 1.6))
-  const center = {
-    x: side ? SIDE_PANEL_W / 2 / z : 0,
-    y: 70 + (editing ? (panelH + 70 - 170) / 2 / z : 0),
+  if (editing) {
+    const reservedH = 70 + panelH
+    const availW = vp.w - (side ? SIDE_PANEL_W : 0)
+    const z = Math.max(0.45, Math.min(availW / 490, (vp.h - reservedH) / 400, 1.6))
+    const center = { x: side ? SIDE_PANEL_W / 2 / z : 0, y: 70 + (panelH + 70 - 170) / 2 / z }
+    return { zoom: z, center, side, panelH, phone }
   }
-  return { zoom: z, center, side, panelH }
+  const avail = vp.h - TOP_HUD - BOTTOM_BAR
+  const z = phone
+    ? Math.min((vp.w * 1.2) / ROOM_FLOOR_W, avail / 300)
+    : Math.min(vp.w / 600, avail / 380, 1.6)
+  return { zoom: Math.max(0.45, z), center: null, side: false, panelH: 0, phone }
 }
 
 export default function RoomScreen() {
@@ -67,7 +95,7 @@ export default function RoomScreen() {
   const location = useLocation()
   const { publicId: paramId } = useParams()
   const { token, profile, setProfile, catalog, returnTo, announce } = useGame()
-  const { showSuccess } = useNotification()
+  const { showSuccess, showInfo } = useNotification()
   const me = profile.publicId
   const mineRoute = !paramId || paramId === me
   const [room, setRoom] = useState(() => {
@@ -94,7 +122,27 @@ export default function RoomScreen() {
   const [saving, setSaving] = useState(false)
   const [sheet, setSheet] = useState(null)
   const [marker, setMarker] = useState(null)
-  const { zoom, center, side, panelH } = useFitZoom(editing)
+  // İşlevli eşyalar: açık/kapalı (yerleşim başına, yalnızca bu oturumda),
+  // açık eylem menüsü ve şu anki etkinliğim (oturuyorum, piyano çalıyorum...)
+  const [toggles, setToggles] = useState({})
+  const [menu, setMenu] = useState(null)
+  const [activity, setActivity] = useState(null)
+  const pending = useRef(null)
+  const atmo = useAtmosphere()
+  const { zoom: fitZoom, center, side, panelH } = useFitZoom(editing)
+  // kullanıcı yakınlaştırması (yalnızca gezerken); null = uygun varsayılan
+  const [userZoom, setUserZoom] = useState(null)
+  const zoom = !editing && userZoom != null ? userZoom : fitZoom
+  const zoomBy = useCallback((dir) => {
+    setUserZoom((z) => {
+      const cur = z ?? fitZoom
+      const list = dir > 0 ? ROOM_ZOOMS.filter((v) => v > cur + 0.01) : ROOM_ZOOMS.filter((v) => v < cur - 0.01).reverse()
+      return list[0] ?? cur
+    })
+  }, [fitZoom])
+  const onPinchZoom = useCallback((ratio) => {
+    setUserZoom((z) => Math.max(ROOM_ZOOMS[0], Math.min(ROOM_ZOOMS[ROOM_ZOOMS.length - 1], (z ?? fitZoom) * ratio)))
+  }, [fitZoom])
 
   // Odayı yükle
   useEffect(() => {
@@ -123,23 +171,61 @@ export default function RoomScreen() {
   }, [engine, grid, me])
 
   useEffect(() => {
-    engine.fixedCenter = center
+    if (center) {
+      // düzenleme: sabit kamera
+      engine.fixedCenter = center
+      engine.bounds = null
+      engine.setFocusOffset(0)
+    } else {
+      // gezinti: karakteri izle, oda sınırında kal; üst HUD ile alt çubuk arasında ortala
+      engine.fixedCenter = null
+      engine.bounds = ROOM_BOUNDS
+      engine.setFocusOffset((BOTTOM_BAR - TOP_HUD) / 2)
+      engine.recenter()
+    }
     engine.setZoom(zoom)
-  }, [engine, zoom, center.x, center.y]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [engine, zoom, center?.x, center?.y]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const exit = useCallback(() => {
     const back = location.state?.from || returnTo.current || { zone: 'mahalle', x: 2, y: 4 }
     navigate('/game', { state: { world: back } })
   }, [navigate, location.state, returnTo])
 
+  const isOn = useCallback((it) => {
+    const k = placeKey(it)
+    return k in toggles ? toggles[k] : !!FURNITURE[it.itemKey]?.defaultOn
+  }, [toggles])
+  const flipToggle = useCallback((it) => setToggles((t) => {
+    const k = placeKey(it)
+    const cur = k in t ? t[k] : !!FURNITURE[it.itemKey]?.defaultOn
+    return { ...t, [k]: !cur }
+  }), [])
+
+  // Varınca bekleyen etkileşimi uygula (otur, uzan, eşyaya dön, aç/kapat)
+  const applyPending = useCallback((cell) => {
+    const p = pending.current
+    pending.current = null
+    if (!p) return
+    if (p.type === 'seat') {
+      engine.setPosture(me, { posture: p.seat.kind, facing: p.seat.facing, flip: p.seat.flip, held: p.action.held ?? null, seat: p.seat })
+    } else {
+      const d = faceToward(cell, p.target)
+      engine.face(me, d.dx, d.dy)
+      if (p.action.kind !== 'toggle') engine.setPosture(me, { posture: 'stand', held: p.action.held ?? null })
+    }
+    if (p.action.kind === 'toggle') flipToggle(p.item)
+    else setActivity({ item: p.item, action: p.action })
+  }, [engine, me, flipToggle])
+
   useEffect(() => {
     engine.onArrive = (id, cell) => {
       if (id !== me) return
       setMarker(null)
+      if (pending.current) return applyPending(cell)
       if (cell.x === ROOM_DOOR.x && cell.y === ROOM_DOOR.y && !editing) exit()
     }
     return () => { engine.onArrive = null }
-  }, [engine, me, exit, editing])
+  }, [engine, me, exit, editing, applyPending])
 
   // ------------------------------------------------------------ düzenleme
   const owned = useCallback((key) => ownedCount(profile, key), [profile])
@@ -160,6 +246,10 @@ export default function RoomScreen() {
   }
 
   const startEdit = () => {
+    pending.current = null
+    setActivity(null)
+    setMenu(null)
+    engine.setPosture(me, { posture: 'stand', held: null })
     setDraft(room.items.map((i) => ({ itemKey: i.itemKey, x: i.x, y: i.y, rot: i.rot ? 1 : 0 })))
     setHistory([])
     setGhost(null)
@@ -252,6 +342,20 @@ export default function RoomScreen() {
       setSelected(-1)
       return
     }
+    // işlevli eşya: eylem menüsü
+    if (objIndex != null) {
+      const di = objIndex >= FLOOR_OFFSET ? objIndex - FLOOR_OFFSET : objects[objIndex]?.draftIndex
+      const it = items[di]
+      const acts = it ? roomActions(it.itemKey, { on: isOn(it), own: mine }) : []
+      if (acts.length) {
+        setMenu({ item: it, actions: acts })
+        return
+      }
+    }
+    // başka yere dokunmak etkinliği bitirir (kalkar, elindekini bırakır)
+    pending.current = null
+    setActivity(null)
+    engine.setHeld(me, null)
     // kapıya (duvar tarafı) dokunuldu: çık
     if (cell.x < 0 && cell.y >= 6 && cell.y <= 7) {
       const dest = engine.walkTo(me, ROOM_DOOR.x, ROOM_DOOR.y)
@@ -260,6 +364,47 @@ export default function RoomScreen() {
     }
     if (cell.x < 0 || cell.y < 0 || cell.x >= ROOM_SIZE || cell.y >= ROOM_SIZE) return
     const dest = engine.walkTo(me, cell.x, cell.y)
+    if (dest && !reduced) setMarker({ ...dest, k: Date.now() })
+  }
+
+  // Eylem seçildi: gerekiyorsa eşyaya yürü, varınca uygula.
+  const runAction = (item, action) => {
+    setMenu(null)
+    setActivity(null)
+    const obj = toObject(item, -1)
+    // televizyon: kumandayla, olduğun yerden
+    if (action.kind === 'toggle' && item.itemKey === 'tv') return flipToggle(item)
+    const from = engine.cellOf(me)
+    let plan = null
+    if (action.kind === 'sit' || action.kind === 'lie') {
+      const seats = seatsOf(obj, action.kind)
+      for (const seat of seats) {
+        const ap = seatApproach(grid, from, seat)
+        if (ap && (!plan || (ap.d ?? 0) < plan.d)) plan = { type: 'seat', seat, cell: ap.cell, d: ap.d ?? 0 }
+      }
+    } else if (action.kind === 'read') {
+      // yakında koltuk varsa oturup okur, yoksa kitaplığın önünde
+      const near = items
+        .filter((o) => SEAT_KEYS.includes(o.itemKey) && Math.abs(o.x - item.x) + Math.abs(o.y - item.y) <= 3)
+        .flatMap((o) => seatsOf(toObject(o, -1), 'sit'))
+      for (const seat of near) {
+        const ap = seatApproach(grid, from, seat)
+        if (ap && (!plan || (ap.d ?? 0) < plan.d)) plan = { type: 'seat', seat, cell: ap.cell, d: ap.d ?? 0 }
+      }
+    }
+    if (!plan) {
+      const ap = bestApproach(grid, from, cellsOf(item))
+      if (!ap) return showInfo('Bu eşyanın yanına geçecek yer yok.')
+      plan = { type: 'stand', cell: ap.cell, target: ap.target }
+    }
+    pending.current = { ...plan, item, action }
+    const here = engine.cellOf(me)
+    if (here.x === plan.cell.x && here.y === plan.cell.y) {
+      engine.setPosture(me, { posture: 'stand' })
+      applyPending(here)
+      return
+    }
+    const dest = engine.walkTo(me, plan.cell.x, plan.cell.y)
     if (dest && !reduced) setMarker({ ...dest, k: Date.now() })
   }
 
@@ -272,13 +417,34 @@ export default function RoomScreen() {
   }
 
   // ------------------------------------------------------------ çizim
-  const objects = useMemo(() => items.map((it, i) => ({ it, i })).filter(({ it }) => !isFloorItem(it)).map(({ it, i }) => toObject(it, i)), [items])
+  const objects = useMemo(
+    () => items.map((it, i) => ({ it, i })).filter(({ it }) => !isFloorItem(it)).map(({ it, i }) => toObject(it, i, isOn(it))),
+    [items, isOn],
+  )
   const selectedObjIndex = editing && selected >= 0 ? objects.findIndex((o) => o.draftIndex === selected) : -1
   const rugs = items.map((it, i) => ({ it, i })).filter(({ it }) => isFloorItem(it))
   const tiles = useMemo(() => <TileLayer tiles={FLOOR_TILES} />, [])
-  const background = useMemo(() => <RoomWalls size={ROOM_SIZE} />, [])
+  const background = useMemo(() => <RoomWalls size={ROOM_SIZE} timeOfDay={atmo.timeOfDay} weather={atmo.weather} />, [atmo.timeOfDay, atmo.weather])
+  const tvsOn = editing ? [] : items.filter((it) => it.itemKey === 'tv' && isOn(it))
+  // eşya üstü efektler: açık radyo notaları + şu anki etkinliğin efekti
+  const itemFx = []
+  if (!editing) {
+    for (const it of items) if (it.itemKey === 'radio' && isOn(it)) itemFx.push({ k: `r${placeKey(it)}`, ...fxPointOf(toObject(it, -1)), fx: 'MusicNotes' })
+    if (activity?.action.fx && activity.action.fxAt === 'item') {
+      const pt = fxPointOf(toObject(activity.item, -1))
+      if (pt) itemFx.push({ k: 'act', ...pt, fx: activity.action.fx })
+    }
+  }
+  const myPose = engine.poseOf(me)
+  // televizyon açıkken oturuyorsam "izliyor"
+  const watching = tvsOn.length > 0 && myPose?.posture === 'sit' ? 'watching' : null
   const floor = (
     <>
+      <RoomWindowLight timeOfDay={atmo.timeOfDay} weather={atmo.weather} size={ROOM_SIZE} />
+      {tvsOn.map((it) => {
+        const o = iso(it.x, it.y)
+        return <g key={placeKey(it)} transform={`translate(${o.sx} ${o.sy})${it.rot ? ' scale(-1 1)' : ''}`}><TvGlow on /></g>
+      })}
       {rugs.map(({ it, i }) => (
         <PlacedObject key={`r${i}`} obj={toObject(it, i)} index={FLOOR_OFFSET + i} selected={editing && selected === i} />
       ))}
@@ -297,6 +463,10 @@ export default function RoomScreen() {
   )
   // Yerleştirme izi: diğer eşyaların üstünde görünsün diye etiket katmanında;
   // yeşil = uygun, kırmızı = olmaz (renge ek olarak panelde metin var).
+  const fxLayer = itemFx.map((f) => {
+    const Comp = FX[f.fx]
+    return Comp ? <g key={f.k} transform={`translate(${f.sx} ${f.sy})`}><Comp /></g> : null
+  })
   const overlay = ghost ? (
     <g pointerEvents="none">
       <polygon
@@ -306,12 +476,12 @@ export default function RoomScreen() {
       />
       <PlacedObject obj={toObject(ghost, -1)} index={-1} ghost />
     </g>
-  ) : null
+  ) : <g pointerEvents="none">{fxLayer}</g>
   const actors = (
     <Actor
       engine={engine} id={me} x={ROOM_SPAWN.x} y={ROOM_SPAWN.y} me
       appearance={profile.appearance} petKey={profile.petKey} nickname={profile.nickname}
-      showLabel={!editing}
+      showLabel={!editing} fx={watching}
     />
   )
 
@@ -338,7 +508,13 @@ export default function RoomScreen() {
   const ownerTitle = mine ? 'Evim' : (owner?.nickname || 'Komşu')
 
   return (
-    <Box sx={{ position: 'fixed', inset: 0, overflow: 'hidden', bgcolor: ROOM_SKY }}>
+    <Box
+      sx={{
+        position: 'fixed', inset: 0, overflow: 'hidden', bgcolor: ROOM_BG[atmo.timeOfDay] || ROOM_SKY,
+        // gece odanın arkası koyu; ortada hafif bir hale (gündüz beyaz, gece lacivert)
+        backgroundImage: `radial-gradient(120% 80% at 50% 30%, ${atmo.timeOfDay === 'gece' ? '#45507A' : '#FFFFFF'} 0%, transparent 60%)`,
+      }}
+    >
       <Stage
         engine={engine}
         objects={objects}
@@ -350,8 +526,11 @@ export default function RoomScreen() {
         actors={actors}
         onTap={onTap}
         onHover={editing ? onHover : undefined}
-        sky={ROOM_SKY}
-        panEnabled={false}
+        sky={ROOM_BG[atmo.timeOfDay] || ROOM_SKY}
+        transparent
+        panEnabled={!editing}
+        onPinchZoom={editing ? undefined : onPinchZoom}
+        onWheelZoom={editing ? undefined : zoomBy}
         selectedIndex={selectedObjIndex}
         ariaLabel={`${mine ? 'Evin' : `${ownerTitle} adlı komşunun evi`}. Dokunduğun yere yürürsün; sol duvardaki kapı sokağa çıkar.`}
       />
@@ -364,6 +543,7 @@ export default function RoomScreen() {
           onSettings={() => setSheet('settings')}
           onExit={() => navigate('/home')}
           onDaily={null}
+          rightExtra={<AtmoPill atmo={atmo} />}
           extraLeft={(
             // kapı tabelası
             <Box sx={{ ...pillSx, px: 1.75, py: 0.75, borderRadius: '14px', bgcolor: '#FFF4E0', border: '2px solid #D29B68' }}>
@@ -386,6 +566,15 @@ export default function RoomScreen() {
             { key: 'gift', label: 'Hediye bırak', icon: <RedeemRounded />, onClick: () => setSheet('gift') },
           ]}
         />
+      )}
+
+      {!editing && (
+        <Box sx={{ position: 'absolute', zIndex: 5, right: 'calc(env(safe-area-inset-right) + 0.6rem)', bottom: 'calc(env(safe-area-inset-bottom) + 5.4rem)', pointerEvents: 'none' }}>
+          <ZoomControls
+            onIn={() => zoomBy(1)} onOut={() => zoomBy(-1)}
+            canIn={zoom < ROOM_ZOOMS[ROOM_ZOOMS.length - 1] - 0.01} canOut={zoom > ROOM_ZOOMS[0] + 0.01}
+          />
+        </Box>
       )}
 
       {editing && (
@@ -414,6 +603,13 @@ export default function RoomScreen() {
         />
       )}
 
+      <ActionSheet
+        open={!!menu} onClose={() => setMenu(null)}
+        title={menu ? (catalog.furnitureByKey[menu.item.itemKey]?.name || 'Eşya') : ''}
+        itemKey={menu?.item.itemKey} actions={menu?.actions}
+        note={menu && !mine && FURNITURE[menu.item.itemKey]?.toggle ? 'Komşunun eşyalarını açıp kapatamazsın; oturup dinlenebilirsin.' : undefined}
+        onPick={(a) => runAction(menu.item, a)}
+      />
       <GiftSendSheet open={sheet === 'gift'} to={sheet === 'gift' ? owner : null} onClose={() => setSheet(null)} />
       <GiftInboxSheet open={sheet === 'inbox'} onClose={() => setSheet(null)} />
       <SettingsSheet open={sheet === 'settings'} onClose={() => setSheet(null)} />

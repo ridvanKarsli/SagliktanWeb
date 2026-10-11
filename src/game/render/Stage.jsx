@@ -13,7 +13,7 @@ const TAP_SLOP = 10
 
 export default function Stage({
   engine, objects, maxDepth, background, tiles, floor, actors, overlay,
-  onTap, onHover, onPinchZoom, onWheelZoom, sky = '#D7EEF3', ariaLabel, panEnabled = true, selectedIndex,
+  onTap, onHover, onPinchZoom, onWheelZoom, sky = '#D7EEF3', ariaLabel, panEnabled = true, selectedIndex, tint, transparent = false,
   children,
 }) {
   const wrapRef = useRef(null)
@@ -146,7 +146,9 @@ export default function Stage({
       sx={{
         position: 'absolute', inset: 0, overflow: 'hidden', touchAction: 'none', userSelect: 'none',
         WebkitUserSelect: 'none', WebkitTapHighlightColor: 'transparent',
-        background: `radial-gradient(120% 90% at 50% 10%, #FFFFFF 0%, ${sky} 55%, ${sky} 100%)`,
+        // gökyüzü ayrı katmanda çiziliyorsa (dünya) zemin şeffaf
+        background: transparent ? 'transparent' : `radial-gradient(120% 90% at 50% 10%, #FFFFFF 0%, ${sky} 55%, ${sky} 100%)`,
+        zIndex: transparent ? 1 : undefined,
         cursor: 'default',
       }}
     >
@@ -156,6 +158,7 @@ export default function Stage({
           {tiles}
           {floor}
           <ObjectLayer objects={objects} maxDepth={maxDepth} onSlots={onSlots} selectedIndex={selectedIndex} />
+          {tint}
           {overlay}
           {actors}
         </g>

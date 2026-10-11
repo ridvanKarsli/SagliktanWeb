@@ -47,7 +47,16 @@ export const BOTTOMS = {
 
 export const ACCESSORIES = ['glasses_round', 'sunhat', 'beanie', 'scarf', 'headphones', 'flower_pin', 'backpack', 'cap']
 
-export const DEFAULT_APPEARANCE = { skin: 's2', hair: 'short', hairColor: 'brown', top: 'tee_mint', bottom: 'jeans', accessory: null }
+export const BODIES = ['female', 'male']
+
+// Beden değişince oluşturucunun önerebileceği başlangıç görünümü (yalnızca kolaylık,
+// kısıtlama değil; hepsi ücretsiz başlangıç parçaları).
+export const DEFAULT_LOOK_BY_BODY = {
+  female: { body: 'female', hair: 'long', hairColor: 'brown', top: 'sweater_cream', bottom: 'skirt', accessory: null },
+  male: { body: 'male', hair: 'short', hairColor: 'black', top: 'hoodie_sky', bottom: 'chinos', accessory: null },
+}
+
+export const DEFAULT_APPEARANCE = { body: 'female', skin: 's2', hair: 'short', hairColor: 'brown', top: 'tee_mint', bottom: 'jeans', accessory: null }
 
 const SOFT = { stroke: INK, strokeOpacity: 0.28, strokeWidth: 1, strokeLinejoin: 'round' }
 
@@ -199,19 +208,26 @@ function hairPaths(style, c, view) {
 // ------------------------------------------------------------------ üst giyim
 const TORSO = 'M-10 -44.5 Q-12.8 -44.5 -12.8 -40.5 L-12.2 -22 Q-12.2 -19.5 -9.6 -19.5 L9.6 -19.5 Q12.2 -19.5 12.2 -22 L12.8 -40.5 Q12.8 -44.5 10 -44.5Z'
 const TORSO_LONG = 'M-10 -44.5 Q-12.8 -44.5 -12.8 -40.5 L-13 -16 Q-13 -14 -10.6 -14 L10.6 -14 Q13 -14 13 -16 L12.8 -40.5 Q12.8 -44.5 10 -44.5Z'
+// kadın: belde hafif içe kavis (göğüs/kalça vurgusu yok)
+const TORSO_F = 'M-10 -44.5 Q-12.8 -44.5 -12.8 -40.5 Q-10.4 -31 -12.2 -22 Q-12.2 -19.5 -9.6 -19.5 L9.6 -19.5 Q12.2 -19.5 12.2 -22 Q10.4 -31 12.8 -40.5 Q12.8 -44.5 10 -44.5Z'
+const TORSO_LONG_F = 'M-10 -44.5 Q-12.8 -44.5 -12.8 -40.5 Q-10.6 -30 -13 -16 Q-13 -14 -10.6 -14 L10.6 -14 Q13 -14 13 -16 Q10.6 -30 12.8 -40.5 Q12.8 -44.5 10 -44.5Z'
+// erkek: omuz köşeleri daha keskin
+const TORSO_M = 'M-11.4 -44.5 Q-12.8 -44.5 -12.8 -42.6 L-12.4 -22 Q-12.4 -19.5 -9.8 -19.5 L9.8 -19.5 Q12.4 -19.5 12.4 -22 L12.8 -42.6 Q12.8 -44.5 11.4 -44.5Z'
+const TORSO_LONG_M = 'M-11.4 -44.5 Q-12.8 -44.5 -12.8 -42.6 L-13 -16 Q-13 -14 -10.6 -14 L10.6 -14 Q13 -14 13 -16 L12.8 -42.6 Q12.8 -44.5 11.4 -44.5Z'
+const torsoPath = (body, long) => (body === 'male' ? (long ? TORSO_LONG_M : TORSO_M) : long ? TORSO_LONG_F : TORSO_F)
 
-function TopFront({ k, skin }) {
+function TopFront({ k, skin, body }) {
   const t = TOPS[k] || TOPS.tee_mint
   const c = t.color
   const d = shade(c, -0.16)
   const l = shade(c, 0.3)
-  const body = <path d={t.long ? TORSO_LONG : TORSO} fill={c} {...SOFT} />
+  const torso = <path d={torsoPath(body, t.long)} fill={c} {...SOFT} />
   const sideShade = <path d={t.long ? 'M5 -44.5 L10 -44.5 Q12.8 -44.5 12.8 -40.5 L13 -16 Q13 -14 10.6 -14 L6 -14Z' : 'M5 -44.5 L10 -44.5 Q12.8 -44.5 12.8 -40.5 L12.2 -22 Q12.2 -19.5 9.6 -19.5 L6 -19.5Z'} fill={INK} opacity="0.07" />
   switch (k) {
     case 'hoodie_sky':
       return (
         <g>
-          {body}
+          {torso}
           <path d="M-7 -30 L7 -30 L8.6 -22 L-8.6 -22Z" fill={d} opacity="0.55" />
           <path d="M-9.5 -44.5 Q0 -36 9.5 -44.5 Q9 -48 0 -47 Q-9 -48 -9.5 -44.5Z" fill={d} {...SOFT} />
           <path d="M-3 -41 L-3.4 -33 M3 -41 L3.4 -33" stroke={C.white} strokeWidth="1.2" strokeLinecap="round" />
@@ -224,7 +240,7 @@ function TopFront({ k, skin }) {
     case 'sweater_cream':
       return (
         <g>
-          {body}
+          {torso}
           <path d="M-5 -44.5 Q0 -40.5 5 -44.5" stroke={d} strokeWidth="2.6" fill="none" strokeLinecap="round" />
           <path d="M-11 -33 l2.75 -2.5 l2.75 2.5 l2.75 -2.5 l2.75 2.5 l2.75 -2.5 l2.75 2.5 l2.75 -2.5 l2.75 2.5" stroke={C.apricot} strokeWidth="1.4" fill="none" strokeLinejoin="round" />
           <path d="M-11 -29.6 l2.75 -2.5 l2.75 2.5 l2.75 -2.5 l2.75 2.5 l2.75 -2.5 l2.75 2.5 l2.75 -2.5 l2.75 2.5" stroke={C.healing} strokeWidth="1.2" fill="none" strokeLinejoin="round" opacity="0.8" />
@@ -235,7 +251,7 @@ function TopFront({ k, skin }) {
     case 'cardigan_rose':
       return (
         <g>
-          {body}
+          {torso}
           <path d="M-5 -44.5 L5 -44.5 L2.2 -19.5 L-2.2 -19.5Z" fill={C.white} />
           <path d="M-5 -44.5 L-2.2 -19.5 M5 -44.5 L2.2 -19.5" stroke={d} strokeWidth="1.2" />
           {[-37, -31, -25].map((y) => <circle key={y} cx={-3.2 - (y + 44) * 0.05} cy={y} r={1} fill={C.white} stroke={d} strokeWidth="0.5" />)}
@@ -246,7 +262,7 @@ function TopFront({ k, skin }) {
     case 'shirt_check':
       return (
         <g>
-          {body}
+          {torso}
           <g stroke={C.white} strokeOpacity="0.5" strokeWidth="1.3">
             <path d="M-8 -44 L-8 -20 M-3 -44 L-3 -20 M3 -44 L3 -20 M8 -44 L8 -20" />
             <path d="M-12.5 -38 L12.5 -38 M-12.4 -31.5 L12.4 -31.5 M-12.3 -25 L12.3 -25" />
@@ -262,7 +278,7 @@ function TopFront({ k, skin }) {
     case 'jacket_denim':
       return (
         <g>
-          {body}
+          {torso}
           <path d="M0 -40 L0 -19.5" stroke={d} strokeWidth="1.2" />
           <path d="M-6 -44.5 L0 -40 L-2.6 -35 L-8 -40Z M6 -44.5 L0 -40 L2.6 -35 L8 -40Z" fill={l} {...SOFT} />
           <rect x={-9.6} y={-35} width={6} height={5} rx={1} fill={d} opacity="0.55" />
@@ -276,7 +292,7 @@ function TopFront({ k, skin }) {
     case 'raincoat_sun':
       return (
         <g>
-          {body}
+          {torso}
           <path d="M-9.5 -44.5 Q0 -37 9.5 -44.5 Q9 -48 0 -47 Q-9 -48 -9.5 -44.5Z" fill={d} {...SOFT} />
           <path d="M0 -40 L0 -14" stroke={d} strokeWidth="1.2" />
           {[-35, -28, -21].map((y) => <rect key={y} x={-3.6} y={y - 0.9} width={7.2} height={1.8} rx={0.9} fill={C.woodDeep} />)}
@@ -287,7 +303,7 @@ function TopFront({ k, skin }) {
     case 'vest_knit':
       return (
         <g>
-          <path d={TORSO} fill={C.white} {...SOFT} />
+          <path d={torsoPath(body, false)} fill={C.white} {...SOFT} />
           <path d="M-5.5 -44.5 L0 -40.5 L-1.8 -37.5 L-6.6 -41.4Z M5.5 -44.5 L0 -40.5 L1.8 -37.5 L6.6 -41.4Z" fill="#F1ECE2" {...SOFT} />
           <path d="M-10.5 -43 L-6 -43 L0 -31 L6 -43 L10.5 -43 Q12.8 -43 12.8 -39.5 L12.2 -22 Q12.2 -19.5 9.6 -19.5 L-9.6 -19.5 Q-12.2 -19.5 -12.2 -22 L-12.8 -39.5 Q-12.8 -43 -10.5 -43Z" fill={c} {...SOFT} />
           <path d="M-7.5 -36 q1.5 2 0 4 q-1.5 2 0 4 q1.5 2 0 4 M7.5 -36 q1.5 2 0 4 q-1.5 2 0 4 q1.5 2 0 4" stroke={l} strokeWidth="1.3" fill="none" />
@@ -299,7 +315,7 @@ function TopFront({ k, skin }) {
       // tee_mint
       return (
         <g>
-          {body}
+          {torso}
           <path d="M-5 -44.5 Q0 -39.5 5 -44.5Z" fill={skin} />
           <path d="M-5 -44.5 Q0 -39.5 5 -44.5" stroke={d} strokeWidth="1.4" fill="none" />
           <path d="M-6 -30 C-8.6 -31 -9 -34.4 -6.4 -35.6 C-6 -33.4 -5.6 -32 -6 -30Z M-6 -30 C-3.6 -31 -3.2 -34.4 -5.4 -36 C-6.4 -33.6 -6.4 -32 -6 -30Z" fill={C.white} opacity="0.9" />
@@ -309,18 +325,18 @@ function TopFront({ k, skin }) {
   }
 }
 
-function TopBack({ k }) {
+function TopBack({ k, body }) {
   const t = TOPS[k] || TOPS.tee_mint
   const c = t.color
   const d = shade(c, -0.16)
-  const body = <path d={t.long ? TORSO_LONG : TORSO} fill={c} {...SOFT} />
+  const torso = <path d={torsoPath(body, t.long)} fill={c} {...SOFT} />
   const sideShade = <path d={t.long ? 'M-5 -44.5 L-10 -44.5 Q-12.8 -44.5 -12.8 -40.5 L-13 -16 Q-13 -14 -10.6 -14 L-6 -14Z' : 'M-5 -44.5 L-10 -44.5 Q-12.8 -44.5 -12.8 -40.5 L-12.2 -22 Q-12.2 -19.5 -9.6 -19.5 L-6 -19.5Z'} fill={INK} opacity="0.07" />
   switch (k) {
     case 'hoodie_sky':
     case 'raincoat_sun':
       return (
         <g>
-          {body}
+          {torso}
           <path d="M-9 -45 Q-10 -34 0 -33 Q10 -34 9 -45 Q0 -47 -9 -45Z" fill={d} {...SOFT} />
           <path d="M-5 -42 Q0 -37 5 -42" stroke={shade(c, -0.3)} strokeWidth="1" fill="none" />
           {sideShade}
@@ -329,7 +345,7 @@ function TopBack({ k }) {
     case 'vest_knit':
       return (
         <g>
-          <path d={TORSO} fill={C.white} {...SOFT} />
+          <path d={torsoPath(body, false)} fill={C.white} {...SOFT} />
           <path d="M-10.5 -44 L10.5 -44 Q12.8 -44 12.8 -40 L12.2 -22 Q12.2 -19.5 9.6 -19.5 L-9.6 -19.5 Q-12.2 -19.5 -12.2 -22 L-12.8 -40 Q-12.8 -44 -10.5 -44Z" fill={c} {...SOFT} />
           <rect x={-12.2} y={-23} width={24.4} height={3.5} rx={1.5} fill={d} opacity="0.5" />
           {sideShade}
@@ -338,7 +354,7 @@ function TopBack({ k }) {
     case 'shirt_check':
       return (
         <g>
-          {body}
+          {torso}
           <g stroke={C.white} strokeOpacity="0.5" strokeWidth="1.3">
             <path d="M-8 -44 L-8 -20 M-3 -44 L-3 -20 M3 -44 L3 -20 M8 -44 L8 -20" />
             <path d="M-12.5 -38 L12.5 -38 M-12.4 -31.5 L12.4 -31.5 M-12.3 -25 L12.3 -25" />
@@ -350,7 +366,7 @@ function TopBack({ k }) {
     case 'jacket_denim':
       return (
         <g>
-          {body}
+          {torso}
           <path d="M-12 -35 Q0 -32 12 -35 M-12 -24 L12 -24" stroke={C.apricot} strokeWidth="0.9" strokeDasharray="1.6 1.4" fill="none" />
           <path d="M-7 -45 Q0 -42 7 -45 L7 -42 Q0 -39 -7 -42Z" fill={shade(c, 0.25)} />
           {sideShade}
@@ -359,7 +375,7 @@ function TopBack({ k }) {
     case 'sweater_cream':
       return (
         <g>
-          {body}
+          {torso}
           <rect x={-12.2} y={-23} width={24.4} height={3.5} rx={1.5} fill={d} opacity="0.5" />
           {sideShade}
         </g>
@@ -367,7 +383,7 @@ function TopBack({ k }) {
     default:
       return (
         <g>
-          {body}
+          {torso}
           {sideShade}
         </g>
       )
@@ -375,7 +391,7 @@ function TopBack({ k }) {
 }
 
 // ------------------------------------------------------------------ kollar
-function Arm({ side, top, skin }) {
+function Arm({ side, top, skin, hand = 3.2 }) {
   const t = TOPS[top] || TOPS.tee_mint
   const sc = t.sleeveColor || t.color
   const x = side === 'l' ? -15.8 : 10.4
@@ -394,13 +410,13 @@ function Arm({ side, top, skin }) {
           {(top === 'sweater_cream' || top === 'hoodie_sky') && <rect x={x} y={-29.4} width={5.4} height={3} rx={1.4} fill={shade(sc, -0.16)} />}
         </g>
       )}
-      <circle cx={hx} cy={-25} r={3.2} fill={skin} {...SOFT} />
+      <circle cx={hx} cy={-25} r={hand} fill={skin} {...SOFT} />
     </g>
   )
 }
 
 // ------------------------------------------------------------------ alt giyim + bacak
-function Leg({ side, bottom, skin }) {
+function Leg({ side, bottom, skin, lift = 0, foot = 1 }) {
   const b = BOTTOMS[bottom] || BOTTOMS.jeans
   const x = side === 'l' ? -7.4 : 1.2
   const cls = side === 'l' ? 'sm-leg-l' : 'sm-leg-r'
@@ -408,12 +424,14 @@ function Leg({ side, bottom, skin }) {
   const sx = side === 'l' ? -4.2 : 4.2
   return (
     <g className={cls}>
-      <rect x={x} y={-25} width={6.2} height={22} rx={2.6} fill={legFill} {...SOFT} />
-      {b.kind === 'shorts' && <rect x={x - 0.4} y={-25} width={7} height={10} rx={2.4} fill={b.color} {...SOFT} />}
+      <rect x={x} y={-25 - lift} width={6.2} height={22 + lift} rx={2.6} fill={legFill} {...SOFT} />
+      {b.kind === 'shorts' && <rect x={x - 0.4} y={-25 - lift} width={7} height={10 + lift * 0.5} rx={2.4} fill={b.color} {...SOFT} />}
       {b.kind === 'joggers' && <rect x={x - 0.2} y={-8} width={6.6} height={3.4} rx={1.6} fill={shade(b.color, -0.2)} />}
       {bottom === 'jeans' && <path d={`M${x + 0.6} -7 L${x + 5.6} -7`} stroke={shade(b.color, 0.3)} strokeWidth="1" />}
-      <path d={`M${sx - 4.4} -3.6 Q${sx - 4.8} 0.4 ${sx} 0.4 Q${sx + 4.4} 0.4 ${sx + 4.4} -2.6 Q${sx + 4} -5.4 ${sx} -5.4 Q${sx - 4} -5.4 ${sx - 4.4} -3.6Z`} fill={b.shoe} {...SOFT} />
-      <path d={`M${sx - 4.4} -1 Q${sx} 1 ${sx + 4.4} -1`} stroke={b.sole} strokeWidth="1.2" fill="none" />
+      <g transform={foot !== 1 ? `translate(${sx} 0) scale(${foot}) translate(${-sx} 0)` : undefined}>
+        <path d={`M${sx - 4.4} -3.6 Q${sx - 4.8} 0.4 ${sx} 0.4 Q${sx + 4.4} 0.4 ${sx + 4.4} -2.6 Q${sx + 4} -5.4 ${sx} -5.4 Q${sx - 4} -5.4 ${sx - 4.4} -3.6Z`} fill={b.shoe} {...SOFT} />
+        <path d={`M${sx - 4.4} -1 Q${sx} 1 ${sx + 4.4} -1`} stroke={b.sole} strokeWidth="1.2" fill="none" />
+      </g>
     </g>
   )
 }
@@ -564,29 +582,183 @@ function AccessoryHead({ k, view }) {
 }
 
 // ------------------------------------------------------------------ yüz
-function Face({ skin }) {
+function Face({ skin, male, hairColor, sleep }) {
   const dark = skin === SKINS.s4 || skin === SKINS.s5
+  const brow = shade(hairColor, -0.12)
   return (
     <g transform={`translate(${FX} 0)`}>
-      <ellipse cx={-6} cy={-54} rx={2.1} ry={2.45} fill={INK} />
-      <ellipse cx={6} cy={-54} rx={2.1} ry={2.45} fill={INK} />
-      <circle cx={-6.6} cy={-54.9} r={0.75} fill="#fff" />
-      <circle cx={5.4} cy={-54.9} r={0.75} fill="#fff" />
-      <ellipse cx={-10.4} cy={-49.6} rx={2.8} ry={1.7} fill={BLUSH} opacity={dark ? 0.55 : 0.7} />
-      <ellipse cx={10.4} cy={-49.6} rx={2.8} ry={1.7} fill={BLUSH} opacity={dark ? 0.55 : 0.7} />
-      <path d="M-2.8 -49.6 Q0 -47 2.8 -49.6" stroke={INK} strokeWidth="1.5" strokeLinecap="round" fill="none" />
+      {sleep ? (
+        <path d="M-8.2 -53.6 Q-6 -51.4 -3.8 -53.6 M3.8 -53.6 Q6 -51.4 8.2 -53.6" stroke={INK} strokeWidth="1.5" fill="none" strokeLinecap="round" />
+      ) : (
+        <g>
+          <ellipse cx={-6} cy={-54} rx={2.1} ry={2.45} fill={INK} />
+          <ellipse cx={6} cy={-54} rx={2.1} ry={2.45} fill={INK} />
+          <circle cx={-6.6} cy={-54.9} r={0.75} fill="#fff" />
+          <circle cx={5.4} cy={-54.9} r={0.75} fill="#fff" />
+          {/* kadın: göz başına iki-üç kirpik */}
+          {!male && <path d="M-7.9 -55.2 L-10 -56.2 M-7.2 -56.2 L-8.6 -58 M-5.8 -56.5 L-6.2 -58.4 M7.9 -55.2 L10 -56.2 M7.2 -56.2 L8.6 -58 M5.8 -56.5 L6.2 -58.4" stroke={INK} strokeWidth="1.1" strokeLinecap="round" />}
+        </g>
+      )}
+      {/* kaşlar: kadında ince kavisli, erkekte biraz daha kalın ve düz */}
+      {male ? (
+        <path d="M-9.2 -60.2 L-3.4 -60.8 M3.4 -60.8 L9.2 -60.2" stroke={brow} strokeWidth="2.6" fill="none" strokeLinecap="round" />
+      ) : (
+        <path d="M-8.2 -59.4 Q-6 -61.2 -3.8 -59.4 M3.8 -59.4 Q6 -61.2 8.2 -59.4" stroke={brow} strokeWidth="1.15" fill="none" strokeLinecap="round" />
+      )}
+      <ellipse cx={-10.4} cy={-49.6} rx={male ? 2.6 : 3.3} ry={male ? 1.5 : 1.9} fill={BLUSH} opacity={male ? (dark ? 0.4 : 0.45) : dark ? 0.7 : 0.85} />
+      <ellipse cx={10.4} cy={-49.6} rx={male ? 2.6 : 3.3} ry={male ? 1.5 : 1.9} fill={BLUSH} opacity={male ? (dark ? 0.4 : 0.45) : dark ? 0.7 : 0.85} />
+      <path d={sleep ? 'M-1.8 -48.8 Q0 -47.6 1.8 -48.8' : 'M-2.8 -49.6 Q0 -47 2.8 -49.6'} stroke={INK} strokeWidth="1.5" strokeLinecap="round" fill="none" />
     </g>
   )
 }
 
-function Head({ skin }) {
+// erkek baş: çene hattı biraz daha düz/geniş; kadın: yuvarlak
+const HEAD_MALE = 'M-17.6 -58 C-17.6 -68.4 -9.6 -73.6 0 -73.6 C9.6 -73.6 17.6 -68.4 17.6 -58 L17.3 -50.4 Q16.6 -42.6 9 -41 L-9 -41 Q-16.6 -42.6 -17.3 -50.4Z'
+
+function Head({ skin, male }) {
   return (
     <g>
-      <rect x={-3.4} y={-48} width={6.8} height={6} rx={2} fill={shade(skin, -0.1)} />
+      <rect x={male ? -4.4 : -3.2} y={-48} width={male ? 8.8 : 6.4} height={6} rx={2} fill={shade(skin, -0.1)} />
       <ellipse cx={-17} cy={-54} rx={3} ry={3.6} fill={skin} {...SOFT} />
       <ellipse cx={17} cy={-54} rx={3} ry={3.6} fill={skin} {...SOFT} />
-      <ellipse cx={0} cy={HEAD_Y} rx={17.4} ry={16.4} fill={skin} {...SOFT} />
+      {male ? <path d={HEAD_MALE} fill={skin} {...SOFT} /> : <ellipse cx={0} cy={HEAD_Y} rx={17.8} ry={16.6} fill={skin} {...SOFT} />}
       <path d="M11 -66 Q15 -60 14.6 -52" stroke={shade(skin, -0.12)} strokeWidth="2.4" fill="none" opacity="0.35" strokeLinecap="round" />
+    </g>
+  )
+}
+
+// ------------------------------------------------------------------ elde tutulan
+// Kolların omuz etrafında dönüşü (derece) ve eşyanın çizim katmanı.
+const HELD_POSE = {
+  tea: { l: 0, r: 32 },
+  simit: { l: 0, r: 10 },
+  book: { l: -28, r: 28 },
+  brush: { l: 0, r: -38 },
+}
+export const HELD_ITEMS = Object.keys(HELD_POSE)
+
+function TeaInHand() {
+  return (
+    <g transform="translate(4.4 -24.6)">
+      <ellipse cx={0} cy={0.4} rx={3.6} ry={1.3} fill={C.rose} />
+      <path d="M-2.3 -8 Q-1 -4.4 -1.9 -2.3 Q-1.4 0 0 0 Q1.4 0 1.9 -2.3 Q1 -4.4 2.3 -8Z" fill="#C8582C" stroke="#fff" strokeOpacity="0.85" strokeWidth="0.7" />
+      <path d="M-1.2 -6.6 Q-0.5 -4.4 -1 -2.8" stroke="#fff" strokeWidth="0.6" opacity="0.7" fill="none" />
+      <path className="sm-steam" d="M0 -10 q-1.6 -2 0 -4" stroke="#fff" strokeWidth="1" fill="none" strokeLinecap="round" />
+    </g>
+  )
+}
+
+function SimitInHand() {
+  return (
+    <g transform="translate(10.6 -18.6)">
+      <circle r={6.4} fill="none" stroke="#C98A4B" strokeWidth="4" />
+      <circle r={6.4} fill="none" stroke={INK} strokeOpacity="0.25" strokeWidth="0.8" />
+      <circle r={4.2} fill="none" stroke="#B57538" strokeWidth="0.6" opacity="0.6" />
+      {[[-5, -3], [4, -4.4], [6, 1.6], [-3, 5.2], [1.6, 6.2], [-6.2, 1.8]].map(([x, y], i) => <circle key={i} cx={x} cy={y} r={0.55} fill="#FFF4D8" />)}
+    </g>
+  )
+}
+
+function BookInHand() {
+  return (
+    <g transform="translate(0 -30)">
+      <path d="M-9.5 -5 Q-4.5 -7 0 -5 Q4.5 -7 9.5 -5 L9.5 4 Q4.5 2.4 0 4 Q-4.5 2.4 -9.5 4Z" fill={C.healing} {...SOFT} />
+      <path d="M-8.4 -5.4 Q-4.2 -7 0 -5.2 L0 3 Q-4.2 1.4 -8.4 2.6Z M8.4 -5.4 Q4.2 -7 0 -5.2 L0 3 Q4.2 1.4 8.4 2.6Z" fill={C.white} />
+      <path d="M-6.6 -3.4 L-2 -3.6 M-6.6 -1.4 L-2 -1.6 M2 -3.6 L6.6 -3.4 M2 -1.6 L6.6 -1.4" stroke={C.metal} strokeWidth="0.5" opacity="0.6" />
+      <path d="M0 -5.2 L0 3" stroke={INK} strokeOpacity="0.25" strokeWidth="0.8" />
+    </g>
+  )
+}
+
+function BrushInHand() {
+  return (
+    <g transform="translate(23.6 -28.6) rotate(28)">
+      <rect x={-1} y={-15} width={2} height={15} rx={1} fill={C.wood} />
+      <rect x={-1.3} y={-18} width={2.6} height={3.4} fill={C.metal} />
+      <path d="M-1.4 -18 Q0 -24 1.4 -18Z" fill={C.rose} />
+    </g>
+  )
+}
+
+// ------------------------------------------------------------------ oturma bacakları
+function Capsule({ x1, y1, x2, y2, w, fill }) {
+  const len = Math.hypot(x2 - x1, y2 - y1)
+  const ang = (Math.atan2(y2 - y1, x2 - x1) * 180) / Math.PI
+  return <rect transform={`translate(${x1} ${y1}) rotate(${ang})`} x={-w / 2} y={-w / 2} width={len + w} height={w} rx={w / 2} fill={fill} {...SOFT} />
+}
+
+// Oturuş bacakları (önden). (0,0) = oturma noktası (kalça). Uyluklar izleyiciye doğru
+// (ekranda sağ-aşağı, flip'te sol-aşağı) kısaltılmış uzanır, dizden kırılır; baldırlar
+// kısa ve sarkık, ayaklar yan yana. Alçak koltukta (seatHeight < 14) dizler yukarıda.
+function sitGeometry(seatHeight, male) {
+  const low = seatHeight < 14
+  const a = ((low ? -26 : 24) * Math.PI) / 180
+  const T = male ? 11 : 10
+  const hips = [{ x: -3.8, y: -2.2 }, { x: 2.2, y: -0.8 }]
+  return hips.map((h) => {
+    const k = { x: h.x + T * Math.cos(a), y: h.y + T * Math.sin(a) }
+    const S = Math.max(4, Math.min(male ? 11 : 10, seatHeight - k.y - 3))
+    return { h, k, f: { x: k.x + (low ? 0.6 : 1.6), y: k.y + S } }
+  })
+}
+
+function SitShoe({ x, y, b, foot }) {
+  return (
+    <g transform={`translate(${x} ${y}) scale(${foot})`}>
+      <path d="M-3.2 -2.8 Q5.6 -3.6 6.4 0 Q6.2 2.2 -0.6 2.2 Q-3.8 1.8 -3.2 -2.8Z" fill={b.shoe} {...SOFT} />
+      <path d="M-3 1.2 Q2 2.8 6.2 0.6" stroke={b.sole} strokeWidth="1.1" fill="none" />
+    </g>
+  )
+}
+
+function SitLegs({ bottom, skin, seatHeight, foot = 1, male }) {
+  const b = BOTTOMS[bottom] || BOTTOMS.jeans
+  const pants = b.kind === 'pants' || b.kind === 'joggers'
+  const thighC = pants || b.kind === 'shorts' ? b.color : skin
+  const shinC = pants ? b.color : skin
+  const g = sitGeometry(seatHeight, male)
+  const [L, R] = g
+  const leg = ({ h, k, f }, i) => (
+    <g key={i}>
+      <Capsule x1={k.x} y1={k.y} x2={f.x} y2={f.y - 2} w={5.2} fill={shinC} />
+      {b.kind === 'joggers' && <rect x={f.x - 3} y={f.y - 5.4} width={6} height={2.8} rx={1.3} fill={shade(b.color, -0.2)} />}
+      <Capsule x1={h.x} y1={h.y} x2={k.x} y2={k.y} w={6.6} fill={thighC} />
+      <ellipse cx={k.x + 1.2} cy={k.y - 0.6} rx={2} ry={1.4} fill="#fff" opacity="0.22" />
+      <SitShoe x={f.x} y={f.y} b={b} foot={foot} />
+    </g>
+  )
+  return (
+    <g>
+      {leg(L, 0)}
+      {leg(R, 1)}
+      {b.kind === 'skirt' && (
+        <path d={`M-11 -4 L9.6 -4 L${R.k.x + 3.6} ${R.k.y - 1.2} Q${R.k.x + 4.4} ${R.k.y + 3} ${R.k.x + 1} ${R.k.y + 3.6} L${L.k.x - 1} ${L.k.y + 3.8} Q-8 ${L.k.y + 3} -11.6 2.4Z`} fill={b.color} {...SOFT} />
+      )}
+      {b.kind === 'long' && (
+        <path d={`M-11 -4 L9.6 -4 L${R.k.x + 3.6} ${R.k.y - 1.2} L${R.f.x + 4} ${R.f.y - 3} Q${(R.f.x + L.f.x) / 2} ${R.f.y} ${L.f.x - 2.4} ${L.f.y - 2.6} L-12 4Z`} fill={b.color} {...SOFT} />
+      )}
+    </g>
+  )
+}
+
+// Oturuş (arkadan): basık, yayılmış kalça ve gövdenin altında kalan topuklar.
+function SitBack({ bottom, skin, seatHeight, foot = 1 }) {
+  const b = BOTTOMS[bottom] || BOTTOMS.jeans
+  const hipC = b.color
+  const shinC = b.kind === 'pants' || b.kind === 'joggers' ? b.color : skin
+  const S = Math.max(3, Math.min(6, seatHeight * 0.35))
+  return (
+    <g>
+      {[-4.2, 4.2].map((x) => (
+        <g key={x}>
+          <rect x={x - 2.5} y={0} width={5} height={S} rx={2.4} fill={shinC} {...SOFT} />
+          <g transform={`translate(${x} ${S}) scale(${foot})`}>
+            <path d="M-3.2 -1.4 Q-3.4 1.8 0 1.8 Q3.4 1.8 3.2 -1.4 Q0 -2.6 -3.2 -1.4Z" fill={b.shoe} {...SOFT} />
+          </g>
+        </g>
+      ))}
+      <ellipse cx={0} cy={-0.6} rx={12.4} ry={4.4} fill={hipC} {...SOFT} />
+      <path d="M0 -4 L0 2.6" stroke={shade(hipC, -0.2)} strokeWidth="1" opacity="0.6" />
     </g>
   )
 }
@@ -595,6 +767,7 @@ function Head({ skin }) {
 function normalize(a) {
   const ap = a || {}
   return {
+    body: ap.body === 'male' ? 'male' : 'female',
     skin: SKINS[ap.skin] ? ap.skin : DEFAULT_APPEARANCE.skin,
     hair: HAIR_STYLES.includes(ap.hair) ? ap.hair : DEFAULT_APPEARANCE.hair,
     hairColor: HAIR_COLORS[ap.hairColor] ? ap.hairColor : DEFAULT_APPEARANCE.hairColor,
@@ -604,46 +777,108 @@ function normalize(a) {
   }
 }
 
-function CharacterBody({ appearance, facing = 'front', walking = false, shadow = true }) {
-  const a = normalize(appearance)
+// Üst gövde (bel ve yukarısı). Ayakta (0,0)=ayak; oturuşta motor kaydırır.
+function Upper({ a, view, held, sleep, sitting }) {
   const skin = SKINS[a.skin]
   const hc = HAIR_COLORS[a.hairColor]
-  const view = facing === 'back' ? 'back' : 'front'
+  const male = a.body === 'male'
   const hair = hairPaths(a.hair, hc, view)
   const acc = a.accessory
-  // şapka/bere varken saçın tepesi şapka altında kalır - topuz şapkayla çakışmasın
   const hatOn = acc === 'sunhat' || acc === 'beanie' || acc === 'cap'
+  // otururken eller kucakta (kollar hafif içe)
+  const hp = HELD_POSE[held] || (sitting ? { l: -14, r: 16 } : { l: 0, r: 0 })
+  // beden: erkekte omuz/gövde belirgin geniş ve köşeli, kollar dışarıda, eller iri;
+  // kadında omuz dar, belde hafif kavis. Erkek MALE_LIFT px daha uzun.
+  const torsoT = male ? 'scale(1.24 1)' : 'scale(0.9 1)'
+  const armOff = male ? 3.1 : -1.3
+  const hand = male ? 3.7 : 3
+  const lift = male ? MALE_LIFT : 0
+  const front = view === 'front'
+  return (
+    <g transform={lift ? `translate(0 ${-lift})` : undefined}>
+      {front && <AccessoryBehind k={acc} view={view} />}
+      {front && hair.back && !(hatOn && a.hair === 'bun') && hair.back}
+      {held === 'simit' && <g transform={`translate(${armOff} 0)`}><SimitInHand /></g>}
+      {!(sitting && (BOTTOMS[a.bottom]?.kind === 'skirt' || BOTTOMS[a.bottom]?.kind === 'long')) && <BottomOver bottom={a.bottom} />}
+      <g transform={torsoT}>{front ? <TopFront k={a.top} skin={skin} body={a.body} /> : <TopBack k={a.top} body={a.body} />}</g>
+      {front && held === 'book' && <BookInHand />}
+      <g transform={`translate(${-armOff} 0) rotate(${hp.l} -13.1 -42)`}>
+        <Arm side="l" top={a.top} skin={skin} hand={hand} />
+      </g>
+      <g transform={`translate(${armOff} 0) rotate(${hp.r} 13.1 -42)`}>
+        <Arm side="r" top={a.top} skin={skin} hand={hand} />
+      </g>
+      {front && held === 'tea' && <g transform={`translate(${armOff} 0)`}><TeaInHand /></g>}
+      {held === 'brush' && <g transform={`translate(${armOff} 0)`}><BrushInHand /></g>}
+      {front && <g transform={torsoT}><AccessoryBody k={acc} view={view} /></g>}
+      <Head skin={skin} male={male} />
+      {front && <Face skin={skin} male={male} hairColor={hc} sleep={sleep} />}
+      {view === 'back' && hatOn && a.hair === 'bun' ? hairPaths('short', hc, 'back').front : hair.front}
+      {view === 'back' && <g transform={torsoT}><AccessoryBody k={acc} view={view} /></g>}
+      <AccessoryHead k={acc} view={view} />
+    </g>
+  )
+}
+
+// Erkek beden bu kadar px daha uzun (bacak + üst gövde kayması). Baş üstü
+// bağlama noktaları (CHAR_ANCHORS) erkekte bu kadar yukarıdadır.
+export const MALE_LIFT = 4
+
+// Oturuşta üst gövdenin aşağı kayması: bel çizgisi (y≈-24) oturma noktasına (y≈-3.5) iner.
+const SIT_DROP = 20.5
+// Uzanışta gövde ekseni ızgaranın +y yönüne (ekranda sol-aşağı) yatar; (0,0) = kalça.
+const LIE_ANGLE = 63.43
+
+function CharacterBody({ appearance, facing = 'front', walking = false, shadow = true, pose = 'stand', held = null, seatHeight = 22 }) {
+  const a = normalize(appearance)
+  const skin = SKINS[a.skin]
+  const view = facing === 'back' ? 'back' : 'front'
+  const h = pose === 'lie' ? null : HELD_POSE[held] ? held : null
+  const male = a.body === 'male'
+  if (pose === 'lie') {
+    return (
+      <g transform={`rotate(${LIE_ANGLE}) translate(0 24)`}>
+        <Leg side="l" bottom={a.bottom} skin={skin} lift={male ? MALE_LIFT : 0} foot={male ? 1.12 : 1} />
+        <Leg side="r" bottom={a.bottom} skin={skin} lift={male ? MALE_LIFT : 0} foot={male ? 1.12 : 1} />
+        <Upper a={a} view="front" sleep />
+      </g>
+    )
+  }
+  if (pose === 'sit') {
+    const lowSeat = seatHeight < 14
+    return (
+      <g>
+        {view === 'front' && !lowSeat && <SitLegs bottom={a.bottom} skin={skin} seatHeight={seatHeight} foot={male ? 1.12 : 1} male={male} />}
+        <g transform={`translate(0 ${SIT_DROP + (male ? MALE_LIFT : 0)})`}>
+          <Upper a={a} view={view} held={h} sitting={view === 'front'} />
+        </g>
+        {view === 'front' && lowSeat && <SitLegs bottom={a.bottom} skin={skin} seatHeight={seatHeight} foot={male ? 1.12 : 1} male={male} />}
+        {view === 'back' && <SitBack bottom={a.bottom} skin={skin} seatHeight={seatHeight} foot={male ? 1.12 : 1} />}
+      </g>
+    )
+  }
   return (
     <g className={walking ? 'sm-walk' : undefined}>
       {shadow && <ellipse cx={0} cy={0} rx={14} ry={5} fill={INK} opacity="0.16" />}
+      <Leg side="l" bottom={a.bottom} skin={skin} lift={male ? MALE_LIFT : 0} foot={male ? 1.12 : 1} />
+      <Leg side="r" bottom={a.bottom} skin={skin} lift={male ? MALE_LIFT : 0} foot={male ? 1.12 : 1} />
       <g className="sm-upper">
-        {view === 'front' && <AccessoryBehind k={acc} view={view} />}
-        {view === 'front' && hair.back && !(hatOn && a.hair === 'bun') && hair.back}
-      </g>
-      <Leg side="l" bottom={a.bottom} skin={skin} />
-      <Leg side="r" bottom={a.bottom} skin={skin} />
-      <g className="sm-upper">
-        <BottomOver bottom={a.bottom} />
-        {view === 'front' ? <TopFront k={a.top} skin={skin} /> : <TopBack k={a.top} />}
-        <Arm side="l" top={a.top} skin={skin} />
-        <Arm side="r" top={a.top} skin={skin} />
-        {view === 'front' && <AccessoryBody k={acc} view={view} />}
-        <Head skin={skin} />
-        {view === 'front' && <Face skin={skin} />}
-        {view === 'back' && hatOn && a.hair === 'bun' ? hairPaths('short', hc, 'back').front : hair.front}
-        {view === 'back' && <AccessoryBody k={acc} view={view} />}
-        <AccessoryHead k={acc} view={view} />
+        <Upper a={a} view={view} held={h} />
       </g>
     </g>
   )
 }
 
-// <Character appearance facing="front"|"back" flip walking scale />
-export const Character = memo(function Character({ appearance, facing = 'front', flip = false, walking = false, scale = 1 }) {
+// <Character appearance facing flip walking scale pose held seatHeight />
+//  pose: 'stand' (varsayılan, (0,0)=ayak noktası) | 'sit' ((0,0)=oturma noktası,
+//  seatHeight=oturma noktasından zemine px, ayaklar oraya iner; arkadan bakışta bacak çizilmez)
+//  | 'lie' ((0,0)=kalça, gövde ızgaranın +y yönüne yatar, flip ile +x yönüne; gözler kapalı)
+//  held: 'tea' | 'simit' | 'book' | 'brush' | null (stand ve sit'te)
+export const Character = memo(function Character({ appearance, facing = 'front', flip = false, walking = false, scale = 1, pose = 'stand', held = null, seatHeight = 22 }) {
   const sx = (flip ? -1 : 1) * scale
   return (
     <g transform={`scale(${sx} ${scale})`}>
-      <CharacterBody appearance={appearance} facing={facing} walking={walking} />
+      <CharacterBody appearance={appearance} facing={facing} walking={walking && pose === 'stand'} pose={pose} held={held} seatHeight={seatHeight} />
     </g>
   )
 })
@@ -661,7 +896,7 @@ export const CharacterBust = memo(function CharacterBust({ appearance, size = 64
       </defs>
       {bg && <circle cx={0} cy={-58} r={28} fill={bg} />}
       <g clipPath={`url(#${clip})`}>
-        <g transform="translate(0 2)">
+        <g transform={`translate(0 ${appearance?.body === 'male' ? 2 + MALE_LIFT : 2})`}>
           <CharacterBody appearance={appearance} facing="front" shadow={false} />
         </g>
       </g>

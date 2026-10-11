@@ -313,7 +313,7 @@ const Piano = memo(function Piano() {
   )
 })
 
-const Radio = memo(function Radio() {
+const Radio = memo(function Radio({ on = false }) {
   return (
     <g>
       <Shadow x={0} y={17} rx={15} ry={7} o={0.13} />
@@ -323,19 +323,20 @@ const Radio = memo(function Radio() {
       <polygon points={faceV(0.62, 0.3, 0.55, 26, 40)} fill={C.cream} />
       {[28, 31, 34, 37].map((h) => <path key={h} d={`M${P(0.32, 0.62, h)} L${P(0.53, 0.62, h)}`} stroke={C.creamDeep} strokeWidth="1" />)}
       <g transform={onV(0.64, 0.62, 33)}>
-        <circle cx={0} cy={0} r={3.6} fill={C.apricotPale} {...S} />
-        <path d="M0 0 L1.6 -2.4" stroke={C.rose} strokeWidth="1" />
+        {on && <circle className="sm-glow" cx={0} cy={0} r={7} fill="#FFD27A" opacity="0.7" />}
+        <circle cx={0} cy={0} r={3.6} fill={on ? '#FFE59A' : C.apricotPale} {...S} />
+        <path d={on ? 'M0 0 L2.4 -1.6' : 'M0 0 L1.6 -2.4'} stroke={C.rose} strokeWidth="1" />
         <circle cx={0} cy={7} r={1.6} fill={C.woodDeep} />
       </g>
       <path d={`M${P(0.64, 0.42, 43)} L${pt(0.64, 0.42, 43)[0] + 10} ${pt(0.64, 0.42, 43)[1] - 18}`} stroke={C.metal} strokeWidth="1.2" strokeLinecap="round" />
       <circle cx={pt(0.64, 0.42, 43)[0] + 10} cy={pt(0.64, 0.42, 43)[1] - 18} r={1.4} fill={C.metal} />
-      {/* nota */}
-      <path className="sm-steam" d={`M${pt(0.2, 0.4, 50)[0]} ${pt(0.2, 0.4, 50)[1]} v-7 l4 -1.4 v6`} stroke={C.healingDeep} strokeWidth="1.2" fill="none" />
+      {/* açıkken küçük ışık; notalar fx.jsx MusicNotes ile */}
+      {on && <circle cx={pt(0.66, 0.5, 42)[0]} cy={pt(0.66, 0.5, 42)[1]} r={1.4} fill={C.rose} className="sm-glow" />}
     </g>
   )
 })
 
-const Aquarium = memo(function Aquarium() {
+const Aquarium = memo(function Aquarium({ on = false }) {
   const fish = (u, h, c, flip) => {
     const [x, y] = pt(u, 0.72, h)
     return (
@@ -352,7 +353,8 @@ const Aquarium = memo(function Aquarium() {
       <Box u={0.12} v={0.16} w={0.76} d={0.66} h={24} color={C.woodDeep} top={C.wood} />
       <polygon points={faceV(0.82, 0.2, 0.8, 6, 18)} fill={C.wood} opacity="0.6" />
       {/* su gövdesi */}
-      <Box u={0.14} v={0.18} w={0.72} d={0.62} h={30} z={24} color="#7FC9E2" top="#A9DEEE" left="#86CEE5" right="#6DBBD6" line={false} />
+      <Box u={0.14} v={0.18} w={0.72} d={0.62} h={30} z={24} color={on ? '#9EDCEF' : '#7FC9E2'} top={on ? '#CFF0F8' : '#A9DEEE'} left={on ? '#A6E1F1' : '#86CEE5'} right={on ? '#8AD2E7' : '#6DBBD6'} line={false} />
+      {on && <polygon className="sm-glow" points={`${P(0.3, 0.8, 54)} ${P(0.7, 0.8, 54)} ${P(0.8, 0.8, 30)} ${P(0.2, 0.8, 30)}`} fill="#FFFBE0" opacity="0.5" />}
       <polygon points={faceV(0.8, 0.14, 0.86, 24, 30)} fill={C.sandDeep} />
       <polygon points={`${P(0.86, 0.18, 24)} ${P(0.86, 0.8, 24)} ${P(0.86, 0.8, 30)} ${P(0.86, 0.18, 30)}`} fill={shade(C.sandDeep, -0.1)} />
       <path d={`M${P(0.3, 0.8, 28)} q-2 -8 1 -16 M${P(0.36, 0.8, 28)} q3 -6 0 -12 M${P(0.75, 0.8, 28)} q-2 -6 1 -11`} stroke={C.leafDeep} strokeWidth="2" fill="none" strokeLinecap="round" />
@@ -360,21 +362,23 @@ const Aquarium = memo(function Aquarium() {
       {fish(0.68, 34, C.rose, true)}
       <circle className="sm-bubble" cx={pt(0.45, 0.8, 36)[0]} cy={pt(0.45, 0.8, 36)[1]} r={1.3} fill="#fff" />
       <circle className="sm-bubble sm-d1" cx={pt(0.62, 0.8, 32)[0]} cy={pt(0.62, 0.8, 32)[1]} r={1} fill="#fff" />
+      <circle className="sm-bubble sm-d2" cx={pt(0.36, 0.8, 30)[0]} cy={pt(0.36, 0.8, 30)[1]} r={0.9} fill="#fff" />
       {/* cam kenarları */}
       <polygon points={faceV(0.8, 0.14, 0.86, 24, 56)} fill="none" {...S} />
       <polygon points={`${P(0.86, 0.18, 24)} ${P(0.86, 0.8, 24)} ${P(0.86, 0.8, 56)} ${P(0.86, 0.18, 56)}`} fill="none" {...S} />
       <path d={`M${P(0.22, 0.8, 30)} L${P(0.22, 0.8, 50)}`} stroke="#fff" strokeWidth="1.6" opacity="0.6" strokeLinecap="round" />
       <polygon points={`${P(0.12, 0.16, 56)} ${P(0.88, 0.16, 56)} ${P(0.88, 0.82, 56)} ${P(0.12, 0.82, 56)}`} fill="none" stroke={C.teal} strokeWidth="2.6" strokeLinejoin="round" />
+      {on && <ellipse className="sm-glow" cx={pt(0.5, 0.5, 57)[0]} cy={pt(0.5, 0.5, 57)[1]} rx={10} ry={4} fill="#FFFBE0" opacity="0.8" />}
     </g>
   )
 })
 
-const Fireplace = memo(function Fireplace() {
+const Fireplace = memo(function Fireplace({ on = true }) {
   const stone = '#E9DCC6'
   const L = 1 * UNIT
   return (
     <g>
-      <ellipse className="sm-glow" cx={pt(1, 0.85)[0]} cy={pt(1, 0.85)[1]} rx={40} ry={14} fill="#FFD27A" opacity="0.4" />
+      {on && <ellipse className="sm-glow" cx={pt(1, 0.85)[0]} cy={pt(1, 0.85)[1]} rx={44} ry={16} fill="#FFD27A" opacity="0.45" />}
       <Box u={0.08} v={0.06} w={1.84} d={0.48} h={50} color={stone} />
       {/* taş örgü */}
       {[12, 24, 36].map((h, i) => (
@@ -385,8 +389,19 @@ const Fireplace = memo(function Fireplace() {
         <path d={`M3 0 L3 -21 Q3 -31 ${L / 2} -31 Q${L - 3} -31 ${L - 3} -21 L${L - 3} 0`} fill="none" stroke="#D2C2A6" strokeWidth="1.2" opacity="0.4" />
         <rect x={6} y={-6} width={L - 12} height={4} rx={2} fill={C.woodDeep} />
         <rect x={9} y={-9} width={L - 18} height={4} rx={2} fill={C.wood} />
-        <path className="sm-flame" d={`M${L / 2 - 9} -8 Q${L / 2 - 12} -18 ${L / 2 - 4} -26 Q${L / 2 - 3} -18 ${L / 2} -16 Q${L / 2 + 2} -24 ${L / 2 + 6} -28 Q${L / 2 + 13} -16 ${L / 2 + 9} -8Z`} fill={C.apricot} />
-        <path className="sm-flame sm-d1" d={`M${L / 2 - 5} -8 Q${L / 2 - 6} -15 ${L / 2 - 1} -20 Q${L / 2 + 6} -14 ${L / 2 + 5} -8Z`} fill={C.sun} />
+        {on ? (
+          <g>
+            <path d={`M3 0 L3 -21 Q3 -31 ${L / 2} -31 Q${L - 3} -31 ${L - 3} -21 L${L - 3} 0Z`} fill="#7A4A2E" opacity="0.5" />
+            <path className="sm-flame" d={`M${L / 2 - 9} -8 Q${L / 2 - 12} -18 ${L / 2 - 4} -26 Q${L / 2 - 3} -18 ${L / 2} -16 Q${L / 2 + 2} -24 ${L / 2 + 6} -28 Q${L / 2 + 13} -16 ${L / 2 + 9} -8Z`} fill={C.apricot} />
+            <path className="sm-flame sm-d1" d={`M${L / 2 - 5} -8 Q${L / 2 - 6} -15 ${L / 2 - 1} -20 Q${L / 2 + 6} -14 ${L / 2 + 5} -8Z`} fill={C.sun} />
+          </g>
+        ) : (
+          <g>
+            <path d={`M8 -2 Q${L / 2} -10 ${L - 8} -2Z`} fill="#8E8781" />
+            <circle cx={L / 2 - 4} cy={-5} r={1} fill={C.apricot} opacity="0.8" />
+            <circle cx={L / 2 + 5} cy={-4} r={0.8} fill={C.apricot} opacity="0.6" />
+          </g>
+        )}
       </g>
       <Box u={0.0} v={0.0} w={2} d={0.66} h={5} z={50} color={C.wood} />
       {/* rafta: çerçeve, saksı, saat */}
@@ -481,17 +496,19 @@ const FlowerVase = memo(function FlowerVase() {
   )
 })
 
-const FloorLamp = memo(function FloorLamp() {
+const FloorLamp = memo(function FloorLamp({ on = true }) {
   return (
     <g>
-      <ellipse className="sm-glow" cx={0} cy={16} rx={24} ry={11} fill="#FFE7A6" opacity="0.5" />
+      {on && <ellipse className="sm-glow" cx={0} cy={16} rx={34} ry={16} fill="#FFE7A6" opacity="0.45" />}
       <ellipse cx={0} cy={17} rx={8} ry={4} fill={C.woodDeep} {...S} />
       <rect x={-1.3} y={-48} width={2.6} height={64} rx={1.3} fill={C.woodDeep} />
-      <circle className="sm-glow" cx={0} cy={-52} r={16} fill="#FFE7A6" opacity="0.55" />
-      <path d="M-12 -46 L12 -46 L8 -64 L-8 -64Z" fill={C.cream} {...S} />
+      {on && <circle className="sm-glow" cx={0} cy={-54} r={26} fill="#FFE7A6" opacity="0.4" />}
+      {on && <circle cx={0} cy={-54} r={15} fill="#FFF0BF" opacity="0.6" />}
+      {on && <path d="M-11 -46 L11 -46 L22 4 L-22 4Z" fill="#FFF3C9" opacity="0.18" />}
+      <path d="M-12 -46 L12 -46 L8 -64 L-8 -64Z" fill={on ? '#FFF6DC' : C.creamDeep} {...S} />
       <path d="M-11.2 -49 L11.2 -49" stroke={C.apricot} strokeWidth="2" />
-      <path d="M2 -46 L12 -46 L8 -64 L2 -64Z" fill={C.apricotPale} opacity="0.6" />
-      <ellipse cx={0} cy={-46} rx={12} ry={3} fill="#FFF3C9" opacity="0.9" />
+      <path d="M2 -46 L12 -46 L8 -64 L2 -64Z" fill={on ? C.apricotPale : '#D9C7A6'} opacity="0.6" />
+      <ellipse cx={0} cy={-46} rx={12} ry={3} fill={on ? '#FFF3C9' : '#CDBFA6'} opacity="0.9" />
     </g>
   )
 })
@@ -548,6 +565,59 @@ const Easel = memo(function Easel() {
   )
 })
 
+// ------------------------------------------------------------ televizyon
+const Tv = memo(function Tv({ on = false }) {
+  const cab = '#E8D3B4'
+  return (
+    <g>
+      <Shadow x={16} y={22} rx={40} ry={12} o={0.12} />
+      {on && <polygon className="sm-tv-cast" points={`${P(0.3, 0.42, 0)} ${P(1.7, 0.42, 0)} ${P(2.2, 1.6, 0)} ${P(-0.2, 1.6, 0)}`} fill="#BFE6FF" opacity="0.22" />}
+      <Legs spots={[[0.16, 0.56], [1.78, 0.56]]} h={4} />
+      <Box u={0.1} v={0.12} w={1.8} d={0.52} h={18} z={4} color={cab} />
+      <polygon points={faceV(0.64, 0.18, 0.98, 7, 19)} fill={shade(cab, 0.08)} {...S} />
+      <polygon points={faceV(0.64, 1.02, 1.82, 7, 19)} fill={shade(cab, 0.08)} {...S} />
+      <circle cx={pt(0.92, 0.64, 13)[0]} cy={pt(0.92, 0.64, 13)[1]} r={1.1} fill={C.woodDeep} />
+      <circle cx={pt(1.08, 0.64, 13)[0]} cy={pt(1.08, 0.64, 13)[1]} r={1.1} fill={C.woodDeep} />
+      {/* ayak + ekran */}
+      <Box u={0.85} v={0.3} w={0.3} d={0.16} h={2} z={22} color={C.ink} />
+      <Box u={0.97} v={0.34} w={0.06} d={0.06} h={6} z={22} color={C.ink} />
+      <polygon points={faceV(0.4, 0.28, 1.72, 26, 58)} fill="#2E3A39" {...S} />
+      <polygon points={`${P(1.72, 0.37, 26)} ${P(1.72, 0.4, 26)} ${P(1.72, 0.4, 58)} ${P(1.72, 0.37, 58)}`} fill="#1E2726" />
+      {on ? (
+        <g>
+          <polygon className="sm-tv-a" points={faceV(0.41, 0.34, 1.66, 29, 55)} fill="#9FD8F5" />
+          <polygon className="sm-tv-b" points={`${P(0.34, 0.41, 29)} ${P(1.66, 0.41, 29)} ${P(1.66, 0.41, 38)} ${P(1.2, 0.41, 44)} ${P(0.8, 0.41, 37)} ${P(0.34, 0.41, 41)}`} fill="#8FD3A0" />
+          <circle className="sm-tv-c" cx={pt(1.35, 0.41, 49)[0]} cy={pt(1.35, 0.41, 49)[1]} r={4} fill={C.sun} />
+          <polygon points={faceV(0.41, 0.34, 1.66, 29, 55)} fill="#fff" opacity="0.08" />
+        </g>
+      ) : (
+        <g>
+          <polygon points={faceV(0.41, 0.34, 1.66, 29, 55)} fill="#33403F" />
+          <path d={`M${P(0.45, 0.41, 50)} L${P(0.75, 0.41, 54)}`} stroke="#fff" strokeWidth="2" opacity="0.12" strokeLinecap="round" />
+        </g>
+      )}
+      <circle cx={pt(1.6, 0.41, 27.5)[0]} cy={pt(1.6, 0.41, 27.5)[1]} r={0.8} fill={on ? C.mint : C.rose} />
+      {/* dolap üstü: küçük saksı */}
+      <g transform={`translate(${pt(1.6, 0.3, 22)[0]} ${pt(1.6, 0.3, 22)[1]})`}>
+        <path d="M-3 -5 L3 -5 L2.4 0 L-2.4 0Z" fill={C.terracotta} {...S} />
+        <Blob line={false} fill={C.leaf} circles={[[-2.4, -7.6, 2.8], [2.4, -7.6, 2.8], [0, -10, 3]]} />
+      </g>
+    </g>
+  )
+})
+
+// Piyano/masa başında oturan için alçak tabure (SEAT_OFFSETS'te stool:true).
+// (0,0) = oturma noktası; motor karakterden ÖNCE aynı noktaya çizer.
+export const SeatStool = memo(function SeatStool({ height = 16 }) {
+  return (
+    <g>
+      <ellipse cx={0} cy={height + 1} rx={10} ry={4.6} fill={INK} opacity="0.12" />
+      <path d={`M-6 1 L-7 ${height} M6 1 L7 ${height} M0 2 L0 ${height + 2}`} stroke={C.woodDeep} strokeWidth="2.2" strokeLinecap="round" />
+      <Cyl x={0} y={2} r={9} ry={4.4} h={3} color={C.wood} top={C.apricotSoft} />
+    </g>
+  )
+})
+
 // --------------------------------------------------------------------- kayıt
 export const FURNITURE = {
   sofa: { w: 2, d: 1, floor: false, Component: Sofa },
@@ -556,19 +626,20 @@ export const FURNITURE = {
   rug: { w: 2, d: 2, floor: true, Component: Rug },
   coffee_table: { w: 1, d: 1, floor: false, Component: CoffeeTable },
   bookshelf: { w: 1, d: 1, floor: false, Component: Bookshelf },
-  floor_lamp: { w: 1, d: 1, floor: false, Component: FloorLamp },
+  floor_lamp: { w: 1, d: 1, floor: false, Component: FloorLamp, toggle: true, defaultOn: true },
   monstera: { w: 1, d: 1, floor: false, Component: Monstera },
   cactus: { w: 1, d: 1, floor: false, Component: Cactus },
   cat_bed: { w: 1, d: 1, floor: false, Component: CatBed },
-  aquarium: { w: 1, d: 1, floor: false, Component: Aquarium },
+  aquarium: { w: 1, d: 1, floor: false, Component: Aquarium, toggle: true, defaultOn: false },
   piano: { w: 2, d: 1, floor: false, Component: Piano },
   desk: { w: 2, d: 1, floor: false, Component: Desk },
   chair: { w: 1, d: 1, floor: false, Component: Chair },
-  radio: { w: 1, d: 1, floor: false, Component: Radio },
+  radio: { w: 1, d: 1, floor: false, Component: Radio, toggle: true, defaultOn: false },
   flower_vase: { w: 1, d: 1, floor: false, Component: FlowerVase },
   beanbag: { w: 1, d: 1, floor: false, Component: Beanbag },
   dining_table: { w: 2, d: 2, floor: false, Component: DiningTable },
-  fireplace: { w: 2, d: 1, floor: false, Component: Fireplace },
+  fireplace: { w: 2, d: 1, floor: false, Component: Fireplace, toggle: true, defaultOn: true },
+  tv: { w: 2, d: 1, floor: false, Component: Tv, toggle: true, defaultOn: false },
   easel: { w: 1, d: 1, floor: false, Component: Easel },
 }
 

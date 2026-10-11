@@ -1,7 +1,7 @@
 // Dünya nesneleri (ağaçlar, banklar, tezgâhlar, evler...). Her bileşen ayak izi
 // yerel koordinatında çizilir: (0,0) = ayak izinin üst köşesi, yükseklik -y yönüne.
 // Kayıt: PROPS[key] = { w, d, blocks, Component }. rot=1 için motor scale(-1,1) uygular.
-import { memo } from 'react'
+import { memo, useId } from 'react'
 import { C, INK, shade } from './palette.js'
 import { P, pt, LINE, Box, Cyl, Shadow, Blob, faceV, faceU, flat, onV, UNIT } from './primitives.jsx'
 import { PROP_META } from './propMeta.js'
@@ -160,18 +160,19 @@ const Bench = memo(function Bench() {
   )
 })
 
-const LampPost = memo(function LampPost() {
+const LampPost = memo(function LampPost({ lit = false }) {
   return (
     <g>
       <Shadow x={0} y={17} rx={10} ry={5} o={0.16} />
-      <ellipse className="sm-glow" cx={0} cy={16} rx={26} ry={12} fill="#FFE7A6" opacity="0.5" />
+      {lit && <ellipse className="sm-glow" cx={0} cy={16} rx={44} ry={21} fill="#FFE7A6" opacity="0.75" />}
+      {lit && <path d="M-8 -62 L8 -62 L32 16 L-32 16Z" fill="#FFF0BF" opacity="0.26" />}
       <Cyl x={0} y={17} r={6} h={6} color={C.teal} />
       <rect x={-1.8} y={-58} width={3.6} height={70} rx={1.8} fill={C.teal} {...S} />
       <path d="M1.8 -50 q8 0 8 -8 q0 -4 -4 -4" stroke={C.teal} strokeWidth="1.8" fill="none" />
       <path d="M-1.8 -50 q-8 0 -8 -8 q0 -4 4 -4" stroke={C.teal} strokeWidth="1.8" fill="none" />
-      <circle className="sm-glow" cx={0} cy={-68} r={15} fill="#FFE7A6" opacity="0.6" />
-      <path d="M-7 -60 L7 -60 L9 -74 L-9 -74Z" fill="#FFE59A" {...S} />
-      <path d="M-2 -60 L2 -60 L3 -74 L-3 -74Z" fill="#FFF6CF" />
+      {lit && <circle className="sm-glow" cx={0} cy={-68} r={24} fill="#FFE7A6" opacity="0.8" />}
+      <path d="M-7 -60 L7 -60 L9 -74 L-9 -74Z" fill={lit ? '#FFE59A' : '#F3EEDD'} {...S} />
+      <path d="M-2 -60 L2 -60 L3 -74 L-3 -74Z" fill={lit ? '#FFF6CF' : '#FFFFFF'} opacity={lit ? 1 : 0.7} />
       <path d="M-10 -74 L10 -74 L4 -82 L-4 -82Z" fill={C.teal} {...S} />
       <rect x={-8} y={-61} width={16} height={3} rx={1.5} fill={C.teal} />
       <circle cx={0} cy={-84} r={2.4} fill={C.teal} />
@@ -508,7 +509,7 @@ function TeaGlass({ x, y, s = 1 }) {
   )
 }
 
-const TeaKiosk = memo(function TeaKiosk() {
+const TeaKiosk = memo(function TeaKiosk({ lit = false }) {
   const wall = '#F6EBD3'
   const apex = P(1, 0.8, 92)
   return (
@@ -516,12 +517,13 @@ const TeaKiosk = memo(function TeaKiosk() {
       <Shadow x={0} y={36} rx={56} ry={26} o={0.13} />
       <Box u={0.25} v={0.2} w={1.5} d={1.2} h={58} color={wall} />
       {/* ön pencere / tezgâh açıklığı */}
-      <polygon points={faceV(1.4, 0.45, 1.55, 26, 50)} fill="#6E5440" />
+      {lit && <ellipse className="sm-glow" cx={pt(1, 1.9)[0]} cy={pt(1, 1.9)[1]} rx={46} ry={18} fill="#FFE7A6" opacity="0.4" />}
+      <polygon points={faceV(1.4, 0.45, 1.55, 26, 50)} fill={lit ? '#C9935C' : '#6E5440'} />
       <polygon points={faceV(1.4, 0.45, 1.55, 44, 50)} fill={C.healing} />
       <g transform={onV(0.95, 1.4, 44)}>
         <line x1={0} y1={0} x2={0} y2={5} stroke={C.ink} strokeWidth="0.8" />
         <path d="M-4 5 L4 5 L2.4 9 L-2.4 9Z" fill={C.sun} />
-        <circle className="sm-glow" cx={0} cy={10} r={5} fill="#FFE59A" opacity="0.5" />
+        <circle className="sm-glow" cx={0} cy={10} r={lit ? 12 : 5} fill="#FFE59A" opacity={lit ? 0.7 : 0.5} />
       </g>
       {/* çaydanlık */}
       <g transform={`translate(${pt(1.25, 1.1, 28)[0]} ${pt(1.25, 1.1, 28)[1]})`}>
@@ -535,7 +537,7 @@ const TeaKiosk = memo(function TeaKiosk() {
       <TeaGlass x={pt(0.95, 1.5, 29)[0]} y={pt(0.95, 1.5, 29)[1]} />
       <TeaGlass x={pt(1.4, 1.5, 29)[0]} y={pt(1.4, 1.5, 29)[1]} />
       {/* yan pencere */}
-      <polygon points={faceU(1.75, 0.45, 1.1, 30, 48)} fill={C.glass} {...S} />
+      <polygon points={faceU(1.75, 0.45, 1.1, 30, 48)} fill={lit ? '#F5C878' : C.glass} {...S} />
       <path d={`M${pt(1.75, 0.775, 30)} L${pt(1.75, 0.775, 48)}`} stroke="#fff" strokeWidth="1.6" />
       {/* çatı */}
       <polygon points={`${P(0.12, 1.55, 58)} ${P(1.88, 1.55, 58)} ${apex}`} fill={C.terracotta} {...S} />
@@ -684,7 +686,8 @@ const Ferry = memo(function Ferry() {
   )
 })
 
-const Lighthouse = memo(function Lighthouse() {
+const Lighthouse = memo(function Lighthouse({ lit = false }) {
+  const gid = `sm-beam-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`
   const band = (y1, y2, c) => {
     const w = (y) => 13 - (-y / 96) * 5
     return <path d={`M${-w(y1)} ${y1} L${w(y1)} ${y1} L${w(y2)} ${y2} L${-w(y2)} ${y2}Z`} fill={c} />
@@ -699,8 +702,22 @@ const Lighthouse = memo(function Lighthouse() {
       <path d="M2 12 L13 12 L8 -84 L2 -84Z" fill={INK} opacity="0.07" />
       <path d="M-3 -40 h5 v8 h-5Z" fill={C.teal} />
       <rect x={-12} y={-88} width={24} height={4} rx={2} fill={C.teal} {...S} />
-      <ellipse className="sm-glow" cx={0} cy={-96} rx={22} ry={10} fill="#FFE59A" opacity="0.55" />
-      <rect x={-7} y={-102} width={14} height={14} rx={2} fill="#FFE59A" {...S} />
+      {lit && (
+        <g transform="translate(0 -95)">
+          <defs>
+            <linearGradient id={gid} x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0" stopColor="#FFE38F" stopOpacity="0.9" />
+              <stop offset="1" stopColor="#FFE38F" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <g className="sm-beam">
+            <path d="M0 -3 L160 -26 L160 24 L0 3Z" fill={`url(#${gid})`} />
+            <path d="M0 -3 L-160 -26 L-160 24 L0 3Z" fill={`url(#${gid})`} transform="scale(-1 1)" opacity="0.6" />
+          </g>
+          <circle className="sm-glow" r={22} fill="#FFE59A" opacity="0.6" />
+        </g>
+      )}
+      <rect x={-7} y={-102} width={14} height={14} rx={2} fill={lit ? '#FFE59A' : '#F3EEDD'} {...S} />
       <path d="M-7 -96 h14 M0 -102 v14" stroke={C.teal} strokeWidth="1" />
       <path d="M-10 -102 Q0 -114 10 -102Z" fill={C.teal} {...S} />
       <circle cx={0} cy={-114} r={2} fill={C.teal} />
@@ -722,7 +739,7 @@ const Rowboat = memo(function Rowboat() {
 })
 
 // ------------------------------------------------------------------ evler
-function WindowV({ v, u1, u2, h1, h2, shutters, box, glass = C.glass, trim = C.white }) {
+function WindowV({ v, u1, u2, h1, h2, shutters, box, glass = C.glass, trim = C.white, lit }) {
   const um = (u1 + u2) / 2
   const hm = (h1 + h2) / 2
   return (
@@ -730,9 +747,11 @@ function WindowV({ v, u1, u2, h1, h2, shutters, box, glass = C.glass, trim = C.w
       {shutters && <polygon points={faceV(v, u1 - 0.22, u1 - 0.02, h1, h2)} fill={shutters} {...S} />}
       {shutters && <polygon points={faceV(v, u2 + 0.02, u2 + 0.22, h1, h2)} fill={shutters} {...S} />}
       <polygon points={faceV(v, u1 - 0.05, u2 + 0.05, h1 - 3, h2 + 3)} fill={trim} {...S} />
-      <polygon points={faceV(v, u1, u2, h1, h2)} fill={glass} />
+      {lit && <polygon className="sm-glow" points={faceV(v, u1 - 0.18, u2 + 0.18, h1 - 8, h2 + 8)} fill="#FFE29A" opacity="0.7" />}
+      <polygon points={faceV(v, u1, u2, h1, h2)} fill={lit ? '#FFE08E' : glass} />
+      {lit && <polygon points={faceV(v, u1, u2, h1, (h1 + h2) / 2)} fill="#FFC56A" opacity="0.5" />}
       <path d={`M${P(um, v, h1)} L${P(um, v, h2)} M${P(u1, v, hm)} L${P(u2, v, hm)}`} stroke={trim} strokeWidth="1.6" />
-      <path d={`M${P(u1 + 0.06, v, h2 - 3)} L${P(u1 + 0.16, v, h2 - 7)}`} stroke="#fff" strokeWidth="1.4" strokeLinecap="round" opacity="0.8" />
+      {!lit && <path d={`M${P(u1 + 0.06, v, h2 - 3)} L${P(u1 + 0.16, v, h2 - 7)}`} stroke="#fff" strokeWidth="1.4" strokeLinecap="round" opacity="0.8" />}
       {box && (
         <g>
           <polygon points={faceV(v + 0.14, u1 - 0.08, u2 + 0.08, h1 - 7, h1 - 1)} fill={box} {...S} />
@@ -746,13 +765,14 @@ function WindowV({ v, u1, u2, h1, h2, shutters, box, glass = C.glass, trim = C.w
   )
 }
 
-function WindowU({ u, v1, v2, h1, h2, glass = C.glass, trim = C.white }) {
+function WindowU({ u, v1, v2, h1, h2, glass = C.glass, trim = C.white, lit }) {
   const vm = (v1 + v2) / 2
   const hm = (h1 + h2) / 2
   return (
     <g>
       <polygon points={faceU(u, v1 - 0.05, v2 + 0.05, h1 - 3, h2 + 3)} fill={trim} {...S} />
-      <polygon points={faceU(u, v1, v2, h1, h2)} fill={shade(glass, -0.08)} />
+      {lit && <polygon className="sm-glow" points={faceU(u, v1 - 0.16, v2 + 0.16, h1 - 7, h2 + 7)} fill="#FFE29A" opacity="0.35" />}
+      <polygon points={faceU(u, v1, v2, h1, h2)} fill={lit ? '#F5C878' : shade(glass, -0.08)} />
       <path d={`M${P(u, vm, h1)} L${P(u, vm, h2)} M${P(u, v1, hm)} L${P(u, v2, hm)}`} stroke={trim} strokeWidth="1.6" />
     </g>
   )
@@ -806,7 +826,7 @@ function Roof({ a, b, c, eave, apexH, color }) {
   )
 }
 
-function House({ wall, trim = C.white, door, roof = C.terracotta, shutters, boxes, variant }) {
+function House({ wall, trim = C.white, door, roof = C.terracotta, shutters, boxes, variant, lit = false }) {
   const a = 0.18
   const b = variant === 'cumba' ? 2.55 : 2.82
   const H = 92
@@ -822,13 +842,13 @@ function House({ wall, trim = C.white, door, roof = C.terracotta, shutters, boxe
       <polygon points={faceV(b, a, b, 0, 7)} fill={shade(wall, -0.18)} />
       <polygon points={faceU(b, a, b, 0, 7)} fill={shade(wall, -0.3)} />
       {/* yan pencereler */}
-      <WindowU u={b} v1={0.55} v2={1.05} h1={16} h2={36} trim={trim} />
-      <WindowU u={b} v1={1.6} v2={2.1} h1={16} h2={36} trim={trim} />
-      <WindowU u={b} v1={0.55} v2={1.05} h1={58} h2={80} trim={trim} />
+      <WindowU u={b} v1={0.55} v2={1.05} h1={16} h2={36} trim={trim} lit={lit && variant !== 'round'} />
+      <WindowU u={b} v1={1.6} v2={2.1} h1={16} h2={36} trim={trim} lit={lit} />
+      <WindowU u={b} v1={0.55} v2={1.05} h1={58} h2={80} trim={trim} lit={lit && variant === 'cumba'} />
       <WindowU u={b} v1={1.6} v2={2.1} h1={58} h2={80} trim={trim} />
       {/* ön cephe */}
-      <WindowV v={b} u1={0.45} u2={0.9} h1={16} h2={36} shutters={shutters} trim={trim} />
-      <WindowV v={b} u1={2.1} u2={2.55} h1={16} h2={36} shutters={shutters} trim={trim} />
+      <WindowV v={b} u1={0.45} u2={0.9} h1={16} h2={36} shutters={shutters} trim={trim} lit={lit} />
+      <WindowV v={b} u1={2.1} u2={2.55} h1={16} h2={36} shutters={shutters} trim={trim} lit={lit && variant !== 'balcony'} />
       <Door v={b} color={door} trim={trim} awning={variant === 'balcony' ? C.apricot : null} />
       {variant === 'cumba' ? (
         <g>
@@ -836,15 +856,15 @@ function House({ wall, trim = C.white, door, roof = C.terracotta, shutters, boxe
           <polygon points={`${P(0.7, b, 44)} ${P(0.9, b + 0.3, 50)} ${P(0.9, b, 50)}`} fill={C.woodDeep} />
           <polygon points={`${P(2.3, b, 44)} ${P(2.1, b + 0.3, 50)} ${P(2.1, b, 50)}`} fill={C.woodDeep} />
           <Box u={0.7} v={b} w={1.6} d={0.32} h={38} z={50} color={trim === C.white ? C.wood : trim} />
-          <WindowV v={b + 0.32} u1={0.85} u2={1.4} h1={60} h2={80} trim={C.woodLight} />
-          <WindowV v={b + 0.32} u1={1.6} u2={2.15} h1={60} h2={80} trim={C.woodLight} />
+          <WindowV v={b + 0.32} u1={0.85} u2={1.4} h1={60} h2={80} trim={C.woodLight} lit={lit} />
+          <WindowV v={b + 0.32} u1={1.6} u2={2.15} h1={60} h2={80} trim={C.woodLight} lit={lit} />
           <WindowU u={2.3} v1={b + 0.06} v2={b + 0.26} h1={60} h2={80} trim={C.woodLight} />
           <polygon points={`${P(0.66, b, 88)} ${P(2.34, b, 88)} ${P(2.34, b + 0.38, 88)} ${P(0.66, b + 0.38, 88)}`} fill={shade(roof, -0.1)} {...S} />
         </g>
       ) : (
         <g>
           <WindowV v={b} u1={0.45} u2={0.9} h1={58} h2={80} shutters={shutters} box={boxes ? C.woodDeep : null} trim={trim} />
-          <WindowV v={b} u1={1.27} u2={1.73} h1={58} h2={80} shutters={shutters} box={boxes ? C.woodDeep : null} trim={trim} />
+          <WindowV v={b} u1={1.27} u2={1.73} h1={58} h2={80} shutters={shutters} box={boxes ? C.woodDeep : null} trim={trim} lit={lit} />
           <WindowV v={b} u1={2.1} u2={2.55} h1={58} h2={80} shutters={shutters} box={boxes ? C.woodDeep : null} trim={trim} />
         </g>
       )}
@@ -874,17 +894,17 @@ function House({ wall, trim = C.white, door, roof = C.terracotta, shutters, boxe
   )
 }
 
-const HouseA = memo(function HouseA() {
-  return <House wall="#F7DE9E" door={C.healing} shutters={null} boxes variant="plain" />
+const HouseA = memo(function HouseA({ lit = false }) {
+  return <House wall="#F7DE9E" door={C.healing} shutters={null} boxes variant="plain" lit={lit} />
 })
-const HouseB = memo(function HouseB() {
-  return <House wall="#B4E0CB" door={C.woodDeep} roof="#CF7E5A" variant="cumba" />
+const HouseB = memo(function HouseB({ lit = false }) {
+  return <House wall="#B4E0CB" door={C.woodDeep} roof="#CF7E5A" variant="cumba" lit={lit} />
 })
-const HouseC = memo(function HouseC() {
-  return <House wall="#F5C3B8" door={C.wood} shutters={C.healing} variant="round" roof="#B9705A" />
+const HouseC = memo(function HouseC({ lit = false }) {
+  return <House wall="#F5C3B8" door={C.wood} shutters={C.healing} variant="round" roof="#B9705A" lit={lit} />
 })
-const HouseD = memo(function HouseD() {
-  return <House wall="#B7D7EF" door={C.rose} roof={C.terracotta} variant="balcony" />
+const HouseD = memo(function HouseD({ lit = false }) {
+  return <House wall="#B7D7EF" door={C.rose} roof={C.terracotta} variant="balcony" lit={lit} />
 })
 
 // ------------------------------------------------------------------ küçük nesneler

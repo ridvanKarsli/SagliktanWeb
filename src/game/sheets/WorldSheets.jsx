@@ -56,6 +56,15 @@ export function SpeechSheet({ open, onClose, onSay }) {
 }
 
 // --------------------------------------------------------------- Buradakiler
+const HELD_STATUS = { tea: 'çay içiyor', simit: 'simit yiyor', book: 'kitap okuyor', brush: 'resim yapıyor' }
+function statusOf(p) {
+  const parts = []
+  if (p.pose === 'sit') parts.push('oturuyor')
+  if (p.pose === 'lie') parts.push('dinleniyor')
+  if (p.held && HELD_STATUS[p.held]) parts.push(HELD_STATUS[p.held])
+  return parts.join(', ')
+}
+
 export function PlayersHereSheet({ open, onClose, players, zoneName, onPick }) {
   return (
     <GameSheet open={open} onClose={onClose} title={`Buradakiler (${players.length})`} subtitle={zoneName} icon={<PeopleAltRounded />}>
@@ -72,7 +81,10 @@ export function PlayersHereSheet({ open, onClose, players, zoneName, onPick }) {
                 sx={{ width: '100%', justifyContent: 'flex-start', gap: 1.5, p: 1, borderRadius: '16px', border: '1px solid', borderColor: 'divider', textAlign: 'left', '&.Mui-focusVisible': focusRingSx, '&:hover': { bgcolor: 'action.hover' } }}
               >
                 <CharacterBust appearance={p.appearance} size={52} />
-                <Typography sx={{ fontWeight: 800, flex: 1, minWidth: 0 }} noWrap>{p.nickname}</Typography>
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography sx={{ fontWeight: 800 }} noWrap>{p.nickname}</Typography>
+                  {statusOf(p) && <Typography variant="body2" sx={{ color: 'text.secondary' }}>{statusOf(p)}</Typography>}
+                </Box>
                 {p.petKey && <Companion name={p.petKey} size={36} />}
               </ButtonBase>
             </li>

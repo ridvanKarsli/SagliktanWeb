@@ -29,6 +29,7 @@ export const PlacedObject = memo(function PlacedObject({ obj, index, ghost, sele
     <g
       transform={`translate(${sx} ${sy})`}
       data-obj={index}
+      data-key={obj.key}
       className={ghost ? 'smg-ghost' : undefined}
       opacity={ghost ? 0.7 : undefined}
       style={obj.tappable ? { cursor: 'pointer' } : undefined}

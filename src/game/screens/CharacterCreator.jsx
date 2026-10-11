@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom'
 import { Alert, Box, Button, IconButton, Stack, TextField, Typography } from '@mui/material'
 import { ArrowBackRounded, ThreeSixtyRounded, LockRounded } from '@mui/icons-material'
 import {
-  Character, CharacterBust, ClothingSwatch, SKINS, HAIR_COLORS, HAIR_STYLES, DEFAULT_APPEARANCE,
+  Character, CharacterBust, ClothingSwatch, SKINS, HAIR_COLORS, HAIR_STYLES, DEFAULT_APPEARANCE, DEFAULT_LOOK_BY_BODY, BODIES,
 } from '../art/index.js'
 import { getAvatarOptions, isAbortError } from '../../services/api.js'
 import Companion from '../../components/avatars/Companion.jsx'
@@ -64,7 +64,13 @@ export default function CharacterCreator({ mode = 'create' }) {
   const { token, profile, catalog, setProfile } = useGame()
   const { showError, showSuccess } = useNotification()
   const editing = mode === 'edit' && profile
-  const [appearance, setAppearance] = useState(() => ({ ...DEFAULT_APPEARANCE, ...(editing ? profile.appearance : {}) }))
+  const [appearance, setAppearance] = useState(() => (editing
+    ? { ...DEFAULT_APPEARANCE, ...profile.appearance, body: profile.appearance?.body || 'female' }
+    : { ...DEFAULT_APPEARANCE, ...DEFAULT_LOOK_BY_BODY.female }))
+  // Kullanıcının elle seçtiği alanlar: beden değişince yalnızca dokunulmamış
+  // alanlara o bedenin önerilen görünümü uygulanır (kısıtlama yok, öneri).
+  // Düzenlemede mevcut görünüm zaten kişinin seçimi: hiçbir alan ezilmez.
+  const [lookTouched, setLookTouched] = useState(() => new Set(editing ? ['skin', 'hair', 'hairColor', 'top', 'bottom', 'accessory'] : []))
   const [petKey, setPetKey] = useState(editing ? profile.petKey : null)
   const [nickname, setNickname] = useState('')
   const [touched, setTouched] = useState(false)
@@ -86,7 +92,17 @@ export default function CharacterCreator({ mode = 'create' }) {
   const options = (slot, render) => catalog.clothing.filter((c) => c.slot === slot).map((c) => ({
     value: c.key, label: c.name, locked: !isOwned(c), price: c.price, render: render(c),
   }))
-  const set = (slot) => (v) => setAppearance((a) => ({ ...a, [slot]: v }))
+  const set = (slot) => (v) => {
+    setLookTouched((t) => (t.has(slot) ? t : new Set(t).add(slot)))
+    setAppearance((a) => ({ ...a, [slot]: v }))
+  }
+  const setBody = (body) => setAppearance((a) => {
+    const look = DEFAULT_LOOK_BY_BODY[body] || {}
+    const next = { ...a, body }
+    for (const [k, v] of Object.entries(look)) if (k !== 'body' && !lookTouched.has(k)) next[k] = v
+    return next
+  })
+  const bodyName = (k) => catalog.bodies?.find((b) => b.key === k)?.name || (k === 'male' ? 'Erkek' : 'Kadın')
 
   const nickError = validateNickname(nickname)
   const shownNickError = serverNickError || (touched && nickError)
@@ -169,6 +185,19 @@ export default function CharacterCreator({ mode = 'create' }) {
           </Box>
 
           <Box>
+            <Section title="Kadın mı, erkek mi?" hint="Tüm kıyafetler ikisinde de giyilebilir.">
+              {(id) => (
+                <RadioTiles
+                  labelId={id} size={84} value={appearance.body || 'female'} onChange={setBody}
+                  columns="repeat(2, minmax(0, 1fr))"
+                  options={BODIES.map((b) => ({
+                    value: b,
+                    label: bodyName(b),
+                    render: <CharacterBust appearance={{ ...appearance, ...(DEFAULT_LOOK_BY_BODY[b] && !lookTouched.has('hair') ? { hair: DEFAULT_LOOK_BY_BODY[b].hair } : {}), body: b }} size={84} bg={b === 'male' ? '#D5E9FA' : '#F9E0E4'} />,
+                  }))}
+                />
+              )}
+            </Section>
             <Section title="Ten rengi">
               {(id) => (
                 <RadioTiles labelId={id} size={56} value={appearance.skin} onChange={set('skin')}

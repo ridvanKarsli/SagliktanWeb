@@ -3,7 +3,7 @@
 // konuşma balonu ise her şeyin üstündeki etiket katmanında kalır.
 import { memo, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Character, EmoteIcon } from '../art/index.js'
+import { Character, EmoteIcon, SeatStool, FX, CHAR_ANCHORS, MALE_LIFT } from '../art/index.js'
 import { AVATAR_ART, hasAvatarArt } from '../../components/avatars/avatarArt.jsx'
 import { createHost } from '../engine/StageEngine.js'
 
@@ -104,12 +104,37 @@ const sameActorProps = (a, b) => {
   return Object.keys(a).length === Object.keys(b).length
 }
 
-export const Actor = memo(function Actor({ engine, id, x, y, appearance, petKey, nickname, me = false, bubble, hop, showLabel = true }) {
+// Karakterin baş üstü efekti ("izliyor" küçük etiket ya da FX kaydından biri).
+function CharFx({ fx, posture, male, flip }) {
+  const a = CHAR_ANCHORS[posture]?.head || CHAR_ANCHORS.stand.head
+  let x = flip ? -a.x : a.x
+  let y = a.y
+  if (male) {
+    if (posture === 'lie') x += flip ? -3 : 3
+    else y -= MALE_LIFT
+  }
+  if (fx === 'watching') {
+    return (
+      // ad etiketinin altında kalmasın: başın yanında, ekranın içine doğru
+      <g transform={`translate(${x + (flip ? -34 : 34)} ${y + 14})`} pointerEvents="none" aria-hidden="true">
+        <rect x={-24} y={-9} width={48} height={16} rx={8} fill="#2E6F6A" opacity="0.92" />
+        <text x={0} y={3} textAnchor="middle" fontSize="10" fontWeight="800" fontFamily='"Nunito Variable", Nunito, sans-serif' fill="#fff">izliyor</text>
+      </g>
+    )
+  }
+  const Comp = FX[fx]
+  return Comp ? <g transform={`translate(${x} ${y})`}><Comp /></g> : null
+}
+
+export const Actor = memo(function Actor({ engine, id, x, y, appearance, petKey, nickname, me = false, bubble, hop, showLabel = true, fx = null }) {
   const [host] = useState(createHost)
   const [petHost] = useState(createHost)
   const labelRef = useRef(null)
   const initial = useRef({ x, y, nickname })
-  const [pose, setPose] = useState({ facing: 'front', flip: false, walking: false })
+  const [pose, setPose] = useState({ facing: 'front', flip: false, walking: false, posture: 'stand', held: null, seatHeight: 22, stool: false })
+  const posture = pose.posture || 'stand'
+  // uzanan karakterde kendiliğinden "zzz"
+  const charFx = fx || (posture === 'lie' ? 'Zzz' : null)
   const hasPet = hasAvatarArt(petKey)
 
   useLayoutEffect(() => {
@@ -126,7 +151,12 @@ export const Actor = memo(function Actor({ engine, id, x, y, appearance, petKey,
       {createPortal(
         <g data-actor={id} style={{ cursor: me ? undefined : 'pointer' }}>
           <g key={hop || 0} className={hop ? 'smg-hop' : undefined}>
-            <Character appearance={appearance} facing={pose.facing} flip={pose.flip} walking={pose.walking} />
+            {pose.stool && <SeatStool height={pose.seatHeight} />}
+            <Character
+              appearance={appearance} facing={pose.facing} flip={pose.flip} walking={pose.walking}
+              pose={posture} held={pose.held} seatHeight={pose.seatHeight}
+            />
+            {charFx && <CharFx fx={charFx} posture={posture} male={appearance?.body === 'male'} flip={pose.flip} />}
           </g>
           {/* geniş dokunma alanı: küçük ekranda karakteri seçmek kolay olsun */}
           <rect x={-18} y={-80} width={36} height={84} fill="transparent" />

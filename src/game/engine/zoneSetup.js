@@ -2,6 +2,7 @@
 // kamera sınırları, çizilecek nesneler ve dokunulabilir nesnelerin eylemleri.
 import { PROPS, propFootprint } from '../art/index.js'
 import { buildWalkable, portalAt } from '../world/zones.js'
+import { WORLD_INTERACTIVE } from './interactions.js'
 
 const cache = new Map()
 
@@ -53,7 +54,8 @@ export function setupFor(zone) {
       Component: PROPS[p.key]?.Component || (() => null),
       props: p.key === 'gate_arch' ? { to: p.to } : undefined,
       action,
-      tappable: !!action,
+      interact: WORLD_INTERACTIVE.has(p.key),
+      tappable: !!action || WORLD_INTERACTIVE.has(p.key),
     }
   })
   const s = {
