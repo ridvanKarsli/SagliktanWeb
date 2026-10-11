@@ -109,6 +109,8 @@ function mapUser(u) {
     communityRole: u.communityRole || null,
     city: u.city || '',
     discoverable: !!u.discoverable,
+    // Eski sunucu yanıtlarında alan yoksa açık say (backend varsayılanı).
+    profilePublic: u.profilePublic !== false,
     // Eski backend alanı hiç göndermiyorsa (undefined) karşılamaya zorlama.
     onboardingCompleted: u.onboardingCompleted !== false,
     weeklyDigestEnabled: u.weeklyDigestEnabled !== false,

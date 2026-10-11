@@ -20,6 +20,7 @@ function sameProfile(a, b) {
   return (a.communityRole || null) === (b.communityRole || null)
     && (a.city || '').trim() === (b.city || '').trim()
     && !!a.discoverable === !!b.discoverable
+    && (a.profilePublic !== false) === (b.profilePublic !== false)
 }
 
 /**

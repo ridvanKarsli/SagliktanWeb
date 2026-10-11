@@ -50,26 +50,64 @@ export function RolePicker({ value, onChange }) {
   )
 }
 
-// "Benzer üyeler beni bulabilsin" anahtarı (kayıt formu + Ayarlar ortak).
-// KVKK: varsayılan kapalı; açıklama metni neyin görüneceğini net söyler.
-export function DiscoverableSwitch({ checked, onChange }) {
+// Görünürlük anahtarı için ortak kart: başlık, açıklama, açıkken vurgulu kenarlık.
+function VisibilityToggle({ checked, onChange, title, description, disabled = false, testId }) {
   return (
-    <Box sx={{ p: 1.75, borderRadius: `${radius.md}px`, border: '2px solid', borderColor: checked ? 'primary.main' : 'brand.border', bgcolor: checked ? 'brand.primarySoft' : 'background.paper', transition: 'background-color 200ms ease, border-color 200ms ease' }}>
+    <Box sx={{
+      p: 1.75, borderRadius: `${radius.md}px`, border: '2px solid',
+      borderColor: checked ? 'primary.main' : 'brand.border',
+      bgcolor: checked ? 'brand.primarySoft' : 'background.paper',
+      opacity: disabled ? 0.6 : 1,
+      transition: 'background-color 200ms ease, border-color 200ms ease, opacity 200ms ease'
+    }}>
       <FormControlLabel
-        control={<Switch checked={!!checked} onChange={e => onChange(e.target.checked)} />}
-        label={<Typography variant="body2" sx={{ fontWeight: 700 }}>Benzer üyeler beni bulabilsin</Typography>}
+        disabled={disabled}
+        control={<Switch checked={!!checked} onChange={e => onChange(e.target.checked)} slotProps={{ input: testId ? { 'data-testid': testId } : undefined }} />}
+        label={<Typography variant="body2" sx={{ fontWeight: 700 }}>{title}</Typography>}
         sx={{ m: 0, width: '100%', justifyContent: 'space-between', flexDirection: 'row-reverse', gap: 1 }}
       />
       <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', mt: 0.5, lineHeight: 1.5 }}>
-        Açarsan toplulukta kim olduğun profilinde görünür; aynı gruplardaki benzer üyelere önerilirsin
-        ve sen de onları görürsün. Kapalıyken bu bilgi yalnızca sende kalır. İstediğin zaman Ayarlar'dan değiştirebilirsin.
+        {description}
       </Typography>
     </Box>
   )
 }
 
+// "Profilim üyelere açık": profil sayfası, grup üye listesi ve kişi araması.
+export function ProfilePublicSwitch({ checked, onChange }) {
+  return (
+    <VisibilityToggle
+      checked={checked}
+      onChange={onChange}
+      testId="profile-public-switch"
+      title="Profilim üyelere açık"
+      description={checked
+        ? 'Üyeler profilini ve paylaşımlarını görebilir; grup üye listelerinde ve kişi aramasında görünürsün.'
+        : 'Kapalıyken diğer üyeler profilinde yalnızca adını ve avatarını görür; üye listelerinde ve aramada görünmezsin. Paylaşımların kendi gruplarında görünmeye devam eder.'}
+    />
+  )
+}
+
+// "Benzer üyeler beni bulabilsin": yalnızca eşleşme önerileri + rolün görünmesi.
+// Profil kapalıyken anlamsız olduğu için pasif ve kapalıdır.
+export function DiscoverableSwitch({ checked, onChange, profilePublic = true }) {
+  return (
+    <VisibilityToggle
+      checked={profilePublic && checked}
+      onChange={onChange}
+      disabled={!profilePublic}
+      testId="discoverable-switch"
+      title="Benzer üyeler beni bulabilsin"
+      description={profilePublic
+        ? 'Açarsan toplulukta kim olduğun profilinde görünür; aynı gruplardaki benzer üyelere önerilirsin ve sen de onları görürsün. İstediğin zaman Ayarlar\'dan değiştirebilirsin.'
+        : 'Bunu açmak için önce profilini üyelere açman gerekiyor.'}
+    />
+  )
+}
+
 /**
- * Rol (isteğe bağlı) + şehir + görünürlük. value: { communityRole, city, discoverable }.
+ * Rol (isteğe bağlı) + şehir + iki görünürlük anahtarı.
+ * value: { communityRole, city, discoverable, profilePublic }.
  * Hepsi isteğe bağlı; görünürlük açılmadıkça bu bilgiler başkalarına gösterilmez.
  */
 // validation: isteğe bağlı useFormValidation örneği - verilirse sunucu/alan
@@ -94,7 +132,15 @@ export default function HealthProfileFields({ value, onChange, showRole = false,
         {...fieldProps('city')}
         helperText={errorText('city') || 'Profilinde görünür; yakınındaki üyeleri bulmana da yardım eder. İsteğe bağlı.'}
       />
-      <DiscoverableSwitch checked={!!v.discoverable} onChange={(discoverable) => set({ discoverable })} />
+      <ProfilePublicSwitch
+        checked={v.profilePublic !== false}
+        onChange={(profilePublic) => set(profilePublic ? { profilePublic } : { profilePublic, discoverable: false })}
+      />
+      <DiscoverableSwitch
+        checked={!!v.discoverable}
+        profilePublic={v.profilePublic !== false}
+        onChange={(discoverable) => set({ discoverable })}
+      />
     </Stack>
   )
 }

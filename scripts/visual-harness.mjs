@@ -107,6 +107,7 @@ function route(url, method, req) {
   if (p === '/users/me/saved-posts') return page([post(0), post(2)])
   if (p === '/users/me/sessions') return [{ id: 1, deviceLabel: 'iPhone · Safari', ipAddress: '85.1.2.3', lastUsedAt: iso(1), createdAt: iso(999), current: true }, { id: 2, deviceLabel: 'Mac · Chrome', ipAddress: '85.1.2.4', lastUsedAt: iso(300), createdAt: iso(5000), current: false }]
   if (m(/^\/users\/\d+\/posts$/)) return page([post(1), post(3)])
+  if (m(/^\/users\/12$/)) return { id: 12, firstName: 'Ali', lastName: 'Yılmaz', avatarKey: 'gunes', profileHidden: true, postCount: 0, commentCount: 0, likesReceived: 0, dislikesReceived: 0 }
   if (m(/^\/users\/(\d+)$/)) return { ...me, id: 11, firstName: 'Mehmet', lastName: 'Kaya', bio: 'RP ile 10 yıl. Sorularınıza elimden geldiğince yanıt veririm.', avatarKey: 'kaplumbaga', likesReceived: 64 }
   if (p === '/disease-groups') return groups
   if (m(/^\/disease-groups\/\d+$/)) return groups[0]
@@ -144,7 +145,7 @@ const shots = [
   ['home', '/home'], ['groups', '/groups'],
   // [akış] iskelet çekimleri + bildirim menüsü + boş arama
   ['home-loading', '/home'], ['groups-loading', '/groups'], ['subgroups-loading', '/groups/1'], ['posts-loading', '/sub-groups/2'], ['post-detail-loading', '/post/1'], ['search-loading', '/search?q=gece'], ['notifications', '/home'], ['search-empty', '/search'], ['subgroups', '/groups/1'], ['posts', '/sub-groups/2'], ['post-detail', '/post/1'],
-  ['search', '/search?q=gece'], ['profile', '/profile'], ['profile-groups', '/profile?tab=groups'], ['profile-groups-menu', '/profile?tab=groups'], ['profile-leave-confirm', '/profile?tab=groups'], ['profile-left', '/profile?tab=groups'], ['profile-edit', '/profile'], ['home-compose', '/home'], ['home-questions', '/home?tab=questions'], ['compose-poll', '/home'], ['post-poll', '/post/4'], ['post-question', '/post/1'], ['onboarding-groups', '/hosgeldin'], ['home-compose-closed', '/home'], ['settings-matching', '/profile/settings#eslesme'], ['home-compose-picked', '/home'], ['home-compose-topic', '/home'], ['subgroups-compose', '/groups/1'], ['posts-compose', '/sub-groups/2'], ['user-profile', '/users/11'], ['settings', '/profile/settings'],
+  ['search', '/search?q=gece'], ['profile', '/profile'], ['profile-groups', '/profile?tab=groups'], ['profile-groups-menu', '/profile?tab=groups'], ['profile-leave-confirm', '/profile?tab=groups'], ['profile-left', '/profile?tab=groups'], ['profile-edit', '/profile'], ['home-compose', '/home'], ['home-questions', '/home?tab=questions'], ['compose-poll', '/home'], ['post-poll', '/post/4'], ['post-question', '/post/1'], ['onboarding-groups', '/hosgeldin'], ['home-compose-closed', '/home'], ['settings-matching', '/profile/settings#eslesme'], ['home-compose-picked', '/home'], ['home-compose-topic', '/home'], ['subgroups-compose', '/groups/1'], ['posts-compose', '/sub-groups/2'], ['user-profile', '/users/11'], ['user-profile-hidden', '/users/12'], ['group-members', '/groups/1'], ['settings', '/profile/settings'],
   ['messages', '/messages'], ['chat', '/messages/1'], ['requests', '/messages/requests'],
   ['profile-avatar', '/profile'], ['profile-unlock', '/profile'], ['settings-blocked', '/profile/settings'], ['profile-loading', '/profile'], ['user-profile-loading', '/users/11'], ['messages-loading', '/messages'], ['chat-loading', '/messages/1'], ['requests-loading', '/messages/requests'], ['onboarding-loading', '/hosgeldin'], ['onboarding-done', '/hosgeldin'],
   ['form-profile-city', '/profile'], ['form-profile-errors', '/profile'], ['form-compose-errors', '/sub-groups/2'], ['form-poll-dup', '/home'], ['form-password', '/profile/settings'],
@@ -269,6 +270,9 @@ for (const [vpName, vp] of Object.entries(viewports)) {
           await pg.waitForTimeout(300)
         }
       }
+      if (name === 'group-members') {
+        await pg.getByRole('button', { name: /Üyeleri Gör/ }).click(); await pg.waitForTimeout(900)
+      }
       if (name === 'compose-poll') {
         await pg.evaluate(() => { try { localStorage.removeItem('sagliktan:post-draft') } catch { /* */ } })
         await pg.getByRole('button', { name: /paylaş…$|küçük bir sevinç…$/ }).first().click(); await pg.waitForTimeout(600)
@@ -292,7 +296,7 @@ for (const [vpName, vp] of Object.entries(viewports)) {
       if (name === 'profile-edit') { await pg.getByRole('button', { name: 'Profili düzenle' }).click(); await pg.waitForTimeout(500) }
       if (name.startsWith('form-')) await formShot(pg, name)
       // tooltip: tam sayfa çekimi görünümü yeniden boyutlandırıp kabuğu yeniden kurar, etkileşim kaybolur
-      const fullPage = !['profile-groups-menu', 'profile-leave-confirm', 'admin-dashboard-tooltip', 'profile-avatar', 'profile-unlock', 'chat-loading', 'notifications'].includes(name) && !name.includes('compose') && !name.startsWith('onboarding')
+      const fullPage = !['group-members', 'profile-groups-menu', 'profile-leave-confirm', 'admin-dashboard-tooltip', 'profile-avatar', 'profile-unlock', 'chat-loading', 'notifications'].includes(name) && !name.includes('compose') && !name.startsWith('onboarding')
       await pg.screenshot({ path: `${OUT}/${vpName}-${name}.png`, fullPage })
       console.log('ok', vpName, name)
     } catch (e) { console.log('FAIL', vpName, name, e.message.split('\n')[0]) }

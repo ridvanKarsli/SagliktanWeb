@@ -184,13 +184,15 @@ async function request(path, { method = 'GET', token, body, params, signal, fres
 
 // --- Auth ---
 
-// communityRole/discoverable isteğe bağlı: görünürlük gönderilmezse kapalı kalır.
-export function registerUser({ email, password, firstName, lastName, kvkkConsent, city, communityRole, discoverable }) {
+// communityRole/discoverable/profilePublic isteğe bağlı: eşleşme görünürlüğü
+// gönderilmezse kapalı, profil gönderilmezse açık kalır.
+export function registerUser({ email, password, firstName, lastName, kvkkConsent, city, communityRole, discoverable, profilePublic }) {
   return request('/auth/register', {
     method: 'POST',
     body: {
       email, password, firstName, lastName, kvkkConsent,
       city: city || null, communityRole: communityRole || null, discoverable: !!discoverable,
+      profilePublic: profilePublic !== false,
     },
   });
 }
@@ -264,10 +266,13 @@ export function revokeSession(token, id) {
 
 // --- Profil sağlık özeti / karşılama / tercihler / benzer üyeler ---
 
-export function updateHealthProfile(token, { communityRole, city, discoverable }) {
+export function updateHealthProfile(token, { communityRole, city, discoverable, profilePublic }) {
   return request('/users/me/health-profile', {
     method: 'PUT', token,
-    body: { communityRole: communityRole || null, city: city || null, discoverable: !!discoverable }
+    body: {
+      communityRole: communityRole || null, city: city || null,
+      discoverable: profilePublic !== false && !!discoverable, profilePublic: profilePublic !== false,
+    }
   });
 }
 

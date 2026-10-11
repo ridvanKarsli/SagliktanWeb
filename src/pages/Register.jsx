@@ -14,7 +14,7 @@ import PasswordStrengthMeter from '../components/PasswordStrengthMeter.jsx'
 import PasswordField from '../components/PasswordField.jsx'
 import CityField from '../components/profile/CityField.jsx'
 import EmailField from '../components/forms/EmailField.jsx'
-import { DiscoverableSwitch, RolePicker } from '../components/profile/HealthProfileFields.jsx'
+import { DiscoverableSwitch, ProfilePublicSwitch, RolePicker } from '../components/profile/HealthProfileFields.jsx'
 import { useFormValidation } from '../hooks/useFormValidation.js'
 import {
   LIMITS, cityError, cleanLine, confirmPasswordError, emailError, fieldErrorsFrom, fieldFromMessage,
@@ -69,6 +69,7 @@ export default function Register() {
     confirmPassword: '',
     city: '',
     communityRole: null,
+    profilePublic: true,
     discoverable: false,
     kvkkConsent: false
   })
@@ -94,7 +95,8 @@ export default function Register() {
         kvkkConsent: form.kvkkConsent,
         city: normalizeCity(form.city),
         communityRole: form.communityRole,
-        discoverable: form.discoverable
+        profilePublic: form.profilePublic,
+        discoverable: form.profilePublic && form.discoverable
       })
       setRegisteredEmail(email)
     } catch (err) {
@@ -242,7 +244,13 @@ export default function Register() {
             <RolePicker value={form.communityRole} onChange={set('communityRole')} />
           </Box>
 
-          <DiscoverableSwitch checked={form.discoverable} onChange={set('discoverable')} />
+          <Stack spacing={1.25}>
+            <ProfilePublicSwitch
+              checked={form.profilePublic}
+              onChange={(on) => setForm(f => ({ ...f, profilePublic: on, discoverable: on ? f.discoverable : false }))}
+            />
+            <DiscoverableSwitch checked={form.discoverable} profilePublic={form.profilePublic} onChange={set('discoverable')} />
+          </Stack>
 
           <Box>
           <FormControlLabel

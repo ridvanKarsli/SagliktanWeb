@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Box, Button, IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Typography } from '@mui/material'
 import {
-  ArrowBackRounded, ArticleOutlined, BlockRounded, FlagOutlined, LockOpenRounded, MailOutlineRounded, MoreVertRounded, PersonOffOutlined
+  ArrowBackRounded, ArticleOutlined, BlockRounded, FlagOutlined, LockOpenRounded, LockOutlined, MailOutlineRounded, MoreVertRounded, PersonOffOutlined
 } from '@mui/icons-material'
 import { useNavigate, useParams } from 'react-router-dom'
 import HealthSummary from '../../components/profile/HealthSummary.jsx'
@@ -32,8 +32,9 @@ function usePublicProfile(token, userId) {
     setState({ profile: null, loading: true, error: '', notFound: false })
     getUserPublicProfile(token, userId)
       .then(profile => { if (alive) setState({ profile, loading: false, error: '', notFound: false }) })
-      // 404: hesap yok, gizli ya da taraflardan biri diğerini engellemiş -
+      // 404: hesap yok/kapalı ya da taraflardan biri diğerini engellemiş -
       // backend bu durumları bilerek ayırt etmez; biz de "görüntülenemiyor" deriz.
+      // (Profilini gizleyen kişi 404 değil: profileHidden=true ile ad + avatar gelir.)
       .catch(err => { if (alive) setState({ profile: null, loading: false, error: err.message || 'Kullanıcı bulunamadı.', notFound: err?.status === 404 }) })
     return () => { alive = false }
   }, [token, userId])
@@ -106,11 +107,14 @@ export default function UserProfile() {
     }
   }, [currentUser, userId, navigate])
 
-  const postsFetcher = useCallback((page) => getUserPosts(token, userId, { page }), [token, userId])
+  // Paylaşımlar yalnızca profil açıksa istenir (gizli/engelli profilde boşuna
+  // istek ve ikinci bir "bulunamadı" uyarısı çıkmasın).
+  const canListPosts = !!profile && !profile.profileHidden
+  const postsFetcher = useCallback((page, opts) => getUserPosts(token, userId, { page, ...opts }), [token, userId])
   const posts = usePaginatedList(postsFetcher, {
-    enabled: !!token && !!userId,
-    deps: [token, userId],
-    onError: err => showError(err.message || 'Gönderiler alınamadı.')
+    enabled: !!token && !!userId && canListPosts,
+    deps: [token, userId, canListPosts],
+    onError: err => { if (err?.status !== 404) showError(err.message || 'Gönderiler alınamadı.') }
   })
 
   const closeMenuThen = (action) => () => { setMenuAnchor(null); action() }
@@ -159,7 +163,7 @@ export default function UserProfile() {
           <EmptyState
             icon={PersonOffOutlined}
             title="Bu profil görüntülenemiyor"
-            description="Kişi profilini gizlemiş, hesabını kapatmış ya da aranızda bir engel olabilir. Bağlantı eski de olabilir."
+            description="Kişi hesabını kapatmış ya da aranızda bir engel olabilir. Bağlantı eski de olabilir."
             actionLabel="Ana sayfaya dön"
             onAction={() => navigate('/home')}
           />
@@ -177,6 +181,7 @@ export default function UserProfile() {
   }
 
   const firstName = profile.firstName || fullName
+  const hidden = !!profile.profileHidden
 
   return (
     <Box className="page-transition" sx={pageSx}>
@@ -184,8 +189,8 @@ export default function UserProfile() {
         avatar={<ProfileAvatar avatarKey={profile.avatarKey} name={fullName} />}
         name={fullName}
         badge={profile.emailVerified ? <VerifiedBadge /> : null}
-        summary={<HealthSummary profile={profile} />}
-        bio={profile.bio}
+        summary={hidden ? null : <HealthSummary profile={profile} />}
+        bio={hidden ? null : profile.bio}
         topLeft={backButton}
         topRight={(
           <>
@@ -217,7 +222,7 @@ export default function UserProfile() {
             </Menu>
           </>
         )}
-        stats={(
+        stats={hidden ? null : (
           <StatStrip>
             <ProfileStat value={posts.totalCount} label="Gönderi" loading={posts.loading} />
             <ProfileStat value={profile.commentCount} label="Yorum" />
@@ -249,6 +254,17 @@ export default function UserProfile() {
         )}
       </ProfileHeader>
 
+      {hidden ? (
+        <Box sx={{ mt: 3 }}>
+          <EmptyState
+            icon={LockOutlined}
+            title={`${firstName} profilini gizli tutuyor`}
+            description="Profil ayrıntılarını ve paylaşım listesini yalnızca kendisi görebiliyor. Paylaşımları, katıldığı gruplarda görünmeye devam eder; istersen mesaj isteği gönderebilirsin."
+            dense
+          />
+        </Box>
+      ) : (
+      <>
       <Typography variant="h4" component="h2" sx={{ mt: 3.5, mb: 1.5, px: 0.5 }}>Paylaşımları</Typography>
       {posts.loading ? (
         <Box aria-busy="true" aria-label="Gönderiler yükleniyor"><PostCardSkeleton /><PostCardSkeleton /></Box>
@@ -264,6 +280,8 @@ export default function UserProfile() {
           <PostList posts={posts.items} token={token} showPinnedBadge />
           <InfiniteScrollSentinel hasMore={!posts.last} loading={posts.loadingMore} onLoadMore={posts.loadMore} itemCount={posts.items.length} />
         </>
+      )}
+      </>
       )}
 
       <ReportDialog

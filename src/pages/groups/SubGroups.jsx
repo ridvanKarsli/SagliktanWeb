@@ -181,6 +181,7 @@ export default function SubGroups() {
         hasMore={!members.last}
         onLoadMore={members.loadMore}
         onOpenProfile={openProfile}
+        hiddenCount={members.loading ? 0 : Math.max(0, (group?.memberCount ?? 0) - members.totalCount)}
       />
       {group && (
         <NewPostDialog

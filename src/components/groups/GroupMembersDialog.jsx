@@ -3,7 +3,7 @@ import {
   Box, ButtonBase, Dialog, DialogContent, DialogTitle, IconButton, Skeleton, Stack, Typography, useMediaQuery
 } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
-import { ChevronRightRounded, CloseRounded, PeopleAltOutlined } from '@mui/icons-material'
+import { ChevronRightRounded, CloseRounded, LockOutlined, PeopleAltOutlined } from '@mui/icons-material'
 import EmptyState from '../EmptyState.jsx'
 import InfiniteScrollSentinel from '../common/InfiniteScrollSentinel.jsx'
 import UserAvatar from '../avatars/UserAvatar.jsx'
@@ -21,8 +21,10 @@ function MemberRowSkeleton() {
 }
 
 // Bir hastalık grubunun üye listesi (sayfalı). Satıra dokunmak profile gider.
-// Mobilde tam ekran, alttan kayarak açılır.
-export default function GroupMembersDialog({ open, onClose, members, loading, loadingMore, hasMore, onLoadMore, onOpenProfile }) {
+// Mobilde tam ekran, alttan kayarak açılır. Listede yalnızca profilini üyelere
+// açık tutanlar var; hiddenCount > 0 ise "N üye profilini gizli tutuyor" notu
+// toplam üye sayısıyla listenin neden farklı olduğunu açıklar.
+export default function GroupMembersDialog({ open, onClose, members, loading, loadingMore, hasMore, onLoadMore, onOpenProfile, hiddenCount = 0 }) {
   const theme = useTheme()
   const fullScreen = useMediaQuery(theme.breakpoints.down('sm'))
   // Liste dialog içinde kayar: sonsuz kaydırma gözcüsü bu kabı izler.
@@ -53,7 +55,9 @@ export default function GroupMembersDialog({ open, onClose, members, loading, lo
             {[0, 1, 2, 3, 4].map(i => <MemberRowSkeleton key={i} />)}
           </Box>
         ) : members.length === 0 ? (
-          <EmptyState icon={PeopleAltOutlined} title="Henüz üye yok" description="İlk katılan sen olabilirsin." dense />
+          hiddenCount > 0
+            ? <EmptyState icon={LockOutlined} title="Üyeler profillerini gizli tutuyor" description={`Bu grubun ${hiddenCount} üyesi profilini yalnızca kendine açık tutuyor.`} dense />
+            : <EmptyState icon={PeopleAltOutlined} title="Henüz üye yok" description="İlk katılan sen olabilirsin." dense />
         ) : (
           <Stack sx={{ py: 0.5 }}>
             {members.map(m => {
@@ -77,6 +81,14 @@ export default function GroupMembersDialog({ open, onClose, members, loading, lo
                 </ButtonBase>
               )
             })}
+          </Stack>
+        )}
+        {!loading && !hasMore && members.length > 0 && hiddenCount > 0 && (
+          <Stack direction="row" spacing={1} alignItems="center" sx={{ px: 2.5, py: 1.75, color: 'text.secondary', borderTop: '1px solid', borderColor: 'divider' }}>
+            <LockOutlined sx={{ fontSize: 18 }} aria-hidden />
+            <Typography variant="body2">
+              {hiddenCount === 1 ? '1 üye profilini gizli tutuyor.' : `${hiddenCount} üye profilini gizli tutuyor.`}
+            </Typography>
           </Stack>
         )}
         {!loading && (

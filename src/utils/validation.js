@@ -303,7 +303,9 @@ export function cleanHealthProfile(p = {}) {
   return {
     communityRole: ROLE_VALUES.has(p.communityRole) ? p.communityRole : null,
     city: normalizeCity(p.city),
-    discoverable: !!p.discoverable,
+    // Profil kapalıyken eşleşme görünürlüğü de kapalı (backend de böyle kaydeder).
+    discoverable: p.profilePublic !== false && !!p.discoverable,
+    profilePublic: p.profilePublic !== false,
   }
 }
 
