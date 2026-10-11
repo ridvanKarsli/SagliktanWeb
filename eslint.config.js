@@ -55,6 +55,36 @@ export default defineConfig([
     },
   },
   {
+    // MODÜL SINIRI (Mahalle oyunu): uygulama kodu oyunun içinden hiçbir şey
+    // statik olarak import edemez. Oyuna tek giriş App.jsx'teki tembel rota
+    // (dinamik import(), bu kuralın dışında) - böylece oyun ayrı parçada kalır
+    // ve uygulama oyunun iç yapısına bağımlı olmaz.
+    files: ['src/**/*.{js,jsx}'],
+    ignores: ['src/game/**'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        patterns: [{
+          group: ['**/game/**', './game/**'],
+          message: 'Uygulama kodu Mahalle oyununun içinden import edemez; oyuna yalnızca App.jsx\'teki tembel rota ile girilir.',
+        }],
+      }],
+    },
+  },
+  {
+    // MODÜL SINIRI (Mahalle oyunu): oyun yalnızca paylaşılan altyapıyı
+    // (servisler, context'ler, tasarım, ortak bileşenler, yol arkadaşı
+    // çizimleri) kullanır; uygulamanın sayfalarına ve kabuğuna bağımlı olamaz.
+    files: ['src/game/**/*.{js,jsx}'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        patterns: [{
+          group: ['**/pages/**', '**/components/shell/**', '**/App.jsx', '**/ThemedApp.jsx'],
+          message: 'Mahalle oyunu uygulamanın sayfalarına/kabuğuna bağımlı olamaz; yalnızca paylaşılan altyapıyı kullanın.',
+        }],
+      }],
+    },
+  },
+  {
     // Playwright config + E2E test dosyaları tarayıcıda değil Node'da
     // çalışıyor (page/browser API'leri Playwright test runner'ından gelir,
     // process.env de config'te ortam değişkeni okumak için kullanılıyor).
