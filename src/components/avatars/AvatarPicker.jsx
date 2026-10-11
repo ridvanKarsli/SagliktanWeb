@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   Box, Button, ButtonBase, Dialog, IconButton, Skeleton, Stack, Typography, useMediaQuery, useTheme
 } from '@mui/material'
-import { CheckRounded, CloseRounded, LockRounded, ThumbUpAltRounded } from '@mui/icons-material'
+import { CheckRounded, CloseRounded, LocalFloristRounded, LockRounded } from '@mui/icons-material'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
 import { getAvatarOptions, selectAvatar } from '../../services/api.js'
@@ -39,7 +39,7 @@ function Tile({ option, selected, isNew, onPick, disabled, justPicked }) {
       disabled={disabled}
       aria-pressed={locked ? undefined : selected}
       aria-label={locked
-        ? `${option.name}, kilitli: ${option.requiredPeople} kişiye faydalı olunca ve ${durationLabel(option.requiredDays)} üyelikte açılır`
+        ? `${option.name}, kilitli: ${option.requiredPeople} Sağlıktan puanı ve ${durationLabel(option.requiredDays)} üyelikle açılır`
         : `${option.name}${isNew ? ' (yeni)' : ''}${selected ? ', seçili' : ' avatarını seç'}`}
       className={locked ? undefined : 'sg-sway-on-hover'}
       sx={{
@@ -97,7 +97,7 @@ function Tile({ option, selected, isNew, onPick, disabled, justPicked }) {
       </Typography>
       {locked && (
         <Typography variant="caption" component="span" sx={{ color: 'text.secondary', lineHeight: 1, fontSize: '0.72rem', fontWeight: 700 }}>
-          {option.requiredPeople} kişi · {durationLabel(option.requiredDays)}
+          {option.requiredPeople} puan · {durationLabel(option.requiredDays)}
         </Typography>
       )}
     </ButtonBase>
@@ -114,7 +114,7 @@ function SectionTitle({ children, count }) {
 }
 
 function ProgressCard({ data, fullName }) {
-  const helped = data?.helpedPeople ?? 0
+  const score = data?.helpedPeople ?? 0
   const next = nextCompanion(data)
   const currentKey = hasAvatarArt(data?.selectedKey) ? data.selectedKey : null
   return (
@@ -134,10 +134,10 @@ function ProgressCard({ data, fullName }) {
       </Box>
       <Box sx={{ flex: 1, minWidth: 0 }}>
         <Stack direction="row" spacing={0.75} alignItems="center">
-          <ThumbUpAltRounded sx={{ fontSize: 18, color: 'brand.apricotInk' }} />
+          <LocalFloristRounded sx={{ fontSize: 18, color: 'brand.apricotInk' }} aria-hidden />
           {data ? (
             <Typography variant="subtitle1" component="p" sx={{ color: 'brand.apricotInk', fontWeight: 800 }}>
-              {helped} kişiye faydalı oldun
+              {score > 0 ? `Sağlıktan puanın: ${score}` : 'Sağlıktan puanın filizleniyor'}
             </Typography>
           ) : <Skeleton width={110} />}
         </Stack>
@@ -150,6 +150,9 @@ function ProgressCard({ data, fullName }) {
           <>
             <Typography variant="body2" sx={{ mt: 0.25 }}>
               Sıradaki yol arkadaşın <b>{next.avatar.name}</b>: {nextStepText(next)}.
+            </Typography>
+            <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', mt: 0.25 }}>
+              Paylaşımların ve yorumların farklı kişilere faydalı geldikçe puanın büyür.
             </Typography>
             <Stack direction="row" alignItems="center" spacing={1} sx={{ mt: 1 }}>
               <Box
@@ -226,7 +229,7 @@ export default function AvatarPicker({ open, onClose }) {
         remainingPeople: Math.max(0, option.requiredPeople - (data?.helpedPeople || 0)),
         remainingDays: Math.max(0, option.requiredDays - (data?.memberDays || 0)),
       })
-      showInfo(`${option.name}: ${step}. Yol arkadaşları, paylaşımların farklı kişilere faydalı geldikçe ve zamanla açılır.`)
+      showInfo(`${option.name}: ${step}. Sağlıktan puanın, paylaşımların farklı kişilere faydalı geldikçe büyür.`)
       return
     }
     if (option.key === data?.selectedKey) return
@@ -286,8 +289,7 @@ export default function AvatarPicker({ open, onClose }) {
 
       <Box sx={{ px: { xs: 2, sm: 3 }, pb: 'calc(24px + env(safe-area-inset-bottom))', overflowY: 'auto' }}>
         <Typography id="avatar-picker-desc" variant="body2" sx={{ color: 'text.secondary', mb: 2, mt: 0.5 }}>
-          Profilinde seni yol arkadaşın temsil eder. Paylaşımların farklı kişilere faydalı geldikçe ve zamanla
-          yenileri açılır.
+          Profilinde seni yol arkadaşın temsil eder. Sağlıktan puanın büyüdükçe ve zamanla yenileri açılır.
         </Typography>
 
         <ProgressCard data={data} fullName={fullName} />

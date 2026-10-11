@@ -169,12 +169,16 @@ export function nextCompanion(options) {
   }
 }
 
-/** "3 kişiye daha faydalı ol" / "12 gün sonra açılır" gibi kısa açıklama. */
+/**
+ * "3 puan daha, 12 gün sonra" gibi kısa açıklama. Sağlıktan puanı = kaç
+ * farklı kişiye faydalı olunduğu (sunucudaki helpedPeople); arayüzde
+ * kimseyi kırmamak için "puan" diye anılır.
+ */
 export function nextStepText(next) {
   if (!next) return ''
   const { remainingPeople: p, remainingDays: d } = next
-  if (p > 0 && d > 0) return `${p} kişiye daha faydalı ol, ${d} gün sonra açılır`
-  if (p > 0) return `${p} kişiye daha faydalı olunca açılır`
+  if (p > 0 && d > 0) return `${p} puan daha, ${d} gün sonra açılır`
+  if (p > 0) return `${p} puan daha gerekiyor`
   if (d > 0) return `${d} gün sonra açılır`
-  return 'Birazdan açılıyor'
+  return 'Çok yakında açılıyor'
 }

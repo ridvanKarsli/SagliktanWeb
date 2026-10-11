@@ -1,36 +1,26 @@
 import { Box, ButtonBase, Typography } from '@mui/material'
 import { ChevronRightRounded } from '@mui/icons-material'
 import Companion from '../avatars/Companion.jsx'
-import { nextCompanion, nextStepText, useAvatarOptions } from '../avatars/avatarUnlocks.js'
+import { useAvatarOptions } from '../avatars/avatarUnlocks.js'
 import { radius } from '../../design/tokens.js'
 import '../../styles/companions.css'
 
 /**
- * Profilde istatistiklerin altında küçük ipucu: yeni açılan yol arkadaşı
- * varsa onu, yoksa sıradakinin ne zaman açılacağını söyler. Dokununca
- * seçici açılır. Seçenekler henüz gelmediyse yer kaplamaz.
+ * Profilde istatistiklerin altında küçük ipucu: yalnızca yeni açılmış bir
+ * yol arkadaşı varsa görünür ("seni bekliyor"). Puan ya da "kaç kaldı"
+ * bilgisi profilde gösterilmez (kimseyi kırmasın); o ayrıntı yol arkadaşı
+ * seçicisinin içinde. Dokununca seçici açılır.
  */
 export default function HelpfulHint({ userId, onOpen }) {
   const { options, fresh } = useAvatarOptions(userId)
   if (!options) return null
-  const next = nextCompanion(options)
   const freshOnes = (options.avatars || []).filter(a => a.unlocked && fresh.includes(a.key))
 
-  let companion
-  let text
-  let ghost = false
-  if (freshOnes.length) {
-    companion = freshOnes[0].key
-    text = freshOnes.length > 1
-      ? `${freshOnes.length} yeni yol arkadaşın seni bekliyor`
-      : `Yeni yol arkadaşın ${freshOnes[0].name} seni bekliyor`
-  } else if (next) {
-    companion = next.avatar.key
-    ghost = true
-    text = `Sıradaki yol arkadaşın ${next.avatar.name}: ${nextStepText(next)}`
-  } else {
-    return null
-  }
+  if (freshOnes.length === 0) return null
+  const companion = freshOnes[0].key
+  const text = freshOnes.length > 1
+    ? `${freshOnes.length} yeni yol arkadaşın seni bekliyor`
+    : `Yeni yol arkadaşın ${freshOnes[0].name} seni bekliyor`
 
   return (
     <ButtonBase
@@ -43,16 +33,11 @@ export default function HelpfulHint({ userId, onOpen }) {
         '&.Mui-focusVisible': { outline: '3px solid', outlineColor: 'secondary.main' },
       }}
     >
-      <Companion name={companion} size={36} sx={ghost ? { filter: 'grayscale(0.85)', opacity: 0.6 } : undefined} />
+      <Companion name={companion} size={36} />
       <Box component="span" sx={{ flex: 1, minWidth: 0 }}>
         <Typography component="span" variant="body2" sx={{ display: 'block', fontWeight: 700, lineHeight: 1.35 }}>
           {text}
         </Typography>
-        {ghost && (
-          <Box component="span" aria-hidden sx={{ display: 'block', mt: 0.5, height: 5, borderRadius: `${radius.pill}px`, bgcolor: 'background.paper', overflow: 'hidden' }}>
-            <Box component="span" className="sg-grow" sx={{ display: 'block', height: '100%', width: `${Math.max(6, next.progress)}%`, bgcolor: 'secondary.main' }} />
-          </Box>
-        )}
       </Box>
       <ChevronRightRounded sx={{ color: 'brand.apricotInk', flexShrink: 0 }} />
     </ButtonBase>

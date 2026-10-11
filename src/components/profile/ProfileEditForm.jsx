@@ -86,7 +86,7 @@ export default function ProfileEditForm({ onDone, onEditAvatar }) {
             <Box sx={{ flex: 1, minWidth: 0 }}>
               <Typography variant="subtitle2" component="p">Yol arkadaşın</Typography>
               <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', lineHeight: 1.4 }}>
-                Farklı kişilere faydalı oldukça ve zamanla yenileri açılır.
+                Sağlıktan puanın büyüdükçe ve zamanla yenileri açılır.
               </Typography>
             </Box>
             <Button variant="outlined" size="small" onClick={onEditAvatar} aria-label="Yol arkadaşını değiştir" sx={{ minHeight: 44, flexShrink: 0 }}>

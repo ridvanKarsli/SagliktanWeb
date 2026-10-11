@@ -26,8 +26,8 @@ const FEATURES = [
   {
     Icon: ThumbUpAltRounded,
     tone: 'apricot',
-    title: 'Faydalı oldukça açılan yol arkadaşları',
-    text: 'Paylaşımın birine iyi geldiğinde teşekkürü sana ulaşır. Farklı insanlara dokundukça ve zamanla profilin için yeni yol arkadaşları açılır.',
+    title: 'Sağlıktan puanıyla açılan yol arkadaşları',
+    text: 'Paylaşımın birine iyi geldiğinde teşekkürü Sağlıktan puanı olarak sana ulaşır. Puanın büyüdükçe ve zamanla profilin için yeni yol arkadaşları açılır.',
   },
   {
     Icon: SpaOutlined,

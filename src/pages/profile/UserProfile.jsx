@@ -226,7 +226,6 @@ export default function UserProfile() {
           <StatStrip>
             <ProfileStat value={posts.totalCount} label="Gönderi" loading={posts.loading} />
             <ProfileStat value={profile.commentCount} label="Yorum" />
-            <ProfileStat value={profile.helpedPeople} label="Kişiye faydalı" highlight />
           </StatStrip>
         )}
       >
