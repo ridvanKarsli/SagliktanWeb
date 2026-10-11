@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Box, Button, Chip, Collapse, IconButton, Skeleton, Stack, Tab, Tabs, Typography } from '@mui/material'
 import {
-  BookmarkBorderRounded, DynamicFeedRounded, EditNoteRounded, EditOutlined, ExploreOutlined, GroupsRounded, SettingsOutlined, CottageOutlined
+  BookmarkBorderRounded, DynamicFeedRounded, EditNoteRounded, EditOutlined, ExploreOutlined, GroupsRounded, SettingsOutlined
 } from '@mui/icons-material'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import HealthSummary from '../../components/profile/HealthSummary.jsx'
@@ -168,27 +168,15 @@ export default function Profile() {
       >
         <HelpfulHint userId={user.id} onOpen={openPicker} />
         {!editOpen && (
-          <Stack direction={{ xs: 'column', md: 'row' }} spacing={1} sx={{ mt: 2 }}>
-            <Button
-              fullWidth
-              variant="outlined"
-              startIcon={<EditOutlined />}
-              onClick={() => setEditOpen(true)}
-              sx={{ maxWidth: { md: 240 } }}
-            >
-              Profili düzenle
-            </Button>
-            {/* Mahalle (oyun) evine kısa yol; takma adla oynanır, profille bağlantı görünmez. */}
-            <Button
-              fullWidth
-              variant="text"
-              startIcon={<CottageOutlined />}
-              onClick={() => navigate('/game/ev')}
-              sx={{ maxWidth: { md: 200 }, minHeight: 44 }}
-            >
-              Evimi gör
-            </Button>
-          </Stack>
+          <Button
+            fullWidth
+            variant="outlined"
+            startIcon={<EditOutlined />}
+            onClick={() => setEditOpen(true)}
+            sx={{ mt: 2, maxWidth: { md: 240 } }}
+          >
+            Profili düzenle
+          </Button>
         )}
       </ProfileHeader>
 

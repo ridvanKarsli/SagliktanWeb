@@ -356,7 +356,10 @@ const gameShots = [
   ['game-world-snow', { zone: 'park', query: '?atmo=ogle:snow' }],
   ['game-world-sahil-lie', { zone: 'sahil', query: '?atmo=ogle:clear' }],
   ['game-neighbors-known', { zone: 'meydan', query: '?atmo=ogle:clear' }],
-  ['app-topbar-mahalle', { path: '/home' }],
+  ['app-bubble', { path: '/home', fresh: true }],
+  ['app-bubble-tucked', { path: '/home', fresh: true }],
+  ['app-bubble-dragged-left', { path: '/home', fresh: true }],
+  ['app-bubble-profile', { path: '/profile', fresh: true }],
 ]
 
 async function runGameShots(vpName, vp) {
@@ -424,6 +427,8 @@ async function runGameShots(vpName, vp) {
         try {
           if (zone) localStorage.setItem('sagliktan:mahalle:last-zone', zone)
           if (hint) localStorage.removeItem('sagliktan:mahalle:hint-seen'); else localStorage.setItem('sagliktan:mahalle:hint-seen', '1')
+          localStorage.removeItem('sagliktan:mahalle-bubble-pos')
+          localStorage.setItem('sagliktan:mahalle-card-dismissed', '1')
         } catch { /* */ }
       }, [o.zone || null, !!o.hint])
       await gp.goto('http://localhost:4173/home', { waitUntil: 'networkidle' })
@@ -495,6 +500,16 @@ async function runGameShots(vpName, vp) {
         await tapObj(idx)
       }
       const menuPick = async (label) => { await gp.waitForTimeout(500); await gp.getByRole('menuitem', { name: label }).click() }
+      if (name.startsWith('app-bubble')) await gp.waitForTimeout(400)
+      if (name === 'app-bubble-tucked') await gp.waitForTimeout(3600)
+      if (name === 'app-bubble-dragged-left') {
+        const b = await gp.getByTestId('mahalle-bubble').boundingBox()
+        const sx = b.x + b.width / 2; const sy = b.y + b.height / 2
+        await gp.mouse.move(sx, sy); await gp.mouse.down()
+        for (let i = 1; i <= 12; i++) { await gp.mouse.move(sx - (sx - 40) * i / 12, sy + 260 * i / 12); await gp.waitForTimeout(16) }
+        await gp.mouse.up(); await gp.waitForTimeout(700)
+        console.log('after drag url:', gp.url(), 'pos:', await gp.evaluate(() => localStorage.getItem('sagliktan:mahalle-bubble-pos')))
+      }
       if (name === 'game-create-body') { await gp.getByRole('radio', { name: 'Erkek' }).click(); await gp.waitForTimeout(400) }
       if (name === 'game-room-sit') {
         await tapKey('sofa'); await menuPick('Otur'); await gp.waitForTimeout(2600)
