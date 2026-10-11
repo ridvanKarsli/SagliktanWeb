@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Stack, Typography } from '@mui/material'
+import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Stack, Typography } from '@mui/material'
 import { CloseRounded, DownloadRounded, IosShareRounded } from '@mui/icons-material'
 import { useNotification } from '../context/NotificationContext.jsx'
+import SaglikLoader from './common/SaglikLoader.jsx'
 
 // Gönderiyi Instagram/WhatsApp hikayesi olarak paylaşılabilir bir görsele
 // çeviren dialog. Kart üretimi (canvas -> PNG) generateStoryCard.js'te; bu
@@ -95,7 +96,7 @@ export default function ShareStoryCardDialog({ open, onClose, post }) {
           }}
         >
           {loading ? (
-            <CircularProgress size={28} />
+            <SaglikLoader size="md" />
           ) : previewUrl ? (
             <Box component="img" src={previewUrl} alt="Hikaye kartı önizlemesi" sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           ) : (
@@ -112,7 +113,7 @@ export default function ShareStoryCardDialog({ open, onClose, post }) {
             İndir
           </Button>
           <Button
-            fullWidth variant="contained" startIcon={sharing ? <CircularProgress size={16} color="inherit" /> : <IosShareRounded />}
+            fullWidth variant="contained" startIcon={sharing ? <SaglikLoader size={16} color="inherit" /> : <IosShareRounded />}
             onClick={share} disabled={loading || !blob || sharing} sx={{ minHeight: 44 }}
           >
             Paylaş

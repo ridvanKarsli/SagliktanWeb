@@ -42,7 +42,6 @@ export const LIMITS = Object.freeze({
   // görseli belleğe açmaya çalışıp donmasını önler (sıkıştırınca ~birkaç yüz KB).
   PHOTO_INPUT_MAX_BYTES: 30 * 1024 * 1024,
   SEARCH_MAX: 100, // arama kutuları (backend'de sınır yok, makul üst sınır)
-  DIAGNOSIS_YEAR_MIN: 1900, // HealthProfileRequest @Min(1900); üst sınır içinde bulunulan yıl
 })
 
 // Sunucunun kabul ettiği fotoğraf tipleri (MediaConstraints.ALLOWED_CONTENT_TYPES).
@@ -296,33 +295,13 @@ export function cityError(value) {
   return CITY_SET.has(v) ? null : 'Lütfen listeden bir il seç.'
 }
 
-/* ------------------------------------------------------------------ */
-/* Tanı yılı                                                           */
-/* ------------------------------------------------------------------ */
-
-export function currentYear() {
-  return new Date().getFullYear()
-}
-
-export function isValidDiagnosisYear(year) {
-  if (year == null || year === '') return true // isteğe bağlı
-  const n = Number(year)
-  return Number.isInteger(n) && n >= LIMITS.DIAGNOSIS_YEAR_MIN && n <= currentYear()
-}
-
-// Geçersiz/eski değer => null (seçim kutusu boş görünür).
-export function normalizeDiagnosisYear(year) {
-  return year != null && year !== '' && isValidDiagnosisYear(year) ? Number(year) : null
-}
-
 const ROLE_VALUES = new Set(['PATIENT', 'CAREGIVER', 'PROFESSIONAL', 'OTHER'])
 
 // Sağlık özeti (HealthProfileRequest): kayıtlı/girilen değerleri geçerli
-// kümeye indirger - listede olmayan şehir, aralık dışı yıl, bilinmeyen rol boşalır.
+// kümeye indirger - listede olmayan şehir ve bilinmeyen rol boşalır.
 export function cleanHealthProfile(p = {}) {
   return {
     communityRole: ROLE_VALUES.has(p.communityRole) ? p.communityRole : null,
-    diagnosisYear: normalizeDiagnosisYear(p.diagnosisYear),
     city: normalizeCity(p.city),
     discoverable: !!p.discoverable,
   }
@@ -330,7 +309,6 @@ export function cleanHealthProfile(p = {}) {
 
 export function healthProfileErrors(p = {}) {
   return {
-    diagnosisYear: isValidDiagnosisYear(p.diagnosisYear) ? null : 'Geçerli bir tanı yılı seç.',
     city: cityError(p.city),
   }
 }

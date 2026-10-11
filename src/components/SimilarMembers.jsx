@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { getSimilarMembers } from '../services/api.js'
 import { healthSummaryParts } from '../utils/communityProfile.js'
 import UserAvatar from './avatars/UserAvatar.jsx'
+import IconBadge from './common/IconBadge.jsx'
 import { focusRingSx } from '../design/focus.js'
 
 const DISMISS_KEY = 'sagliktan:similar-invite-dismissed'
@@ -15,7 +16,7 @@ function readDismissed() {
 }
 
 /**
- * "Senin gibi üyeler": aynı gruplarda, benzer rol/tanı yılı/şehirdeki görünür
+ * "Senin gibi üyeler": aynı gruplarda, benzer rol/şehirdeki görünür
  * üyeler - yatay kaydırılan kartlar. Kullanıcı kendisi görünür değilse
  * (karşılıklılık) liste yerine kısa bir davet kartı gösterilir.
  */
@@ -48,7 +49,7 @@ export default function SimilarMembers({ sx }) {
           <CloseRounded fontSize="small" />
         </IconButton>
         <Stack direction="row" spacing={1.5} alignItems="flex-start">
-          <UserAvatar avatarKey="kirpi" size={48} aria-hidden sx={{ flexShrink: 0 }} />
+          <IconBadge icon={Diversity3Rounded} size={48} tone="apricot" sx={{ bgcolor: 'background.paper' }} />
           <Box>
             <Typography variant="h6" component="h2" sx={{ fontFamily: (t) => t.typography.h5.fontFamily, fontWeight: 700, lineHeight: 1.3 }}>Senin gibi olanlarla tanış</Typography>
             <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>

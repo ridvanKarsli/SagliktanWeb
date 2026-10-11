@@ -1,8 +1,9 @@
-import { Box, Button, CircularProgress, Skeleton, Stack, Typography } from '@mui/material'
+import { Box, Button, Skeleton, Stack, Typography } from '@mui/material'
 import { CheckCircleRounded, PeopleAltRounded } from '@mui/icons-material'
 import GroupIcon from './GroupIcon.jsx'
 import { cardActivationProps } from '../../utils/clickable.js'
 import { focusRingSx } from '../../design/focus.js'
+import SaglikLoader from '../common/SaglikLoader.jsx'
 
 const groupCardSx = {
   p: { xs: 2, sm: 2.25 },
@@ -79,7 +80,7 @@ export default function DiseaseGroupCard({ group, joined, pending, onOpen, onJoi
           onClick={handleMembership}
           sx={{ flexShrink: 0, minHeight: 44, minWidth: 92, px: 2.25 }}
         >
-          {pending ? <CircularProgress size={16} color="inherit" aria-label="İşleniyor" /> : (joined ? 'Ayrıl' : 'Katıl')}
+          {pending ? <SaglikLoader size="sm" color="inherit" label="İşleniyor" /> : (joined ? 'Ayrıl' : 'Katıl')}
         </Button>
       </Stack>
     </Box>

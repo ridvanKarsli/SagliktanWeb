@@ -1,17 +1,17 @@
 import { useState } from 'react'
-import { Alert, Box, Button, ButtonBase, Skeleton, Stack, Typography } from '@mui/material'
+import { Alert, Box, Button, ButtonBase, IconButton, Skeleton, Stack, Tooltip, Typography } from '@mui/material'
 import {
-  CheckCircleRounded, ChevronRightRounded, ForumOutlined, GroupsRounded, PlaceOutlined, RadioButtonUncheckedRounded
+  CheckCircleRounded, ChevronRightRounded, CloseRounded, ForumOutlined, GroupsRounded, PlaceOutlined, RadioButtonUncheckedRounded
 } from '@mui/icons-material'
 import { focusRingSx } from '../../design/focus.js'
 
 const sameId = (a, b) => a != null && b != null && String(a) === String(b)
 
 // Adım başlığı: "1  Grubunu seç" - gerçek bir sıra olduğu için numaralı.
-function StepTitle({ step, title, hint }) {
+function StepTitle({ step, title, hint, onClose }) {
   return (
     <Box sx={{ mb: 1 }}>
-      <Stack direction="row" spacing={1} alignItems="center">
+      <Stack direction="row" spacing={1} alignItems="center" sx={{ minHeight: 44 }}>
         <Box
           aria-hidden
           sx={{
@@ -21,7 +21,14 @@ function StepTitle({ step, title, hint }) {
         >
           {step}
         </Box>
-        <Typography variant="subtitle1" component="h3">{title}</Typography>
+        <Typography variant="subtitle1" component="h3" sx={{ flex: 1 }}>{title}</Typography>
+        {onClose && (
+          <Tooltip title="Kapat">
+            <IconButton onClick={onClose} aria-label={`${title} kutusunu kapat`} sx={{ mr: -0.75 }}>
+              <CloseRounded />
+            </IconButton>
+          </Tooltip>
+        )}
       </Stack>
       {hint && (
         <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.25, ml: 4 }}>
@@ -115,17 +122,19 @@ function TopicList({ topics, value, onChange }) {
 }
 
 // Seçim tamamlanınca: "Grup / Konu" özet satırları, her biri "Değiştir" ile.
-function SummaryRow({ icon, label, value, onChange, changeLabel }) {
+function SummaryRow({ icon, label, value, onChange, changeLabel, actionText = 'Değiştir' }) {
   return (
     <Stack direction="row" alignItems="center" spacing={1.25} sx={{ px: 1.5, py: 1 }}>
       <Box sx={{ color: 'primary.main', display: 'flex' }}>{icon}</Box>
       <Box sx={{ flex: 1, minWidth: 0 }}>
         <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', lineHeight: 1.2 }}>{label}</Typography>
-        <Typography variant="body2" sx={{ fontWeight: 800 }} noWrap>{value}</Typography>
+        {value
+          ? <Typography variant="body2" sx={{ fontWeight: 800 }} noWrap>{value}</Typography>
+          : <Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>Henüz seçilmedi</Typography>}
       </Box>
       {onChange && (
         <Button size="small" onClick={onChange} aria-label={changeLabel} sx={{ minHeight: 36, flexShrink: 0 }}>
-          Değiştir
+          {actionText}
         </Button>
       )}
     </Stack>
@@ -157,6 +166,8 @@ export default function PostTargetPicker({
 }) {
   // Kullanıcı "Değiştir"e bastıysa o adım açık kalır; yoksa seçim durumuna göre karar verilir.
   const [editing, setEditing] = useState(null) // null | 'group' | 'topic'
+  // Kullanıcı açık kutuyu "Kapat"la küçülttü mü (seçim yarım kalsa bile özet görünür).
+  const [closed, setClosed] = useState(false)
 
   if (presetSubGroup) {
     return (
@@ -189,17 +200,23 @@ export default function PostTargetPicker({
   const groupName = fixedDgId != null ? fixedDgName : (selectedGroup?.name || (myGroups.length === 1 ? myGroups[0].name : ''))
   const selectedTopic = Array.isArray(subGroups) ? subGroups.find(s => sameId(s.id, subGroupId)) : null
 
-  const showGroupStep = canChooseGroup && (editing === 'group' || diseaseGroupId == null)
-  const showTopicStep = !showGroupStep && diseaseGroupId != null && (editing === 'topic' || !selectedTopic)
+  const showGroupStep = !closed && canChooseGroup && (editing === 'group' || diseaseGroupId == null)
+  const showTopicStep = !closed && !showGroupStep && diseaseGroupId != null && (editing === 'topic' || !selectedTopic)
 
+  const open = (stepName) => { setClosed(false); setEditing(stepName) }
+  // "Kapat": değiştirme modundaysa önceki seçime dön; ilk seçimde kutu özet satırına küçülür.
+  const closeStep = () => { setEditing(null); setClosed(true) }
   const pickGroup = (id) => {
     onDiseaseGroupChange(id)
     setEditing(null)
+    setClosed(false)
   }
   const pickTopic = (id) => {
     onSubGroupChange(id)
     setEditing(null)
+    setClosed(false)
   }
+  const hasTopics = Array.isArray(subGroups) && subGroups.length > 0
 
   return (
     <Box component="section" aria-label="Nereye paylaşıyorsun?">
@@ -209,7 +226,7 @@ export default function PostTargetPicker({
 
       {showGroupStep && (
         <>
-          <StepTitle step={1} title="Grubunu seç" hint="Üye olduğun hastalık grupları" />
+          <StepTitle step={1} title="Grubunu seç" hint="Üye olduğun hastalık grupları" onClose={closeStep} />
           <GroupCards groups={myGroups} value={diseaseGroupId} onChange={pickGroup} />
         </>
       )}
@@ -219,19 +236,21 @@ export default function PostTargetPicker({
           <SummaryRow
             icon={<GroupsRounded />}
             label="Grup"
-            value={groupName}
-            onChange={canChooseGroup ? () => setEditing('group') : null}
-            changeLabel="Grubu değiştir"
+            value={diseaseGroupId != null || fixedDgId != null ? groupName : ''}
+            onChange={canChooseGroup ? () => open('group') : null}
+            changeLabel={diseaseGroupId != null ? 'Grubu değiştir' : 'Grup seç'}
+            actionText={diseaseGroupId != null ? 'Değiştir' : 'Seç'}
           />
-          {selectedTopic && !showTopicStep && (
+          {!showTopicStep && (selectedTopic || (closed && diseaseGroupId != null)) && (
             <>
               <Box sx={{ height: '1px', bgcolor: 'divider', mx: 1.5 }} />
               <SummaryRow
                 icon={<ForumOutlined />}
                 label="Konu"
-                value={selectedTopic.name}
-                onChange={Array.isArray(subGroups) && subGroups.length > 1 ? () => setEditing('topic') : null}
-                changeLabel="Konuyu değiştir"
+                value={selectedTopic?.name || ''}
+                onChange={hasTopics && (!selectedTopic || subGroups.length > 1) ? () => open('topic') : null}
+                changeLabel={selectedTopic ? 'Konuyu değiştir' : 'Konu seç'}
+                actionText={selectedTopic ? 'Değiştir' : 'Seç'}
               />
             </>
           )}
@@ -244,6 +263,7 @@ export default function PostTargetPicker({
             step={canChooseGroup ? 2 : 1}
             title="Konuyu seç"
             hint={groupName ? `${groupName} grubunun içindeki başlıklar` : undefined}
+            onClose={closeStep}
           />
           {subGroups === undefined ? (
             <Stack spacing={0.75}>

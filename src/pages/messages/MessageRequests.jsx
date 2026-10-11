@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Box, Button, ButtonBase, CircularProgress, IconButton, Skeleton, Stack, Tab, Tabs, Typography } from '@mui/material'
-import { ArrowBackRounded } from '@mui/icons-material'
+import { Box, Button, ButtonBase, IconButton, Skeleton, Stack, Tab, Tabs, Typography } from '@mui/material'
+import { ArrowBackRounded, MoveToInboxRounded, OutboxRounded } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
@@ -12,10 +12,10 @@ import {
 import { usePaginatedList } from '../../hooks/usePaginatedList.js'
 import { prettyDate } from '../../utils/format.js'
 import UserAvatar from '../../components/avatars/UserAvatar.jsx'
-import CompanionEmpty from '../../components/avatars/CompanionEmpty.jsx'
+import EmptyState from '../../components/EmptyState.jsx'
 import { radius } from '../../design/tokens.js'
-import '../../styles/companions.css'
-import LoadMoreButton from '../../components/common/LoadMoreButton.jsx'
+import InfiniteScrollSentinel from '../../components/common/InfiniteScrollSentinel.jsx'
+import SaglikLoader from '../../components/common/SaglikLoader.jsx'
 
 const INCOMING = 0
 const OUTGOING = 1
@@ -157,8 +157,8 @@ export default function MessageRequests() {
           <RequestSkeleton /><RequestSkeleton />
         </Box>
       ) : list.items.length === 0 ? (
-        <CompanionEmpty
-          companion={tab === INCOMING ? 'kedi' : 'kirpi'}
+        <EmptyState
+          icon={tab === INCOMING ? MoveToInboxRounded : OutboxRounded}
           title={emptyText}
           description={tab === INCOMING
             ? 'Yeni bir istek geldiğinde sana haber veririz.'
@@ -188,7 +188,7 @@ export default function MessageRequests() {
                         Reddet
                       </Button>
                       <Button variant="contained" disabled={busy} onClick={() => handleAccept(r)}>
-                        {busy ? <CircularProgress size={18} color="inherit" /> : 'Kabul Et'}
+                        {busy ? <SaglikLoader size="sm" color="inherit" /> : 'Kabul Et'}
                       </Button>
                     </Stack>
                   ) : (
@@ -196,7 +196,7 @@ export default function MessageRequests() {
                       variant="outlined" color="error" disabled={busy} onClick={() => handleCancel(r)}
                       sx={{ alignSelf: { xs: 'stretch', sm: 'center' } }}
                     >
-                      {busy ? <CircularProgress size={18} color="inherit" /> : 'Geri Çek'}
+                      {busy ? <SaglikLoader size="sm" color="inherit" /> : 'Geri Çek'}
                     </Button>
                   )}
                 </RequestRow>
@@ -206,7 +206,7 @@ export default function MessageRequests() {
         </Stack>
       )}
 
-      {!list.loading && !list.last && <LoadMoreButton loading={list.loadingMore} onClick={list.loadMore} />}
+      {!list.loading && <InfiniteScrollSentinel key={tab} hasMore={!list.last} loading={list.loadingMore} onLoadMore={list.loadMore} itemCount={list.items.length} />}
     </Box>
   )
 }

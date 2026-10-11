@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Box, Button, Chip, CircularProgress, Stack, Typography } from '@mui/material'
+import { Box, Button, Chip, Stack, Typography } from '@mui/material'
 import LazyListPanel from './LazyListPanel.jsx'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
@@ -7,6 +7,7 @@ import { useConfirm } from '../../context/ConfirmContext.jsx'
 import { useLazyResource } from '../../hooks/useLazyResource.js'
 import { listSessions, revokeSession } from '../../services/api.js'
 import { prettyDate } from '../../utils/format.js'
+import SaglikLoader from '../common/SaglikLoader.jsx'
 
 // Hangi cihazlarda oturum açık + diğer cihazlardaki oturumu sonlandırma.
 export default function ActiveSessionsPanel() {
@@ -60,7 +61,7 @@ export default function ActiveSessionsPanel() {
               onClick={() => handleRevoke(s.id)}
               sx={{ flexShrink: 0 }}
             >
-              {revokingId === s.id ? <CircularProgress size={14} color="inherit" /> : 'Çıkış Yap'}
+              {revokingId === s.id ? <SaglikLoader size="sm" color="inherit" /> : 'Çıkış Yap'}
             </Button>
           )}
         </Stack>

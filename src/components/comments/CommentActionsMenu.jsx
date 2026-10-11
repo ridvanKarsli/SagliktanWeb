@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { CircularProgress, IconButton, ListItemIcon, ListItemText, Menu, MenuItem } from '@mui/material'
+import { IconButton, ListItemIcon, ListItemText, Menu, MenuItem } from '@mui/material'
 import { DeleteOutline, EditOutlined, FlagOutlined, MoreHorizRounded } from '@mui/icons-material'
+import SaglikLoader from '../common/SaglikLoader.jsx'
 
 // Yorumun "⋯" menüsü: yönetebilene düzenle/sil, başkasının yorumunda şikayet et.
 export default function CommentActionsMenu({ canManage, canReport, deleting, onEdit, onDelete, onReport }) {
@@ -28,7 +29,7 @@ export default function CommentActionsMenu({ canManage, canReport, deleting, onE
         {canManage && (
           <MenuItem onClick={runAndClose(onDelete)} disabled={deleting}>
             <ListItemIcon>
-              {deleting ? <CircularProgress size={16} /> : <DeleteOutline fontSize="small" />}
+              {deleting ? <SaglikLoader size="sm" /> : <DeleteOutline fontSize="small" />}
             </ListItemIcon>
             <ListItemText>Sil</ListItemText>
           </MenuItem>

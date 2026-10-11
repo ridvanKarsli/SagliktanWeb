@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import {
-  Box, Button, Skeleton, CircularProgress, Dialog, DialogContent, DialogTitle,
+  Box, Button, Skeleton, Dialog, DialogContent, DialogTitle,
   IconButton, Stack, Typography, useMediaQuery
 } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
@@ -11,6 +11,7 @@ import SlideUp from './shell/SlideUp.jsx'
 import { useDialogHistory } from '../hooks/useDialogHistory.js'
 import { useNotification } from '../context/NotificationContext.jsx'
 import { listConversations, sendChatMessage } from '../services/api.js'
+import SaglikLoader from './common/SaglikLoader.jsx'
 
 // Bir gönderiyi mevcut sohbetlerden birine mesaj olarak gönderme. Yalnızca
 // zaten kabul edilmiş konuşmalar listelenir; canMessage=false olanlar (bir
@@ -119,7 +120,7 @@ export default function SendPostDialog({ open, onClose, post }) {
                       sent
                         ? <CheckCircleRounded fontSize="small" />
                         : sendingId === c.id
-                          ? <CircularProgress size={14} />
+                          ? <SaglikLoader size="sm" />
                           : <SendRounded fontSize="small" />
                     }
                     onClick={() => handleSend(c.id)}

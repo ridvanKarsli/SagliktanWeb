@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Box, Button, CircularProgress, Stack, TextField, Typography } from '@mui/material'
+import { Box, Button, Stack, TextField, Typography } from '@mui/material'
 import CityField from './CityField.jsx'
 import UserAvatar from '../avatars/UserAvatar.jsx'
 import { radius } from '../../design/tokens.js'
@@ -11,6 +11,7 @@ import {
   LIMITS, bioError, cityError, cleanLine, cleanText, clampLength, counterText, fieldErrorsFrom, isAtLimit,
   nameError, normalizeCity
 } from '../../utils/validation.js'
+import SaglikLoader from '../common/SaglikLoader.jsx'
 
 const fieldsFrom = (user) => ({
   firstName: user?.firstName || '',
@@ -125,7 +126,7 @@ export default function ProfileEditForm({ onDone, onEditAvatar }) {
         <Stack direction="row" spacing={1} justifyContent="flex-end">
           <Button onClick={onDone} disabled={saving} sx={{ minHeight: 44 }}>Vazgeç</Button>
           <Button type="submit" variant="contained" disabled={saving || !dirty} sx={{ minHeight: 44, minWidth: 96 }}>
-            {saving ? <CircularProgress size={16} color="inherit" /> : 'Kaydet'}
+            {saving ? <SaglikLoader size="sm" color="inherit" /> : 'Kaydet'}
           </Button>
         </Stack>
       </Stack>

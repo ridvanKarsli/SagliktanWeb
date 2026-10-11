@@ -1,5 +1,6 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { Box, Button, CircularProgress, Skeleton, Typography } from '@mui/material'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { Box, Button, Skeleton, Typography } from '@mui/material'
+import { WavingHandRounded } from '@mui/icons-material'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
@@ -12,9 +13,9 @@ import ChatHeader, { ChatHeaderSkeleton } from '../../components/chat/ChatHeader
 import MessageBubble from '../../components/chat/MessageBubble.jsx'
 import ChatComposer from '../../components/chat/ChatComposer.jsx'
 import ReportDialog from '../../components/comments/ReportDialog.jsx'
-import Companion from '../../components/avatars/Companion.jsx'
+import IconBadge from '../../components/common/IconBadge.jsx'
 import { radius } from '../../design/tokens.js'
-import '../../styles/companions.css'
+import InfiniteScrollSentinel from '../../components/common/InfiniteScrollSentinel.jsx'
 
 const PAGE_SX = { width: '100%', maxWidth: 680, mx: 'auto', display: 'flex', flexDirection: 'column', height: { xs: 'calc(100dvh - 128px)', md: 'calc(100dvh - 32px)' } }
 
@@ -65,6 +66,9 @@ export default function Chat() {
   const initialIdsRef = useRef(null)
 
   const listRef = useRef(null)
+  // Gözcünün kaydırma kabı olarak izleyebilmesi için eleman state'te de tutulur.
+  const [listEl, setListEl] = useState(null)
+  const setListRef = useCallback((el) => { listRef.current = el; setListEl(el) }, [])
   const bottomRef = useRef(null)
   // Eski mesajlar üste eklenince görünen yer zıplamasın: eklemeden önceki
   // yüksekliği saklayıp aradaki fark kadar kaydırma telafi edilir.
@@ -137,17 +141,18 @@ export default function Chat() {
         onUnblock={chat.unblock}
       />
 
-      <Box ref={listRef} sx={{ flex: 1, overflowY: 'auto', px: { xs: 0.5, md: 0 }, py: 2 }}>
-        {chat.hasMoreOlder && (
-          <Box sx={{ textAlign: 'center', mb: 2 }}>
-            <Button size="small" onClick={loadOlder} disabled={chat.loadingOlder} sx={{ minHeight: 44 }}>
-              {chat.loadingOlder ? <CircularProgress size={16} /> : 'Daha eski mesajları yükle'}
-            </Button>
-          </Box>
-        )}
+      <Box ref={setListRef} sx={{ flex: 1, overflowY: 'auto', px: { xs: 0.5, md: 0 }, py: 2 }}>
+        {/* Yukarı kaydırınca eski mesajlar kendiliğinden gelir; görünen yer
+            prependAnchorRef ile korunur. Sabit yükseklik: gösterge belirip
+            kaybolurken mesajlar zıplamasın. */}
+        <InfiniteScrollSentinel
+          dense root={listEl} rootMargin="300px 0px"
+          hasMore={chat.hasMoreOlder} loading={chat.loadingOlder} onLoadMore={loadOlder} itemCount={chat.messages.length}
+          sx={{ minHeight: 72, py: 1, mb: 1 }}
+        />
         {chat.messages.length === 0 && (
           <Box sx={{ textAlign: 'center', py: 4, px: 2 }}>
-            <Box className="sg-float" sx={{ display: 'inline-block', mb: 1.5 }}><Companion name="serce" size={72} /></Box>
+            <IconBadge icon={WavingHandRounded} size={60} tone="apricot" sx={{ mx: 'auto', mb: 1.5 }} />
             <Typography variant="h5" component="p">İlk mesajı sen yaz</Typography>
             <Typography variant="body2" sx={{ color: 'text.secondary', maxWidth: 340, mx: 'auto' }}>
               Kısa bir selam yeter. Burada konuştuklarınızı yalnızca ikiniz görürsünüz.

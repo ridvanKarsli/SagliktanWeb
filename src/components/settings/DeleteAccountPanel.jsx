@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Alert, Box, Button, CircularProgress, Stack, Typography } from '@mui/material'
+import { Alert, Box, Button, Stack, Typography } from '@mui/material'
 import { useNavigate } from 'react-router-dom'
 import PasswordField from '../PasswordField.jsx'
 import { useAuth } from '../../context/AuthContext.jsx'
@@ -7,6 +7,7 @@ import { useNotification } from '../../context/NotificationContext.jsx'
 import { deleteAccount } from '../../services/api.js'
 import { useFormValidation } from '../../hooks/useFormValidation.js'
 import { currentPasswordError, fieldErrorsFrom, fieldFromMessage } from '../../utils/validation.js'
+import SaglikLoader from '../common/SaglikLoader.jsx'
 
 const validate = (f) => ({ password: currentPasswordError(f.password) })
 const MESSAGE_FIELDS = [[/şifre/i, 'password']]
@@ -55,7 +56,7 @@ export default function DeleteAccountPanel({ onCancel }) {
           />
           <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
             <Button type="submit" variant="contained" color="error" disabled={deleting}>
-              {deleting ? <CircularProgress size={14} color="inherit" /> : 'Evet, Hesabımı Sil'}
+              {deleting ? <SaglikLoader size="sm" color="inherit" /> : 'Evet, Hesabımı Sil'}
             </Button>
             <Button onClick={onCancel} disabled={deleting}>Vazgeç</Button>
           </Stack>

@@ -1,8 +1,9 @@
-import { Button, CircularProgress, Stack, TextField } from '@mui/material'
+import { Button, Stack, TextField } from '@mui/material'
 import { useFormValidation } from '../../hooks/useFormValidation.js'
 import {
   LIMITS, clampLength, counterText, isAtLimit, postContentError, postTitleError
 } from '../../utils/validation.js'
+import SaglikLoader from '../common/SaglikLoader.jsx'
 
 const validate = (f) => ({ title: postTitleError(f.title), content: postContentError(f.content) })
 
@@ -46,7 +47,7 @@ export default function PostEditForm({ title, onTitleChange, content, onContentC
       />
       <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
         <Button variant="contained" onClick={save} disabled={saving}>
-          {saving ? <CircularProgress size={16} color="inherit" /> : 'Kaydet'}
+          {saving ? <SaglikLoader size="sm" color="inherit" /> : 'Kaydet'}
         </Button>
         <Button onClick={onCancel} disabled={saving}>İptal</Button>
       </Stack>

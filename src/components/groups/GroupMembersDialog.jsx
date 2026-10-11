@@ -1,10 +1,11 @@
+import { useState } from 'react'
 import {
   Box, ButtonBase, Dialog, DialogContent, DialogTitle, IconButton, Skeleton, Stack, Typography, useMediaQuery
 } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
-import { ChevronRightRounded, CloseRounded } from '@mui/icons-material'
+import { ChevronRightRounded, CloseRounded, PeopleAltOutlined } from '@mui/icons-material'
 import EmptyState from '../EmptyState.jsx'
-import LoadMoreButton from '../common/LoadMoreButton.jsx'
+import InfiniteScrollSentinel from '../common/InfiniteScrollSentinel.jsx'
 import UserAvatar from '../avatars/UserAvatar.jsx'
 import SlideUp from '../shell/SlideUp.jsx'
 import { useDialogHistory } from '../../hooks/useDialogHistory.js'
@@ -24,6 +25,8 @@ function MemberRowSkeleton() {
 export default function GroupMembersDialog({ open, onClose, members, loading, loadingMore, hasMore, onLoadMore, onOpenProfile }) {
   const theme = useTheme()
   const fullScreen = useMediaQuery(theme.breakpoints.down('sm'))
+  // Liste dialog içinde kayar: sonsuz kaydırma gözcüsü bu kabı izler.
+  const [scrollEl, setScrollEl] = useState(null)
   useDialogHistory(open && fullScreen, onClose)
   return (
     <Dialog
@@ -44,13 +47,13 @@ export default function GroupMembersDialog({ open, onClose, members, loading, lo
           <CloseRounded />
         </IconButton>
       </DialogTitle>
-      <DialogContent dividers sx={{ p: 0 }}>
+      <DialogContent ref={setScrollEl} dividers sx={{ p: 0 }}>
         {loading ? (
           <Box role="status" aria-label="Üyeler yükleniyor">
             {[0, 1, 2, 3, 4].map(i => <MemberRowSkeleton key={i} />)}
           </Box>
         ) : members.length === 0 ? (
-          <EmptyState companion="serce" title="Henüz üye yok" description="İlk katılan sen olabilirsin." dense />
+          <EmptyState icon={PeopleAltOutlined} title="Henüz üye yok" description="İlk katılan sen olabilirsin." dense />
         ) : (
           <Stack sx={{ py: 0.5 }}>
             {members.map(m => {
@@ -76,7 +79,9 @@ export default function GroupMembersDialog({ open, onClose, members, loading, lo
             })}
           </Stack>
         )}
-        {!loading && hasMore && <LoadMoreButton dense loading={loadingMore} onClick={onLoadMore} />}
+        {!loading && (
+          <InfiniteScrollSentinel dense root={scrollEl} rootMargin="240px 0px" hasMore={hasMore} loading={loadingMore} onLoadMore={onLoadMore} itemCount={members.length} />
+        )}
       </DialogContent>
     </Dialog>
   )

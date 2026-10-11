@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Box, Button, CircularProgress, Stack } from '@mui/material'
+import { Box, Button, Stack } from '@mui/material'
 import PasswordField from '../PasswordField.jsx'
 import PasswordStrengthMeter from '../PasswordStrengthMeter.jsx'
 import { useAuth } from '../../context/AuthContext.jsx'
@@ -9,6 +9,7 @@ import { useFormValidation } from '../../hooks/useFormValidation.js'
 import {
   LIMITS, confirmPasswordError, currentPasswordError, fieldErrorsFrom, fieldFromMessage, newPasswordError
 } from '../../utils/validation.js'
+import SaglikLoader from '../common/SaglikLoader.jsx'
 
 const validate = (f) => ({
   currentPassword: currentPasswordError(f.currentPassword),
@@ -68,7 +69,7 @@ export default function ChangePasswordForm({ onDone }) {
         />
         <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
           <Button type="submit" variant="contained" disabled={saving}>
-            {saving ? <CircularProgress size={16} color="inherit" /> : 'Şifreyi Değiştir'}
+            {saving ? <SaglikLoader size="sm" color="inherit" /> : 'Şifreyi Değiştir'}
           </Button>
           <Button onClick={onDone} disabled={saving}>İptal</Button>
         </Stack>

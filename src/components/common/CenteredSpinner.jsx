@@ -1,12 +1,15 @@
-import { Box, CircularProgress } from '@mui/material'
+import { Box } from '@mui/material'
+import SaglikLoader from './SaglikLoader.jsx'
+import PageLoader from './PageLoader.jsx'
 
 // Sayfa/bölüm yüklenirken ortada duran tek tip gösterge.
-//   page: tam sayfa yüklemesi (daha yüksek alan, daha büyük ikon)
-//   varsayılan: bir sekme/liste bölümü
-export default function CenteredSpinner({ page = false, size, py }) {
+//   page: tam sayfa yüklemesi (PageLoader: büyük filiz + açıklama)
+//   varsayılan: bir sekme/liste bölümü (orta boy filiz)
+export default function CenteredSpinner({ page = false, size = 'md', py }) {
+  if (page) return <PageLoader minHeight={300} sx={py != null ? { py } : undefined} />
   return (
-    <Box sx={{ display: 'grid', placeItems: 'center', py: py ?? (page ? 6 : 4), minHeight: page ? 300 : undefined }}>
-      <CircularProgress size={size ?? (page ? 28 : 22)} aria-label="Yükleniyor" />
+    <Box sx={{ display: 'grid', placeItems: 'center', py: py ?? 4 }}>
+      <SaglikLoader size={size} />
     </Box>
   )
 }

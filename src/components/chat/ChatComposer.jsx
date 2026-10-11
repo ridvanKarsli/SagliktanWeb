@@ -1,8 +1,9 @@
 import { useRef } from 'react'
-import { Box, CircularProgress, IconButton, InputBase, Stack, Typography } from '@mui/material'
+import { Box, IconButton, InputBase, Stack, Typography } from '@mui/material'
 import { CloseRounded, ImageOutlined, SendRounded } from '@mui/icons-material'
 import { LIMITS, clampLength, counterText, isBlank } from '../../utils/validation.js'
 import { radius } from '../../design/tokens.js'
+import SaglikLoader from '../common/SaglikLoader.jsx'
 
 // Mesaj yazma alanı: fotoğraf eki (önizleme + kaldır), metin, gönder.
 // Enter gönderir, Shift+Enter yeni satır.
@@ -20,7 +21,7 @@ export default function ChatComposer({ draft, onDraftChange, attachment, onAttac
           )}
           {attachment.status !== 'done' && (
             <Box sx={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center' }}>
-              <CircularProgress size={20} aria-label="Fotoğraf yükleniyor" />
+              <SaglikLoader size="sm" label="Fotoğraf yükleniyor" />
             </Box>
           )}
           <IconButton
@@ -79,7 +80,7 @@ export default function ChatComposer({ draft, onDraftChange, attachment, onAttac
             '&.Mui-disabled': { bgcolor: 'action.selected', color: 'text.disabled' },
           }}
         >
-          {sending ? <CircularProgress size={20} color="inherit" /> : <SendRounded sx={{ fontSize: 22, ml: 0.25 }} />}
+          {sending ? <SaglikLoader size="sm" color="inherit" /> : <SendRounded sx={{ fontSize: 22, ml: 0.25 }} />}
         </IconButton>
       </Stack>
       {counter && (

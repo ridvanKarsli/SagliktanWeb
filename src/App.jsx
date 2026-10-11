@@ -1,6 +1,5 @@
 import { Suspense, lazy } from 'react'
 import { Routes, Route, Outlet } from 'react-router-dom'
-import { Box, CircularProgress } from '@mui/material'
 import Login from './pages/Login.jsx'
 import ProtectedRoute from './components/ProtectedRoute.jsx'
 import PublicOnlyRoute from './components/PublicOnlyRoute.jsx'
@@ -8,6 +7,7 @@ import AdminRoute from './components/AdminRoute.jsx'
 import ResponsiveShell from './components/ResponsiveShell.jsx'
 import RouteErrorBoundary from './components/RouteErrorBoundary.jsx'
 import WelcomeScreen from './components/WelcomeScreen.jsx'
+import PageLoader from './components/common/PageLoader.jsx'
 
 // Kontrol listesi "CSS/JS minify, kritik CSS inline" + rapor yol haritası
 // "Route bazlı code splitting" maddesi: önceden tüm sayfalar tek bir 841KB
@@ -40,15 +40,11 @@ const Chat = lazy(() => import('./pages/messages/Chat.jsx'))
 const MessageRequests = lazy(() => import('./pages/messages/MessageRequests.jsx'))
 const AdminPanel = lazy(() => import('./pages/admin/AdminPanel.jsx'))
 
-// Sayfa geçişlerinde kısa bir an görünebilecek yükleme göstergesi -
-// uygulama genelinde zaten kullanılan "ortada küçük CircularProgress"
-// deseniyle tutarlı (bkz. skeleton/loading kullanımları).
+// Sayfa geçişlerinde (lazy route chunk'ı inerken) görünen gösterge:
+// Sağlıktan filizi. Hızlı geçişlerde hiç görünmesin diye kısa bir
+// gecikmeyle belirir (bkz. index.css .sg-loader-enter).
 function RouteFallback() {
-  return (
-    <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-      <CircularProgress size={28} />
-    </Box>
-  )
+  return <PageLoader minHeight="60vh" />
 }
 
 // RouteErrorBoundary: bir sayfanın hatası kabuğu (üst bar/alt menü) ayakta

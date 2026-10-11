@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Alert, Box, CircularProgress, InputAdornment, Skeleton, TextField, Typography } from '@mui/material'
-import { SearchRounded } from '@mui/icons-material'
+import { Alert, Box, InputAdornment, Skeleton, TextField, Typography } from '@mui/material'
+import { GroupsRounded, SearchOffRounded, SearchRounded } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { listDiseaseGroups } from '../../services/api.js'
@@ -10,6 +10,7 @@ import { useMyDiseaseGroups } from '../../hooks/useMyDiseaseGroups.js'
 import EmptyState from '../../components/EmptyState.jsx'
 import DiseaseGroupCard, { DiseaseGroupCardSkeleton } from '../../components/groups/DiseaseGroupCard.jsx'
 import { LIMITS, clampLength } from '../../utils/validation.js'
+import SaglikLoader from '../../components/common/SaglikLoader.jsx'
 
 // Tüm hastalık gruplarının listesi + arama (backend prefix/fuzzy tam metin
 // araması). Kullanıcının katıldıkları işaretlenir; katıl/ayrıl buradan da yapılır.
@@ -103,7 +104,7 @@ export default function DiseaseGroups() {
     if (!hasAnyGroup && !error) {
       return (
         <EmptyState
-          companion="ayicik"
+          icon={GroupsRounded}
           title="Henüz hiç grup açılmamış"
           description="İlk grup açıldığında burada göreceksin."
         />
@@ -113,7 +114,7 @@ export default function DiseaseGroups() {
       if (error) return null
       return (
         <EmptyState
-          companion="bulut"
+          icon={SearchOffRounded}
           title={`“${debouncedQuery}” ile eşleşen grup bulamadık`}
           description="Hastalığın farklı bir adıyla ya da daha kısa bir kelimeyle yeniden dene."
         />
@@ -169,7 +170,7 @@ export default function DiseaseGroups() {
               ),
               endAdornment: loading ? (
                 <InputAdornment position="end">
-                  <CircularProgress size={16} aria-label="Aranıyor" />
+                  <SaglikLoader size="sm" label="Aranıyor" />
                 </InputAdornment>
               ) : undefined
             },

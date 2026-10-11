@@ -106,6 +106,67 @@ img, video, iframe {
 /* Boş durumlardaki yoldaş avatarı hafifçe süzülür. */
 .sg-float { animation: sg-float 3.2s ease-in-out infinite; }
 
+/* ---- Sağlıktan yükleme göstergesi (bkz. components/common/SaglikLoader.jsx) ----
+   Filiz: iki yaprak sapın ucunda yavaşça açılıp kapanır, etrafında üç tohum
+   noktası nefes alarak döner. Küçük boy (buton içi) yalnızca sırayla
+   kabaran üç yaprak tanesidir. Renkler bileşenin verdiği CSS
+   değişkenlerinden gelir (--sg-ld-*). Animasyonsuz hali tam açık, durgun
+   filizdir - azaltılmış harekette o görünür. */
+@keyframes sg-loader-orbit {
+  to { transform: rotate(360deg); }
+}
+@keyframes sg-loader-seed {
+  0%, 100% { transform: scale(0.55); opacity: 0.4; }
+  50% { transform: scale(1); opacity: 1; }
+}
+@keyframes sg-loader-leaf-l {
+  0%, 100% { transform: rotate(16deg) scale(0.86); }
+  50% { transform: rotate(-5deg) scale(1); }
+}
+@keyframes sg-loader-leaf-r {
+  0%, 100% { transform: rotate(-16deg) scale(0.86); }
+  50% { transform: rotate(5deg) scale(1); }
+}
+@keyframes sg-loader-sprout {
+  0%, 100% { transform: scaleY(0.94); }
+  50% { transform: scaleY(1); }
+}
+@keyframes sg-loader-bud {
+  0%, 70%, 100% { transform: scale(0.6); opacity: 0.45; }
+  35% { transform: scale(1); opacity: 1; }
+}
+
+.sg-loader-enter { animation: sg-fade 280ms var(--ease-flow) 120ms both; }
+.sg-loader svg { display: block; overflow: visible; }
+.sg-loader .sg-ld-orbit {
+  transform-box: view-box; transform-origin: 24px 24px;
+  animation: sg-loader-orbit 3.2s linear infinite;
+}
+.sg-loader .sg-ld-seed {
+  transform-box: fill-box; transform-origin: center;
+  animation: sg-loader-seed 1.6s ease-in-out infinite;
+}
+.sg-loader .sg-ld-seed:nth-child(2) { animation-delay: -1.07s; }
+.sg-loader .sg-ld-seed:nth-child(3) { animation-delay: -0.53s; }
+.sg-loader .sg-ld-sprout {
+  transform-box: view-box; transform-origin: 24px 37px;
+  animation: sg-loader-sprout 2.4s ease-in-out infinite;
+}
+.sg-loader .sg-ld-leaf-l,
+.sg-loader .sg-ld-leaf-r {
+  transform-box: view-box; transform-origin: 24px 25px;
+  animation: sg-loader-leaf-l 2.4s var(--ease-flow) infinite;
+}
+.sg-loader .sg-ld-leaf-r { animation-name: sg-loader-leaf-r; animation-delay: -0.15s; }
+.sg-loader .sg-ld-bud {
+  transform-box: fill-box; transform-origin: center;
+  animation: sg-loader-bud 1.2s ease-in-out infinite;
+}
+.sg-loader .sg-ld-bud:nth-child(2) { animation-delay: 0.16s; }
+.sg-loader .sg-ld-bud:nth-child(3) { animation-delay: 0.32s; }
+/* Çekerek yenilemede çekiş sırasında hareket yok; filiz el ile açılır. */
+.sg-loader[data-still] *, .sg-loader[data-still] { animation: none !important; }
+
 /* Dokunma geri bildirimi (kartlar, satırlar). */
 .tap-scale { transition: transform 160ms var(--ease-spring); }
 .tap-scale:active { transform: scale(0.985); }
@@ -119,4 +180,6 @@ img, video, iframe {
   /* Basınca küçülme efektleri de kapanır (MUI Button/IconButton/Fab tema
      içinde aynı sorguyla kapatılıyor - bkz. theme.js). */
   .tap-scale:active { transform: none; }
+  /* Yükleme göstergesi durgun, tam açık filiz olarak kalır. */
+  .sg-loader, .sg-loader * { animation: none !important; }
 }

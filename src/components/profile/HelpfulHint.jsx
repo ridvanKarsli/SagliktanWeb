@@ -3,6 +3,7 @@ import { ChevronRightRounded } from '@mui/icons-material'
 import Companion from '../avatars/Companion.jsx'
 import { nextCompanion, useAvatarOptions } from '../avatars/avatarUnlocks.js'
 import { radius } from '../../design/tokens.js'
+import '../../styles/companions.css'
 
 /**
  * Profilde istatistiklerin altında küçük ipucu: yeni açılan yol arkadaşı

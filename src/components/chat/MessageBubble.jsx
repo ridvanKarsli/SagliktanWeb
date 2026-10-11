@@ -3,6 +3,7 @@ import { FlagOutlined } from '@mui/icons-material'
 import SharedPostPreview from './SharedPostPreview.jsx'
 import { radius } from '../../design/tokens.js'
 import { parseServerDate } from '../../utils/format.js'
+import '../../styles/companions.css'
 
 const BIG = `${radius.lg}px`
 const SMALL = '6px'

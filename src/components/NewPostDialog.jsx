@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  Alert, Box, Button, CircularProgress, Dialog, FormHelperText, IconButton, Stack, TextField,
+  Alert, Box, Button, Dialog, FormHelperText, IconButton, Stack, TextField,
   ToggleButton, ToggleButtonGroup, Typography, useMediaQuery, useTheme
 } from '@mui/material'
 import { CloseRounded, ForumOutlined, InfoOutlined } from '@mui/icons-material'
@@ -28,6 +28,7 @@ import { useDialogHistory } from '../hooks/useDialogHistory.js'
 import {
   clampLength, cleanLine, cleanText, counterText, fieldErrorsFrom, isAtLimit, postContentError, postTitleError
 } from '../utils/validation.js'
+import SaglikLoader from './common/SaglikLoader.jsx'
 
 const CONTENT_EMPTY = {
   DISCUSSION: 'Paylaşmak istediğin metni yaz.',
@@ -363,7 +364,7 @@ export default function NewPostDialog({
             Yeni gönderi
           </Typography>
           <Button type="submit" variant="contained" disabled={!canSubmit} sx={{ minHeight: 44, minWidth: 96, mr: 0.5 }}>
-            {submitting ? <CircularProgress size={18} color="inherit" /> : 'Paylaş'}
+            {submitting ? <SaglikLoader size="sm" color="inherit" /> : 'Paylaş'}
           </Button>
         </Stack>
 
@@ -392,7 +393,7 @@ export default function NewPostDialog({
                 severity="warning"
                 action={
                   <Button color="inherit" size="small" onClick={joinFixedGroup} disabled={joinPendingId != null} sx={{ minHeight: 36 }}>
-                    {joinPendingId != null ? <CircularProgress size={16} color="inherit" /> : 'Katıl'}
+                    {joinPendingId != null ? <SaglikLoader size="sm" color="inherit" /> : 'Katıl'}
                   </Button>
                 }
               >

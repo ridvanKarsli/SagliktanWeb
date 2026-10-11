@@ -1,5 +1,6 @@
 import { useCallback } from 'react'
 import { Alert, Box, Button, Stack, Typography } from '@mui/material'
+import { ChatBubbleOutlineRounded, LinkOffRounded, QuestionAnswerOutlined } from '@mui/icons-material'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import ReportDialog from '../components/comments/ReportDialog.jsx'
@@ -55,7 +56,7 @@ export default function PostDetail() {
       <Box sx={{ py: { xs: 2, md: 4 } }}>
         <BackLink label="Geri dön" />
         <EmptyState
-          companion="bulut"
+          icon={LinkOffRounded}
           title="Bu gönderiyi açamadık"
           description={`${error || 'Gönderi bulunamadı.'} Silinmiş olabilir ya da bağlantı kopmuş olabilir; biraz sonra yeniden deneyebilirsin.`}
           actionLabel="Akışa dön"
@@ -176,7 +177,7 @@ export default function PostDetail() {
             </Box>
           ) : comments.comments.length === 0 ? (
             <EmptyState
-              companion={isQuestion ? 'baykus' : 'serce'}
+              icon={isQuestion ? QuestionAnswerOutlined : ChatBubbleOutlineRounded}
               title={isQuestion ? 'Henüz cevap yok' : 'Henüz yorum yok'}
               description={isMember
                 ? 'İlk yazan sen ol; küçük bir deneyim bile birinin yolunu aydınlatabilir.'

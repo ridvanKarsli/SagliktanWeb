@@ -1,4 +1,4 @@
-import { Box, CircularProgress, IconButton, Stack, TextField } from '@mui/material'
+import { Box, IconButton, Stack, TextField } from '@mui/material'
 import { SendRounded } from '@mui/icons-material'
 import UserAvatar from '../avatars/UserAvatar.jsx'
 import DictationButton from '../a11y/DictationButton.jsx'
@@ -6,6 +6,7 @@ import { useAuth } from '../../context/AuthContext.jsx'
 import { appendDictation } from '../../utils/speech.js'
 import { clampLength, counterText, isBlank } from '../../utils/validation.js'
 import { COMMENT_MAX_LENGTH } from './commentLimits.js'
+import SaglikLoader from '../common/SaglikLoader.jsx'
 
 // Gönderi altındaki yeni yorum kutusu (yazı + sesle yazma + gönder).
 // onChange bir state setter'ı gibi davranır (fonksiyonel güncellemeyi de
@@ -55,7 +56,7 @@ export default function CommentComposer({ value, onChange, onSubmit, submitting,
             '&.Mui-disabled': { bgcolor: 'action.selected', color: 'text.secondary' }
           }}
         >
-          {submitting ? <CircularProgress size={20} color="inherit" /> : <SendRounded sx={{ fontSize: 20, ml: '2px' }} />}
+          {submitting ? <SaglikLoader size="sm" color="inherit" /> : <SendRounded sx={{ fontSize: 20, ml: '2px' }} />}
         </IconButton>
       </Stack>
     </Box>

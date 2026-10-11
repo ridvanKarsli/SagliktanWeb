@@ -107,7 +107,6 @@ function mapUser(u) {
     role: u.role,
     emailVerified: !!u.emailVerified,
     communityRole: u.communityRole || null,
-    diagnosisYear: u.diagnosisYear ?? null,
     city: u.city || '',
     discoverable: !!u.discoverable,
     // Eski backend alanı hiç göndermiyorsa (undefined) karşılamaya zorlama.
@@ -197,8 +196,8 @@ export function AuthProvider({ children }) {
   // Kayıt sonrası kullanıcı e-postasındaki linke tıklayıp login sayfasına gelmeli.
   // kvkkConsent: backend @AssertTrue ile zorunlu kılıyor, kayıt formundaki
   // onay kutusu işaretlenmeden bu istek 400 ile reddedilir.
-  async function register({ email, password, firstName, lastName, kvkkConsent, city }) {
-    const created = await registerUser({ email, password, firstName, lastName, kvkkConsent, city })
+  async function register(details) {
+    const created = await registerUser(details)
     return mapUser(created)
   }
 

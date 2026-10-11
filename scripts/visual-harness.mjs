@@ -12,7 +12,7 @@ const iso = (minsAgo) => new Date(now.getTime() - minsAgo * 60000).toISOString()
 const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url')
 const jwt = (type) => `${b64({ alg: 'HS256' })}.${b64({ sub: 'ayse@example.com', type, sid: 's1', exp: Math.floor(Date.now() / 1000) + 86400 })}.sig`
 
-const me = { id: 1, email: 'ayse@example.com', firstName: 'Ayşe', lastName: 'Demir', bio: 'RP tanısı 2021. Kızım için buradayım.', role: process.env.ROLE || 'ADMIN', emailVerified: true, communityRole: 'CAREGIVER', diagnosisYear: 2021, city: 'İzmir', discoverable: process.env.DISCOVERABLE !== '0', onboardingCompleted: process.env.ONBOARDED !== '0', weeklyDigestEnabled: true, createdAt: iso(99999), postCount: 12, commentCount: 48, likesReceived: 130, dislikesReceived: 3 }
+const me = { id: 1, email: 'ayse@example.com', firstName: 'Ayşe', lastName: 'Demir', bio: 'RP tanısı 2021. Kızım için buradayım.', role: process.env.ROLE || 'ADMIN', emailVerified: true, communityRole: 'CAREGIVER', city: 'İzmir', discoverable: process.env.DISCOVERABLE !== '0', onboardingCompleted: process.env.ONBOARDED !== '0', weeklyDigestEnabled: true, createdAt: iso(99999), postCount: 12, commentCount: 48, likesReceived: 130, dislikesReceived: 3 }
 // [profil/avatar] yol arkadaşları kataloğu (backend AvatarCatalog ile aynı) + avatarKey alanları
 me.avatarKey = process.env.NOAVATAR ? null : 'kirpi'
 const HELPFUL = Number(process.env.HELPFUL ?? 27)
@@ -97,9 +97,9 @@ function route(url, method, req) {
   if (p === '/users/me/avatar' && method === 'PUT') { me.avatarKey = req?.postDataJSON()?.avatarKey ?? null; return me }
   if (p === '/users/me') return me
   if (p === '/users/me/similar') return [
-    { id: 11, firstName: 'Zeynep', lastName: 'Arslan', communityRole: 'CAREGIVER', diagnosisYear: 2020, city: 'İzmir', sharedGroups: ['Retinitis Pigmentosa'], reasons: ['Senin gibi hasta yakını', 'Tanı yılınız yakın'], avatarKey: 'papatya' },
-    { id: 12, firstName: 'Ali', lastName: 'Yılmaz', communityRole: 'PATIENT', diagnosisYear: 2019, city: 'Ankara', sharedGroups: ['Retinitis Pigmentosa', 'Multipl Skleroz'], reasons: [], avatarKey: 'gunes' },
-    { id: 13, firstName: 'Fatma', lastName: 'Çelik', communityRole: 'CAREGIVER', diagnosisYear: null, city: 'İzmir', sharedGroups: ['Retinitis Pigmentosa'], reasons: ['Aynı şehirdesiniz'] },
+    { id: 11, firstName: 'Zeynep', lastName: 'Arslan', communityRole: 'CAREGIVER', city: 'İzmir', sharedGroups: ['Retinitis Pigmentosa'], reasons: ['Senin gibi hasta yakını'], avatarKey: 'papatya' },
+    { id: 12, firstName: 'Ali', lastName: 'Yılmaz', communityRole: 'PATIENT', city: 'Ankara', sharedGroups: ['Retinitis Pigmentosa', 'Multipl Skleroz'], reasons: [], avatarKey: 'gunes' },
+    { id: 13, firstName: 'Fatma', lastName: 'Çelik', communityRole: 'CAREGIVER', city: 'İzmir', sharedGroups: ['Retinitis Pigmentosa'], reasons: ['Aynı şehirdesiniz'] },
   ]
   if (p === '/posts/open-questions') return page([{ ...post(2), subGroupName: 'Soru-Cevap', diseaseGroupName: 'Retinitis Pigmentosa' }, { ...post(0), acceptedCommentId: null, commentCount: 1, subGroupName: 'Soru-Cevap', diseaseGroupName: 'Retinitis Pigmentosa' }])
   if (p === '/users/me/disease-groups') return groups
@@ -144,7 +144,7 @@ const shots = [
   ['home', '/home'], ['groups', '/groups'],
   // [akış] iskelet çekimleri + bildirim menüsü + boş arama
   ['home-loading', '/home'], ['groups-loading', '/groups'], ['subgroups-loading', '/groups/1'], ['posts-loading', '/sub-groups/2'], ['post-detail-loading', '/post/1'], ['search-loading', '/search?q=gece'], ['notifications', '/home'], ['search-empty', '/search'], ['subgroups', '/groups/1'], ['posts', '/sub-groups/2'], ['post-detail', '/post/1'],
-  ['search', '/search?q=gece'], ['profile', '/profile'], ['profile-groups', '/profile?tab=groups'], ['profile-groups-menu', '/profile?tab=groups'], ['profile-leave-confirm', '/profile?tab=groups'], ['profile-left', '/profile?tab=groups'], ['profile-edit', '/profile'], ['home-compose', '/home'], ['home-questions', '/home?tab=questions'], ['compose-poll', '/home'], ['post-poll', '/post/4'], ['post-question', '/post/1'], ['onboarding-role', '/hosgeldin'], ['onboarding-groups', '/hosgeldin'], ['onboarding-details', '/hosgeldin'], ['settings-matching', '/profile/settings#eslesme'], ['home-compose-picked', '/home'], ['home-compose-topic', '/home'], ['subgroups-compose', '/groups/1'], ['posts-compose', '/sub-groups/2'], ['user-profile', '/users/11'], ['settings', '/profile/settings'],
+  ['search', '/search?q=gece'], ['profile', '/profile'], ['profile-groups', '/profile?tab=groups'], ['profile-groups-menu', '/profile?tab=groups'], ['profile-leave-confirm', '/profile?tab=groups'], ['profile-left', '/profile?tab=groups'], ['profile-edit', '/profile'], ['home-compose', '/home'], ['home-questions', '/home?tab=questions'], ['compose-poll', '/home'], ['post-poll', '/post/4'], ['post-question', '/post/1'], ['onboarding-groups', '/hosgeldin'], ['home-compose-closed', '/home'], ['settings-matching', '/profile/settings#eslesme'], ['home-compose-picked', '/home'], ['home-compose-topic', '/home'], ['subgroups-compose', '/groups/1'], ['posts-compose', '/sub-groups/2'], ['user-profile', '/users/11'], ['settings', '/profile/settings'],
   ['messages', '/messages'], ['chat', '/messages/1'], ['requests', '/messages/requests'],
   ['profile-avatar', '/profile'], ['profile-unlock', '/profile'], ['settings-blocked', '/profile/settings'], ['profile-loading', '/profile'], ['user-profile-loading', '/users/11'], ['messages-loading', '/messages'], ['chat-loading', '/messages/1'], ['requests-loading', '/messages/requests'], ['onboarding-loading', '/hosgeldin'], ['onboarding-done', '/hosgeldin'],
   ['form-profile-city', '/profile'], ['form-profile-errors', '/profile'], ['form-compose-errors', '/sub-groups/2'], ['form-poll-dup', '/home'], ['form-password', '/profile/settings'],
@@ -240,7 +240,7 @@ for (const [vpName, vp] of Object.entries(viewports)) {
       await pg.waitForTimeout(holdApi ? 1200 : 600)
       if (name === 'profile-avatar') { await pg.getByRole('button', { name: 'Yol arkadaşını değiştir' }).first().click(); await pg.waitForTimeout(700) }
       if (name === 'settings-blocked') { await pg.getByText('Engellenen Kullanıcılar').click(); await pg.waitForTimeout(500) }
-      if (name === 'onboarding-done') { await pg.getByRole('button', { name: 'Devam', exact: true }).click(); await pg.waitForTimeout(400); await pg.getByRole('button', { name: /gruba katıl|Devam/ }).last().click(); await pg.waitForTimeout(400); await pg.getByRole('button', { name: 'Kaydet ve bitir' }).click(); await pg.waitForTimeout(900) }
+      if (name === 'onboarding-done') { await pg.getByRole('button', { name: /gruba katıl ve bitir|^Bitir$/ }).last().click(); await pg.waitForTimeout(900) }
       if (tabName) { await pg.getByRole('tab', { name: tabName }).click(); await pg.waitForTimeout(700) }
       if (name === 'post-detail') {
         // yanıtları aç
@@ -252,11 +252,14 @@ for (const [vpName, vp] of Object.entries(viewports)) {
         if (name !== 'profile-groups-menu') { await pg.getByRole('menuitem', { name: 'Gruptan ayrıl' }).click(); await pg.waitForTimeout(400) }
         if (name === 'profile-left') { await pg.getByRole('button', { name: 'Ayrıl', exact: true }).click(); await pg.waitForTimeout(800) }
       }
-      if (name.endsWith('-compose') || name === 'home-compose-picked' || name === 'home-compose-topic') {
+      if (name.endsWith('-compose') || name === 'home-compose-picked' || name === 'home-compose-topic' || name === 'home-compose-closed') {
         await pg.evaluate(() => { try { localStorage.removeItem('sagliktan:post-draft'); localStorage.removeItem('sagliktan:last-post-target') } catch { /* */ } })
         await pg.getByRole('button', { name: /paylaş…$|Ne paylaşmak istersin\?|küçük bir sevinç…$/ }).first().click(); await pg.waitForTimeout(700)
-        if (name === 'home-compose-topic') {
+        if (name === 'home-compose-topic' || name === 'home-compose-closed') {
           await pg.getByRole('radio', { name: 'Retinitis Pigmentosa' }).click(); await pg.waitForTimeout(600)
+        }
+        if (name === 'home-compose-closed') {
+          await pg.getByRole('button', { name: /kutusunu kapat$/ }).click(); await pg.waitForTimeout(400)
         }
         if (name === 'home-compose-picked') {
           await pg.getByRole('radio', { name: 'Retinitis Pigmentosa' }).click(); await pg.waitForTimeout(500)
@@ -274,13 +277,6 @@ for (const [vpName, vp] of Object.entries(viewports)) {
         await pg.getByTestId('poll-option-0').fill('Luxturna')
         await pg.getByTestId('poll-option-1').fill('Klinik araştırma')
         await pg.waitForTimeout(900)
-      }
-      if (name.startsWith('onboarding-') && !['onboarding-loading', 'onboarding-done'].includes(name)) {
-        await pg.getByRole('radio', { name: 'Hasta yakınıyım' }).click()
-        if (name !== 'onboarding-role') { await pg.getByRole('button', { name: 'Devam', exact: true }).click(); await pg.waitForTimeout(500) }
-        if (name === 'onboarding-details') {
-          await pg.getByRole('button', { name: /gruba katıl|Devam/ }).last().click(); await pg.waitForTimeout(500)
-        }
       }
       if (name === 'admin-dashboard-tooltip') {
         // dokunarak/gezdirerek tooltip: aktif kişi grafiğinin sağ ucuna, sütun grafiğin ortasına

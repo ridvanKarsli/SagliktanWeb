@@ -7,11 +7,10 @@ import { useNotification } from '../../context/NotificationContext.jsx'
 import { useMessaging } from '../../context/MessagingContext.jsx'
 import { listConversations } from '../../services/api.js'
 import { usePaginatedList } from '../../hooks/usePaginatedList.js'
-import CompanionEmpty from '../../components/avatars/CompanionEmpty.jsx'
-import LoadMoreButton from '../../components/common/LoadMoreButton.jsx'
+import EmptyState from '../../components/EmptyState.jsx'
+import InfiniteScrollSentinel from '../../components/common/InfiniteScrollSentinel.jsx'
 import ConversationRow, { ConversationRowSkeleton } from '../../components/chat/ConversationRow.jsx'
 import { radius } from '../../design/tokens.js'
-import '../../styles/companions.css'
 
 const LIST_SX = { borderRadius: `${radius.lg}px`, border: '1px solid', borderColor: 'brand.border', bgcolor: 'background.paper', p: 0.75 }
 
@@ -85,8 +84,8 @@ export default function Conversations() {
           {[0, 1, 2, 3].map(i => <ConversationRowSkeleton key={i} />)}
         </Box>
       ) : conversations.length === 0 ? (
-        <CompanionEmpty
-          companion="serce"
+        <EmptyState
+          icon={MailOutlineRounded}
           title="Henüz bir sohbetin yok"
           description="Birinin paylaşımı sana iyi geldiyse profiline gidip mesaj isteği gönderebilirsin. Kabul ederse sohbetiniz burada başlar."
           actionLabel="Akışa göz at"
@@ -102,7 +101,7 @@ export default function Conversations() {
         </Stack>
       )}
 
-      {!loading && !last && <LoadMoreButton loading={loadingMore} onClick={loadMore} />}
+      {!loading && <InfiniteScrollSentinel hasMore={!last} loading={loadingMore} onLoadMore={loadMore} itemCount={conversations.length} />}
     </Box>
   )
 }

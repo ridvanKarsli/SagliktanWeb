@@ -11,12 +11,11 @@ function roleShortLabel(role) {
   return COMMUNITY_ROLES.find(r => r.value === role)?.short || null
 }
 
-// "2021'de tanı" / yakınlar için "Yakınına 2021'de tanı" gibi kısa özet.
-export function healthSummaryParts({ communityRole, diagnosisYear, city } = {}) {
+// "Hasta yakını · İzmir" gibi kısa özet.
+export function healthSummaryParts({ communityRole, city } = {}) {
   const parts = []
   const role = roleShortLabel(communityRole)
   if (role && communityRole !== 'OTHER') parts.push(role)
-  if (diagnosisYear) parts.push(communityRole === 'CAREGIVER' ? `Yakınına ${diagnosisYear}'de tanı` : `${diagnosisYear}'de tanı`)
   if (city) parts.push(city)
   return parts
 }

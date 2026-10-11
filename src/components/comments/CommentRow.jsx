@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import {
-  Avatar, Box, Button, CircularProgress, Stack, TextField, Typography, useMediaQuery, useTheme
+  Avatar, Box, Button, Stack, TextField, Typography, useMediaQuery, useTheme
 } from '@mui/material'
 import { ExpandLessRounded, ExpandMoreRounded, SubdirectoryArrowRightRounded, TaskAltRounded } from '@mui/icons-material'
 import UserAvatar from '../avatars/UserAvatar.jsx'
@@ -19,6 +19,7 @@ import { clickableProps } from '../../utils/clickable.js'
 import { COMMENT_MAX_LENGTH } from './commentLimits.js'
 import { clampLength, cleanText, commentError, counterText, fieldErrorsFrom } from '../../utils/validation.js'
 import { focusRingSx } from '../../design/focus.js'
+import SaglikLoader from '../common/SaglikLoader.jsx'
 
 // Tek bir yorum ya da yanıt satırı. Girinti/bağlantı çizgisi BURADA değil,
 // PostDetail'deki thread bloğunda çizilir - bu bileşen hiçbir zaman kendi
@@ -189,7 +190,7 @@ export default function CommentRow({
               <Stack direction="row" spacing={1} justifyContent="flex-end">
                 <Button size="small" onClick={() => { setEditing(false); setEditError(null) }} disabled={saving}>Vazgeç</Button>
                 <Button size="small" variant="contained" onClick={saveEdit} disabled={saving || editUnchanged}>
-                  {saving ? <CircularProgress size={14} color="inherit" /> : 'Kaydet'}
+                  {saving ? <SaglikLoader size="sm" color="inherit" /> : 'Kaydet'}
                 </Button>
               </Stack>
             </Stack>
@@ -230,7 +231,7 @@ export default function CommentRow({
                       size="small"
                       onClick={() => (accepted ? onUnaccept?.() : onAccept?.(comment.id))}
                       disabled={acceptPending}
-                      startIcon={acceptPending ? <CircularProgress size={12} /> : (accepted ? null : <TaskAltRounded sx={{ fontSize: '16px !important' }} />)}
+                      startIcon={acceptPending ? <SaglikLoader size={16} /> : (accepted ? null : <TaskAltRounded sx={{ fontSize: '16px !important' }} />)}
                       sx={{ color: accepted ? 'text.secondary' : 'primary.main', minHeight: 44, px: 1.25 }}
                     >
                       {accepted ? 'Seçimi kaldır' : 'En iyi cevap'}
@@ -245,7 +246,7 @@ export default function CommentRow({
                   onClick={() => onToggleThread(comment)}
                   disabled={!!thread?.loading}
                   startIcon={thread?.loading
-                    ? <CircularProgress size={12} />
+                    ? <SaglikLoader size="sm" />
                     : expanded ? <ExpandLessRounded fontSize="small" /> : <ExpandMoreRounded fontSize="small" />}
                   sx={{ color: 'primary.main', minHeight: 44, px: 1.25, ml: -1.25 }}
                   aria-expanded={expanded}

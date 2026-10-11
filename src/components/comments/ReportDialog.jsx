@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import {
-  Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle,
+  Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle,
   TextField, useMediaQuery
 } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
 import { LIMITS, clampLength, cleanText, counterText } from '../../utils/validation.js'
 import SlideUp from '../shell/SlideUp.jsx'
 import { useDialogHistory } from '../../hooks/useDialogHistory.js'
+import SaglikLoader from '../common/SaglikLoader.jsx'
 
 // Gönderi, yorum, mesaj ve kullanıcı şikayetleri için ortak dialog. Gerekçe
 // isteğe bağlı; gönderim sürerken dialog kapatılamaz ve hata olursa yazılan
@@ -67,7 +68,7 @@ export default function ReportDialog({
       <DialogActions sx={{ px: 3, pb: fullScreen ? 'calc(env(safe-area-inset-bottom) + 16px)' : 2, gap: 1 }}>
         <Button onClick={handleClose} disabled={submitting}>Vazgeç</Button>
         <Button variant="contained" color="error" onClick={handleSubmit} disabled={submitting}>
-          {submitting ? <CircularProgress size={16} color="inherit" /> : 'Şikayet Et'}
+          {submitting ? <SaglikLoader size="sm" color="inherit" /> : 'Şikayet Et'}
         </Button>
       </DialogActions>
     </Dialog>

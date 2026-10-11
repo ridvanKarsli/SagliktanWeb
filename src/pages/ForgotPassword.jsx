@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import {
-  Box, Button, Link, Stack, TextField, Typography, CircularProgress
+  Box, Button, Link, Stack, TextField, Typography
 } from '@mui/material'
+import { LockResetRounded } from '@mui/icons-material'
 import { useNavigate, Link as RouterLink } from 'react-router-dom'
 import { useNotification } from '../context/NotificationContext.jsx'
 import { forgotPassword, resetPassword } from '../services/api.js'
 import PasswordField from '../components/PasswordField.jsx'
 import AuthLayout from '../components/auth/AuthLayout.jsx'
-import Companion from '../components/avatars/Companion.jsx'
+import IconBadge from '../components/common/IconBadge.jsx'
 import PasswordStrengthMeter from '../components/PasswordStrengthMeter.jsx'
 import EmailField from '../components/forms/EmailField.jsx'
 import { useFormValidation } from '../hooks/useFormValidation.js'
@@ -15,6 +16,7 @@ import {
   LIMITS, codeError, confirmPasswordError, fieldErrorsFrom, fieldFromMessage, loginEmailError,
   newPasswordError, normalizeEmail, sanitizeCode
 } from '../utils/validation.js'
+import SaglikLoader from '../components/common/SaglikLoader.jsx'
 
 const validateRequest = (f) => ({ email: loginEmailError(f.email) })
 const validateReset = (f) => ({
@@ -107,7 +109,6 @@ export default function ForgotPassword() {
       lead={heading.lead}
       sideTitle="Merak etme, hallederiz"
       sideText="Herkesin başına gelebilir. E-postana gelecek kodla şifreni birkaç adımda yenileyebilirsin."
-      companions={['bulut', 'baykus', 'damla']}
       backLabel="Girişe Dön"
       onBack={() => navigate('/login')}
       maxWidth={420}
@@ -122,7 +123,7 @@ export default function ForgotPassword() {
     >
             {step === 'done' ? (
     <Box sx={{ textAlign: 'center' }}>
-      <Box className="sg-arrive" sx={{ display: 'inline-block', mb: 2 }}><Companion name="gunes" size={88} /></Box>
+      <IconBadge icon={LockResetRounded} size={88} className="sg-pop" sx={{ mx: 'auto', mb: 2 }} />
       <Typography variant="body1" sx={{ color: 'text.secondary', mb: 3 }}>
         Yeni şifren kaydedildi. Artık onunla giriş yapabilirsin.
       </Typography>
@@ -146,7 +147,7 @@ export default function ForgotPassword() {
           <Button type="submit" variant="contained" disabled={loading} fullWidth size="large">
             {loading ? (
               <Stack direction="row" spacing={1.5} alignItems="center">
-                <CircularProgress size={20} color="inherit" />
+                <SaglikLoader size="sm" color="inherit" />
                 <span>Gönderiliyor...</span>
               </Stack>
             ) : 'Sıfırlama Kodu Gönder'}
@@ -215,7 +216,7 @@ export default function ForgotPassword() {
           <Button type="submit" variant="contained" disabled={loading} fullWidth size="large">
             {loading ? (
               <Stack direction="row" spacing={1.5} alignItems="center">
-                <CircularProgress size={20} color="inherit" />
+                <SaglikLoader size="sm" color="inherit" />
                 <span>Kaydediliyor...</span>
               </Stack>
             ) : 'Şifreyi Sıfırla'}

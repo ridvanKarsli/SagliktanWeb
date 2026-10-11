@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Box, Button, CircularProgress, IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Typography } from '@mui/material'
+import { Box, Button, IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Typography } from '@mui/material'
 import {
-  ArrowBackRounded, BlockRounded, FlagOutlined, LockOpenRounded, MailOutlineRounded, MoreVertRounded
+  ArrowBackRounded, ArticleOutlined, BlockRounded, FlagOutlined, LockOpenRounded, MailOutlineRounded, MoreVertRounded, PersonOffOutlined
 } from '@mui/icons-material'
 import { useNavigate, useParams } from 'react-router-dom'
 import HealthSummary from '../../components/profile/HealthSummary.jsx'
@@ -10,9 +10,9 @@ import VerifiedBadge from '../../components/VerifiedBadge.jsx'
 import ReportDialog from '../../components/comments/ReportDialog.jsx'
 import ProfileHeader, { ProfileAvatar, ProfileHeaderSkeleton, StatStrip } from '../../components/profile/ProfileHeader.jsx'
 import ProfileStat from '../../components/profile/ProfileStat.jsx'
-import CompanionEmpty from '../../components/avatars/CompanionEmpty.jsx'
+import EmptyState from '../../components/EmptyState.jsx'
 import PostCardSkeleton from '../../components/PostCardSkeleton.jsx'
-import LoadMoreButton from '../../components/common/LoadMoreButton.jsx'
+import InfiniteScrollSentinel from '../../components/common/InfiniteScrollSentinel.jsx'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
 import { useConfirm } from '../../context/ConfirmContext.jsx'
@@ -21,8 +21,8 @@ import { useReportDialog } from '../../hooks/useReportDialog.js'
 import {
   getUserPublicProfile, getUserPosts, sendMessageRequest, blockUser, unblockUser, listBlockedUsers, reportUser
 } from '../../services/api.js'
-import '../../styles/companions.css'
 import { fullNameOf } from '../../utils/text.js'
+import SaglikLoader from '../../components/common/SaglikLoader.jsx'
 
 function usePublicProfile(token, userId) {
   const [state, setState] = useState({ profile: null, loading: true, error: '', notFound: false })
@@ -156,16 +156,16 @@ export default function UserProfile() {
       <Box sx={pageSx}>
         <Button startIcon={<ArrowBackRounded />} onClick={() => navigate(-1)} sx={{ mb: 1 }}>Geri</Button>
         {notFound ? (
-          <CompanionEmpty
-            companion="bulut"
+          <EmptyState
+            icon={PersonOffOutlined}
             title="Bu profil görüntülenemiyor"
             description="Kişi profilini gizlemiş, hesabını kapatmış ya da aranızda bir engel olabilir. Bağlantı eski de olabilir."
             actionLabel="Ana sayfaya dön"
             onAction={() => navigate('/home')}
           />
         ) : (
-          <CompanionEmpty
-            companion="bulut"
+          <EmptyState
+            icon={PersonOffOutlined}
             title="Bu profili bulamadık"
             description={error ? `${error} Bağlantını kontrol edip tekrar deneyebilirsin.` : 'Bağlantı eski olabilir ya da kişi hesabını kapatmış olabilir.'}
             actionLabel="Ana sayfaya dön"
@@ -233,7 +233,7 @@ export default function UserProfile() {
           <Box sx={{ mt: 2.5 }}>
             <Button
               variant={requestSent ? 'outlined' : 'contained'}
-              startIcon={sendingRequest ? <CircularProgress size={16} color="inherit" /> : <MailOutlineRounded />}
+              startIcon={sendingRequest ? <SaglikLoader size={16} color="inherit" /> : <MailOutlineRounded />}
               onClick={handleSendMessageRequest}
               disabled={sendingRequest || requestSent}
               sx={{ width: { xs: '100%', md: 'auto' }, minWidth: { md: 220 } }}
@@ -253,8 +253,8 @@ export default function UserProfile() {
       {posts.loading ? (
         <Box aria-busy="true" aria-label="Gönderiler yükleniyor"><PostCardSkeleton /><PostCardSkeleton /></Box>
       ) : posts.items.length === 0 ? (
-        <CompanionEmpty
-          companion="cakil"
+        <EmptyState
+          icon={ArticleOutlined}
           title="Henüz bir paylaşımı yok"
           description={`${firstName} ilk paylaşımını yaptığında burada göreceksin.`}
           dense
@@ -262,7 +262,7 @@ export default function UserProfile() {
       ) : (
         <>
           <PostList posts={posts.items} token={token} showPinnedBadge />
-          {!posts.last && <LoadMoreButton loading={posts.loadingMore} onClick={posts.loadMore} />}
+          <InfiniteScrollSentinel hasMore={!posts.last} loading={posts.loadingMore} onLoadMore={posts.loadMore} itemCount={posts.items.length} />
         </>
       )}
 

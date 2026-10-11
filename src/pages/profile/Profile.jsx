@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Box, Button, Chip, Collapse, IconButton, Skeleton, Stack, Tab, Tabs, Typography } from '@mui/material'
 import {
-  BookmarkBorderRounded, DynamicFeedRounded, EditOutlined, ExploreOutlined, GroupsRounded, SettingsOutlined
+  BookmarkBorderRounded, DynamicFeedRounded, EditNoteRounded, EditOutlined, ExploreOutlined, GroupsRounded, SettingsOutlined
 } from '@mui/icons-material'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import HealthSummary from '../../components/profile/HealthSummary.jsx'
@@ -12,11 +12,11 @@ import ProfileHeader, { ProfileAvatar, ProfileHeaderSkeleton, StatStrip } from '
 import HelpfulHint from '../../components/profile/HelpfulHint.jsx'
 import AvatarPicker from '../../components/avatars/AvatarPicker.jsx'
 import AvatarUnlockWatcher from '../../components/avatars/AvatarUnlockWatcher.jsx'
-import CompanionEmpty from '../../components/avatars/CompanionEmpty.jsx'
+import EmptyState from '../../components/EmptyState.jsx'
 import PostList from '../../components/PostList.jsx'
 import PostCardSkeleton from '../../components/PostCardSkeleton.jsx'
 import VerifiedBadge from '../../components/VerifiedBadge.jsx'
-import LoadMoreButton from '../../components/common/LoadMoreButton.jsx'
+import InfiniteScrollSentinel from '../../components/common/InfiniteScrollSentinel.jsx'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
 import { getMyPosts, getMySavedPosts, getUserProfile } from '../../services/api.js'
@@ -24,7 +24,6 @@ import { useMyDiseaseGroups } from '../../hooks/useMyDiseaseGroups.js'
 import { fullNameOf } from '../../utils/text.js'
 import { usePaginatedList } from '../../hooks/usePaginatedList.js'
 import { useGroupMembership } from '../../hooks/useGroupMembership.js'
-import '../../styles/companions.css'
 
 const TABS = [
   { key: 'posts', label: 'Gönderiler', icon: DynamicFeedRounded },
@@ -207,8 +206,8 @@ export default function Profile() {
 
       {activeTab === 'posts' && (
         posts.loading ? <PostsSkeleton /> : posts.items.length === 0 ? (
-          <CompanionEmpty
-            companion="filiz"
+          <EmptyState
+            icon={EditNoteRounded}
             title="Hikâyen burada büyüyecek"
             description="Bir deneyimini ya da sorunu paylaştığında burada görünür. Küçük bir paylaşım bile birine yol gösterebilir."
             actionLabel={hasGroups ? 'Gruplarıma git' : 'Grupları keşfet'}
@@ -218,15 +217,15 @@ export default function Profile() {
         ) : (
           <>
             <PostList posts={posts.items} token={token} showPinnedBadge />
-            {!posts.last && <LoadMoreButton loading={posts.loadingMore} onClick={posts.loadMore} />}
+            <InfiniteScrollSentinel hasMore={!posts.last} loading={posts.loadingMore} onLoadMore={posts.loadMore} itemCount={posts.items.length} />
           </>
         )
       )}
 
       {activeTab === 'saved' && (
         saved.loading ? <PostsSkeleton /> : saved.items.length === 0 ? (
-          <CompanionEmpty
-            companion="baykus"
+          <EmptyState
+            icon={BookmarkBorderRounded}
             title="Kaydettiğin gönderi yok"
             description="Sonra yeniden okumak istediğin bir gönderide yer imi simgesine dokun; burada seni bekler."
             dense
@@ -234,7 +233,7 @@ export default function Profile() {
         ) : (
           <>
             <PostList posts={saved.items} token={token} />
-            {!saved.last && <LoadMoreButton loading={saved.loadingMore} onClick={saved.loadMore} />}
+            <InfiniteScrollSentinel hasMore={!saved.last} loading={saved.loadingMore} onLoadMore={saved.loadMore} itemCount={saved.items.length} />
           </>
         )
       )}
@@ -246,8 +245,8 @@ export default function Profile() {
               {[0, 1, 2].map(i => <MyGroupRowSkeleton key={i} />)}
             </Stack>
           ) : !hasGroups ? (
-            <CompanionEmpty
-              companion="kaplumbaga"
+            <EmptyState
+              icon={GroupsRounded}
               title="Henüz bir gruba katılmadın"
               description="Seninle aynı süreçten geçen insanlar bir hastalık grubunda buluşuyor. Sana uygun olanı bul, selam ver."
               actionLabel="Grupları keşfet"

@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
-import { Box, Button, ButtonBase, CircularProgress, Stack, Typography } from '@mui/material'
+import { Box, Button, ButtonBase, Stack, Typography } from '@mui/material'
 import { alpha } from '@mui/material/styles'
 import { CheckCircleRounded, PollOutlined } from '@mui/icons-material'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useNotification } from '../context/NotificationContext.jsx'
 import { removePollVote, votePoll } from '../services/api.js'
+import SaglikLoader from './common/SaglikLoader.jsx'
 
 /**
  * Anket: oy vermeden önce seçenekler büyük dokunma alanlı butonlar; oy
@@ -94,7 +95,7 @@ export default function PollView({ postId, poll: initialPoll, isOwner = false, o
               )}
               <Stack direction="row" alignItems="center" spacing={1} sx={{ position: 'relative', width: '100%' }}>
                 {pendingId === opt.id
-                  ? <CircularProgress size={16} />
+                  ? <SaglikLoader size="sm" />
                   : mine ? <CheckCircleRounded sx={{ fontSize: 19, color: 'brand.lilac' }} /> : null}
                 <Typography variant="body2" sx={{ fontWeight: mine ? 800 : 600, flex: 1, minWidth: 0, wordBreak: 'break-word', color: 'text.primary' }}>
                   {opt.label}
@@ -116,7 +117,7 @@ export default function PollView({ postId, poll: initialPoll, isOwner = false, o
         </Typography>
         {voted && (
           <Button size="small" onClick={unvote} disabled={pendingId != null} sx={{ minHeight: 44, color: 'text.secondary' }}>
-            {pendingId === 'remove' ? <CircularProgress size={14} /> : 'Oyumu geri al'}
+            {pendingId === 'remove' ? <SaglikLoader size="sm" /> : 'Oyumu geri al'}
           </Button>
         )}
       </Stack>

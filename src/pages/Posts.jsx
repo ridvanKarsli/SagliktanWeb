@@ -1,6 +1,6 @@
 import { Suspense, lazy, useCallback, useEffect, useState } from 'react'
 import { Alert, Box, IconButton, Skeleton, Stack, TextField, Typography } from '@mui/material'
-import { CloseRounded, ForumRounded, SearchRounded } from '@mui/icons-material'
+import { CloseRounded, ForumRounded, SearchOffRounded, SearchRounded } from '@mui/icons-material'
 import { useParams } from 'react-router-dom'
 import PostList from '../components/PostList.jsx'
 import PostCardSkeleton from '../components/PostCardSkeleton.jsx'
@@ -10,7 +10,7 @@ import CreatePostFab from '../components/CreatePostFab.jsx'
 import SortToggle from '../components/SortToggle.jsx'
 import PullToRefreshIndicator from '../components/PullToRefreshIndicator.jsx'
 import BackLink from '../components/common/BackLink.jsx'
-import LoadMoreButton from '../components/common/LoadMoreButton.jsx'
+import InfiniteScrollSentinel from '../components/common/InfiniteScrollSentinel.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useNotification } from '../context/NotificationContext.jsx'
 import { getSubGroup, listPostsBySubGroup, searchPostsInSubGroup } from '../services/api.js'
@@ -165,20 +165,20 @@ export default function Posts() {
           <PostList posts={posts} token={token} highlightQuery={isSearching ? debouncedQuery : undefined} />
           {posts.length === 0 && !error && (isSearching ? (
             <EmptyState
-              companion="bulut"
+              icon={SearchOffRounded}
               title="Bu aramayla eşleşen gönderi yok"
               description="Farklı ya da daha kısa bir kelimeyle yeniden dene. Aradığını bulamazsan sormaktan çekinme."
             />
           ) : (
             <EmptyState
-              companion="serce"
+              icon={ForumRounded}
               title="Burası henüz sessiz"
               description="Bu köşede ilk sözü sen söyleyebilirsin. Bir merhaba, bir soru ya da bir deneyim yeter."
               actionLabel="İlk gönderiyi paylaş"
               onAction={openDialog}
             />
           ))}
-          {!last && posts.length > 0 && <LoadMoreButton loading={loadingMore} onClick={loadMore} />}
+          {posts.length > 0 && <InfiniteScrollSentinel hasMore={!last} loading={loadingMore} onLoadMore={loadMore} itemCount={posts.length} />}
         </Box>
       )}
 

@@ -1,8 +1,9 @@
 import { useRef, useState } from 'react'
-import { Box, Button, CircularProgress, Collapse, Stack, SwipeableDrawer, TextField, Typography } from '@mui/material'
+import { Box, Button, Collapse, Stack, SwipeableDrawer, TextField, Typography } from '@mui/material'
 import { useNotification } from '../../context/NotificationContext.jsx'
 import { clampLength, cleanText, counterText, fieldErrorsFrom, isBlank, replyError } from '../../utils/validation.js'
 import { COMMENT_MAX_LENGTH } from './commentLimits.js'
+import SaglikLoader from '../common/SaglikLoader.jsx'
 
 function ReplyForm({ authorName, isMobile, open, submitting, text, errorText, onTextChange, onCancel, onSubmit }) {
   const counter = counterText(text, COMMENT_MAX_LENGTH)
@@ -37,7 +38,7 @@ function ReplyForm({ authorName, isMobile, open, submitting, text, errorText, on
           onClick={onSubmit} disabled={submitting || isBlank(text)}
           sx={{ minHeight: 44, order: isMobile ? 2 : 1 }}
         >
-          {submitting ? <CircularProgress size={16} color="inherit" /> : 'Yanıtla'}
+          {submitting ? <SaglikLoader size="sm" color="inherit" /> : 'Yanıtla'}
         </Button>
       </Stack>
     </Stack>

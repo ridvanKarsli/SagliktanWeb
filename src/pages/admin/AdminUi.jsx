@@ -1,6 +1,8 @@
-import { Box, Button, Chip, CircularProgress, InputAdornment, Stack, TextField, Typography } from '@mui/material'
+import { Box, Button, Chip, InputAdornment, Stack, TextField, Typography } from '@mui/material'
 import { SearchRounded } from '@mui/icons-material'
 import EmptyState from '../../components/EmptyState.jsx'
+import SaglikLoader from '../../components/common/SaglikLoader.jsx'
+import InfiniteScrollSentinel from '../../components/common/InfiniteScrollSentinel.jsx'
 
 // Admin paneli için ortak, mobil-öncelikli yapı taşları. Her sekme aynı
 // dili konuşsun diye: tek tip kart, tek tip filtre (segment), tek tip arama
@@ -110,18 +112,22 @@ export function MetaRow({ label, children }) {
   )
 }
 
-export function LoadMoreButton({ loading, shown, total, onClick, noun = 'kayıt' }) {
+// Admin listelerinin sonu: kaydırınca kendiliğinden yüklenir; altta kaç
+// kaydın gösterildiği sakin bir satır olarak kalır.
+export function AdminLoadMore({ hasMore, loading, shown, total, onLoadMore, noun = 'kayıt' }) {
+  const status = shown > 0
+    ? (hasMore ? `${total} ${noun} içinden ${shown} tanesi gösteriliyor` : `Tümü gösteriliyor (${shown} ${noun})`)
+    : undefined
   return (
-    <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
-      <Button variant="outlined" onClick={onClick} disabled={loading} sx={{ minHeight: 44, minWidth: 200 }}>
-        {loading ? <CircularProgress size={18} /> : `Daha fazla ${noun} (${shown}/${total})`}
-      </Button>
-    </Box>
+    <InfiniteScrollSentinel
+      hasMore={hasMore} loading={loading} onLoadMore={onLoadMore} itemCount={shown}
+      status={status} sx={{ py: 2 }}
+    />
   )
 }
 
 export function AdminLoading() {
-  return <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress size={22} /></Box>
+  return <Box sx={{ display: 'grid', placeItems: 'center', py: 6 }}><SaglikLoader size="md" /></Box>
 }
 
 export function AdminEmpty(props) {

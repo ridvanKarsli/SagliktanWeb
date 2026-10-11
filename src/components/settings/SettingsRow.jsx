@@ -1,6 +1,7 @@
-import { Box, ButtonBase, CircularProgress, Typography } from '@mui/material'
+import { Box, ButtonBase, Typography } from '@mui/material'
 import { ChevronRightRounded } from '@mui/icons-material'
 import { radius } from '../../design/tokens.js'
+import SaglikLoader from '../common/SaglikLoader.jsx'
 
 // Ayarlar listesindeki tek satırlık eylem (ör. "Şifre Değiştir", "Çıkış Yap").
 // open verilirse altında açılan bir panelin başlığıdır (aria-expanded);
@@ -43,7 +44,7 @@ export default function SettingsRow({ icon, label, hint, onClick, danger = false
         )}
       </Box>
       {loading ? (
-        <CircularProgress size={16} sx={{ color: danger ? 'error.main' : 'text.secondary' }} aria-label="İşleniyor" />
+        <Box component="span" sx={{ color: danger ? 'error.main' : 'text.secondary', display: 'inline-flex' }}><SaglikLoader size="sm" color="inherit" label="İşleniyor" /></Box>
       ) : (
         <ChevronRightRounded
           aria-hidden

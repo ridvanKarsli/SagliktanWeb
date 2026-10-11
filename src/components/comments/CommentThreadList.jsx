@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { Box, Button, CircularProgress, Collapse } from '@mui/material'
+import { Box, Button, Collapse } from '@mui/material'
 import CommentRow from './CommentRow.jsx'
 import CommentRowSkeleton from './CommentRowSkeleton.jsx'
-import LoadMoreButton from '../common/LoadMoreButton.jsx'
+import InfiniteScrollSentinel from '../common/InfiniteScrollSentinel.jsx'
 import { flattenThread } from '../../hooks/usePostComments.js'
+import SaglikLoader from '../common/SaglikLoader.jsx'
 
 // Bir kök yorumun yanıt bloğu: açılıp kapanırken yumuşakça genişler/daralır.
 // Kapanırken son görülen yanıtlar animasyon bitene kadar yerinde kalır.
@@ -61,7 +62,7 @@ export default function CommentThreadList({
           disabled={item.loadingMore}
           sx={{ color: 'primary.main', my: 0.25, minHeight: 44, ml: -1 }}
         >
-          {item.loadingMore ? <CircularProgress size={14} aria-label="Yükleniyor" /> : 'Daha fazla yanıt'}
+          {item.loadingMore ? <SaglikLoader size="sm" /> : 'Daha fazla yanıt'}
         </Button>
       )
     }
@@ -81,7 +82,7 @@ export default function CommentThreadList({
         </Box>
       ))}
 
-      {hasMore && <LoadMoreButton loading={loadingMore} onClick={onLoadMore} label="Daha fazla yorum" sx={{ py: 2 }} />}
+      <InfiniteScrollSentinel hasMore={hasMore} loading={loadingMore} onLoadMore={onLoadMore} itemCount={comments.length} sx={{ py: 2 }} />
     </Box>
   )
 }

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import {
-  Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Divider,
+  Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Divider,
   FormControlLabel, Skeleton, Stack, Switch, Typography
 } from '@mui/material'
 import { MailOutlineRounded } from '@mui/icons-material'
@@ -12,12 +12,12 @@ import HealthProfileFields from '../../components/profile/HealthProfileFields.js
 import SettingsSection, { SettingsCard } from '../../components/settings/SettingsSection.jsx'
 import { useFormValidation } from '../../hooks/useFormValidation.js'
 import { cleanHealthProfile, fieldErrorsFrom, fieldFromMessage, healthProfileErrors } from '../../utils/validation.js'
+import SaglikLoader from '../../components/common/SaglikLoader.jsx'
 
-const MESSAGE_FIELDS = [[/tanı yılı/i, 'diagnosisYear'], [/il seçin|şehir/i, 'city']]
+const MESSAGE_FIELDS = [[/il seçin|şehir/i, 'city']]
 
 function sameProfile(a, b) {
   return (a.communityRole || null) === (b.communityRole || null)
-    && (a.diagnosisYear || null) === (b.diagnosisYear || null)
     && (a.city || '').trim() === (b.city || '').trim()
     && !!a.discoverable === !!b.discoverable
 }
@@ -98,7 +98,7 @@ export default function CommunitySettings() {
                 <Button onClick={() => { setProfile(fromUser()); v.reset() }} disabled={saving} sx={{ minHeight: 44 }}>Vazgeç</Button>
               )}
               <Button variant="contained" onClick={saveProfile} disabled={!dirty || saving} sx={{ minHeight: 44, minWidth: 110 }}>
-                {saving ? <CircularProgress size={18} color="inherit" /> : 'Kaydet'}
+                {saving ? <SaglikLoader size="sm" color="inherit" /> : 'Kaydet'}
               </Button>
             </Stack>
           </SettingsCard>

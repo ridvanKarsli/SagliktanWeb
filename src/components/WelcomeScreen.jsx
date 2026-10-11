@@ -1,32 +1,37 @@
 import { Box, Button, Container, Link, Stack, Typography } from '@mui/material'
 import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom'
 import {
-  ChatBubbleOutlineRounded, CheckCircleRounded, GavelRounded, LockRounded, ThumbUpAltRounded, VerifiedUserOutlined
+  ChatBubbleOutlineRounded, CheckCircleRounded, GavelRounded, GroupsRounded, LockRounded, QuestionAnswerOutlined,
+  SpaOutlined, ThumbUpAltRounded, VerifiedUserOutlined
 } from '@mui/icons-material'
 import TrustBadges from './TrustBadges.jsx'
 import Companion from './avatars/Companion.jsx'
 import PathScene from './welcome/PathScene.jsx'
+import IconBadge from './common/IconBadge.jsx'
 import { radius } from '../design/tokens.js'
-import '../styles/companions.css'
 
 const FEATURES = [
   {
-    companion: 'damla',
+    Icon: GroupsRounded,
+    tone: 'primary',
     title: 'Senin hastalığına özel gruplar',
     text: 'Her hastalığın kendi grubu ve konu başlıkları var. Sohbet, soru-cevap, tedavi ve araştırmalar ayrı ayrı; aradığını kolayca bulursun.',
   },
   {
-    companion: 'baykus',
+    Icon: QuestionAnswerOutlined,
+    tone: 'sky',
     title: 'Sorulara deneyimle cevap',
     text: 'Merak ettiğin şeyi büyük ihtimalle biri yaşamıştır. Soruna gelen cevaplardan en faydalısı öne çıkar.',
   },
   {
-    companion: 'kirpi',
+    Icon: ThumbUpAltRounded,
+    tone: 'apricot',
     title: 'Faydalı oldukça açılan yol arkadaşları',
     text: 'Paylaşımın birine iyi geldiğinde "Faydalı" oyu alırsın. Oylar arttıkça profilin için yeni yol arkadaşları açılır.',
   },
   {
-    companion: 'kaplumbaga',
+    Icon: SpaOutlined,
+    tone: 'primary',
     title: 'Kendi hızında, güvenle',
     text: 'Birebir mesajlar izinle başlar; engelleme ve şikayet bir dokunuş uzağında. Yazı boyutu, tema ve kontrast da senin elinde.',
   },
@@ -193,7 +198,7 @@ export default function WelcomeScreen() {
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, columnGap: { sm: 5, md: 8 }, rowGap: { xs: 3.5, md: 5 } }}>
               {FEATURES.map(f => (
                 <Stack key={f.title} direction="row" spacing={2} alignItems="flex-start">
-                  <Companion name={f.companion} size={60} />
+                  <IconBadge icon={f.Icon} tone={f.tone} size={56} />
                   <Box>
                     <Typography variant="h4" component="h3" sx={{ mb: 0.5 }}>{f.title}</Typography>
                     <Typography variant="body1" sx={{ color: 'text.secondary' }}>{f.text}</Typography>
@@ -283,13 +288,12 @@ export default function WelcomeScreen() {
               bgcolor: 'primary.main', color: 'primary.contrastText'
             }}
           >
-            <Stack direction="row" justifyContent="center" sx={{ mb: 2.5 }} aria-hidden>
-              {['serce', 'filiz', 'kedi'].map((n, i) => (
-                <Box key={n} sx={{ ml: i ? -1.5 : 0, borderRadius: '50%', border: '3px solid', borderColor: 'primary.main' }}>
-                  <Companion name={n} size={i === 1 ? 68 : 56} />
-                </Box>
-              ))}
-            </Stack>
+            <Box
+              component="img"
+              src="/sagliktanLogo-96.png"
+              alt=""
+              sx={{ display: 'block', width: 64, height: 64, mx: 'auto', mb: 2.5, borderRadius: `${radius.md}px`, boxShadow: '0 8px 24px rgba(0, 0, 0, 0.18)' }}
+            />
             <Typography variant="h2" sx={{ color: 'inherit', mb: 1.25 }}>Yalnız değilsin.</Typography>
             <Typography variant="body1" sx={{ color: 'inherit', opacity: 0.92, mb: 3.5, maxWidth: 480, mx: 'auto', fontSize: { md: '1.125rem' } }}>
               Seni anlayan insanlar burada. Bir dakikada aramıza katıl, ilk yol arkadaşınla tanış.

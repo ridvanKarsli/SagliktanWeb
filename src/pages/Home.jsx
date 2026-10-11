@@ -1,6 +1,8 @@
 import { Suspense, lazy, useCallback, useEffect, useState } from 'react'
 import { Alert, Box, Button, Stack, Tab, Tabs, Typography } from '@mui/material'
-import { AutoAwesomeRounded, DynamicFeedRounded, ExploreRounded, QuestionAnswerOutlined } from '@mui/icons-material'
+import {
+  AutoAwesomeRounded, DynamicFeedRounded, ExploreRounded, GroupsRounded, QuestionAnswerOutlined
+} from '@mui/icons-material'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import SimilarMembers from '../components/SimilarMembers.jsx'
 import PostList from '../components/PostList.jsx'
@@ -10,7 +12,7 @@ import ComposerPrompt from '../components/ComposerPrompt.jsx'
 import CreatePostFab from '../components/CreatePostFab.jsx'
 import SortToggle from '../components/SortToggle.jsx'
 import PullToRefreshIndicator from '../components/PullToRefreshIndicator.jsx'
-import LoadMoreButton from '../components/common/LoadMoreButton.jsx'
+import InfiniteScrollSentinel from '../components/common/InfiniteScrollSentinel.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useNotification } from '../context/NotificationContext.jsx'
 import { getMyFeed, getOpenQuestions } from '../services/api.js'
@@ -137,7 +139,7 @@ export default function Home() {
     if (!hasJoinedGroups) {
       return (
         <EmptyState
-          companion="filiz"
+          icon={GroupsRounded}
           title="Henüz hiçbir gruba katılmadın"
           description="Gruplar, aynı hastalıkla yaşayanların ve yakınlarının buluştuğu küçük topluluklar. Sana yakın olana katıl, akışın burada yeşersin."
           actionLabel="Grupları keşfet"
@@ -150,7 +152,7 @@ export default function Home() {
     if (posts.length === 0) {
       return tab === QUESTIONS_TAB ? (
         <EmptyState
-          companion="baykus"
+          icon={QuestionAnswerOutlined}
           title="Şu an cevap bekleyen soru yok"
           description="Gruplarındaki her soru bir cevap buldu. Merak ettiğin bir şey varsa sorman yeter; deneyimi olan biri mutlaka yazar."
           actionLabel="Soru sor"
@@ -158,7 +160,7 @@ export default function Home() {
         />
       ) : (
         <EmptyState
-          companion="papatya"
+          icon={DynamicFeedRounded}
           title="Akışın henüz sessiz"
           description="Katıldığın gruplarda henüz paylaşım yok. İlk sözü sen söylemek ister misin? Küçük bir merhaba bile yeter."
           actionLabel="İlk gönderiyi paylaş"
@@ -173,7 +175,11 @@ export default function Home() {
           token={token}
           renderAfter={(_, i) => showSimilarMembersAfter(i) && <SimilarMembers />}
         />
-        {!last && <LoadMoreButton loading={loadingMore} onClick={loadMore} />}
+        <InfiniteScrollSentinel
+          key={tab}
+          hasMore={!last} loading={loadingMore} onLoadMore={loadMore} itemCount={posts.length}
+          endMessage={tab === QUESTIONS_TAB ? 'Cevap bekleyen başka soru yok. Yeni sorular geldikçe burada olacak.' : 'Hepsi bu kadar. Yeni paylaşımlar geldikçe burada olacak.'}
+        />
       </Box>
     )
   }

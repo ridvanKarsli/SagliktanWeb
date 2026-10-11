@@ -2,6 +2,7 @@ import { Box, ButtonBase, Skeleton, Stack, Typography } from '@mui/material'
 import { AutoAwesomeRounded } from '@mui/icons-material'
 import UserAvatar from '../avatars/UserAvatar.jsx'
 import { radius } from '../../design/tokens.js'
+import '../../styles/companions.css'
 
 const AVATAR_SIZE = { xs: 104, md: 116 }
 

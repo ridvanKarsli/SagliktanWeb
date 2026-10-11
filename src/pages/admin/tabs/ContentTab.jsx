@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Box, Button, Chip, CircularProgress, FormControlLabel, Stack, Switch, Typography } from '@mui/material'
+import { Box, Button, Chip, FormControlLabel, Stack, Switch, Typography } from '@mui/material'
 import { DeleteOutline, ForumOutlined, OpenInNewRounded } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import Lightbox from 'yet-another-react-lightbox'
@@ -11,7 +11,8 @@ import { deleteComment, deletePost, listAdminComments, listAdminPosts } from '..
 import { relativeTime } from '../../../utils/format.js'
 import { usePaginatedList } from '../../../hooks/usePaginatedList.js'
 import { useDebouncedValue } from '../../../hooks/useDebouncedValue.js'
-import { AdminCard, AdminEmpty, AdminList, AdminLoading, AdminSearch, LoadMoreButton, SegmentedFilter } from '../AdminUi.jsx'
+import { AdminCard, AdminEmpty, AdminList, AdminLoading, AdminSearch, AdminLoadMore, SegmentedFilter } from '../AdminUi.jsx'
+import SaglikLoader from '../../../components/common/SaglikLoader.jsx'
 
 function AttachmentThumbnails({ attachments }) {
   const [lightboxIndex, setLightboxIndex] = useState(-1)
@@ -84,7 +85,7 @@ function ContentCard({ item, type, deletingId, remove }) {
         <Box sx={{ flex: 1 }} />
         {!removed && (
           <Button
-            size="small" color="error" startIcon={deletingId === item.id ? <CircularProgress size={14} color="inherit" /> : <DeleteOutline />}
+            size="small" color="error" startIcon={deletingId === item.id ? <SaglikLoader size={16} color="inherit" /> : <DeleteOutline />}
             disabled={deletingId === item.id} onClick={() => remove(item)} sx={{ minHeight: 36 }}
           >
             Sil
@@ -157,7 +158,7 @@ export default function ContentTab({ token }) {
         </AdminList>
       )}
 
-      {!loading && !last && <LoadMoreButton loading={loadingMore} shown={items.length} total={totalCount} onClick={loadMore} noun="içerik" />}
+      {!loading && <AdminLoadMore key={type} hasMore={!last} loading={loadingMore} shown={items.length} total={totalCount} onLoadMore={loadMore} noun="içerik" />}
     </Stack>
   )
 }

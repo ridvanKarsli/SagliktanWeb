@@ -12,6 +12,23 @@ import { useLocation, useNavigationType } from 'react-router-dom'
 const positions = new Map()
 const MAX_RESTORE_ATTEMPTS = 20 // ~330ms @60fps
 
+// Geri yükleme sürerken sonsuz kaydırma gözcüleri (bkz. useInfiniteScroll)
+// beklesin: içerik henüz yerine oturmamışken liste sonu bir an görünür
+// olabilir ve gereksiz yeni sayfa isteği kaydırmayı bozar.
+let restoring = false
+const restoreListeners = new Set()
+function setRestoring(value) {
+  if (restoring === value) return
+  restoring = value
+  if (!value) restoreListeners.forEach(fn => fn())
+}
+export function isScrollRestoring() { return restoring }
+// Geri yükleme bitince bir kez çağrılır; abonelikten çıkış fonksiyonu döner.
+export function onScrollRestored(fn) {
+  restoreListeners.add(fn)
+  return () => restoreListeners.delete(fn)
+}
+
 export function useScrollRestoration() {
   const location = useLocation()
   const navigationType = useNavigationType()
@@ -51,12 +68,14 @@ export function useScrollRestoration() {
     }
 
     if (navigationType !== 'POP') {
+      setRestoring(false)
       scrollTo(0)
       lastYRef.current = 0
       return undefined
     }
 
     const target = positions.get(location.key) ?? 0
+    setRestoring(target > 0)
     let attempts = 0
     let raf = 0
     const tryRestore = () => {
@@ -64,13 +83,14 @@ export function useScrollRestoration() {
       if (maxTop >= target || attempts >= MAX_RESTORE_ATTEMPTS) {
         scrollTo(Math.min(target, Math.max(0, maxTop)))
         lastYRef.current = window.scrollY
+        setRestoring(false)
         return
       }
       attempts += 1
       raf = requestAnimationFrame(tryRestore)
     }
     tryRestore()
-    return () => cancelAnimationFrame(raf)
+    return () => { cancelAnimationFrame(raf); setRestoring(false) }
   }, [location.key, navigationType])
 
   return navigationType

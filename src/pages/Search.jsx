@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { Box, ClickAwayListener, Fade, IconButton, Tab, Tabs, TextField, Typography } from '@mui/material'
-import { CloseRounded, SearchRounded } from '@mui/icons-material'
+import { CloseRounded, SearchOffRounded, SearchRounded } from '@mui/icons-material'
 import { useLocation, useNavigate } from 'react-router-dom'
 import PostList from '../components/PostList.jsx'
 import EmptyState from '../components/EmptyState.jsx'
-import LoadMoreButton from '../components/common/LoadMoreButton.jsx'
+import InfiniteScrollSentinel from '../components/common/InfiniteScrollSentinel.jsx'
 import SearchSuggestions from '../components/search/SearchSuggestions.jsx'
 import { CommentResultCard, PersonResultCard, ResultCardSkeleton } from '../components/search/SearchResultCards.jsx'
 import PostCardSkeleton from '../components/PostCardSkeleton.jsx'
@@ -163,7 +163,7 @@ export default function Search() {
     if (!active.searched) {
       return (
         <EmptyState
-          companion="deniz-feneri"
+          icon={SearchRounded}
           title="Aradığın bir deneyim mi var?"
           description="Bir ilaç, bir belirti, bir soru ya da bir isim yaz. Gönderilerde, yorumlarda ve üyeler arasında senin için bakalım."
         />
@@ -172,7 +172,7 @@ export default function Search() {
     if (active.results.length === 0) {
       return (
         <EmptyState
-          companion="bulut"
+          icon={SearchOffRounded}
           title="Bununla ilgili bir şey bulamadık"
           description="Farklı ya da daha kısa bir kelime dene. Bulamazsan grubuna sorabilirsin; belki biri de aynı şeyi merak ediyordur."
         />
@@ -191,7 +191,7 @@ export default function Search() {
             ))}
           </Box>
         )}
-        {!active.last && <LoadMoreButton loading={active.loadingMore} onClick={loadMore} />}
+        <InfiniteScrollSentinel key={tab.key} hasMore={!active.last} loading={active.loadingMore} onLoadMore={loadMore} itemCount={active.results.length} />
       </Box>
     )
   }

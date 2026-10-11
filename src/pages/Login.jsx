@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import {
-  Box, Button, Link, Stack, Typography, CircularProgress, FormControlLabel, Checkbox
+  Box, Button, Link, Stack, Typography, FormControlLabel, Checkbox
 } from '@mui/material'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useNotification } from '../context/NotificationContext.jsx'
@@ -11,6 +11,7 @@ import PasswordField from '../components/PasswordField.jsx'
 import EmailField from '../components/forms/EmailField.jsx'
 import { useFormValidation } from '../hooks/useFormValidation.js'
 import { currentPasswordError, loginEmailError, normalizeEmail } from '../utils/validation.js'
+import SaglikLoader from '../components/common/SaglikLoader.jsx'
 
 const validateLogin = (f) => ({ email: loginEmailError(f.email), pw: currentPasswordError(f.pw) })
 
@@ -56,7 +57,6 @@ export default function Login() {
       lead="Seni anlayan insanlar kaldığın yerde seni bekliyor."
       sideTitle="Önce yoldaş, sonra yol"
       sideText="Gruplarında yeni paylaşımlar, sorularına gelen cevaplar ve seni bekleyen yol arkadaşların var."
-      companions={['kirpi', 'filiz', 'kaplumbaga']}
       onBack={() => navigate('/')}
       maxWidth={420}
       footer={(
@@ -144,7 +144,7 @@ export default function Login() {
           >
             {loading ? (
               <Stack direction="row" spacing={1.5} alignItems="center">
-                <CircularProgress size={20} color="inherit" />
+                <SaglikLoader size="sm" color="inherit" />
                 <span>Giriş yapılıyor...</span>
               </Stack>
             ) : 'Giriş Yap'}

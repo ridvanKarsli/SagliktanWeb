@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { Button, CircularProgress, Stack, Typography } from '@mui/material'
+import { Button, Stack, Typography } from '@mui/material'
 import LazyListPanel from './LazyListPanel.jsx'
 import UserAvatar from '../avatars/UserAvatar.jsx'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
 import { useLazyResource } from '../../hooks/useLazyResource.js'
 import { listBlockedUsers, unblockUser } from '../../services/api.js'
+import SaglikLoader from '../common/SaglikLoader.jsx'
 
 // Engellenen kullanıcılar listesi + engeli kaldırma. Panel ilk açıldığında yüklenir.
 export default function BlockedUsersPanel() {
@@ -48,7 +49,7 @@ export default function BlockedUsersPanel() {
             onClick={() => handleUnblock(b.userId)}
             sx={{ flexShrink: 0 }}
           >
-            {unblockingId === b.userId ? <CircularProgress size={14} color="inherit" /> : 'Engeli Kaldır'}
+            {unblockingId === b.userId ? <SaglikLoader size="sm" color="inherit" /> : 'Engeli Kaldır'}
           </Button>
         </Stack>
       )}

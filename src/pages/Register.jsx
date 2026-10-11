@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import {
-  Box, Button, Stack, TextField, Typography, Link, CircularProgress, Checkbox, FormControlLabel, FormHelperText
+  Box, Button, Stack, TextField, Typography, Link, Checkbox, FormControlLabel, FormHelperText
 } from '@mui/material'
 import { MarkEmailReadOutlined } from '@mui/icons-material'
 import { useAuth } from '../context/AuthContext.jsx'
@@ -8,17 +8,19 @@ import { useNotification } from '../context/NotificationContext.jsx'
 import { useNavigate, Link as RouterLink } from 'react-router-dom'
 import TrustBadges from '../components/TrustBadges.jsx'
 import AuthLayout from '../components/auth/AuthLayout.jsx'
-import Companion from '../components/avatars/Companion.jsx'
+import IconBadge from '../components/common/IconBadge.jsx'
 import { radius } from '../design/tokens.js'
 import PasswordStrengthMeter from '../components/PasswordStrengthMeter.jsx'
 import PasswordField from '../components/PasswordField.jsx'
 import CityField from '../components/profile/CityField.jsx'
 import EmailField from '../components/forms/EmailField.jsx'
+import { DiscoverableSwitch, RolePicker } from '../components/profile/HealthProfileFields.jsx'
 import { useFormValidation } from '../hooks/useFormValidation.js'
 import {
-  LIMITS, cityError, cleanLine, emailError, fieldErrorsFrom, fieldFromMessage,
+  LIMITS, cityError, cleanLine, confirmPasswordError, emailError, fieldErrorsFrom, fieldFromMessage,
   nameError, newPasswordError, normalizeCity, normalizeEmail
 } from '../utils/validation.js'
+import SaglikLoader from '../components/common/SaglikLoader.jsx'
 
 // Kayıt tamamlanınca "E-postanı kontrol et" ekranı sayfa yenilense de
 // kalsın (kullanıcı posta uygulamasına geçip geri dönüyor). Sekmeye özel.
@@ -38,9 +40,9 @@ const validateRegister = (f) => ({
   lastName: nameError(f.lastName, 'last'),
   email: emailError(f.email),
   city: cityError(f.city),
-  // Şifre tekrarı yok: göster/gizle + güç göstergesi yazım hatasını zaten
-  // görünür kılıyor; ikinci alan özellikle mobilde kaydı yarıda bıraktırıyordu.
   password: newPasswordError(f.password),
+  // Şifre iki kez yazılır: yazım hatasıyla hesabın kilitli kalmasını önler.
+  confirmPassword: confirmPasswordError(f.confirmPassword, f.password),
   kvkkConsent: f.kvkkConsent ? null : 'Kayıt olmak için aydınlatma metnini onaylaman gerekiyor.',
 })
 
@@ -64,7 +66,10 @@ export default function Register() {
     lastName: '',
     email: '',
     password: '',
+    confirmPassword: '',
     city: '',
+    communityRole: null,
+    discoverable: false,
     kvkkConsent: false
   })
   const [registeredEmail, setRegisteredEmailState] = useState(readRegisteredEmail)
@@ -87,7 +92,9 @@ export default function Register() {
         email,
         password: form.password,
         kvkkConsent: form.kvkkConsent,
-        city: normalizeCity(form.city)
+        city: normalizeCity(form.city),
+        communityRole: form.communityRole,
+        discoverable: form.discoverable
       })
       setRegisteredEmail(email)
     } catch (err) {
@@ -103,12 +110,7 @@ export default function Register() {
     return (
       <Box sx={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 3, bgcolor: 'background.default' }}>
         <Box className="page-transition" sx={{ maxWidth: 460, textAlign: 'center' }}>
-          <Box sx={{ position: 'relative', display: 'inline-block', mb: 2.5 }}>
-            <Box className="sg-arrive"><Companion name="serce" size={104} /></Box>
-            <Box sx={{ position: 'absolute', right: -6, bottom: -2, width: 44, height: 44, borderRadius: '50%', display: 'grid', placeItems: 'center', bgcolor: 'primary.main', color: 'primary.contrastText', border: '3px solid', borderColor: 'background.default' }}>
-              <MarkEmailReadOutlined sx={{ fontSize: 22 }} />
-            </Box>
-          </Box>
+          <IconBadge icon={MarkEmailReadOutlined} size={88} className="sg-pop" sx={{ mx: 'auto', mb: 2.5 }} />
           <Typography variant="h2" component="h1" sx={{ mb: 1.5 }}>
             E-postanı kontrol et
           </Typography>
@@ -133,7 +135,6 @@ export default function Register() {
       lead="Yalnız değilsin. Bir dakikada hesabını oluştur, seninle aynı yoldan geçenlerle tanış."
       sideTitle="Yalnız değilsin"
       sideText="Kronik ve nadir hastalıklarla yaşayanlar ve yakınları burada deneyimlerini paylaşıyor. İlk yol arkadaşların seni bekliyor."
-      companions={['damla', 'filiz', 'bulut']}
       onBack={() => navigate('/')}
       maxWidth={480}
       footer={(
@@ -213,11 +214,35 @@ export default function Register() {
                 autoComplete="new-password"
                 fullWidth
                 placeholder="••••••••"
-                slotProps={{ htmlInput: { minLength: LIMITS.PASSWORD_MIN, enterKeyHint: 'done', 'data-testid': 'register-password' } }}
+                slotProps={{ htmlInput: { minLength: LIMITS.PASSWORD_MIN, enterKeyHint: 'next', 'data-testid': 'register-password' } }}
               />
               <PasswordStrengthMeter password={form.password} />
             </Box>
+            <PasswordField
+              label="Şifre (tekrar)"
+              required
+              value={form.confirmPassword}
+              onChange={e => set('confirmPassword')(e.target.value)}
+              {...v.field('confirmPassword')}
+              helperText={v.error('confirmPassword') || 'Yazım hatası olmasın diye bir kez daha yaz.'}
+              autoComplete="new-password"
+              fullWidth
+              placeholder="••••••••"
+              slotProps={{ htmlInput: { enterKeyHint: 'done', 'data-testid': 'register-confirmPassword' } }}
+            />
           </Stack>
+
+          <Box component="fieldset" sx={{ border: 0, p: 0, m: 0, minWidth: 0 }}>
+            <Typography component="legend" variant="subtitle2" sx={{ fontWeight: 800, mb: 0.5 }}>
+              Toplulukta kim olarak bulunuyorsun?
+            </Typography>
+            <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', mb: 1.25 }}>
+              İsteğe bağlı. Sana benzer üyeleri önermemize yardım eder.
+            </Typography>
+            <RolePicker value={form.communityRole} onChange={set('communityRole')} />
+          </Box>
+
+          <DiscoverableSwitch checked={form.discoverable} onChange={set('discoverable')} />
 
           <Box>
           <FormControlLabel
@@ -260,7 +285,7 @@ export default function Register() {
           >
             {loading ? (
               <Stack direction="row" spacing={1.5} alignItems="center">
-                <CircularProgress size={20} color="inherit" />
+                <SaglikLoader size="sm" color="inherit" />
                 <span>Kaydediliyor...</span>
               </Stack>
             ) : 'Kayıt Ol'}

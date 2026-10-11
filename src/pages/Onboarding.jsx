@@ -1,26 +1,26 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
-  Box, Button, ButtonBase, CircularProgress, InputAdornment, Skeleton, Stack, TextField, Typography
+  Box, Button, ButtonBase, InputAdornment, Skeleton, Stack, TextField, Typography
 } from '@mui/material'
 import {
-  ArrowBackRounded, CheckRounded, EditNoteRounded, GroupsRounded, PeopleAltRounded, SearchRounded
+  CheckRounded, EditNoteRounded, GroupsRounded, PeopleAltRounded, SearchRounded
 } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useNotification } from '../context/NotificationContext.jsx'
-import {
-  completeOnboarding, joinDiseaseGroup, listDiseaseGroups, updateHealthProfile
-} from '../services/api.js'
+import { completeOnboarding, joinDiseaseGroup, listDiseaseGroups } from '../services/api.js'
 import { fetchMyGroups, invalidateMyGroups } from '../services/myGroups.js'
-import HealthProfileFields, { RolePicker } from '../components/profile/HealthProfileFields.jsx'
 import NewPostDialog from '../components/NewPostDialog.jsx'
 import Companion from '../components/avatars/Companion.jsx'
 import LeafBurst from '../components/celebration/LeafBurst.jsx'
-import { LIMITS, cleanHealthProfile, filterPrefixFirst } from '../utils/validation.js'
+import { LIMITS, filterPrefixFirst } from '../utils/validation.js'
 import { radius } from '../design/tokens.js'
 import '../styles/companions.css'
+import SaglikLoader from '../components/common/SaglikLoader.jsx'
 
-const STEPS = ['role', 'groups', 'details', 'done']
+// Rol, şehir ve görünürlük artık kayıt formunda soruluyor (Ayarlar'dan da
+// değiştirilebilir); karşılama yalnızca grup seçimi + kısa bir kutlama.
+const STEPS = ['groups', 'done']
 
 function introTemplate(user, role, groupNames) {
   const roleLine = {
@@ -32,46 +32,6 @@ function introTemplate(user, role, groupNames) {
     title: `Merhaba, ben ${user?.firstName || ''}`.trim(),
     content: `Merhaba herkese! ${roleLine}${groupNames ? `\n\n${groupNames} hakkında` : '\n\nBu konuda'} en çok merak ettiğim şey: \n\nTanıştığıma memnun oldum.`
   }
-}
-
-// Üstteki yumuşak ilerleme: her adım için bir yaprak-nokta, şu anki uzar.
-function StepDots({ step, total }) {
-  return (
-    <Stack
-      direction="row"
-      spacing={0.75}
-      role="progressbar"
-      aria-label={`Adım ${step + 1} / ${total}`}
-      aria-valuemin={1}
-      aria-valuemax={total}
-      aria-valuenow={step + 1}
-      sx={{ alignItems: 'center' }}
-    >
-      {Array.from({ length: total }).map((_, i) => (
-        <Box
-          key={i}
-          sx={{
-            height: 8, width: i === step ? 28 : 8, borderRadius: `${radius.pill}px`,
-            bgcolor: i <= step ? 'primary.main' : 'brand.borderStrong',
-            transition: 'width 420ms var(--ease-spring), background-color 300ms ease',
-          }}
-        />
-      ))}
-    </Stack>
-  )
-}
-
-// Adım başlığındaki küçük yol arkadaşı grubu; her biri sırayla "gelir".
-function CompanionTrio({ names }) {
-  return (
-    <Stack direction="row" sx={{ mb: 2 }} aria-hidden>
-      {names.map((n, i) => (
-        <Box key={n} className="sg-arrive" sx={{ ml: i ? -1.25 : 0, animationDelay: `${i * 90}ms`, borderRadius: '50%', border: '3px solid', borderColor: 'background.default' }}>
-          <Companion name={n} size={i === 1 ? 60 : 52} />
-        </Box>
-      ))}
-    </Stack>
-  )
 }
 
 function StepHeading({ title, children }) {
@@ -101,9 +61,9 @@ function GroupSkeletonList() {
 }
 
 /**
- * Karşılama akışı (kayıttan sonraki ilk giriş): rol → gruplar → isteğe bağlı
- * ayrıntılar → "Kendini tanıt". Her adım atlanabilir; amaç kişinin ilk
- * dakikada boş bir akış yerine kendi grubunu ve insanlarını bulması.
+ * Karşılama akışı (kayıttan sonraki ilk giriş): gruplar → "Kendini tanıt".
+ * Atlanabilir; amaç kişinin ilk dakikada boş bir akış yerine kendi grubunu
+ * ve insanlarını bulması.
  * Mobil öncelikli: tam ekran, büyük dokunma alanları, alt sabit buton çubuğu.
  */
 export default function Onboarding() {
@@ -112,8 +72,6 @@ export default function Onboarding() {
   const navigate = useNavigate()
 
   const [step, setStep] = useState(0)
-  // Kayıtlı değerler geçerli kümeye indirgenir (listede olmayan eski şehir boş görünür).
-  const [profile, setProfile] = useState(() => cleanHealthProfile(user || {}))
   const [groups, setGroups] = useState(null)
   const [joinedIds, setJoinedIds] = useState(new Set())
   const [selected, setSelected] = useState(new Set())
@@ -164,13 +122,9 @@ export default function Onboarding() {
     if (toJoin.length > 0) invalidateMyGroups()
   }
 
-  const finish = async ({ saveProfile = true } = {}) => {
+  const finish = async () => {
     setBusy(true)
     try {
-      const clean = cleanHealthProfile(profile)
-      if (saveProfile && (clean.communityRole || clean.diagnosisYear || clean.city || clean.discoverable)) {
-        await updateHealthProfile(token, clean)
-      }
       applyServerUser(await completeOnboarding(token))
       return true
     } catch (err) {
@@ -182,29 +136,22 @@ export default function Onboarding() {
   }
 
   const next = async () => {
-    if (stepKey === 'groups') {
-      setBusy(true)
-      await joinSelected()
-      setBusy(false)
-    }
-    if (stepKey === 'details') {
-      if (!(await finish())) return
-      setBurst(Date.now())
-    }
+    setBusy(true)
+    await joinSelected()
+    setBusy(false)
+    if (!(await finish())) return
+    setBurst(Date.now())
     setStep(s => Math.min(s + 1, STEPS.length - 1))
   }
 
   const skipAll = async () => {
-    if (await finish({ saveProfile: false })) navigate('/home', { replace: true })
+    if (await finish()) navigate('/home', { replace: true })
   }
 
-  const primaryLabel = {
-    role: 'Devam',
-    groups: selected.size > joinedIds.size ? `${selected.size - joinedIds.size} gruba katıl` : 'Devam',
-    details: 'Kaydet ve bitir',
-  }[stepKey]
+  const newGroups = selected.size - joinedIds.size
+  const primaryLabel = newGroups > 0 ? `${newGroups} gruba katıl ve bitir` : 'Bitir'
 
-  const intro = introTemplate(user, profile.communityRole, selectedNames)
+  const intro = introTemplate(user, user?.communityRole, selectedNames)
 
   return (
     <Box sx={{ minHeight: '100dvh', bgcolor: 'background.default', display: 'flex', flexDirection: 'column' }}>
@@ -212,14 +159,7 @@ export default function Onboarding() {
       {/* Üst bar */}
       <Box sx={{ position: 'sticky', top: 0, zIndex: 2, bgcolor: 'background.default', pt: 'env(safe-area-inset-top)' }}>
         <Stack direction="row" alignItems="center" sx={{ px: 1, py: 1, maxWidth: 640, mx: 'auto', width: '100%', minHeight: 60 }}>
-          <Box sx={{ flex: 1, display: 'flex' }}>
-            {step > 0 && stepKey !== 'done' && (
-              <Button onClick={() => setStep(s => s - 1)} startIcon={<ArrowBackRounded />} disabled={busy}>
-                Geri
-              </Button>
-            )}
-          </Box>
-          {stepKey !== 'done' && <StepDots step={step} total={STEPS.length - 1} />}
+          <Box sx={{ flex: 1 }} />
           <Box sx={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
             {stepKey !== 'done' && (
               <Button onClick={skipAll} disabled={busy}>
@@ -231,27 +171,11 @@ export default function Onboarding() {
       </Box>
 
       <Box key={stepKey} className="sg-step-in" sx={{ flex: 1, px: 2, pt: { xs: 2, md: 5 }, pb: 4, maxWidth: 640, mx: 'auto', width: '100%' }}>
-        {stepKey === 'role' && (
-          <Stack spacing={3}>
-            <Box>
-              <CompanionTrio names={['damla', 'filiz', 'bulut']} />
-              <StepHeading title={`Hoş geldin${user?.firstName ? `, ${user.firstName}` : ''}`}>
-                Sağlıktan, aynı yoldan geçen insanların birbirine deneyimiyle eşlik ettiği bir topluluk.
-                Sana uygun grupları ve insanları gösterebilmemiz için üç kısa soru soracağız.
-              </StepHeading>
-            </Box>
-            <Box>
-              <Typography variant="h5" component="h2" sx={{ mb: 1.25 }}>Toplulukta kim olarak bulunuyorsun?</Typography>
-              <RolePicker value={profile.communityRole} onChange={(communityRole) => setProfile(p => ({ ...p, communityRole }))} />
-            </Box>
-          </Stack>
-        )}
-
         {stepKey === 'groups' && (
           <Stack spacing={2.5}>
-            <StepHeading title="Hangi gruplar sana yakın?">
-              Her grup, bir hastalıkla yaşayanları ve yakınlarını bir araya getirir. Katıldığın grupların
-              paylaşımları ana sayfanda görünür; birden fazla seçebilirsin.
+            <StepHeading title={`Hoş geldin${user?.firstName ? `, ${user.firstName}` : ''}`}>
+              Hangi gruplar sana yakın? Her grup, bir hastalıkla yaşayanları ve yakınlarını bir araya getirir.
+              Katıldığın grupların paylaşımları ana sayfanda görünür; birden fazla seçebilirsin.
             </StepHeading>
             {groups && groups.length > 6 && (
               <TextField
@@ -319,18 +243,6 @@ export default function Onboarding() {
           </Stack>
         )}
 
-        {stepKey === 'details' && (
-          <Stack spacing={3}>
-            <Box>
-              <CompanionTrio names={['kaplumbaga', 'papatya']} />
-              <StepHeading title="Senin gibi olanları bulalım">
-                Hepsi isteğe bağlı. Paylaşırsan, benzer süreçten geçen üyeleri sana önerebiliriz.
-              </StepHeading>
-            </Box>
-            <HealthProfileFields value={profile} onChange={setProfile} />
-          </Stack>
-        )}
-
         {stepKey === 'done' && (
           <Stack spacing={2} alignItems="center" sx={{ textAlign: 'center', pt: { xs: 4, md: 6 } }}>
             <Box className="sg-arrive" sx={{ borderRadius: '50%', boxShadow: 3, mb: 1 }}>
@@ -376,7 +288,7 @@ export default function Onboarding() {
               onClick={next}
               disabled={busy}
             >
-              {busy ? <CircularProgress size={22} color="inherit" /> : primaryLabel}
+              {busy ? <SaglikLoader size="sm" color="inherit" /> : primaryLabel}
             </Button>
           </Box>
         </Box>

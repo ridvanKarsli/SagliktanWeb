@@ -127,7 +127,7 @@ export default function NotificationBell() {
         </Box>
         {items.length === 0 ? (
           <EmptyState
-            companion="gunes"
+            icon={NotificationsNoneRounded}
             dense
             title="Şimdilik sessiz"
             description="Biri gönderine yorum yaptığında ya da sana yanıt verdiğinde burada haber veririz."

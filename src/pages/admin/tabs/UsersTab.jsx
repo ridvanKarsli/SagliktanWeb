@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import {
-  Avatar, Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle,
+  Avatar, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle,
   FormControlLabel, MenuItem, Stack, Switch, TextField, Typography
 } from '@mui/material'
 import { PeopleAltOutlined, ShieldOutlined } from '@mui/icons-material'
@@ -12,7 +12,8 @@ import { usePaginatedList } from '../../../hooks/usePaginatedList.js'
 import { useDebouncedValue } from '../../../hooks/useDebouncedValue.js'
 import { initialsFrom, relativeTime } from '../../../utils/format.js'
 import { clickableProps } from '../../../utils/clickable.js'
-import { AdminCard, AdminEmpty, AdminList, AdminLoading, AdminSearch, LoadMoreButton, SegmentedFilter } from '../AdminUi.jsx'
+import { AdminCard, AdminEmpty, AdminList, AdminLoading, AdminSearch, AdminLoadMore, SegmentedFilter } from '../AdminUi.jsx'
+import SaglikLoader from '../../../components/common/SaglikLoader.jsx'
 
 function EditUserDialog({ user, onClose, onSaved, token }) {
   const [firstName, setFirstName] = useState(user.firstName || '')
@@ -79,7 +80,7 @@ function EditUserDialog({ user, onClose, onSaved, token }) {
       <DialogActions sx={{ px: 3, pb: 2 }}>
         <Button onClick={onClose} disabled={saving}>Vazgeç</Button>
         <Button variant="contained" onClick={save} disabled={saving}>
-          {saving ? <CircularProgress size={16} color="inherit" /> : 'Kaydet'}
+          {saving ? <SaglikLoader size="sm" color="inherit" /> : 'Kaydet'}
         </Button>
       </DialogActions>
     </Dialog>
@@ -161,7 +162,7 @@ export default function UsersTab({ token }) {
         </AdminList>
       )}
 
-      {!loading && !last && <LoadMoreButton loading={loadingMore} shown={users.length} total={totalCount} onClick={loadMore} noun="kullanıcı" />}
+      {!loading && <AdminLoadMore hasMore={!last} loading={loadingMore} shown={users.length} total={totalCount} onLoadMore={loadMore} noun="kullanıcı" />}
 
       {editing && (
         <EditUserDialog

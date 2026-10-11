@@ -1,9 +1,10 @@
-import { Box, CircularProgress, IconButton, Stack, Typography } from '@mui/material'
+import { Box, IconButton, Stack, Typography } from '@mui/material'
 import { DeleteOutline, EditOutlined, FlagOutlined, PushPinOutlined, PushPinRounded } from '@mui/icons-material'
 import UserAvatar from '../avatars/UserAvatar.jsx'
 import { prettyDate, relativeTime } from '../../utils/format.js'
 import { clickableProps } from '../../utils/clickable.js'
 import { focusRingSx } from '../../design/focus.js'
+import SaglikLoader from '../common/SaglikLoader.jsx'
 
 const actionSx = { width: 44, height: 44 }
 
@@ -60,7 +61,7 @@ export default function PostDetailHeader({
               sx={{ ...actionSx, ...(post.pinned ? { color: 'primary.main' } : {}) }}
             >
               {togglingPin
-                ? <CircularProgress size={16} />
+                ? <SaglikLoader size="sm" />
                 : (post.pinned ? <PushPinRounded fontSize="small" /> : <PushPinOutlined fontSize="small" />)}
             </IconButton>
           )}
@@ -70,7 +71,7 @@ export default function PostDetailHeader({
                 <EditOutlined fontSize="small" />
               </IconButton>
               <IconButton onClick={onDelete} disabled={deleting} aria-label="Sil" title="Sil" sx={actionSx}>
-                {deleting ? <CircularProgress size={16} /> : <DeleteOutline fontSize="small" />}
+                {deleting ? <SaglikLoader size="sm" /> : <DeleteOutline fontSize="small" />}
               </IconButton>
             </>
           )}

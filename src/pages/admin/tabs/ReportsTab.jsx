@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Box, Button, Chip, CircularProgress, Stack, Typography } from '@mui/material'
+import { Box, Button, Chip, Stack, Typography } from '@mui/material'
 import { CheckRounded, CloseRounded, DeleteOutline, FlagOutlined, OpenInNewRounded } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import { useNotification } from '../../../context/NotificationContext.jsx'
@@ -7,7 +7,8 @@ import { useConfirm } from '../../../context/ConfirmContext.jsx'
 import { listAdminReports, resolveAdminReport } from '../../../services/api.js'
 import { usePaginatedList } from '../../../hooks/usePaginatedList.js'
 import { relativeTime } from '../../../utils/format.js'
-import { AdminCard, AdminEmpty, AdminList, AdminLoading, LoadMoreButton, MetaRow, SegmentedFilter } from '../AdminUi.jsx'
+import { AdminCard, AdminEmpty, AdminList, AdminLoading, AdminLoadMore, MetaRow, SegmentedFilter } from '../AdminUi.jsx'
+import SaglikLoader from '../../../components/common/SaglikLoader.jsx'
 
 const STATUS = { PENDING: { label: 'Bekliyor', color: 'warning' }, REVIEWED: { label: 'İncelendi', color: 'success' }, REJECTED: { label: 'Reddedildi', color: 'default' } }
 const TARGET = { POST: 'Gönderi', COMMENT: 'Yorum', MESSAGE: 'Mesaj', USER: 'Kullanıcı' }
@@ -71,7 +72,7 @@ function ReportCard({ r, actingId, act, deleteContent }) {
           {r.targetType !== 'USER' && (
             <Button
               size="small" color="error"
-              startIcon={busy ? <CircularProgress size={14} color="inherit" /> : <DeleteOutline />}
+              startIcon={busy ? <SaglikLoader size={16} color="inherit" /> : <DeleteOutline />}
               disabled={busy} onClick={() => deleteContent(r)} sx={{ minHeight: 40 }}
             >
               İçeriği Sil
@@ -152,8 +153,8 @@ export default function ReportsTab({ token, onResolved }) {
         </AdminList>
       )}
 
-      {!loading && !last && (
-        <LoadMoreButton loading={loadingMore} shown={reports.length} total={totalCount} onClick={loadMore} noun="şikayet" />
+      {!loading && (
+        <AdminLoadMore hasMore={!last} loading={loadingMore} shown={reports.length} total={totalCount} onLoadMore={loadMore} noun="şikayet" />
       )}
     </Stack>
   )

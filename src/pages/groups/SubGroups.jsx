@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Alert, Box, Button, CircularProgress, Skeleton, Stack, Typography } from '@mui/material'
-import { CheckRounded, PeopleAltRounded } from '@mui/icons-material'
+import { Alert, Box, Button, Skeleton, Stack, Typography } from '@mui/material'
+import { CheckRounded, ForumOutlined, PeopleAltRounded } from '@mui/icons-material'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
@@ -16,6 +16,7 @@ import BackLink from '../../components/common/BackLink.jsx'
 import SubGroupCard, { SubGroupCardSkeleton } from '../../components/groups/SubGroupCard.jsx'
 import GroupIcon from '../../components/groups/GroupIcon.jsx'
 import GroupMembersDialog from '../../components/groups/GroupMembersDialog.jsx'
+import SaglikLoader from '../../components/common/SaglikLoader.jsx'
 
 // Grup, alt grupları ve kullanıcının üyeliği tek seferde yüklenir.
 // joined: null = üyelik bilinmiyor (istek düştü) - yanlış durum göstermek
@@ -126,7 +127,7 @@ export default function SubGroups() {
                 aria-label={joined ? `${group.name} grubundan ayrıl` : `${group.name} grubuna katıl`}
                 sx={{ minHeight: 44, minWidth: 110, ...(joined ? { color: 'primary.main', borderColor: 'primary.light' } : {}) }}
               >
-                {membershipPending ? <CircularProgress size={16} color="inherit" aria-label="İşleniyor" /> : (joined ? 'Üyesin' : 'Katıl')}
+                {membershipPending ? <SaglikLoader size="sm" color="inherit" label="İşleniyor" /> : (joined ? 'Üyesin' : 'Katıl')}
               </Button>
             )}
             <Button
@@ -158,7 +159,7 @@ export default function SubGroups() {
 
       {subGroups.length === 0 && !error ? (
         <EmptyState
-          companion="kaplumbaga"
+          icon={ForumOutlined}
           dense
           title="Bu grupta henüz alt grup yok"
           description="Konu köşeleri açıldığında burada göreceksin."

@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { Box, ButtonBase, CircularProgress, IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Skeleton, Stack, Typography } from '@mui/material'
+import { Box, ButtonBase, IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Skeleton, Stack, Typography } from '@mui/material'
 import { LogoutRounded, MoreVertRounded, OpenInNewRounded, PeopleAltRounded } from '@mui/icons-material'
 import GroupIcon from '../groups/GroupIcon.jsx'
 import { formatCount } from '../../utils/format.js'
 import { radius } from '../../design/tokens.js'
+import SaglikLoader from '../common/SaglikLoader.jsx'
 
 const ROW_SX = { display: 'flex', alignItems: 'center', borderRadius: `${radius.md}px`, bgcolor: 'background.paper', border: '1px solid', borderColor: 'brand.border' }
 
@@ -63,7 +64,7 @@ export default function MyGroupRow({ group, pending, onOpen, onLeave }) {
       </ButtonBase>
       <Box sx={{ width: 48, display: 'grid', placeItems: 'center', flexShrink: 0, pr: 0.5 }}>
         {pending ? (
-          <CircularProgress size={18} aria-label="İşleniyor" />
+          <SaglikLoader size="sm" label="İşleniyor" />
         ) : (
           <IconButton
             aria-label={`${group.name} için seçenekler`}

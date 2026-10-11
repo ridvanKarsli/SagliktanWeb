@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
-  Accordion, AccordionDetails, AccordionSummary, Box, Button, CircularProgress, Dialog,
+  Accordion, AccordionDetails, AccordionSummary, Box, Button, Dialog,
   DialogActions, DialogContent, DialogTitle, IconButton, Stack, TextField, Typography
 } from '@mui/material'
 import { AddRounded, DeleteOutline, EditOutlined, ExpandMoreRounded, GroupsOutlined } from '@mui/icons-material'
@@ -11,6 +11,7 @@ import {
   listSubGroups, updateDiseaseGroup, updateSubGroup
 } from '../../../services/api.js'
 import { AdminEmpty, AdminLoading, SectionTitle } from '../AdminUi.jsx'
+import SaglikLoader from '../../../components/common/SaglikLoader.jsx'
 
 function GroupNameDialog({ title, initial, onClose, onSave }) {
   const [name, setName] = useState(initial?.name || '')
@@ -49,7 +50,7 @@ function GroupNameDialog({ title, initial, onClose, onSave }) {
       <DialogActions sx={{ px: 3, pb: 2 }}>
         <Button onClick={onClose} disabled={saving}>Vazgeç</Button>
         <Button variant="contained" onClick={save} disabled={saving}>
-          {saving ? <CircularProgress size={16} color="inherit" /> : 'Kaydet'}
+          {saving ? <SaglikLoader size="sm" color="inherit" /> : 'Kaydet'}
         </Button>
       </DialogActions>
     </Dialog>
@@ -146,7 +147,7 @@ function DiseaseGroupAccordion({ group, token, onChanged }) {
       </AccordionSummary>
       <AccordionDetails sx={{ p: 0 }}>
         {subGroups === null ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}><CircularProgress size={18} /></Box>
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}><SaglikLoader size="md" /></Box>
         ) : (
           <>
             {subGroups.length === 0 && (

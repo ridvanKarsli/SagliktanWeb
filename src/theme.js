@@ -88,9 +88,6 @@ function buildTheme(mode) {
           '::selection': { backgroundColor: alpha(c.primaryBright, 0.35), color: c.ink },
         },
       },
-      MuiCircularProgress: {
-        defaultProps: { 'aria-label': 'Yükleniyor', thickness: 4.5 },
-      },
       MuiButtonBase: {
         defaultProps: { disableRipple: false },
         // Tüm ButtonBase türevleri (sekme, menü öğesi, alt gezinme, onay

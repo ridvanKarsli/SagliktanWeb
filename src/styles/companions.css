@@ -1,5 +1,6 @@
-/* Yol arkadaşları, profil, mesajlar ve karşılama ekranlarının küçük hareket
-   kütüphanesi. Genel kurallar (sg-rise, sg-pop, sg-float...) index.css'te;
+/* Yol arkadaşları (avatar seçici, karşılama sahnesi, kutlama), profil ve
+   mesajlar ekranlarının küçük hareket kütüphanesi. Bu sınıfları kullanan
+   bileşen dosyayı kendisi import eder. Genel kurallar (sg-rise, sg-pop, sg-float...) index.css'te;
    burada yalnızca bu ekranlara özgü, kullanıcı eylemine cevap veren
    kısa hareketler var. prefers-reduced-motion index.css'te genel olarak kapanır. */
 
