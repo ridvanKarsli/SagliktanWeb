@@ -53,11 +53,11 @@ export const FALLBACK_CATALOG = {
     ['wave', 'El salla'], ['hug', 'Sarıl'], ['heart', 'Kalp'], ['laugh', 'Gül'], ['clap', 'Alkış'], ['tea', 'Çay'], ['sleepy', 'Uykulu'], ['sparkle', 'Işıltı'],
   ].map(([key, name]) => ({ key, name })),
   zones: [
-    { key: 'meydan', name: 'Meydan', width: 16, height: 16 },
-    { key: 'park', name: 'Park', width: 18, height: 18 },
-    { key: 'carsi', name: 'Çarşı', width: 14, height: 14 },
-    { key: 'sahil', name: 'Sahil', width: 20, height: 12 },
-    { key: 'mahalle', name: 'Mahalle sokağı', width: 20, height: 10 },
+    { key: 'meydan', name: 'Meydan', width: 26, height: 26, capacity: 50 },
+    { key: 'park', name: 'Park', width: 30, height: 30, capacity: 40 },
+    { key: 'carsi', name: 'Çarşı', width: 26, height: 22, capacity: 40 },
+    { key: 'sahil', name: 'Sahil', width: 34, height: 16, capacity: 40 },
+    { key: 'mahalle', name: 'Mahalle sokağı', width: 34, height: 14, capacity: 30 },
   ],
 }
 

@@ -15,11 +15,17 @@ const LEAVE_DELAY_MS = 400
 // yeni "katıl"ın ardından sunucuya varıp bizi düşürmesin.
 let pendingLeave = 0
 
-export function useWorldSession({ zoneKey, getSpawn, onSnapshot, onEvent }) {
+// zoneKey: alan anahtarı - bölge ("meydan") ya da ev ("room:{ownerPublicId}").
+// joinFn(area, { spawn }): katılım isteği (varsayılan bölge katılımı).
+// onJoinError(err, reason): katılım hatası (409 dolu, 404 kapalı ev...) - çağıran karar verir.
+export function useWorldSession({ zoneKey, getSpawn, onSnapshot, onEvent, joinFn, onJoinError }) {
   const { token, onGameEvent, onConnection } = useGame()
   const [status, setStatus] = useState('joining') // joining | online | error
-  const handlers = useRef({ getSpawn, onSnapshot, onEvent })
-  useEffect(() => { handlers.current = { getSpawn, onSnapshot, onEvent } }, [getSpawn, onSnapshot, onEvent])
+  const [errorMessage, setErrorMessage] = useState(null)
+  const handlers = useRef({ getSpawn, onSnapshot, onEvent, joinFn, onJoinError })
+  useEffect(() => { handlers.current = { getSpawn, onSnapshot, onEvent, joinFn, onJoinError } }, [getSpawn, onSnapshot, onEvent, joinFn, onJoinError])
+  // Önceden yapılmış katılım (bölge geçişinde 409 kontrolü için çağıran önce katılır)
+  const seeded = useRef(null)
   const zoneRef = useRef(zoneKey)
   const instanceRef = useRef(null)
   const joinedRef = useRef(null)
@@ -28,22 +34,34 @@ export function useWorldSession({ zoneKey, getSpawn, onSnapshot, onEvent }) {
 
   const join = useCallback(async (reason) => {
     const zone = zoneRef.current
+    if (!zone) return // alan henüz belli değil (ör. oda verisi yükleniyor)
     const my = ++seq.current
     if (reason === 'enter') setStatus('joining')
     try {
-      // doğma ipucu: girişte kapının toSpawn'ı, yeniden katılımda son konum
-      const spawn = handlers.current.getSpawn?.(reason) || null
-      const r = await api.joinZone(token, zone, { spawn })
+      let r
+      if (reason === 'enter' && seeded.current?.zone === zone) {
+        r = seeded.current.response
+        seeded.current = null
+      } else {
+        // doğma ipucu: girişte kapının toSpawn'ı, yeniden katılımda son konum
+        const spawn = handlers.current.getSpawn?.(reason) || null
+        const fn = handlers.current.joinFn || ((area, o) => api.joinZone(token, area, o))
+        r = await fn(zone, { spawn })
+      }
       if (my !== seq.current || zoneRef.current !== zone) return
       instanceRef.current = r?.instance ?? null
-      joinedRef.current = zone
+      // olaylardaki alan anahtarı sunucunun döndürdüğüdür ("room:abc" gibi)
+      joinedRef.current = r?.zone || zone
       hiddenLeft.current = false
+      setErrorMessage(null)
       handlers.current.onSnapshot?.(r || { players: [] }, reason)
       setStatus('online')
     } catch (err) {
       if (my !== seq.current) return
-      console.warn('Mahalle: bölgeye katılınamadı', err?.message)
+      console.warn('Mahalle: alana katılınamadı', err?.message)
+      setErrorMessage(err?.status === 409 ? err.message : null)
       setStatus('error')
+      handlers.current.onJoinError?.(err, reason)
     }
   }, [token])
 
@@ -133,5 +151,8 @@ export function useWorldSession({ zoneKey, getSpawn, onSnapshot, onEvent }) {
     handlers.current.onEvent?.(ev)
   }), [onGameEvent])
 
-  return { status, call, rejoin: () => join('rejoin'), instance: instanceRef }
+  // Bölge geçişinde çağıran önceden katıldıysa (409 kontrolü) sonucu bir kez kullan
+  const seed = useCallback((zone, response) => { seeded.current = { zone, response } }, [])
+
+  return { status, errorMessage, call, rejoin: () => join('rejoin'), instance: instanceRef, seed }
 }

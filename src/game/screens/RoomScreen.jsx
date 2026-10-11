@@ -4,10 +4,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Alert, Box, Button, ButtonBase, IconButton, Stack, Typography } from '@mui/material'
 import {
-  ArrowBackRounded, CheckRounded, CloseRounded, DeleteOutlineRounded, EditRounded, ExitToAppRounded,
+  ArrowBackRounded, CheckRounded, ForumRounded, CloseRounded, DeleteOutlineRounded, EditRounded, ExitToAppRounded,
   OpenWithRounded, PeopleAltRounded, RedeemRounded, RotateRightRounded, UndoRounded,
 } from '@mui/icons-material'
-import { FURNITURE, FX, RoomWalls, RoomWindowLight, TvGlow, footprintPolygon, toPoints, iso } from '../art/index.js'
+import { FURNITURE, FX, RoomWalls, RoomWindowLight, RoomPlanters, TvGlow, footprintPolygon, toPoints, iso } from '../art/index.js'
 import SaglikLoader from '../../components/common/SaglikLoader.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
 import { isAbortError } from '../../services/api.js'
@@ -30,6 +30,9 @@ import SettingsSheet from '../sheets/SettingsSheet.jsx'
 import VisitorsSheet from '../sheets/VisitorsSheet.jsx'
 import { FurniturePreview } from '../sheets/ShopSheet.jsx'
 import ActionSheet from '../sheets/ActionSheet.jsx'
+import { SpeechSheet } from '../sheets/WorldSheets.jsx'
+import PlayerCardSheet from '../sheets/PlayerCardSheet.jsx'
+import { useRoomLive } from '../hooks/useRoomLive.js'
 import { AtmoPill } from '../hud/AtmoPill.jsx'
 import { roomActions, seatsOf, seatApproach, bestApproach, faceToward, fxPointOf } from '../engine/interactions.js'
 import { cellsOf } from '../engine/room.js'
@@ -94,8 +97,8 @@ export default function RoomScreen() {
   const navigate = useNavigate()
   const location = useLocation()
   const { publicId: paramId } = useParams()
-  const { token, profile, setProfile, catalog, returnTo, announce } = useGame()
-  const { showSuccess, showInfo } = useNotification()
+  const { token, profile, setProfile, catalog, returnTo, announce, setMyGarden } = useGame()
+  const { showSuccess, showInfo, showError } = useNotification()
   const me = profile.publicId
   const mineRoute = !paramId || paramId === me
   const [room, setRoom] = useState(() => {
@@ -157,6 +160,8 @@ export default function RoomScreen() {
   }, [room, mineRoute, paramId, token])
 
   const mine = !!room?.mine
+  // kendi evime girince bahçemi önbelleğe al (sokaktaki kapımın önü de aynı)
+  useEffect(() => { if (room?.mine && room.garden) setMyGarden(room.garden) }, [room, setMyGarden])
   const items = useMemo(() => (editing ? draft : room?.items || []), [editing, draft, room])
   const grid = useMemo(() => roomWalkable(items), [items])
 
@@ -187,9 +192,27 @@ export default function RoomScreen() {
   }, [engine, zoom, center?.x, center?.y]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const exit = useCallback(() => {
-    const back = location.state?.from || returnTo.current || { zone: 'mahalle', x: 2, y: 4 }
+    const back = location.state?.from || returnTo.current || { zone: 'mahalle', x: 2, y: 4 } // varsayılan: sokağın başı
     navigate('/mahalle', { state: { world: back } })
   }, [navigate, location.state, returnTo])
+
+  // ------------------------------------------------------------ canlı ev
+  const roomItemsRef = useRef([])
+  roomItemsRef.current = room?.items || []
+  const seatObjects = useCallback(() => roomItemsRef.current.filter((it) => !isFloorItem(it)).map((it) => toObject(it, -1)), [])
+  const onJoinError = useCallback((err) => {
+    if (err?.status === 409) { showInfo(err.message || 'Bu ev şu an dolu, biraz sonra tekrar uğra.'); exit() }
+    else if (err?.status === 404) { showInfo('Bu eve şu an girilemiyor.'); exit() }
+  }, [showInfo, exit])
+  const onKick = useCallback((reason) => {
+    const msg = { visibility: 'Ev sahibi evini kapattı.', blocked: 'Bu eve artık giremezsin.', closed: 'Bu ev artık yok.' }[reason] || 'Evden çıktın.'
+    showInfo(msg)
+    exit()
+  }, [showInfo, exit])
+  const live = useRoomLive({
+    engine, ownerId: loadError ? null : room?.owner?.publicId || null, spawn: ROOM_SPAWN, seatObjects, onJoinError, onKick, reduced,
+  })
+  const liveList = useMemo(() => Object.values(live.players), [live.players])
 
   const isOn = useCallback((it) => {
     const k = placeKey(it)
@@ -208,14 +231,19 @@ export default function RoomScreen() {
     if (!p) return
     if (p.type === 'seat') {
       engine.setPosture(me, { posture: p.seat.kind, facing: p.seat.facing, flip: p.seat.flip, held: p.action.held ?? null, seat: p.seat })
+      // misafirler beni oturduğum yerin karesinde görsün: önce konum, sonra duruş
+      live.sendMove(p.seat.cell).then(live.sendPose)
     } else {
       const d = faceToward(cell, p.target)
       engine.face(me, d.dx, d.dy)
-      if (p.action.kind !== 'toggle') engine.setPosture(me, { posture: 'stand', held: p.action.held ?? null })
+      if (p.action.kind !== 'toggle') {
+        engine.setPosture(me, { posture: 'stand', held: p.action.held ?? null })
+        live.sendPose()
+      }
     }
     if (p.action.kind === 'toggle') flipToggle(p.item)
     else setActivity({ item: p.item, action: p.action })
-  }, [engine, me, flipToggle])
+  }, [engine, me, flipToggle, live.sendMove, live.sendPose]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     engine.onArrive = (id, cell) => {
@@ -322,8 +350,20 @@ export default function RoomScreen() {
   }
 
   // ------------------------------------------------------------ dokunma
+  const walkMe = (x, y) => {
+    const dest = engine.walkTo(me, x, y)
+    if (dest) {
+      if (!reduced) setMarker({ ...dest, k: Date.now() })
+      live.sendMove(dest)
+    }
+    return dest
+  }
+
   const onTap = ({ cell, actorId, objIndex }) => {
-    if (actorId) return
+    if (actorId) {
+      if (actorId !== me && !editing && live.players[actorId]) setSheet({ player: actorId })
+      return
+    }
     if (editing) {
       if (ghost) {
         const { w, d } = footprintOf(ghost)
@@ -355,16 +395,15 @@ export default function RoomScreen() {
     // başka yere dokunmak etkinliği bitirir (kalkar, elindekini bırakır)
     pending.current = null
     setActivity(null)
+    const hadHeld = !!engine.poseOf(me)?.held
     engine.setHeld(me, null)
     // kapıya (duvar tarafı) dokunuldu: çık
     if (cell.x < 0 && cell.y >= 6 && cell.y <= 7) {
-      const dest = engine.walkTo(me, ROOM_DOOR.x, ROOM_DOOR.y)
-      if (dest) setMarker({ ...dest, k: Date.now() })
+      walkMe(ROOM_DOOR.x, ROOM_DOOR.y)
       return
     }
     if (cell.x < 0 || cell.y < 0 || cell.x >= ROOM_SIZE || cell.y >= ROOM_SIZE) return
-    const dest = engine.walkTo(me, cell.x, cell.y)
-    if (dest && !reduced) setMarker({ ...dest, k: Date.now() })
+    if (walkMe(cell.x, cell.y) && hadHeld) live.sendPose() // elindekini bıraktı
   }
 
   // Eylem seçildi: gerekiyorsa eşyaya yürü, varınca uygula.
@@ -404,8 +443,7 @@ export default function RoomScreen() {
       applyPending(here)
       return
     }
-    const dest = engine.walkTo(me, plan.cell.x, plan.cell.y)
-    if (dest && !reduced) setMarker({ ...dest, k: Date.now() })
+    walkMe(plan.cell.x, plan.cell.y)
   }
 
   const onHover = (g) => {
@@ -424,7 +462,15 @@ export default function RoomScreen() {
   const selectedObjIndex = editing && selected >= 0 ? objects.findIndex((o) => o.draftIndex === selected) : -1
   const rugs = items.map((it, i) => ({ it, i })).filter(({ it }) => isFloorItem(it))
   const tiles = useMemo(() => <TileLayer tiles={FLOOR_TILES} />, [])
-  const background = useMemo(() => <RoomWalls size={ROOM_SIZE} timeOfDay={atmo.timeOfDay} weather={atmo.weather} />, [atmo.timeOfDay, atmo.weather])
+  // Pencere önündeki saksılar: ev sahibinin iyilik bahçesi (sayı yok, yalnızca görüntü)
+  const gFlowers = room?.garden?.flowers || 0
+  const gLanterns = room?.garden?.lanterns || 0
+  const background = useMemo(() => (
+    <>
+      <RoomWalls size={ROOM_SIZE} timeOfDay={atmo.timeOfDay} weather={atmo.weather} />
+      <RoomPlanters size={ROOM_SIZE} flowers={gFlowers} lanterns={gLanterns} />
+    </>
+  ), [atmo.timeOfDay, atmo.weather, gFlowers, gLanterns])
   const tvsOn = editing ? [] : items.filter((it) => it.itemKey === 'tv' && isOn(it))
   // eşya üstü efektler: açık radyo notaları + şu anki etkinliğin efekti
   const itemFx = []
@@ -478,11 +524,21 @@ export default function RoomScreen() {
     </g>
   ) : <g pointerEvents="none">{fxLayer}</g>
   const actors = (
-    <Actor
-      engine={engine} id={me} x={ROOM_SPAWN.x} y={ROOM_SPAWN.y} me
-      appearance={profile.appearance} petKey={profile.petKey} nickname={profile.nickname}
-      showLabel={!editing} fx={watching}
-    />
+    <>
+      {liveList.map((p) => (
+        <Actor
+          key={p.publicId} engine={engine} id={p.publicId}
+          x={live.posRef.current[p.publicId]?.x ?? p.x} y={live.posRef.current[p.publicId]?.y ?? p.y}
+          appearance={p.appearance} petKey={p.petKey} nickname={p.nickname}
+          bubble={live.bubbles[p.publicId]} hop={live.hops[p.publicId]} showLabel={!editing}
+        />
+      ))}
+      <Actor
+        engine={engine} id={me} x={ROOM_SPAWN.x} y={ROOM_SPAWN.y} me
+        appearance={profile.appearance} petKey={profile.petKey} nickname={profile.nickname}
+        showLabel={!editing} fx={watching} bubble={live.bubbles[me]} hop={live.hops[me]}
+      />
+    </>
   )
 
   if (loadError) {
@@ -549,6 +605,9 @@ export default function RoomScreen() {
             <Box sx={{ ...pillSx, px: 1.75, py: 0.75, borderRadius: '14px', bgcolor: '#FFF4E0', border: '2px solid #D29B68' }}>
               {!mine && <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: '#A8744A', lineHeight: 1.1 }}>Komşunun evi</Typography>}
               <Typography component="h1" sx={{ fontWeight: 800, fontSize: '1rem', color: '#7C5538', lineHeight: 1.3 }}>{ownerTitle}</Typography>
+              <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: '#7C5538', lineHeight: 1.2 }} aria-label={`Evde ${liveList.length + 1} kişi var, en fazla ${live.capacity}`}>
+                Evde: {liveList.length + 1} / {live.capacity}
+              </Typography>
             </Box>
           )}
         />
@@ -558,11 +617,13 @@ export default function RoomScreen() {
         <BottomBar
           items={mine ? [
             { key: 'out', label: 'Sokağa çık', icon: <ExitToAppRounded />, onClick: exit },
+            { key: 'say', label: 'Konuş', icon: <ForumRounded />, onClick: () => setSheet('speech') },
             { key: 'edit', label: 'Düzenle', icon: <EditRounded />, onClick: startEdit },
             { key: 'vis', label: 'Ziyaretçiler', icon: <PeopleAltRounded />, onClick: () => setSheet('visitors') },
             { key: 'gifts', label: 'Hediyeler', icon: <RedeemRounded />, onClick: () => setSheet('inbox'), badge: profile.unseenGifts },
           ] : [
             { key: 'out', label: 'Sokağa çık', icon: <ExitToAppRounded />, onClick: exit },
+            { key: 'say', label: 'Konuş', icon: <ForumRounded />, onClick: () => setSheet('speech') },
             { key: 'gift', label: 'Hediye bırak', icon: <RedeemRounded />, onClick: () => setSheet('gift') },
           ]}
         />
@@ -615,6 +676,24 @@ export default function RoomScreen() {
       <SettingsSheet open={sheet === 'settings'} onClose={() => setSheet(null)} />
       <VisitorsSheet open={sheet === 'visitors'} onClose={() => setSheet(null)} onGift={(p) => setSheet({ gift: p })} />
       {sheet?.gift && <GiftSendSheet open to={sheet.gift} onClose={() => setSheet(null)} />}
+      <SpeechSheet
+        open={sheet === 'speech'} onClose={() => setSheet(null)}
+        onSay={(payload) => {
+          setSheet(null)
+          live.say(payload).catch((err) => showError(err?.status === 429 ? 'Biraz soluklanalım; birazdan yine konuşabilirsin.' : (err?.message || 'Söyleyemedik, tekrar dene.')))
+        }}
+      />
+      <PlayerCardSheet
+        open={!!sheet?.player && !!live.players[sheet.player]} player={sheet?.player ? live.players[sheet.player] : null}
+        onClose={() => setSheet(null)} hideVisit
+        onGift={(p) => setSheet({ gift: p })} onBlocked={live.onBlocked}
+      />
+      {/* katılım sürerken (ya da ev doluysa geri dönerken) kapıda bekle */}
+      {live.session.status === 'joining' && (
+        <Box sx={{ position: 'absolute', inset: 0, zIndex: 9, display: 'grid', placeItems: 'center', bgcolor: ROOM_BG[atmo.timeOfDay] || ROOM_SKY }}>
+          <SaglikLoader size="lg" caption="Kapı açılıyor…" />
+        </Box>
+      )}
       <ProfileSync setProfile={setProfile} />
     </Box>
   )

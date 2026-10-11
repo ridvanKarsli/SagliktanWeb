@@ -219,12 +219,12 @@ async function publicFormShots(vpName, vp) {
 // /api/game/* sahte cevapları. gameState.hasProfile=false iken GET /me 404 döner
 // (karakter oluşturma ekranı). Dünya katılımı her bölgede ~6 oyuncuyu yürünebilir
 // hücrelere koyar. STOMP olayları taklit edilmez (yalnızca anlık görüntü).
-const gameState = { hasProfile: true, crowd: false, calls: [] }
+const gameState = { hasProfile: true, crowd: false, crowd50: false, roomFull: false, roomVisitors: false, noGroups: false, calls: [] }
 const blockedList = () => [
   { player: card(['p8sessiz00', 'Sessiz Kuş', look('s4', 'curly', 'brown', 'tee_mint', 'jeans'), null]), blockedAt: iso(60 * 26) },
   { player: card(['p9ruzgar00', 'Rüzgar', look('s1', 'buzz', 'blonde', 'hoodie_sky', 'joggers', 'cap'), 'serce']), blockedAt: iso(60 * 24 * 9) },
 ]
-const look = (skin, hair, hairColor, top, bottom, accessory = null) => ({ skin, hair, hairColor, top, bottom, accessory })
+const look = (skin, hair, hairColor, top, bottom, accessory = null, body = 'female') => ({ skin, hair, hairColor, top, bottom, accessory, body })
 const gamePlayers = [
   ['p1papatya0', 'Papatya', look('s1', 'bun', 'gray', 'cardigan_rose', 'long_skirt', 'glasses_round'), 'kedi'],
   ['p2deniz420', 'Deniz_42', look('s3', 'curly', 'black', 'raincoat_sun', 'jeans'), null],
@@ -247,6 +247,7 @@ const myGame = () => ({
 })
 const myRoom = () => ({
   owner: card(['mepublic01', 'Ayşe_Bahçe', myGame().appearance, 'kirpi']), visibility: 'EVERYONE', mine: true,
+  garden: { flowers: 14, lanterns: 3 },
   items: [
     { itemKey: 'rug', x: 3, y: 3, rot: 0 }, { itemKey: 'sofa', x: 1, y: 1, rot: 0 }, { itemKey: 'coffee_table', x: 4, y: 4, rot: 0 },
     { itemKey: 'floor_lamp', x: 0, y: 0, rot: 0 }, { itemKey: 'monstera', x: 6, y: 1, rot: 0 }, { itemKey: 'bookshelf', x: 0, y: 3, rot: 1 },
@@ -254,6 +255,17 @@ const myRoom = () => ({
     { itemKey: 'tv', x: 2, y: 0, rot: 0 }, { itemKey: 'piano', x: 3, y: 6, rot: 0 },
   ],
 })
+// 49 kişilik kalabalık (ölçek denemesi): yürünebilir hücrelere dağılmış
+const NICKS = ['Lale', 'Nar', 'Defne', 'Ada', 'Ece', 'Umut', 'Deniz', 'Kaya', 'Elif', 'Can', 'Su', 'Ela', 'Mert', 'Nil', 'Arda', 'Yaz', 'Toprak']
+function crowd49(z, cells) {
+  const tops = ['tee_mint', 'hoodie_sky', 'sweater_cream', 'cardigan_rose', 'shirt_check', 'jacket_denim', 'raincoat_sun', 'vest_knit']
+  const hairs = ['short', 'long', 'bun', 'curly', 'bob', 'buzz']
+  const step = Math.max(1, Math.floor(cells.length / 49))
+  return Array.from({ length: 49 }, (_, i) => {
+    const c = cells[(i * step + 7) % cells.length]
+    return { publicId: `crowd${String(i).padStart(5, '0')}`, nickname: `${NICKS[i % NICKS.length]}${i > 16 ? '_' + i : ''}`, appearance: look(`s${(i % 5) + 1}`, hairs[i % 6], ['black', 'brown', 'auburn', 'blonde', 'gray'][i % 5], tops[i % 8], ['jeans', 'chinos', 'skirt', 'joggers'][i % 4], null, i % 2 ? 'male' : 'female'), petKey: i % 5 === 0 ? 'kedi' : null, x: c.x, y: c.y, pose: 'stand', facing: 'front', flip: false, held: null }
+  })
+}
 function zonePlayers(zone) {
   const z = ZONES[zone]
   if (!z) return []
@@ -261,6 +273,7 @@ function zonePlayers(zone) {
   const out = []
   const cells = []
   for (let y = 0; y < z.height; y++) for (let x = 0; x < z.width; x++) if (g[y][x]) cells.push({ x, y })
+  if (gameState.crowd50) return crowd49(z, cells)
   // spawn çevresinde ama birbirinden ayrık, deterministik dağılım (kapı karelerinden uzak)
   const sp = z.spawn
   const near = cells
@@ -276,12 +289,26 @@ function zonePlayers(zone) {
   if (gameState.crowd) { gamePlayers.forEach((p, i) => { const c = near[i]; out.push({ ...card(p), x: c.x, y: c.y }) }); return out }
   gamePlayers.forEach((p, i) => { const c = taken[i] || near[i]; out.push({ ...card(p), x: c.x, y: c.y, pose: 'stand', facing: 'front', flip: false, held: null }) })
   // EK v1.1 duruşlar: Meydan'da biri bankta oturuyor, biri çay içiyor; Sahil'de biri şezlongda
-  if (zone === 'meydan') { Object.assign(out[0], { x: 9, y: 4, pose: 'sit', facing: 'front', flip: true }); out[2].held = 'tea' }
-  if (zone === 'sahil') Object.assign(out[5], { x: 10, y: 2, pose: 'lie', facing: 'front', flip: false })
+  if (zone === 'meydan') out[2].held = 'tea'
   return out
 }
 function gameRoute(p, method, url, body) {
   if (p === '/game/players/blocked') return blockedList()
+  if (p === '/users/me/disease-groups' && gameState.noGroups) return []
+  if (p === '/game/pulse') return { openQuestionCount: 4, unreadMessageCount: 3, weeklyHighlights: [
+    { postId: 1, title: 'Gece görüşü için hangi uygulamaları kullanıyorsunuz?' },
+    { postId: 2, title: 'Genetik test sonucu geldi, sırada ne var?' },
+    { postId: 4, title: 'Luxturna hakkında bilgisi olan var mı?' },
+  ] }
+  const rj = p.match(/^\/game\/rooms\/(\w+)\/join$/)
+  if (rj) {
+    if (gameState.roomFull) return { status: 409, body: { message: 'Bu ev şu an dolu, biraz sonra tekrar uğra' } }
+    const visitors = gameState.roomVisitors ? [
+      { ...card(gamePlayers[0]), x: 5, y: 5, pose: 'stand', facing: 'front', flip: false, held: 'tea' },
+      { ...card(gamePlayers[3]), x: 3, y: 6, pose: 'stand', facing: 'back', flip: true, held: null },
+    ] : []
+    return { zone: `room:${rj[1]}`, instance: 1, capacity: 8, me: body || { x: 4, y: 4 }, players: visitors }
+  }
   if (p === '/game/me' && method === 'GET') return gameState.hasProfile ? myGame() : { status: 404, body: { message: 'Mahalle profili yok' } }
   if (p === '/game/me' && method === 'POST') { gameState.hasProfile = true; return myGame() }
   if (p.startsWith('/game/me/')) return p === '/game/me/daily' ? { granted: true, amount: 15, seeds: 150 } : myGame()
@@ -292,9 +319,17 @@ function gameRoute(p, method, url, body) {
   if (p.startsWith('/game/rooms/')) {
     const id = p.split('/').pop()
     const pl = gamePlayers.find((x) => x[0] === id) || gamePlayers[0]
-    return { owner: card(pl), visibility: 'EVERYONE', mine: false, items: [{ itemKey: 'rug', x: 2, y: 2, rot: 0 }, { itemKey: 'bed', x: 5, y: 0, rot: 0 }, { itemKey: 'piano', x: 0, y: 2, rot: 1 }, { itemKey: 'flower_vase', x: 4, y: 4, rot: 0 }, { itemKey: 'fireplace', x: 2, y: 0, rot: 0 }] }
+    return { owner: card(pl), visibility: 'EVERYONE', mine: false, garden: { flowers: 9, lanterns: 2 }, items: [{ itemKey: 'rug', x: 2, y: 2, rot: 0 }, { itemKey: 'bed', x: 5, y: 0, rot: 0 }, { itemKey: 'piano', x: 0, y: 2, rot: 1 }, { itemKey: 'flower_vase', x: 4, y: 4, rot: 0 }, { itemKey: 'fireplace', x: 2, y: 0, rot: 0 }] }
   }
-  if (p === '/game/neighbors') return { content: gamePlayers.map((x, i) => ({ player: card(x), known: i < 2, visitedByMeAt: i % 2 ? iso(60 * i) : null, lastActiveAt: iso(15 * (i + 1)) })), page: 0, size: 20, totalElements: 6, totalPages: 1, last: true }
+  if (p === '/game/neighbors') {
+    // 13 komşu (sokaktaki 13 kapı), bahçeleri farklı boyda
+    const list = Array.from({ length: 13 }, (_, i) => {
+      const base = gamePlayers[i % gamePlayers.length]
+      const id = i < gamePlayers.length ? base[0] : `n${i}komsu000`.slice(0, 10)
+      return { player: card([id, i < gamePlayers.length ? base[1] : `${NICKS[i]} Komşu`, base[2], base[3]]), known: i < 2, visitedByMeAt: i % 2 ? iso(60 * i) : null, lastActiveAt: iso(15 * (i + 1)), garden: { flowers: (i * 7) % 25, lanterns: i % 4 } }
+    })
+    return { content: list, page: 0, size: 20, totalElements: 13, totalPages: 1, last: true }
+  }
   if (p === '/game/visitors') return gamePlayers.slice(0, 4).map((x, i) => ({ player: card(x), visitedAt: iso(40 * (i + 1)) }))
   if (p === '/game/gifts' && method === 'GET') {
     const pg = Number(url.searchParams.get('page') || 0)
@@ -308,7 +343,8 @@ function gameRoute(p, method, url, body) {
     const z = ZONES[jm[1]]
     const ok = body && Number.isInteger(body.x) && Number.isInteger(body.y) && body.x >= 0 && body.y >= 0 && body.x < z.width && body.y < z.height
     gameState.lastJoin = body || null
-    return { zone: jm[1], instance: 1, me: ok ? { x: body.x, y: body.y } : { x: Math.floor(z.width / 2), y: Math.floor(z.height / 2) }, players: zonePlayers(jm[1]) }
+    const cap = FALLBACK_CATALOG.zones.find((q) => q.key === jm[1])?.capacity || 40
+    return { zone: jm[1], instance: jm[1] === 'meydan' && !gameState.crowd50 ? 2 : 1, capacity: cap, me: ok ? { x: body.x, y: body.y } : { x: Math.floor(z.width / 2), y: Math.floor(z.height / 2) }, players: zonePlayers(jm[1]) }
   }
   if (p === '/game/world/pose') { gameState.calls.push(`pose ${JSON.stringify(body)}`); return { status: 204 } }
   if (p.startsWith('/game/')) return { status: 204 }
@@ -360,6 +396,21 @@ const gameShots = [
   ['app-bubble-tucked', { path: '/home', fresh: true }],
   ['app-bubble-dragged-left', { path: '/home', fresh: true }],
   ['app-bubble-profile', { path: '/profile', fresh: true }],
+  // EK v1.2
+  ['game-crowd-50', { zone: 'meydan', crowd50: true }],
+  ['game-place-cafe', { zone: 'meydan', query: '?atmo=ogle:clear' }],
+  ['game-place-board', { zone: 'meydan', query: '?atmo=ogle:clear' }],
+  ['game-place-library', { zone: 'carsi', query: '?atmo=ogle:clear' }],
+  ['game-place-post', { zone: 'mahalle', query: '?atmo=ogle:clear' }],
+  ['game-checkin-breathe', { zone: 'park', query: '?atmo=ogle:clear' }],
+  ['game-checkin-waves', { zone: 'sahil', query: '?atmo=ogle:clear' }],
+  ['game-mahalle-gardens', { zone: 'mahalle', query: '?atmo=ogle:clear' }],
+  ['game-garden-gate', { zone: 'mahalle', query: '?atmo=ogle:clear' }],
+  ['game-room-live', { path: '/mahalle/ev', query: '?atmo=ogle:clear', roomVisitors: true }],
+  ['game-room-full', { path: '/mahalle/ev/p1papatya0', roomFull: true }],
+  ['game-trust', { zone: 'meydan', trust: true, query: '?atmo=ogle:clear' }],
+  ['app-bubble-gated', { path: '/home', fresh: true, gated: true }],
+  ['app-home-compose-prompt', { path: '/home?yaz=1&ipucu=nasilsin' }],
 ]
 
 async function runGameShots(vpName, vp) {
@@ -422,15 +473,21 @@ async function runGameShots(vpName, vp) {
     try {
       gameState.hasProfile = o.hasProfile !== false
       gameState.crowd = !!o.crowd
+      gameState.crowd50 = !!o.crowd50
+      gameState.roomFull = !!o.roomFull
+      gameState.roomVisitors = !!o.roomVisitors
+      gameState.noGroups = !!o.gated
+      me.role = o.gated ? 'USER' : (process.env.ROLE || 'ADMIN')
       gameState.calls = []
-      await gp.evaluate(([zone, hint]) => {
+      await gp.evaluate(([zone, hint, trust]) => {
         try {
           if (zone) localStorage.setItem('sagliktan:mahalle:last-zone', zone)
           if (hint) localStorage.removeItem('sagliktan:mahalle:hint-seen'); else localStorage.setItem('sagliktan:mahalle:hint-seen', '1')
           localStorage.removeItem('sagliktan:mahalle-bubble-pos')
+          if (trust) localStorage.setItem('sagliktan:mahalle:trust-pending', '1'); else localStorage.removeItem('sagliktan:mahalle:trust-pending')
           localStorage.setItem('sagliktan:mahalle-card-dismissed', '1')
         } catch { /* */ }
-      }, [o.zone || null, !!o.hint])
+      }, [o.zone || null, !!o.hint, !!o.trust])
       await gp.goto('http://localhost:4173/home', { waitUntil: 'networkidle' })
       await gp.goto('http://localhost:4173' + (o.path || '/mahalle') + (o.query || ''), { waitUntil: 'networkidle', timeout: 20000 })
       await gp.waitForTimeout(1400)
@@ -474,7 +531,46 @@ async function runGameShots(vpName, vp) {
       }
       if (name === 'game-zone-switch') { await bar('Harita'); await gp.waitForTimeout(500); await gp.getByRole('button', { name: /^Sahil/ }).click(); await gp.waitForTimeout(1800) }
       if (name === 'game-portal-walk') { await tapObj(0); await gp.waitForTimeout(2600) }
-      if (name === 'game-daily') { await gp.getByRole('button', { name: 'Günlük tohumunu al' }).click(); await gp.waitForTimeout(700) }
+      if (name === 'game-daily') { await gp.getByRole('button', { name: 'Tohumu al' }).click(); await gp.waitForTimeout(700) }
+      const tapKey = async (key) => {
+        const idx = await gp.evaluate((k) => document.querySelector(`[data-key="${k}"]`)?.getAttribute('data-obj'), key)
+        await tapObj(idx)
+      }
+      // uzaktaki yer: ekranda olmayabilir - karakteri yerin etkileşim karesine yürüt
+      // (varınca yer sayfası kendiliğinden açılır; dokunmayla aynı akış)
+      const walkToPlace = async (key) => {
+        const pl = ZONES[o.zone].places.find((q) => q.key === key)
+        await gp.evaluate(([x, y]) => window.__SG_ENGINE__.walkTo('mepublic01', x, y), [pl.interact.x, pl.interact.y])
+      }
+      const sheetOpen = async (title) => { await gp.getByRole('heading', { name: title }).waitFor({ timeout: 15000 }); await gp.waitForTimeout(500) }
+      if (name === 'game-place-cafe') { await walkToPlace('qa_cafe'); await sheetOpen('Soru-Cevap Kahvesi') }
+      if (name === 'game-place-board') { await walkToPlace('notice_board'); await sheetOpen('Mahalle Panosu') }
+      if (name === 'game-place-library') { await walkToPlace('library'); await sheetOpen('Kütüphane') }
+      if (name === 'game-place-post') { await walkToPlace('post_office'); await sheetOpen('Mahalle Postanesi') }
+      if (name === 'game-garden-gate') { await walkToPlace('garden_gate'); await sheetOpen('Bahçene bak') }
+      if (name === 'game-checkin-breathe') {
+        await walkToPlace('checkin_bench'); await sheetOpen('Bugün nasılsın?')
+        await gp.getByRole('button', { name: '1 dakikalık nefes' }).click(); await gp.waitForTimeout(2500)
+      }
+      if (name === 'game-checkin-waves') {
+        await walkToPlace('checkin_pier'); await sheetOpen('Biraz dinlenmek ister misin?')
+        await gp.getByRole('button', { name: 'Dalgaları dinle' }).click(); await gp.waitForTimeout(1500)
+      }
+      if (name === 'game-room-full') await gp.waitForTimeout(1500)
+      if (name === 'game-room-live') {
+        const at = new Date().toISOString()
+        await gp.waitForTimeout(600)
+        stomp?.send('/user/queue/game', { type: 'SAY', zone: 'room:mepublic01', instance: 1, publicId: 'p1papatya0', phraseKey: 'evin_cok_guzel', at })
+        await gp.waitForTimeout(800)
+      }
+      if (name === 'game-crowd-50') {
+        // 20 kişiyi yürüt, 2 sn boyunca kare sayısını ölç
+        const at = new Date().toISOString()
+        for (let i = 0; i < 20; i++) stomp?.send('/user/queue/game', { type: 'MOVE', zone: 'meydan', instance: 1, publicId: `crowd${String(i).padStart(5, '0')}`, x: 4 + (i % 18), y: 8 + (i % 9), at })
+        const fps = await gp.evaluate(() => new Promise((res) => { let n = 0; const t0 = performance.now(); const f = () => { n++; if (performance.now() - t0 < 2000) requestAnimationFrame(f); else res(Math.round(n / ((performance.now() - t0) / 1000))) }; requestAnimationFrame(f) }))
+        const nodes = await gp.evaluate(() => document.querySelectorAll('svg *').length)
+        console.log('crowd-50 fps:', fps, 'svg nodes:', nodes)
+      }
       if (name === 'game-room-exit') {
         await gp.getByRole('navigation', { name: 'Mahalle menüsü' }).getByRole('button', { name: 'Sokağa çık' }).click(); await gp.waitForTimeout(1500)
       }
@@ -494,10 +590,6 @@ async function runGameShots(vpName, vp) {
       if (name === 'game-walking') {
         const W = vp.width; if (vp.hasTouch) await gp.touchscreen.tap(W * 0.3, 330); else await gp.mouse.click(W * 0.35, 260)
         await gp.waitForTimeout(650)
-      }
-      const tapKey = async (key) => {
-        const idx = await gp.evaluate((k) => document.querySelector(`[data-key="${k}"]`)?.getAttribute('data-obj'), key)
-        await tapObj(idx)
       }
       const menuPick = async (label) => { await gp.waitForTimeout(500); await gp.getByRole('menuitem', { name: label }).click() }
       if (name.startsWith('app-bubble')) await gp.waitForTimeout(400)
@@ -538,7 +630,13 @@ async function runGameShots(vpName, vp) {
       }
       await gp.screenshot({ path: `${OUT}/${vpName}-${name}.png` })
       console.log('ok', vpName, name, process.env.DEBUG ? gameState.calls.join(' | ') : '')
-    } catch (e) { console.log('FAIL', vpName, name, e.message.split('\n')[0]) }
+    } catch (e) {
+      console.log('FAIL', vpName, name, e.message.split('\n')[0])
+      try {
+        await gp.screenshot({ path: `${OUT}/${vpName}-${name}-FAIL.png` })
+        if (process.env.DEBUG) console.log(await gp.evaluate(() => { const e = window.__SG_ENGINE__; const a = e && [...e.actors.values()].find((x) => x.id === 'mepublic01'); return JSON.stringify({ cell: a?.cell, moving: a?.moving, path: a?.path?.length }) }), gameState.calls.join(' | '))
+      } catch { /* */ }
+    }
   }
   if (errs.length) console.log(`[${vpName}] game console/page errors:`, [...new Set(errs)].slice(0, 8))
   await gctx.close()

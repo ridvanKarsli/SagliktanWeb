@@ -6,6 +6,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import useQuickSearchShortcut from '../hooks/useQuickSearchShortcut.js'
 import { useScrollRestoration } from '../hooks/useScrollRestoration.js'
 import { useOnlineStatus } from '../hooks/useOnlineStatus.js'
+import { useMahalleEligible } from '../hooks/useMahalleEligible.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { emitListRefresh } from '../utils/listRefreshBus.js'
 import InstallPrompt from './InstallPrompt.jsx'
@@ -50,6 +51,9 @@ export default function ResponsiveShell({ children }) {
     await logout()
     navigate('/', { replace: true })
   }
+
+  // Mahalle kısayolu yalnızca uygun üyelere (bkz. useMahalleEligible)
+  const mahalleEligible = useMahalleEligible()
 
   // Cmd/Ctrl+K ve "/" ile her yerden hızlı arama.
   useQuickSearchShortcut()
@@ -109,9 +113,11 @@ export default function ResponsiveShell({ children }) {
       {/* Mahalle (oyun) kısa yolu: kenarda duran sürüklenebilir düğme.
           Kabuk yalnızca oturumlu uygulama sayfalarında var (/mahalle, giriş ve
           karşılama sayfalarında yok). */}
-      <Suspense fallback={null}>
-        <MahalleBubble key={isMdUp ? 'd' : 'm'} desktop={isMdUp} />
-      </Suspense>
+      {mahalleEligible === true && (
+        <Suspense fallback={null}>
+          <MahalleBubble key={isMdUp ? 'd' : 'm'} desktop={isMdUp} />
+        </Suspense>
+      )}
 
       <InstallPrompt />
     </Box>

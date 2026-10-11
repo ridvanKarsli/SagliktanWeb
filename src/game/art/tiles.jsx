@@ -469,3 +469,40 @@ export const RoomWalls = memo(function RoomWalls({ size = 8, timeOfDay = 'ogle',
 function pt0(u, v, h) {
   return [(u - v) * 32, (u + v) * 16 - h]
 }
+
+// ---------------------------------------------------------------- toplu karo katmanı
+// Büyük bölgeler için: her (tür, varyant) karosu <defs> içinde BİR kez çizilir,
+// hücreler <use> ile çoğaltılır (900 karo ≈ 900 <use> + ~30 tanım).
+// zoneTileGroups(tiles) -> [{ kind, variant, cells: [{x, y, sx, sy}] }]
+export function zoneTileGroups(tiles) {
+  const groups = new Map()
+  for (let y = 0; y < tiles.length; y++) {
+    const row = tiles[y]
+    for (let x = 0; x < row.length; x++) {
+      const kind = TILE_LEGEND[row[x]] || row[x]
+      const variant = (x * 7 + y * 13) % 4
+      const key = `${kind}:${variant}`
+      if (!groups.has(key)) groups.set(key, { kind, variant, cells: [] })
+      groups.get(key).cells.push({ x, y, sx: (x - y) * 32, sy: (x + y) * 16 })
+    }
+  }
+  return [...groups.values()]
+}
+
+// TileLayer ile aynı sonuç (aynı varyant formülü), daha az DOM düğümü.
+export const ZoneTileLayer = memo(function ZoneTileLayer({ tiles }) {
+  const uid = `zt${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`
+  const groups = zoneTileGroups(tiles)
+  return (
+    <g aria-hidden="true">
+      <defs>
+        {groups.map((g) => (
+          <g key={`${g.kind}${g.variant}`} id={`${uid}-${g.kind}-${g.variant}`}>
+            <IsoTile kind={g.kind} variant={g.variant} />
+          </g>
+        ))}
+      </defs>
+      {groups.flatMap((g) => g.cells.map((c) => <use key={`${c.x},${c.y}`} href={`#${uid}-${g.kind}-${g.variant}`} x={c.sx} y={c.sy} />))}
+    </g>
+  )
+})

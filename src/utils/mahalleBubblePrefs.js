@@ -1,23 +1,39 @@
-// "Mahalle kısayolu" (yüzen düğme) tercihi ve konumu. Bu cihazda saklanır;
-// localStorage kapalıysa (gizli sekme) yalnızca bu oturumda geçerli olur.
-const ENABLED_KEY = 'sagliktan:mahalle-bubble'
+// Yüzen ev düğmesinin (Sağlıktan'daki Mahalle kısayolu) tercihi ve konumu.
+// Bu cihazda saklanır; localStorage kapalıysa (gizli sekme) yalnızca bu
+// oturumda geçerli olur. Tercih Mahalle'nin kendi Ayarlar'ından değişir.
+//  mode: 'normal' (kenarda, dokunulmayınca yarı saklanır)
+//        'small'  (hep kenarda saklı, daha küçük; tamamen kapatma yok)
+const MODE_KEY = 'sagliktan:mahalle-bubble-mode'
+const LEGACY_ENABLED_KEY = 'sagliktan:mahalle-bubble' // eski açık/kapalı anahtarı
 const POS_KEY = 'sagliktan:mahalle-bubble-pos'
 export const MAHALLE_BUBBLE_EVENT = 'sagliktan:mahalle-bubble-change'
+export const BUBBLE_MODES = ['normal', 'small']
 
-let memoryEnabled = true
+let memoryMode = 'normal'
 
-export function isMahalleBubbleEnabled() {
+export function getMahalleBubbleMode() {
   try {
-    const v = localStorage.getItem(ENABLED_KEY)
-    return v === null ? memoryEnabled : v !== 'off'
+    const m = localStorage.getItem(MODE_KEY)
+    if (BUBBLE_MODES.includes(m)) return m
+    // geçiş: eskiden "kapalı" seçen kişiye artık "küçük" (kapatma yok)
+    if (localStorage.getItem(LEGACY_ENABLED_KEY) === 'off') {
+      localStorage.setItem(MODE_KEY, 'small')
+      localStorage.removeItem(LEGACY_ENABLED_KEY)
+      return 'small'
+    }
+    return memoryMode
   } catch {
-    return memoryEnabled
+    return memoryMode
   }
 }
 
-export function setMahalleBubbleEnabled(on) {
-  memoryEnabled = !!on
-  try { localStorage.setItem(ENABLED_KEY, on ? 'on' : 'off') } catch { /* yalnızca bu oturum */ }
+export function setMahalleBubbleMode(mode) {
+  const m = BUBBLE_MODES.includes(mode) ? mode : 'normal'
+  memoryMode = m
+  try {
+    localStorage.setItem(MODE_KEY, m)
+    localStorage.removeItem(LEGACY_ENABLED_KEY)
+  } catch { /* yalnızca bu oturum */ }
   try { window.dispatchEvent(new CustomEvent(MAHALLE_BUBBLE_EVENT)) } catch { /* eski tarayıcı */ }
 }
 
@@ -36,4 +52,4 @@ export function saveBubblePos(pos) {
   try { localStorage.setItem(POS_KEY, JSON.stringify(pos)) } catch { /* yalnızca bu oturum */ }
 }
 
-export const MAHALLE_BUBBLE_KEYS = { ENABLED_KEY, POS_KEY }
+export const MAHALLE_BUBBLE_KEYS = { MODE_KEY, LEGACY_ENABLED_KEY, POS_KEY }

@@ -9,7 +9,6 @@ import PostList from '../components/PostList.jsx'
 import PostCardSkeleton from '../components/PostCardSkeleton.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import ComposerPrompt from '../components/ComposerPrompt.jsx'
-import MahalleCard from '../components/MahalleCard.jsx'
 import CreatePostFab from '../components/CreatePostFab.jsx'
 import SortToggle from '../components/SortToggle.jsx'
 import PullToRefreshIndicator from '../components/PullToRefreshIndicator.jsx'
@@ -25,6 +24,15 @@ import { pillTabsSx } from '../components/shell/pillTabs.js'
 // indirilmez; FAB ve "Ne paylaşmak istersin?" istemi anında tepki verir,
 // pencere ilk dokunuşta mount olur ve sonra açık/kapalı ağaçta kalır.
 const NewPostDialog = lazy(() => import('../components/NewPostDialog.jsx'))
+
+// ?yaz=1&ipucu=<anahtar>: yazma penceresini nazik bir soruyla açan genel
+// adres (bağlantılar, bildirimler ve uygulama içi kısa yollar kullanır).
+const COMPOSE_PROMPTS = {
+  nasilsin: { prompt: 'Bugün nasılsın?' },
+  sevinc: { prompt: 'Bugün seni ne gülümsetti?' },
+  soru: { prompt: 'Aklındaki soruyu sor', postType: 'QUESTION' },
+  tesekkur: { prompt: 'Kime teşekkür etmek istersin?' },
+}
 
 const FEED_TAB = 'feed'
 const QUESTIONS_TAB = 'questions'
@@ -86,7 +94,21 @@ export default function Home() {
   const [composerOpen, setComposerOpen] = useState(false)
   // Pencere bir kez açıldıktan sonra ağaçta kalır (form taslağı korunur).
   const [composerMounted, setComposerMounted] = useState(false)
-  const openComposer = useCallback(() => { setComposerMounted(true); setComposerOpen(true) }, [])
+  const [composerPrompt, setComposerPrompt] = useState(null) // { prompt, postType? }
+  const openComposer = useCallback(() => { setComposerPrompt(null); setComposerMounted(true); setComposerOpen(true) }, [])
+
+  // ?yaz=1 ile gelindiyse pencereyi (varsa ipucuyla) aç, parametreleri adresten kaldır
+  useEffect(() => {
+    if (params.get('yaz') !== '1') return
+    const hint = COMPOSE_PROMPTS[params.get('ipucu')] || null
+    setComposerPrompt(hint)
+    setComposerMounted(true)
+    setComposerOpen(true)
+    const next = new URLSearchParams(params)
+    next.delete('yaz')
+    next.delete('ipucu')
+    setParams(next, { replace: true })
+  }, [params, setParams])
   const { checking: checkingGroups, hasJoined: hasJoinedGroups } = useHasJoinedGroups()
 
   const fetchPage = useCallback(
@@ -226,8 +248,6 @@ export default function Home() {
 
       {canPost && <ComposerPrompt onClick={openComposer} sx={{ mb: 2.5 }} />}
 
-      <MahalleCard sx={{ mb: 2.5 }} />
-
       {canPost && (
         <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 2 }}>
           <Tabs
@@ -262,7 +282,8 @@ export default function Home() {
             open={composerOpen}
             onClose={() => setComposerOpen(false)}
             onCreated={onPostCreated}
-            initialPostType={tab === QUESTIONS_TAB ? 'QUESTION' : 'DISCUSSION'}
+            initialPostType={composerPrompt?.postType || (tab === QUESTIONS_TAB ? 'QUESTION' : 'DISCUSSION')}
+            prompt={composerPrompt?.prompt}
           />
         </Suspense>
       )}

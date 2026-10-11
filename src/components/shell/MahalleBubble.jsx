@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { focusRingSx } from '../../design/focus.js'
 import { MOBILE_NAV_HEIGHT } from './MobileBottomNav.jsx'
 import {
-  MAHALLE_BUBBLE_EVENT, MAHALLE_BUBBLE_KEYS, isMahalleBubbleEnabled, readBubblePos, saveBubblePos,
+  MAHALLE_BUBBLE_EVENT, MAHALLE_BUBBLE_KEYS, getMahalleBubbleMode, readBubblePos, saveBubblePos,
 } from '../../utils/mahalleBubblePrefs.js'
 
 // iOS AssistiveTouch benzeri "Mahalle kısayolu": ekranın kenarında duran,
@@ -14,14 +14,15 @@ import {
 //    alt menü arasında kalır, sağda "Yeni gönderi" düğmesinin alanına girmez.
 //  - (mobilde) 3 sn dokunulmazsa kenara yarı saklanır (küçülür, soluklaşır); dokunma,
 //    üzerine gelme ya da klavye odağı onu geri getirir. Saklıyken de dokununca açar.
-//  - Konum ve açık/kapalı tercihi bu cihazda saklanır (Ayarlar > Erişilebilirlik).
+//  - Konum ve boyut tercihi bu cihazda saklanır. Boyut ("Normal" / "Küçük")
+//    Mahalle'nin kendi Ayarlar'ından seçilir; "Küçük" hep kenarda saklı ve küçüktür.
+//  - Kimlere görünür: ResponsiveShell + useMahalleEligible (grup üyesi ve 3 günlük hesap; admin her zaman).
 // Oyun koduna ve MUI Tooltip/Popper'a bağımlı DEĞİL: ana pakete ~2 KB ekler.
 
-const SIZE = 56
+const SIZES = { normal: 56, small: 46 }
 const EDGE = 10 // kenardan boşluk (açıkken)
 const TAP_SLOP = 6
 const IDLE_MS = 3000
-const TUCK_SHIFT = SIZE * 0.45 + EDGE // saklıyken kenarın dışına kayma (görünen ≥ 30 px)
 const GAP = 12 // alt menü / FAB ile arası
 const FAB = { mobile: { size: 60, bottom: 16, right: 16 }, desktop: { size: 56, bottom: 32 } }
 
@@ -41,7 +42,7 @@ function prefersReducedMotion() {
 }
 
 // Dikey sınırlar (px). Sağ kenarda FAB alanı da dışarıda kalır.
-function verticalRange(vh, desktop, side, insets) {
+function verticalRange(vh, desktop, side, insets, SIZE) {
   const top = desktop ? 16 : 56 + insets.top + GAP
   let bottom
   if (desktop) {
@@ -69,7 +70,11 @@ function HouseSprout() {
 export default function MahalleBubble({ desktop }) {
   const theme = useTheme()
   const navigate = useNavigate()
-  const [enabled, setEnabled] = useState(isMahalleBubbleEnabled)
+  const [mode, setMode] = useState(getMahalleBubbleMode)
+  const small = mode === 'small'
+  const SIZE = SIZES[mode] || SIZES.normal
+  // saklıyken kenarın dışına kayma: görünen kısım ≥ 28 px kalır
+  const TUCK_SHIFT = small ? SIZE * 0.4 + EDGE : SIZE * 0.45 + EDGE
   const [pos, setPos] = useState(readBubblePos)
   const [vp, setVp] = useState(() => ({ w: window.innerWidth, h: window.innerHeight }))
   const [insets, setInsets] = useState({ top: 0, bottom: 0 })
@@ -84,8 +89,8 @@ export default function MahalleBubble({ desktop }) {
 
   // tercih değişince (Ayarlar ya da başka sekme) yeniden oku
   useEffect(() => {
-    const sync = () => setEnabled(isMahalleBubbleEnabled())
-    const onStorage = (e) => { if (!e.key || e.key === MAHALLE_BUBBLE_KEYS.ENABLED_KEY) sync() }
+    const sync = () => setMode(getMahalleBubbleMode())
+    const onStorage = (e) => { if (!e.key || e.key === MAHALLE_BUBBLE_KEYS.MODE_KEY) sync() }
     window.addEventListener(MAHALLE_BUBBLE_EVENT, sync)
     window.addEventListener('storage', onStorage)
     return () => { window.removeEventListener(MAHALLE_BUBBLE_EVENT, sync); window.removeEventListener('storage', onStorage) }
@@ -114,19 +119,17 @@ export default function MahalleBubble({ desktop }) {
     idleTimer.current = setTimeout(() => setTucked(true), IDLE_MS)
   }, [])
   useEffect(() => {
-    if (!enabled) return undefined
     idleTimer.current = setTimeout(() => setTucked(true), IDLE_MS)
     return () => clearTimeout(idleTimer.current)
-  }, [enabled])
+  }, [])
 
-  if (!enabled) return null
-
-  const range = verticalRange(vp.h, desktop, pos.side, insets)
+  const range = verticalRange(vp.h, desktop, pos.side, insets, SIZE)
   const restY = range.min + (range.max - range.min) * pos.frac
   const restX = pos.side === 'left' ? EDGE : vp.w - SIZE - EDGE
   // Masaüstünde saklanma yok: geniş ekranda yer derdi yok, yarı saklı soluk
   // düğme büyük ekranda gözden kaçıyordu. Saklanma yalnızca dokunmatik/mobilde.
-  const showTucked = !desktop && tucked && !focused && !drag
+  // "Küçük" biçim her ekranda hep saklı (yalnızca klavye odağı ve sürükleme açar).
+  const showTucked = !focused && !drag && (small || (!desktop && tucked))
 
   const onPointerDown = (e) => {
     if (e.button !== undefined && e.button !== 0 && e.pointerType === 'mouse') return
@@ -150,7 +153,7 @@ export default function MahalleBubble({ desktop }) {
     // bırakıldı: en yakın kenara yapış, dikeyde izinli aralığa sığdır
     suppressClick.current = true
     const side = drag.x + SIZE / 2 < vp.w / 2 ? 'left' : 'right'
-    const r = verticalRange(vp.h, desktop, side, insets)
+    const r = verticalRange(vp.h, desktop, side, insets, SIZE)
     const y = Math.max(r.min, Math.min(r.max, drag.y))
     const next = { side, frac: r.max > r.min ? (y - r.min) / (r.max - r.min) : 0 }
     setPos(next)
@@ -226,8 +229,8 @@ export default function MahalleBubble({ desktop }) {
         boxShadow: drag
           ? '0 10px 26px rgba(18,60,50,0.28), 0 2px 6px rgba(18,60,50,0.18)'
           : '0 6px 16px rgba(18,60,50,0.20), 0 1px 3px rgba(18,60,50,0.16)',
-        transform: `translateX(${shift}px) scale(${drag ? 1.06 : showTucked ? 0.9 : 1})`,
-        opacity: showTucked ? 0.55 : 1,
+        transform: `translateX(${shift}px) scale(${drag ? 1.06 : showTucked && !small ? 0.9 : 1})`,
+        opacity: showTucked ? (small ? 0.7 : 0.55) : 1,
         transition: motion,
         touchAction: 'none',
         userSelect: 'none',
@@ -244,7 +247,7 @@ export default function MahalleBubble({ desktop }) {
         aria-hidden="true"
         sx={{
           display: 'grid',
-          transform: `translateX(${showTucked ? (pos.side === 'left' ? 11 : -11) : 0}px)`,
+          transform: `translateX(${showTucked ? (pos.side === 'left' ? 1 : -1) * (small ? 8 : 11) : 0}px) scale(${small ? 0.82 : 1})`,
           transition: reduced ? 'none' : 'transform 300ms ease',
         }}
       >

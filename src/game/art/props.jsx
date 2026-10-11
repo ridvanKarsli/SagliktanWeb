@@ -5,6 +5,7 @@ import { memo, useId } from 'react'
 import { C, INK, shade } from './palette.js'
 import { P, pt, LINE, Box, Cyl, Shadow, Blob, faceV, faceU, flat, onV, UNIT } from './primitives.jsx'
 import { PROP_META } from './propMeta.js'
+import { QaCafe, NoticeBoard, Library, PostOffice, CheckinBench, CheckinPier, GardenGate } from './places.jsx'
 import './styles.js'
 
 const S = LINE
@@ -256,13 +257,13 @@ const Pond = memo(function Pond() {
         </g>
       ))}
       {/* ördek */}
-      <g className="sm-bob" transform={`translate(${cx + 14} ${cy - 10})`}>
+      <g transform={`translate(${cx + 14} ${cy - 10})`}><g className="sm-bob">
         <ellipse cx={0} cy={2} rx={9} ry={4} fill={C.waterDeep} opacity="0.5" />
         <path d="M-8 -1 Q-8 4 0 4 Q8 4 7 -2 Q3 1 -2 -2 Q-6 -4 -8 -1Z" fill="#FFFDF8" {...S} />
         <circle cx={5} cy={-5} r={4} fill="#FFFDF8" {...S} />
         <path d="M8.5 -5.4 L12 -4.4 L8.6 -3.2Z" fill={C.apricot} />
         <circle cx={6} cy={-6} r={0.9} fill={INK} />
-      </g>
+      </g></g>
       {/* sazlar */}
       <g className="sm-sway">
         {[[cx - 58, cy - 6, 30], [cx - 52, cy - 10, 36], [cx - 46, cy - 12, 26], [cx + 54, cy - 14, 28], [cx + 60, cy - 10, 22]].map(([x, y, h], i) => (
@@ -1105,6 +1106,13 @@ export const PROPS = Object.fromEntries(
     rock: Rock,
     gate_arch: GateArch,
     lighthouse_small: Lighthouse,
+    qa_cafe: QaCafe,
+    notice_board: NoticeBoard,
+    library: Library,
+    post_office: PostOffice,
+    checkin_bench: CheckinBench,
+    checkin_pier: CheckinPier,
+    garden_gate: GardenGate,
   }).map(([key, Component]) => [key, { ...PROP_META[key], Component }]),
 )
 

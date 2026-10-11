@@ -2,8 +2,7 @@ import { useMemo } from 'react'
 import {
   HomeRounded, HomeOutlined, GroupsRounded, GroupsOutlined, SearchRounded, SearchOutlined,
   ChatBubbleRounded, ChatBubbleOutlineRounded,
-  PersonRounded, PersonOutlineRounded, AdminPanelSettingsRounded, AdminPanelSettingsOutlined,
-  CottageRounded, CottageOutlined
+  PersonRounded, PersonOutlineRounded, AdminPanelSettingsRounded, AdminPanelSettingsOutlined
 } from '@mui/icons-material'
 import { useAuth } from '../../context/AuthContext.jsx'
 
@@ -25,21 +24,13 @@ const ADMIN_NAV_ITEM = {
   label: 'Admin', icon: <AdminPanelSettingsRounded />, iconOutline: <AdminPanelSettingsOutlined />, to: '/admin'
 }
 
-// Sağlıktan Mahalle (oyun): yalnızca masaüstü kenar çubuğunda. Mobil alt
-// menü 5 sekmeyle dolu; mobilde giriş Anasayfa kartı ve Profil'deki
-// "Evimi gör" düğmesinden.
-const GAME_NAV_ITEM = {
-  label: 'Mahalle', icon: <CottageRounded />, iconOutline: <CottageOutlined />, to: '/mahalle'
-}
-
-// Kullanıcının rolüne göre gezinme sekmeleri. desktop: kenar çubuğuna özel
-// sekmeler (Mahalle) de eklenir.
-export function useNavItems({ desktop = false } = {}) {
+// Kullanıcının rolüne göre gezinme sekmeleri.
+export function useNavItems() {
   const { user } = useAuth()
-  return useMemo(() => {
-    const base = desktop ? [...BASE_NAV_ITEMS.slice(0, 4), GAME_NAV_ITEM, BASE_NAV_ITEMS[4]] : BASE_NAV_ITEMS
-    return user?.role === 'ADMIN' ? [...base, ADMIN_NAV_ITEM] : base
-  }, [user?.role, desktop])
+  return useMemo(
+    () => (user?.role === 'ADMIN' ? [...BASE_NAV_ITEMS, ADMIN_NAV_ITEM] : BASE_NAV_ITEMS),
+    [user?.role]
+  )
 }
 
 export const isNavItemActive = (item, pathname) => pathname.startsWith(item.to)

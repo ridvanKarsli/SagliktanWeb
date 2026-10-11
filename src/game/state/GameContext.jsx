@@ -2,7 +2,7 @@
 // ekran okuyucu duyuruları. Sık değişen dünya durumu (oyuncu konumları)
 // BURADA DEĞİL - WorldScreen ve sahne motorunda yaşar; bu bağlam yalnızca
 // seyrek değişen verileri taşır ki HUD her adımda yeniden çizilmesin.
-import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { Box } from '@mui/material'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
@@ -56,6 +56,32 @@ export function GameProvider({ children }) {
   catalogRef.current = state.catalog
   // dünyaya dönüşte nereden devam edileceği (oda ziyareti sonrası)
   const returnTo = useRef(null)
+  // Topluluk nabzı (bölüm binalarının tabelaları) ve kendi bahçem: oturum boyunca önbellek
+  const [pulse, setPulse] = useState(null)
+  const pulseAt = useRef(0)
+  const pulseInflight = useRef(null)
+  const [myGarden, setMyGarden] = useState(null)
+
+  // Nabız en fazla 60 sn'de bir tazelenir (sunucu da kişi başı 60 sn önbellekler)
+  const loadPulse = useCallback((force = false) => {
+    if (!force && Date.now() - pulseAt.current < 60000) return Promise.resolve()
+    if (pulseInflight.current) return pulseInflight.current
+    pulseInflight.current = api.getPulse(token)
+      .then((p) => { if (p) { setPulse(p); pulseAt.current = Date.now() } })
+      // nabız ikincil: gelmezse tabelalar sayısız görünür
+      .catch(() => {})
+      .finally(() => { pulseInflight.current = null })
+    return pulseInflight.current
+  }, [token])
+
+  const loadMyGarden = useCallback(() => {
+    if (myGardenLoaded.current) return
+    myGardenLoaded.current = true
+    api.getMyRoom(token)
+      .then((r) => setMyGarden(r?.garden || { flowers: 0, lanterns: 0 }))
+      .catch(() => { myGardenLoaded.current = false }) // bahçe ikincil: bir dahaki sefere yeniden dener
+  }, [token])
+  const myGardenLoaded = useRef(false)
 
   // Ekran okuyucu duyurusu: en fazla 4 sn'de bir; arada gelenlerin sonuncusu bekler.
   const announce = useCallback((text) => {
@@ -150,7 +176,12 @@ export function GameProvider({ children }) {
     onConnection,
     announce,
     returnTo,
-  }), [token, state, load, setProfile, patchProfile, onGameEvent, onConnection, announce])
+    pulse,
+    loadPulse,
+    myGarden,
+    setMyGarden,
+    loadMyGarden,
+  }), [token, state, load, setProfile, patchProfile, onGameEvent, onConnection, announce, pulse, loadPulse, myGarden, loadMyGarden])
 
   return (
     <GameContext.Provider value={value}>

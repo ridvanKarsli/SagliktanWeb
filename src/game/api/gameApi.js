@@ -23,8 +23,17 @@ export const buyItem = (token, itemKey) => request(`${B}/shop/buy`, { method: 'P
 export const getMyRoom = (token, { signal } = {}) => request(`${B}/rooms/me`, { token, signal, fresh: true })
 export const saveMyRoom = (token, items) => request(`${B}/rooms/me`, { method: 'PUT', token, body: { items } })
 export const getRoom = (token, publicId, { signal } = {}) => request(`${B}/rooms/${encodeURIComponent(publicId)}`, { token, signal, fresh: true })
+// Canlı ev (EK v1.2): odaya katıl (kendi evin için kendi publicId'n); bölgelerle aynı
+// move/say/pose/heartbeat/leave uçları kullanılır. 409 = ev dolu.
+export const joinRoom = (token, publicId, { spawn, signal } = {}) =>
+  request(`${B}/rooms/${encodeURIComponent(publicId)}/join`, {
+    method: 'POST', token, signal, body: spawn ? { x: spawn.x, y: spawn.y } : undefined,
+  })
 export const getNeighbors = (token, { page = 0, size = 20, signal } = {}) => request(`${B}/neighbors`, { token, signal, params: { page, size }, fresh: true })
 export const getVisitors = (token, { signal } = {}) => request(`${B}/visitors`, { token, signal, fresh: true })
+
+// --- Topluluk nabzı (bölüm binaları): yalnızca bakanın kendi verisi ---
+export const getPulse = (token, { signal } = {}) => request(`${B}/pulse`, { token, signal, fresh: true })
 
 // --- Hediyeler ---
 export const sendGift = (token, { toPublicId, giftKey, messageKey }) =>

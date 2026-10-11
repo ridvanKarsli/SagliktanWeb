@@ -83,7 +83,7 @@ function initialText({ initialTitle, initialContent, initialPostType, draft }) {
  */
 export default function NewPostDialog({
   open, onClose, onCreated, presetSubGroup = null, presetDiseaseGroupId = null, presetDiseaseGroupName = '',
-  initialTitle = '', initialContent = '', initialPostType = 'DISCUSSION'
+  initialTitle = '', initialContent = '', initialPostType = 'DISCUSSION', prompt = null
 }) {
   const { token } = useAuth()
   const { showError, showSuccess } = useNotification()
@@ -441,6 +441,13 @@ export default function NewPostDialog({
               </Stack>
             )}
 
+            {/* Nazik bir başlangıç sorusu (ör. ?ipucu=nasilsin); zorunlu değil, yalnızca davet */}
+            {prompt && (
+              <Typography sx={{ fontWeight: 800, fontSize: '1.15rem', color: 'text.primary', px: 0.5 }}>
+                {prompt}
+              </Typography>
+            )}
+
             <TextField
               value={title}
               onChange={e => setTitle(clampLength(e.target.value, TITLE_MAX))}
@@ -448,7 +455,7 @@ export default function NewPostDialog({
               required
               fullWidth
               label={typeMeta.titleLabel}
-              placeholder={typeMeta.titlePlaceholder}
+              placeholder={prompt || typeMeta.titlePlaceholder}
               helperText={v.error('title') || counterText(title, TITLE_MAX) || ' '}
               slotProps={{
                 htmlInput: { maxLength: TITLE_MAX, 'data-testid': 'post-title', enterKeyHint: 'next', autoCapitalize: 'sentences' },

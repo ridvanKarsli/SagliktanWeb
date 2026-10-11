@@ -36,6 +36,14 @@ export const PROP_META = {
   rock: { w: 1, d: 1, blocks: true },
   gate_arch: { w: 2, d: 1, blocks: false },
   lighthouse_small: { w: 1, d: 1, blocks: true },
+  // EK v1.2: Sağlıktan'a bağlı yerler ve mola noktaları (rot 0 kullanın: tabelalarda yazı var)
+  qa_cafe: { w: 3, d: 2, blocks: true },
+  notice_board: { w: 1, d: 1, blocks: true },
+  library: { w: 3, d: 3, blocks: true },
+  post_office: { w: 2, d: 2, blocks: true },
+  checkin_bench: { w: 2, d: 1, blocks: true },
+  checkin_pier: { w: 2, d: 2, blocks: true },
+  garden_gate: { w: 1, d: 1, blocks: true },
 }
 
 // rot=1 iken ayak izi d×w olur.

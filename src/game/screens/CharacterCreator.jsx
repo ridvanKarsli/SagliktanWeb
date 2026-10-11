@@ -126,6 +126,8 @@ export default function CharacterCreator({ mode = 'create' }) {
         navigate(-1)
       } else {
         const p = await api.createMe(token, { nickname: nickname.trim(), appearance, petKey })
+        // ilk girişte bir kez "reklam yok, satın alma yok" notu (WorldScreen)
+        try { localStorage.setItem('sagliktan:mahalle:trust-pending', '1') } catch { /* gizli sekme */ }
         setProfile(p)
         navigate('/mahalle', { replace: true })
       }

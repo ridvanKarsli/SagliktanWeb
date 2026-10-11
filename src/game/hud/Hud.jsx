@@ -55,14 +55,24 @@ export function TopHud({ profile, zoneName, onProfile, onSettings, onExit, onDai
           </Box>
         </ButtonBase>
         {profile.dailyAvailable && onDaily && (
+          // Sakin, tek satırlık günlük not: zorlama/seri yok. Tüm hap tek dokunuş
+          // alanı; tam cümle alınınca kısa bir bildirimde görünür.
           <ButtonBase
+            className="smg-glow"
             onClick={onDaily}
             disabled={dailyBusy}
-            className="smg-glow"
-            sx={{ ...pillSx, pointerEvents: 'auto', bgcolor: '#FFF4E0', px: 1.5, height: '2.6rem', gap: 0.75, border: '2px solid #F2A33A', '&.Mui-focusVisible': focusRingSx }}
+            aria-label="Bugün uğradın, bahçene bir tohum düştü. Tohumu al"
+            sx={{
+              ...pillSx, pointerEvents: 'auto', bgcolor: '#FFF4E0', border: '2px solid #F2A33A',
+              height: '2.5rem', pl: 1, pr: 0.4, gap: 0.6, whiteSpace: 'nowrap', flexWrap: 'nowrap',
+              '&.Mui-focusVisible': focusRingSx, '&:hover': { bgcolor: '#FFEBCB' },
+            }}
           >
-            <SeedGlyph size={20} />
-            <Typography sx={{ fontWeight: 800, fontSize: '0.9rem', color: '#8A5300', whiteSpace: 'nowrap' }}>Günlük tohumunu al</Typography>
+            <SeedGlyph size={18} />
+            <Typography component="span" sx={{ fontWeight: 800, fontSize: '0.9rem', color: '#6B4300' }}>Tohumun var</Typography>
+            <Box component="span" sx={{ borderRadius: 999, bgcolor: '#F2A33A', color: '#3A2400', fontWeight: 800, fontSize: '0.85rem', px: 1.1, lineHeight: '1.8rem' }}>
+              Al
+            </Box>
           </ButtonBase>
         )}
         {extraLeft}

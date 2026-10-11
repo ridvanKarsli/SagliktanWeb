@@ -82,6 +82,16 @@ export const ART_CSS = `
   .sm-rain,.sm-snow,.sm-drift,.sm-fog,.sm-twinkle,.sm-win-rain{animation:none!important}
   .sm-fx-rise,.sm-fx-z,.sm-fx-twinkle,.sm-fx-pop,.sm-fx-bub{opacity:.85}
 }
+.sm-breathe{transform-box:fill-box;transform-origin:center;transition:transform .35s linear}
+.sm-wave{animation:sm-wave 16s linear infinite}
+.sm-wave.sm-rev{animation-direction:reverse}
+@keyframes sm-wave{to{transform:translateX(var(--sm-wl,-80px))}}
+.sm-foam{animation:sm-foam 6s ease-in-out infinite alternate}
+@keyframes sm-foam{from{transform:translateY(0)}to{transform:translateY(4px)}}
+@media (prefers-reduced-motion: reduce){
+  .sm-wave,.sm-foam{animation:none!important}
+  .sm-breathe{transition:none!important}
+}
 `
 
 let injected = false

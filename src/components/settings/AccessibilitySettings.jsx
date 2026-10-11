@@ -1,7 +1,5 @@
 import { Box, Divider, FormControlLabel, Stack, Switch, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
 import { DarkModeRounded, FormatSizeRounded, LightModeRounded, RecordVoiceOverOutlined } from '@mui/icons-material'
-import { useState } from 'react'
-import { isMahalleBubbleEnabled, setMahalleBubbleEnabled } from '../../utils/mahalleBubblePrefs.js'
 import { SettingsCard } from './SettingsSection.jsx'
 import { useAccessibility } from '../../context/AccessibilityContext.jsx'
 import { isDictationSupported, isSpeechSynthesisSupported } from '../../utils/speech.js'
@@ -22,7 +20,6 @@ export default function AccessibilitySettings() {
     fontScale, highContrast, themeMode, fontScaleOptions, setFontScale, setHighContrast, setThemeMode
   } = useAccessibility()
   const voiceSupported = isDictationSupported() || isSpeechSynthesisSupported()
-  const [bubbleOn, setBubbleOn] = useState(isMahalleBubbleEnabled)
 
   return (
     <SettingsCard padded sx={{ p: 2.5 }}>
@@ -58,21 +55,6 @@ export default function AccessibilitySettings() {
               <Typography variant="body2" sx={{ fontWeight: 600 }}>Yüksek Kontrast</Typography>
               <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                 Metin ve kenarlıkları daha belirgin hale getirir
-              </Typography>
-            </Box>
-          }
-          sx={{ m: 0, alignItems: 'flex-start', '& .MuiFormControlLabel-label': { ml: 1 } }}
-        />
-
-        <Divider />
-
-        <FormControlLabel
-          control={<Switch checked={bubbleOn} onChange={e => { setBubbleOn(e.target.checked); setMahalleBubbleEnabled(e.target.checked) }} />}
-          label={
-            <Box>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>Mahalle kısayolu</Typography>
-              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                Ekranın kenarında duran, dokununca Mahalle'yi açan küçük düğme.
               </Typography>
             </Box>
           }

@@ -5,7 +5,7 @@ import { ZONES, buildWalkable, propCells, portalAt } from '../src/game/world/zon
 import { PROP_META } from '../src/game/art/propMeta.js'
 import { TILE_LEGEND } from '../src/game/art/legend.js'
 
-const SPEC = { meydan: [16, 16], park: [18, 18], carsi: [14, 14], sahil: [20, 12], mahalle: [20, 10] }
+const SPEC = { meydan: [26, 26], park: [30, 30], carsi: [26, 22], sahil: [34, 16], mahalle: [34, 14] }
 const errors = []
 const warn = []
 const err = (z, m) => errors.push(`[${z}] ${m}`)
@@ -68,6 +68,37 @@ for (const [key, z] of Object.entries(ZONES)) {
   }
   for (const sp of z.shopSpots || []) if (!seen[sp.y]?.[sp.x]) err(key, `mağaza noktası ${sp.kind} ${sp.x},${sp.y} erişilemez`)
   for (const d of z.houseDoors || []) if (!seen[d.y]?.[d.x]) err(key, `ev kapısı ${d.x},${d.y} erişilemez`)
+  // yerler: anahtar geçerli, nesne yerinde, etkileşim karesi yürünür+erişilir ve nesneye bitişik
+  for (const pl of z.places || []) {
+    const prop = z.props.find((q) => q.key === pl.key && q.x === pl.x && q.y === pl.y)
+    if (!prop) err(key, `yer ${pl.key}@${pl.x},${pl.y} için nesne yok`)
+    const { x, y } = pl.interact
+    if (!grid[y]?.[x]) err(key, `yer ${pl.key} etkileşim ${x},${y} yürünemez`)
+    else if (!seen[y][x]) err(key, `yer ${pl.key} etkileşim ${x},${y} erişilemez`)
+    if (prop) {
+      const near = propCells(prop).some((c) => Math.abs(c.x - x) + Math.abs(c.y - y) === 1)
+      if (!near) err(key, `yer ${pl.key} etkileşim ${x},${y} nesneye bitişik değil`)
+    }
+  }
+  // bahçeler: sınırda, nesnelerle çakışmasız, kapı hücresi bahçe değil
+  for (const gd of z.gardens || []) {
+    for (let dy = 0; dy < gd.d; dy++) for (let dx = 0; dx < gd.w; dx++) {
+      const k = `${gd.x + dx},${gd.y + dy}`
+      if (gd.x + dx >= z.width || gd.y + dy >= z.height) err(key, `bahçe ${gd.doorIndex} sınır dışı`)
+      if (occ.has(k)) err(key, `bahçe ${gd.doorIndex} ${k} ${occ.get(k)} ile çakışıyor`)
+      if ((z.houseDoors || []).some((d) => `${d.x},${d.y}` === k)) err(key, `bahçe ${gd.doorIndex} bir kapıyı kapatıyor`)
+    }
+    if (!z.houseDoors?.[gd.doorIndex]) err(key, `bahçe ${gd.doorIndex} için kapı yok`)
+  }
+  // kapı sırası = motorun x'e göre kararlı ev sırası (zoneSetup.js)
+  if (z.houseDoors) {
+    const houses = z.props.filter((p) => p.key.startsWith('house_')).map((h, i) => ({ h, i })).sort((a, b) => a.h.x - b.h.x || a.i - b.i).map((q) => q.h)
+    if (houses.length !== z.houseDoors.length) err(key, `ev sayısı ${houses.length} ≠ kapı sayısı ${z.houseDoors.length}`)
+    houses.forEach((h, i) => {
+      const d = z.houseDoors[i]
+      if (!d || d.x !== h.x + 1 || d.y !== h.y + 3) err(key, `kapı ${i} ${h.key}@${h.x},${h.y} önünde değil`)
+    })
+  }
   let walk = 0
   let lost = []
   for (let y = 0; y < z.height; y++) for (let x = 0; x < z.width; x++) if (grid[y][x]) { walk++; if (!seen[y][x]) lost.push(`${x},${y}`) }
@@ -94,7 +125,10 @@ for (const k of Object.keys(ZONES)) {
   if (!ZONES[k].portals.some((p) => p.to === 'meydan')) err(k, 'meydana dönüş kapısı yok')
 }
 if (!ZONES.carsi.shopSpots?.some((s) => s.kind === 'clothing') || !ZONES.carsi.shopSpots?.some((s) => s.kind === 'furniture')) err('carsi', 'mağaza noktaları eksik')
-if (!ZONES.mahalle.houseDoors?.length) err('mahalle', 'ev kapısı yok')
+if ((ZONES.mahalle.houseDoors?.length || 0) < 12) err('mahalle', 'en az 12 ev kapısı gerekli')
+if ((ZONES.mahalle.gardens?.length || 0) !== ZONES.mahalle.houseDoors.length) err('mahalle', 'her kapının bir bahçesi olmalı')
+const NEED = { meydan: ['fountain', 'qa_cafe', 'notice_board'], park: ['checkin_bench'], carsi: ['library', 'tea_table'], sahil: ['checkin_pier'], mahalle: ['post_office', 'garden_gate'] }
+for (const [k, list] of Object.entries(NEED)) for (const p of list) if (!ZONES[k].places?.some((q) => q.key === p)) err(k, `yer eksik: ${p}`)
 
 for (const w of warn) console.log('UYARI ' + w)
 if (errors.length) {

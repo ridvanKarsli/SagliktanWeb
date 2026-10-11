@@ -1,7 +1,7 @@
 // Bölge başına bir kez hesaplanan sahne verisi: yürünebilirlik ızgarası,
 // kamera sınırları, çizilecek nesneler ve dokunulabilir nesnelerin eylemleri.
-import { PROPS, propFootprint } from '../art/index.js'
-import { buildWalkable, portalAt } from '../world/zones.js'
+import { PROPS, propFootprint, Garden } from '../art/index.js'
+import { buildWalkable, portalAt, placeAt } from '../world/zones.js'
 import { WORLD_INTERACTIVE } from './interactions.js'
 
 const cache = new Map()
@@ -43,7 +43,11 @@ export function setupFor(zone) {
   const houses = zone.props.filter((p) => p.key.startsWith('house_')).sort((a, b) => a.x - b.x)
   const objects = zone.props.map((p) => {
     const fp = propFootprint(p.key, p.rot) || { w: 1, d: 1 }
-    const action = actionFor(zone, p, houses.indexOf(p))
+    // Sağlıktan'a bağlı yer / mola noktası (zone.places): dokununca o yerin sayfası
+    const place = zone.places?.find((q) => q.key === p.key && q.x === p.x && q.y === p.y) || null
+    const action = place
+      ? { type: 'place', place, spot: { ...place.interact } }
+      : actionFor(zone, p, houses.indexOf(p))
     return {
       key: p.key,
       x: p.x,
@@ -54,10 +58,20 @@ export function setupFor(zone) {
       Component: PROPS[p.key]?.Component || (() => null),
       props: p.key === 'gate_arch' ? { to: p.to } : undefined,
       action,
-      interact: WORLD_INTERACTIVE.has(p.key),
+      interact: !place && WORLD_INTERACTIVE.has(p.key),
       tappable: !!action || WORLD_INTERACTIVE.has(p.key),
     }
   })
+  // İyilik bahçeleri (mahalle): kapı önündeki çiçek yatakları; içerik WorldScreen'de
+  for (const g of zone.gardens || []) {
+    objects.push({
+      key: 'garden', x: g.x, y: g.y, rot: 0, w: g.w, d: g.d, Component: Garden,
+      props: { width: g.w, depth: g.d, flowers: 0, lanterns: 0 },
+      doorIndex: g.doorIndex,
+      action: { type: 'door', index: g.doorIndex, spot: zone.houseDoors?.[g.doorIndex] },
+      tappable: true,
+    })
+  }
   const s = {
     grid: buildWalkable(zone),
     bounds: worldBounds(zone.width, zone.height),
@@ -76,5 +90,7 @@ export function cellMeaning(zone, x, y) {
   if (shop) return { type: 'shop', tab: shop.kind }
   const di = zone.houseDoors?.findIndex((d) => d.x === x && d.y === y) ?? -1
   if (di >= 0) return { type: 'door', index: di }
+  const place = placeAt(zone, x, y)
+  if (place) return { type: 'place', place }
   return null
 }

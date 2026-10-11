@@ -31,6 +31,15 @@ export const SEAT_OFFSETS = {
     { ...at(0.6, 0.58, 17), facing: 'front', flip: true, seatHeight: 21, cell: { x: 0, y: 0 }, depth: 1 },
     { ...at(1.4, 0.58, 17), facing: 'front', flip: true, seatHeight: 21, cell: { x: 1, y: 0 }, depth: 2 },
   ],
+  checkin_bench: [
+    { ...at(0.6, 0.58, 17), facing: 'front', flip: true, seatHeight: 21, cell: { x: 0, y: 0 }, depth: 1 },
+    { ...at(1.4, 0.58, 17), facing: 'front', flip: true, seatHeight: 21, cell: { x: 1, y: 0 }, depth: 2 },
+  ],
+  // iskele ucundaki bank denize (+x) bakar
+  checkin_pier: [
+    { ...at(1.3, 0.72, 21), facing: 'front', flip: false, seatHeight: 25, cell: { x: 1, y: 0 }, depth: 2 },
+    { ...at(1.3, 1.28, 21), facing: 'front', flip: false, seatHeight: 25, cell: { x: 1, y: 1 }, depth: 2 },
+  ],
   tea_table: [
     { ...at(0.15, 0.55, 9), facing: 'front', flip: false, seatHeight: 11, cell: { x: 0, y: 0 }, depth: 1 },
     { ...at(0.85, 0.5, 7), facing: 'back', flip: true, seatHeight: 11, cell: { x: 0, y: 0 }, depth: 1 },

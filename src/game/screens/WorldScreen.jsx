@@ -5,7 +5,7 @@ import { Box, Button, ButtonBase, Typography } from '@mui/material'
 import {
   CottageRounded, ForumRounded, GroupsRounded, MapRounded, PeopleAltRounded, RedeemRounded, SignpostRounded,
 } from '@mui/icons-material'
-import { ZoneEdge } from '../art/index.js'
+import { ZoneEdge, ZoneTileLayer } from '../art/index.js'
 import LeafBurst from '../../components/celebration/LeafBurst.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
 import { focusRingSx } from '../../design/focus.js'
@@ -15,7 +15,7 @@ import { ZONES } from '../world/zones.js'
 import { StageEngine } from '../engine/StageEngine.js'
 import { setupFor, cellMeaning } from '../engine/zoneSetup.js'
 import Stage from '../render/Stage.jsx'
-import { TileLayer, TapMarker } from '../render/layers.jsx'
+import { TapMarker } from '../render/layers.jsx'
 import { Actor } from '../render/Actor.jsx'
 import { prefersReducedMotion } from '../render/gameStyles.js'
 import { useWorldSession } from '../hooks/useWorldSession.js'
@@ -36,6 +36,9 @@ import GiftInboxSheet from '../sheets/GiftInboxSheet.jsx'
 import NeighborsSheet from '../sheets/NeighborsSheet.jsx'
 import SettingsSheet from '../sheets/SettingsSheet.jsx'
 import ShopSheet from '../sheets/ShopSheet.jsx'
+import PlaceSheet from '../sheets/PlaceSheet.jsx'
+import { BreathingOverlay, WavesOverlay } from '../sheets/CalmOverlays.jsx'
+import { WORLD_HELD_MS } from '../engine/interactions.js'
 
 const ZOOMS = [0.55, 0.7, 0.85, 1, 1.2, 1.45, 1.75]
 const TAP_THROTTLE_MS = 250
@@ -46,6 +49,10 @@ const ITEM_FX_MS = 4500
 const LIT_KEYS = new Set(['lamp_post', 'house_a', 'house_b', 'house_c', 'house_d', 'tea_kiosk', 'lighthouse_small'])
 const seatId = (obj, seat) => `${obj.key}@${obj.x},${obj.y}#${seat.index}`
 const HINT_KEY = 'sagliktan:mahalle:hint-seen'
+// Karakter oluşturulduktan sonraki ilk girişte bir kez gösterilen güven notu
+export const TRUST_PENDING_KEY = 'sagliktan:mahalle:trust-pending'
+// mola noktaları: varınca oturulan yerler
+const SIT_PLACES = new Set(['checkin_bench', 'checkin_pier'])
 
 const store = {
   get(k) { try { return localStorage.getItem(k) } catch { return null } },
@@ -101,10 +108,29 @@ function WelcomeCard({ engine, onDismiss }) {
   )
 }
 
+// Bir kez: Mahalle'nin ne olduğu ve ne olmadığı (reklam yok, satın alma yok).
+function TrustCard({ onDismiss }) {
+  return (
+    <Box
+      role="region" aria-label="Mahalle hakkında"
+      sx={{
+        ...pillSx, position: 'absolute', zIndex: 6, left: 0, right: 0, mx: 'auto',
+        bottom: 'calc(env(safe-area-inset-bottom) + 5.2rem)', borderRadius: '20px', p: 1.75,
+        width: 'min(calc(100vw - 1.2rem), 440px)',
+      }}
+    >
+      <Typography sx={{ fontSize: '0.98rem', lineHeight: 1.45, mb: 1.25 }}>
+        Mahalle’de reklam yok, parayla satın alınan hiçbir şey yok. Burası, Sağlıktan’daki komşularınla sakin bir mola yeri.
+      </Typography>
+      <Button variant="contained" onClick={onDismiss} sx={{ minHeight: 44, borderRadius: 999, fontWeight: 800 }}>Güzel</Button>
+    </Box>
+  )
+}
+
 export default function WorldScreen() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { token, profile, catalog, patchProfile, announce, returnTo } = useGame()
+  const { token, profile, catalog, patchProfile, announce, returnTo, pulse, loadPulse, myGarden, loadMyGarden } = useGame()
   const { showSuccess, showInfo, showError } = useNotification()
   const me = profile.publicId
   const [reduced] = useState(prefersReducedMotion)
@@ -144,7 +170,11 @@ export default function WorldScreen() {
   const [zoomFine, setZoomFine] = useState(null)
   const [burst, setBurst] = useState(0)
   const [dailyBusy, setDailyBusy] = useState(false)
+  const [trust, setTrust] = useState(() => store.get(TRUST_PENDING_KEY) === '1')
   const [hint, setHint] = useState(() => start.zone === 'meydan' && !store.get(HINT_KEY))
+  const [area, setArea] = useState({ instance: 1, capacity: null }) // örnek no + kişi sınırı
+  const [calm, setCalm] = useState(null) // 'breathe' | 'waves'
+  const [neighborDoors, setNeighborDoors] = useState(null) // kapı 1..13 -> komşu kaydı
   const lastTap = useRef(0)
   const pendingAction = useRef(null)
   const [menu, setMenu] = useState(null) // { obj, actions }
@@ -223,6 +253,7 @@ export default function WorldScreen() {
     if (r.me && (r.me.x !== cell.x || r.me.y !== cell.y)) {
       api.moveTo(token, cell.x, cell.y).catch(() => {}) // bir sonraki adımda yine gider
     }
+    setArea({ instance: r.instance || 1, capacity: r.capacity ?? null })
     setFading(false)
     transitioning.current = false
     if (reason === 'enter') announce(list.length ? `${zoneName}. Burada ${list.length} kişi var.` : `${zoneName}. Şu an burada kimse yok.`)
@@ -286,8 +317,18 @@ export default function WorldScreen() {
     transitioning.current = true
     setSheet(null)
     setFading(true)
-    await wait(reduced ? 120 : 320)
     const target = spawn || ZONES[to].spawn
+    // Önce katıl: bölge doluysa (409) bulunduğun yerde kalırsın
+    let joined
+    try {
+      ;[joined] = await Promise.all([api.joinZone(token, to, { spawn: target }), wait(reduced ? 120 : 320)])
+    } catch (err) {
+      setFading(false)
+      transitioning.current = false
+      showInfo(err?.status === 409 ? (err.message || 'Burası şu an çok kalabalık, birazdan tekrar dene.') : (err?.message || 'Şu an oraya geçemedik, biraz sonra dene.'))
+      return
+    }
+    session.seed(to, joined)
     engine.reset(setupFor(ZONES[to]))
     engine.ensure(me, target.x, target.y)
     engine.setFollow(me)
@@ -306,11 +347,12 @@ export default function WorldScreen() {
     returnTo.current = { zone: to, ...target }
     // katılım uzun sürerse perdeyi yine de aç
     later(() => { setFading(false); transitioning.current = false }, 2500)
-  }, [engine, me, reduced, returnTo, later])
+  }, [engine, me, reduced, returnTo, later, token, session, showInfo])
 
   const openMyRoom = useCallback(() => {
     // dönüşte evin önünde başla
-    returnTo.current = zoneKey === 'mahalle' ? { zone: 'mahalle', x: 2, y: 4 } : { zone: zoneKey, ...(engine.cellOf(me) || zone.spawn) }
+    const d0 = ZONES.mahalle.houseDoors?.[0]
+    returnTo.current = zoneKey === 'mahalle' && d0 ? { zone: 'mahalle', x: d0.x, y: d0.y + 1 } : { zone: zoneKey, ...(engine.cellOf(me) || zone.spawn) }
     navigate('/mahalle/ev')
   }, [navigate, returnTo, zoneKey, engine, me, zone])
 
@@ -335,7 +377,13 @@ export default function WorldScreen() {
     const { action, obj } = plan
     if (plan.seat) {
       const seat = plan.seat
-      engine.setPosture(me, { posture: seat.kind, facing: seat.facing, flip: seat.flip, seat })
+      engine.setPosture(me, { posture: seat.kind, facing: seat.facing, flip: seat.flip, seat, held: action?.held })
+      if (action?.held && action.heldMs) {
+        clearTimeout(heldTimer.current)
+        heldTimer.current = setTimeout(() => {
+          if (engine.poseOf(me)?.held === action.held) { engine.setHeld(me, null); sendPose() }
+        }, action.heldMs)
+      }
       // başkaları beni yer karesinde görsün: önce move (duruşu sıfırlar), sonra pose
       try { await session.call(() => api.moveTo(token, seat.cell.x, seat.cell.y)) } catch { /* bir sonraki adımda düzelir */ }
       sendPose()
@@ -361,6 +409,36 @@ export default function WorldScreen() {
   }, [engine, me, session, token, sendPose, showItemFx])
   useEffect(() => () => clearTimeout(heldTimer.current), [])
 
+  // ------------------------------------------------------------ yerler
+  // Komşunun kapısı: evine gir (kapalıysa nazik bilgi, komşular listesi)
+  const visitNeighbor = useCallback(async (player) => {
+    try {
+      const room = await api.getRoom(token, player.publicId)
+      navigate(`/mahalle/ev/${player.publicId}`, { state: { room, from: returnTo.current } })
+    } catch (err) {
+      showInfo(err?.status === 404 ? `${player.nickname} evinde şu an misafir ağırlamıyor.` : (err?.message || 'Ev şu an açılamadı.'))
+    }
+  }, [token, navigate, returnTo, showInfo])
+
+  const objectOfPlace = useCallback((place) => setupFor(zone).objects.find((o) => o.key === place.key && o.x === place.x && o.y === place.y), [zone])
+
+  // Yere varınca: mola noktasında otur, sonra o yerin sayfasını aç
+  const arriveAtPlace = useCallback((place, cell) => {
+    const obj = objectOfPlace(place)
+    if (obj && SIT_PLACES.has(place.key)) {
+      const seats = seatsOf(obj, 'sit')
+      const taken = new Set(Object.values(remoteSeats.current))
+      const free = seats.filter((st) => !taken.has(seatId(obj, st)))
+      const seat = free.sort((a, b) => (Math.abs(a.cell.x - cell.x) + Math.abs(a.cell.y - cell.y)) - (Math.abs(b.cell.x - cell.x) + Math.abs(b.cell.y - cell.y)))[0]
+      if (seat) applyInteraction({ seat, action: { kind: 'sit' }, obj }, cell)
+    } else if (obj) {
+      const d = faceToward(cell, { x: obj.x + Math.floor(obj.w / 2), y: obj.y + Math.floor(obj.d / 2) })
+      engine.face(me, d.dx, d.dy)
+    }
+    if (place.key === 'garden_gate') loadMyGarden()
+    setSheet({ type: 'place', place })
+  }, [objectOfPlace, applyInteraction, engine, me, loadMyGarden])
+
   // ------------------------------------------------------------ yürüme
   const handleArrival = useCallback((cell) => {
     setMarker(null)
@@ -377,11 +455,15 @@ export default function WorldScreen() {
       const i = m?.index ?? action.index
       engine.face(me, 0, -1)
       if (i === 0) return openMyRoom()
+      const nb = neighborDoors?.[i]
+      if (nb) return visitNeighbor(nb.player)
       return setSheet({ type: 'neighbors' })
     }
+    const place = m?.type === 'place' ? m.place : action?.type === 'place' ? action.place : null
+    if (place) return arriveAtPlace(place, cell)
     if (action?.type === 'hint') setHint(true)
     if (action?.type === 'interact') applyInteraction(action, cell)
-  }, [zone, zoneKey, engine, me, goToZone, openMyRoom, returnTo, applyInteraction])
+  }, [zone, zoneKey, engine, me, goToZone, openMyRoom, returnTo, applyInteraction, neighborDoors, visitNeighbor, arriveAtPlace])
 
   const arrivalRef = useRef(handleArrival)
   useEffect(() => { arrivalRef.current = handleArrival }, [handleArrival])
@@ -495,7 +577,7 @@ export default function WorldScreen() {
       patchProfile({ seeds: r.seeds, dailyAvailable: false })
       if (r.granted) {
         setBurst(Date.now())
-        showSuccess(`+${r.amount} tohum! Bugün uğradığın için teşekkürler.`)
+        showSuccess(`Bugün uğradın — bahçene bir tohum düştü. +${r.amount}`)
         announce(`${r.amount} tohum kazandın`)
       } else showInfo('Bugünkü tohumunu zaten almışsın. Yarın yine bekleriz.')
     } catch (err) {
@@ -524,13 +606,66 @@ export default function WorldScreen() {
     setZoomFine((z) => Math.max(ZOOMS[0], Math.min(ZOOMS[ZOOMS.length - 1], (z ?? ZOOMS[zoomIdx]) * ratio)))
   }, [zoomIdx])
 
+  // Nabız: dünyaya girerken ve bölge değişince (60 sn'den eskiyse) tazele
+  useEffect(() => { loadPulse() }, [zoneKey, loadPulse])
+  // Mahalle sokağı: kendi bahçem + kapılara komşular (ilk sayfadaki ilk 13 kişi)
+  useEffect(() => {
+    if (zoneKey !== 'mahalle' || neighborDoors) return undefined
+    loadMyGarden()
+    const ctrl = new AbortController()
+    api.getNeighbors(token, { page: 0, size: 20, signal: ctrl.signal })
+      .then((r) => {
+        const doors = {}
+        const n = (ZONES.mahalle.houseDoors?.length || 1) - 1
+        ;(r?.content || []).slice(0, n).forEach((item, i) => { doors[i + 1] = item })
+        setNeighborDoors(doors)
+      })
+      // komşular ikincil: gelmezse kapılar komşu listesini açar
+      .catch(() => { if (!ctrl.signal.aborted) setNeighborDoors({}) })
+    return () => ctrl.abort()
+  }, [zoneKey, neighborDoors, token, loadMyGarden])
+
+  // Yer sayfası eylemleri
+  const placeObj = sheet?.type === 'place' ? objectOfPlace(sheet.place) : null
+  const goToApp = (path) => { setSheet(null); navigate(path) }
+  const onWish = () => {
+    setSheet(null)
+    if (placeObj) showItemFx(placeObj, 'Sparkle')
+    announce('Dileğin çeşmeye ulaştı')
+  }
+  const onTea = () => {
+    setSheet(null)
+    if (!placeObj) return
+    const here = engine.cellOf(me)
+    const taken = new Set(Object.values(remoteSeats.current))
+    const seat = seatsOf(placeObj, 'sit').filter((st) => !taken.has(seatId(placeObj, st)))[0]
+    const action = { kind: 'sit', held: 'tea', heldMs: WORLD_HELD_MS }
+    if (seat) applyInteraction({ seat, action, obj: placeObj }, here)
+    else applyInteraction({ action: { kind: 'stand', held: 'tea', heldMs: WORLD_HELD_MS }, obj: placeObj, target: { x: placeObj.x, y: placeObj.y } }, here)
+  }
+  const dismissTrust = () => {
+    setTrust(false)
+    try { localStorage.removeItem(TRUST_PENDING_KEY) } catch { /* yalnızca bu oturum */ }
+  }
+
   // ------------------------------------------------------------ çizim
+  const capacity = area.capacity ?? catalog.zonesByKey[zoneKey]?.capacity ?? null
   const playerList = useMemo(() => Object.values(players).sort((a, b) => a.nickname?.localeCompare(b.nickname, 'tr')), [players])
   const lit = !!atmo.lightsOn
-  const objects = useMemo(
-    () => (lit ? setup.objects.map((o) => (LIT_KEYS.has(o.key) ? { ...o, props: { ...o.props, lit: true } } : o)) : setup.objects),
-    [setup, lit],
-  )
+  // Nesnelere canlı veriler: akşam ışıkları, tabela sayıları (yalnız bakana özel), bahçeler
+  const openQ = pulse?.openQuestionCount
+  const unread = pulse?.unreadMessageCount
+  const objects = useMemo(() => setup.objects.map((o) => {
+    let props = o.props
+    if (lit && (LIT_KEYS.has(o.key) || o.key === 'qa_cafe' || o.key === 'library' || o.key === 'post_office')) props = { ...props, lit: true }
+    if (o.key === 'qa_cafe' && typeof openQ === 'number') props = { ...props, count: openQ }
+    if (o.key === 'post_office' && typeof unread === 'number') props = { ...props, count: unread }
+    if (o.key === 'garden') {
+      const g = o.doorIndex === 0 ? myGarden : neighborDoors?.[o.doorIndex]?.garden
+      if (g) props = { ...props, flowers: g.flowers || 0, lanterns: g.lanterns || 0 }
+    }
+    return props === o.props ? o : { ...o, props }
+  }), [setup, lit, openQ, unread, myGarden, neighborDoors])
   const fxOverlay = itemFx.length ? (
     <g pointerEvents="none">
       {itemFx.map((f) => {
@@ -539,7 +674,8 @@ export default function WorldScreen() {
       })}
     </g>
   ) : null
-  const tiles = useMemo(() => <TileLayer tiles={zone.tiles} />, [zone])
+  // Büyük bölgeler: her karo türü bir kez tanımlanır, hücreler <use> ile (daha az DOM)
+  const tiles = useMemo(() => <ZoneTileLayer tiles={zone.tiles} />, [zone])
   const background = useMemo(() => <ZoneEdge tiles={zone.tiles} />, [zone])
   const floor = marker ? <TapMarker key={marker.k} x={marker.x} y={marker.y} /> : null
   const actors = (
@@ -589,7 +725,7 @@ export default function WorldScreen() {
       <TopHud
         profile={profile}
         rightExtra={<AtmoPill atmo={atmo} />}
-        zoneName={zoneName}
+        zoneName={area.instance > 1 ? `${zoneName} · ${area.instance}` : zoneName}
         onProfile={() => setSheet({ type: 'settings' })}
         onSettings={() => setSheet({ type: 'settings' })}
         onExit={() => navigate('/home')}
@@ -597,7 +733,7 @@ export default function WorldScreen() {
         dailyBusy={dailyBusy}
         extraLeft={session.status === 'error' ? (
           <ButtonBase onClick={session.rejoin} sx={{ ...pillSx, pointerEvents: 'auto', px: 1.5, height: '2.6rem', fontWeight: 800, color: '#8A5300', '&.Mui-focusVisible': focusRingSx }}>
-            Bağlantı kurulamadı · Tekrar dene
+            {session.errorMessage ? `${session.errorMessage} · Tekrar dene` : 'Bağlantı kurulamadı · Tekrar dene'}
           </ButtonBase>
         ) : null}
       />
@@ -607,12 +743,13 @@ export default function WorldScreen() {
         <ZoomControls onIn={() => zoomBy(1)} onOut={() => zoomBy(-1)} canIn={zoom < ZOOMS[ZOOMS.length - 1]} canOut={zoom > ZOOMS[0]} />
       </Box>
       <Box sx={{ position: 'absolute', zIndex: 5, left: 'calc(env(safe-area-inset-left) + 0.6rem)', bottom: 'calc(env(safe-area-inset-bottom) + 5.4rem)', display: 'flex', flexDirection: 'column', gap: 0.75, alignItems: 'flex-start' }}>
-        <RoundButton label={`Buradakiler (${playerList.length})`} showLabel onClick={() => setSheet({ type: 'players' })}>
+        <RoundButton label={`Buradakiler (${playerList.length + 1}${capacity ? ` / ${capacity}` : ''})`} showLabel onClick={() => setSheet({ type: 'players' })}>
           <PeopleAltRounded />
         </RoundButton>
       </Box>
 
-      {hint && zoneKey === 'meydan' && !sheet && (
+      {trust && !sheet && <TrustCard onDismiss={dismissTrust} />}
+      {!trust && hint && zoneKey === 'meydan' && !sheet && (
         <WelcomeCard engine={engine} onDismiss={dismissHint} />
       )}
 
@@ -653,6 +790,17 @@ export default function WorldScreen() {
       <GiftInboxSheet open={sheet?.type === 'inbox'} onClose={close} />
       <NeighborsSheet open={sheet?.type === 'neighbors'} onClose={close} onGift={(p) => setSheet({ type: 'gift', to: p })} />
       <SettingsSheet open={sheet?.type === 'settings'} onClose={close} />
+      <PlaceSheet
+        open={sheet?.type === 'place'} place={sheet?.type === 'place' ? sheet.place : null} onClose={close}
+        pulse={pulse} garden={myGarden}
+        onGo={goToApp}
+        onBreathe={() => { setSheet(null); setCalm('breathe') }}
+        onWaves={() => { setSheet(null); setCalm('waves') }}
+        onWish={onWish}
+        onTea={onTea}
+      />
+      {calm === 'breathe' && <BreathingOverlay onClose={() => setCalm(null)} />}
+      {calm === 'waves' && <WavesOverlay onClose={() => setCalm(null)} />}
       <ShopSheet
         open={sheet?.type === 'shop'} onClose={close}
         tab={sheet?.type === 'shop' ? sheet.tab : 'clothing'}

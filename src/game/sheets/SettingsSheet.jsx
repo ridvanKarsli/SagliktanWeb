@@ -15,6 +15,7 @@ import { useNotification } from '../../context/NotificationContext.jsx'
 import { useGame } from '../state/GameContext.jsx'
 import * as api from '../api/gameApi.js'
 import { ROOM_VISIBILITY_OPTIONS } from '../data/catalog.js'
+import { getMahalleBubbleMode, setMahalleBubbleMode } from '../../utils/mahalleBubblePrefs.js'
 import GameSheet from '../ui/GameSheet.jsx'
 import RadioTiles from '../ui/RadioTiles.jsx'
 import { validateNickname, nicknameServerError } from '../ui/nickname.js'
@@ -36,6 +37,7 @@ export default function SettingsSheet({ open, onClose }) {
   const [blockedError, setBlockedError] = useState(null)
   const [unblocking, setUnblocking] = useState(null)
   const confirm = useConfirm()
+  const [bubbleMode, setBubbleMode] = useState(getMahalleBubbleMode)
 
   useEffect(() => {
     if (!open) return undefined
@@ -206,6 +208,21 @@ export default function SettingsSheet({ open, onClose }) {
             ))}
           </Stack>
         )}
+      </Box>
+      <Divider sx={{ mb: 2.5 }} />
+
+      <Box component="section" sx={{ mb: 3 }}>
+        <H id="bubble-h">Sağlıktan’daki kısayol</H>
+        <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
+          Sağlıktan’da ekranın kenarında duran, dokununca buraya getiren küçük ev düğmesi.
+        </Typography>
+        <RadioGroup
+          aria-labelledby="bubble-h" value={bubbleMode}
+          onChange={(e) => { setBubbleMode(e.target.value); setMahalleBubbleMode(e.target.value) }}
+        >
+          <FormControlLabel value="normal" control={<Radio />} sx={{ mx: 0 }} label={<Box><Typography sx={{ fontWeight: 800 }}>Normal</Typography><Typography variant="body2" sx={{ color: 'text.secondary' }}>Kenarda durur; bir süre dokunulmazsa yarı saklanır.</Typography></Box>} />
+          <FormControlLabel value="small" control={<Radio />} sx={{ mx: 0, mt: 0.5 }} label={<Box><Typography sx={{ fontWeight: 800 }}>Küçük</Typography><Typography variant="body2" sx={{ color: 'text.secondary' }}>Hep kenarda, küçük ve yarı saklı.</Typography></Box>} />
+        </RadioGroup>
       </Box>
       <Divider sx={{ mb: 2.5 }} />
 
