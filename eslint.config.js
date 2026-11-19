@@ -40,48 +40,9 @@ export default defineConfig([
     // kalıyordu; sonucu sadece HMR'da o dosya düzenlenince tam yenileme
     // yapılması (geliştirme konforu), bir üretim sorunu değil. Bu dosyalar
     // için uyarıya indiriliyor ki lint gerçek hataları yakalamaya yarasın.
-    files: ['src/context/**/*.jsx', 'src/components/avatars/avatarArt.jsx', 'src/game/state/**/*.jsx'],
+    files: ['src/context/**/*.jsx', 'src/components/avatars/avatarArt.jsx'],
     rules: {
       'react-refresh/only-export-components': 'off',
-    },
-  },
-  {
-    // Mahalle çizim seti: her dosya bileşenlerin yanında kayıt nesnelerini
-    // (PROPS, FURNITURE, TOPS...) ve yardımcıları da dışa aktarır - avatarArt.jsx
-    // ile aynı desen. Yalnızca HMR konforunu etkiler, üretimde sorun değil.
-    files: ['src/game/art/**/*.jsx'],
-    rules: {
-      'react-refresh/only-export-components': 'off',
-    },
-  },
-  {
-    // MODÜL SINIRI (Mahalle oyunu): uygulama kodu oyunun içinden hiçbir şey
-    // statik olarak import edemez. Oyuna tek giriş App.jsx'teki tembel rota
-    // (dinamik import(), bu kuralın dışında) - böylece oyun ayrı parçada kalır
-    // ve uygulama oyunun iç yapısına bağımlı olmaz.
-    files: ['src/**/*.{js,jsx}'],
-    ignores: ['src/game/**'],
-    rules: {
-      'no-restricted-imports': ['error', {
-        patterns: [{
-          group: ['**/game/**', './game/**'],
-          message: 'Uygulama kodu Mahalle oyununun içinden import edemez; oyuna yalnızca App.jsx\'teki tembel rota ile girilir.',
-        }],
-      }],
-    },
-  },
-  {
-    // MODÜL SINIRI (Mahalle oyunu): oyun yalnızca paylaşılan altyapıyı
-    // (servisler, context'ler, tasarım, ortak bileşenler, yol arkadaşı
-    // çizimleri) kullanır; uygulamanın sayfalarına ve kabuğuna bağımlı olamaz.
-    files: ['src/game/**/*.{js,jsx}'],
-    rules: {
-      'no-restricted-imports': ['error', {
-        patterns: [{
-          group: ['**/pages/**', '**/components/shell/**', '**/App.jsx', '**/ThemedApp.jsx'],
-          message: 'Mahalle oyunu uygulamanın sayfalarına/kabuğuna bağımlı olamaz; yalnızca paylaşılan altyapıyı kullanın.',
-        }],
-      }],
     },
   },
   {

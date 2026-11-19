@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { Box } from '@mui/material'
 import useMediaQuery from '@mui/material/useMediaQuery'
 import { useTheme } from '@mui/material/styles'
@@ -6,7 +6,6 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import useQuickSearchShortcut from '../hooks/useQuickSearchShortcut.js'
 import { useScrollRestoration } from '../hooks/useScrollRestoration.js'
 import { useOnlineStatus } from '../hooks/useOnlineStatus.js'
-import { useMahalleEligible } from '../hooks/useMahalleEligible.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { emitListRefresh } from '../utils/listRefreshBus.js'
 import InstallPrompt from './InstallPrompt.jsx'
@@ -16,10 +15,6 @@ import MobileTopBar from './shell/MobileTopBar.jsx'
 import MobileBottomNav, { MOBILE_NAV_HEIGHT } from './shell/MobileBottomNav.jsx'
 import OfflineBanner from './shell/OfflineBanner.jsx'
 import '../styles/feed.css'
-
-// Mahalle kısayolu ilk boyamadan sonra ayrı küçük bir parça olarak iner
-// (ana paket büyümesin; kenardaki düğme bir an geç gelse de olur).
-const MahalleBubble = lazy(() => import('./shell/MahalleBubble.jsx'))
 
 // Oturum açık sayfaların kabuğu: masaüstünde sabit sol gezinme, mobilde üst
 // bar + alt sekme çubuğu; ortada dar (okunabilir) içerik sütunu.
@@ -51,9 +46,6 @@ export default function ResponsiveShell({ children }) {
     await logout()
     navigate('/', { replace: true })
   }
-
-  // Mahalle kısayolu yalnızca uygun üyelere (bkz. useMahalleEligible)
-  const mahalleEligible = useMahalleEligible()
 
   // Cmd/Ctrl+K ve "/" ile her yerden hızlı arama.
   useQuickSearchShortcut()
@@ -109,15 +101,6 @@ export default function ResponsiveShell({ children }) {
       </Box>
 
       {!isMdUp && <MobileBottomNav />}
-
-      {/* Mahalle (oyun) kısa yolu: kenarda duran sürüklenebilir düğme.
-          Kabuk yalnızca oturumlu uygulama sayfalarında var (/mahalle, giriş ve
-          karşılama sayfalarında yok). */}
-      {mahalleEligible === true && (
-        <Suspense fallback={null}>
-          <MahalleBubble key={isMdUp ? 'd' : 'm'} desktop={isMdUp} />
-        </Suspense>
-      )}
 
       <InstallPrompt />
     </Box>
