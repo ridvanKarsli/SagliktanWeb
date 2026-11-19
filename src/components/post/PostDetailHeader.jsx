@@ -28,7 +28,7 @@ export default function PostDetailHeader({
         aria-label={`${authorName} profiline git`}
         sx={{ borderRadius: '50%', cursor: 'pointer', flexShrink: 0, '&:focus-visible': focusRingSx }}
       >
-        <UserAvatar avatarKey={post.authorAvatarKey} name={authorName} size={50} />
+        <UserAvatar name={authorName} size={50} />
       </Box>
       <Box sx={{ flex: 1, minWidth: 0 }}>
         <Typography

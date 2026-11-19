@@ -11,11 +11,10 @@ import { useNotification } from '../context/NotificationContext.jsx'
 import { completeOnboarding, joinDiseaseGroup, listDiseaseGroups } from '../services/api.js'
 import { fetchMyGroups, invalidateMyGroups } from '../services/myGroups.js'
 import NewPostDialog from '../components/NewPostDialog.jsx'
-import Companion from '../components/avatars/Companion.jsx'
 import LeafBurst from '../components/celebration/LeafBurst.jsx'
 import { LIMITS, filterPrefixFirst } from '../utils/validation.js'
 import { radius } from '../design/tokens.js'
-import '../styles/companions.css'
+import '../styles/motion.css'
 import SaglikLoader from '../components/common/SaglikLoader.jsx'
 
 // Rol, şehir ve görünürlük artık kayıt formunda soruluyor (Ayarlar'dan da
@@ -245,13 +244,7 @@ export default function Onboarding() {
 
         {stepKey === 'done' && (
           <Stack spacing={2} alignItems="center" sx={{ textAlign: 'center', pt: { xs: 4, md: 6 } }}>
-            <Box className="sg-arrive" sx={{ borderRadius: '50%', boxShadow: 3, mb: 1 }}>
-              <Companion name="filiz" size={128} />
-            </Box>
             <Typography variant="h2" component="h1">Hazırsın{user?.firstName ? `, ${user.firstName}` : ''}!</Typography>
-            <Typography variant="body1" sx={{ color: 'text.secondary', maxWidth: 440 }}>
-              İlk yol arkadaşın Filiz seninle. Paylaşımların farklı insanlara faydalı geldikçe ve zamanla yeni yol arkadaşları açılır.
-            </Typography>
             <Typography variant="body1" sx={{ color: 'text.secondary', maxWidth: 440 }}>
               Kısaca kendini tanıtmak ister misin? İlk paylaşımlara genelde sıcak karşılamalar gelir.
             </Typography>

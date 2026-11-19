@@ -56,7 +56,7 @@ export default function Login() {
       title="Tekrar hoş geldin"
       lead="Seni anlayan insanlar kaldığın yerde seni bekliyor."
       sideTitle="Önce yoldaş, sonra yol"
-      sideText="Gruplarında yeni paylaşımlar, sorularına gelen cevaplar ve seni bekleyen yol arkadaşların var."
+      sideText="Gruplarında yeni paylaşımlar, sorularına gelen cevaplar seni bekliyor."
       onBack={() => navigate('/')}
       maxWidth={420}
       footer={(

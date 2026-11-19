@@ -9,9 +9,6 @@ import ProfileStat from '../../components/profile/ProfileStat.jsx'
 import ProfileEditForm from '../../components/profile/ProfileEditForm.jsx'
 import MyGroupRow, { MyGroupRowSkeleton } from '../../components/profile/MyGroupRow.jsx'
 import ProfileHeader, { ProfileAvatar, ProfileHeaderSkeleton, StatStrip } from '../../components/profile/ProfileHeader.jsx'
-import HelpfulHint from '../../components/profile/HelpfulHint.jsx'
-import AvatarPicker from '../../components/avatars/AvatarPicker.jsx'
-import AvatarUnlockWatcher from '../../components/avatars/AvatarUnlockWatcher.jsx'
 import EmptyState from '../../components/EmptyState.jsx'
 import PostList from '../../components/PostList.jsx'
 import PostCardSkeleton from '../../components/PostCardSkeleton.jsx'
@@ -79,8 +76,7 @@ function PostsSkeleton() {
 }
 
 /**
- * Kendi profilin: kimlik kartı (yol arkadaşın, isim, istatistikler, sıradaki
- * yol arkadaşı ipucu) üstte, altında Gönderiler / Kaydedilenler / Gruplarım
+ * Kendi profilin: kimlik kartı (isim, istatistikler) üstte, altında Gönderiler / Kaydedilenler / Gruplarım
  * sekmeleri. Hesap ayarları ayrı ekranda (/profile/settings, dişli ikonu).
  */
 export default function Profile() {
@@ -89,9 +85,6 @@ export default function Profile() {
   const navigate = useNavigate()
   const [activeTab, setTab] = useProfileTab()
   const [editOpen, setEditOpen] = useState(false)
-  const [pickerOpen, setPickerOpen] = useState(false)
-  const openPicker = useCallback(() => setPickerOpen(true), [])
-  const closePicker = useCallback(() => setPickerOpen(false), [])
 
   const stats = useProfileStats(token)
   const myGroups = useMyGroupsList()
@@ -134,10 +127,8 @@ export default function Profile() {
 
   return (
     <Box className="page-transition" sx={pageSx}>
-      <AvatarUnlockWatcher />
-
       <ProfileHeader
-        avatar={<ProfileAvatar avatarKey={user.avatarKey} name={fullName} onEdit={openPicker} />}
+        avatar={<ProfileAvatar name={fullName} />}
         name={fullName}
         badge={user.emailVerified ? <VerifiedBadge /> : (
           <Chip
@@ -166,7 +157,6 @@ export default function Profile() {
           </StatStrip>
         )}
       >
-        <HelpfulHint userId={user.id} onOpen={openPicker} />
         {!editOpen && (
           <Button
             fullWidth
@@ -182,7 +172,7 @@ export default function Profile() {
 
       <Collapse in={editOpen} unmountOnExit>
         <Box sx={{ mt: 2 }}>
-          <ProfileEditForm onDone={() => setEditOpen(false)} onEditAvatar={openPicker} />
+          <ProfileEditForm onDone={() => setEditOpen(false)} />
         </Box>
       </Collapse>
 
@@ -279,7 +269,6 @@ export default function Profile() {
         </Box>
       )}
 
-      <AvatarPicker open={pickerOpen} onClose={closePicker} />
     </Box>
   )
 }

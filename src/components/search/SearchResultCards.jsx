@@ -30,7 +30,7 @@ export function CommentResultCard({ comment, onClick, onAuthorClick, query }) {
   return (
     <Box {...cardActivationProps(onClick, `Yorum: ${authorName}`)} className="tap-scale" sx={cardSx}>
       <Stack direction="row" spacing={1.25} alignItems="center" sx={{ mb: 1 }}>
-        <UserAvatar avatarKey={comment.authorAvatarKey} name={authorName} size={32} />
+        <UserAvatar name={authorName} size={32} />
         <Typography
           variant="body2"
           component="button"
@@ -64,7 +64,7 @@ export function PersonResultCard({ person, onClick, query }) {
   return (
     <Box {...cardActivationProps(onClick, fullName)} className="tap-scale" sx={{ ...cardSx, py: { xs: 1.5, sm: 1.75 } }}>
       <Stack direction="row" spacing={1.5} alignItems="center">
-        <UserAvatar avatarKey={person.avatarKey} name={fullName} size={48} sx={{ flexShrink: 0 }} />
+        <UserAvatar name={fullName} size={48} sx={{ flexShrink: 0 }} />
         <Box sx={{ minWidth: 0, flex: 1 }}>
           <Typography variant="subtitle1" component="h2" sx={{ fontWeight: 800, color: 'text.primary', lineHeight: 1.35 }} noWrap>
             {query ? <HighlightText text={fullName} query={query} /> : fullName}

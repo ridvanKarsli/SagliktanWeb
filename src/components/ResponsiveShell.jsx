@@ -9,7 +9,6 @@ import { useOnlineStatus } from '../hooks/useOnlineStatus.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { emitListRefresh } from '../utils/listRefreshBus.js'
 import InstallPrompt from './InstallPrompt.jsx'
-import AvatarUnlockWatcher from './avatars/AvatarUnlockWatcher.jsx'
 import DesktopSidebar, { SIDEBAR_WIDTH } from './shell/DesktopSidebar.jsx'
 import MobileTopBar from './shell/MobileTopBar.jsx'
 import MobileBottomNav, { MOBILE_NAV_HEIGHT } from './shell/MobileBottomNav.jsx'
@@ -52,9 +51,6 @@ export default function ResponsiveShell({ children }) {
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100dvh', bgcolor: 'background.default' }}>
-      {/* Faydalı oylarla yeni yol arkadaşı açıldığında tüm uygulamada kutlar
-          (oturum başına bir kontrol; Profil sayfası da kendi kontrolünü tetikler). */}
-      <AvatarUnlockWatcher />
       {isMdUp && <DesktopSidebar onLogout={handleLogout} />}
 
       <Box

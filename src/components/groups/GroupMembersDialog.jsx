@@ -73,7 +73,7 @@ export default function GroupMembersDialog({ open, onClose, members, loading, lo
                     '&.Mui-focusVisible': { bgcolor: 'action.focus' }
                   }}
                 >
-                  <UserAvatar avatarKey={m.avatarKey} name={fullName} size={44} />
+                  <UserAvatar name={fullName} size={44} />
                   <Typography variant="body1" component="span" sx={{ fontWeight: 700, color: 'text.primary', flex: 1, textAlign: 'left' }} noWrap>
                     {fullName}
                   </Typography>

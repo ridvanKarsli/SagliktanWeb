@@ -119,7 +119,7 @@ export default function DesktopSidebar({ onLogout }) {
             '&.Mui-focusVisible': focusRingSx
           }}
         >
-          <UserAvatar avatarKey={user.avatarKey} name={fullName} size={40} />
+          <UserAvatar name={fullName} size={40} />
           <Box sx={{ minWidth: 0 }}>
             <Typography variant="subtitle2" noWrap sx={{ color: 'text.primary', lineHeight: 1.3 }}>{fullName || 'Profilin'}</Typography>
             <Typography variant="caption" noWrap sx={{ color: 'text.secondary', display: 'block' }}>Profilini gör</Typography>

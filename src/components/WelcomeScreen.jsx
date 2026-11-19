@@ -2,11 +2,9 @@ import { Box, Button, Container, Link, Stack, Typography } from '@mui/material'
 import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom'
 import {
   ChatBubbleOutlineRounded, CheckCircleRounded, GavelRounded, GroupsRounded, LockRounded, QuestionAnswerOutlined,
-  SpaOutlined, ThumbUpAltRounded, VerifiedUserOutlined
+  SpaOutlined, VerifiedUserOutlined
 } from '@mui/icons-material'
 import TrustBadges from './TrustBadges.jsx'
-import Companion from './avatars/Companion.jsx'
-import PathScene from './welcome/PathScene.jsx'
 import IconBadge from './common/IconBadge.jsx'
 import { radius } from '../design/tokens.js'
 
@@ -24,12 +22,6 @@ const FEATURES = [
     text: 'Merak ettiğin şeyi büyük ihtimalle biri yaşamıştır. Soruna gelen cevaplardan en faydalısı öne çıkar.',
   },
   {
-    Icon: ThumbUpAltRounded,
-    tone: 'apricot',
-    title: 'Sağlıktan puanıyla açılan yol arkadaşları',
-    text: 'Paylaşımın birine iyi geldiğinde teşekkürü Sağlıktan puanı olarak sana ulaşır. Puanın büyüdükçe ve zamanla profilin için yeni yol arkadaşları açılır.',
-  },
-  {
     Icon: SpaOutlined,
     tone: 'primary',
     title: 'Kendi hızında, güvenle',
@@ -37,8 +29,6 @@ const FEATURES = [
   },
 ]
 
-const GALLERY = ['filiz', 'damla', 'bulut', 'cakil', 'papatya', 'kirpi', 'kaplumbaga', 'serce', 'kedi', 'baykus', 'gunes', 'yildiz']
-const GALLERY_OPEN = 4
 
 const TRUST = [
   { Icon: VerifiedUserOutlined, text: 'KVKK uyumlu; bilgilerin şifreli bağlantıyla korunur.' },
@@ -71,7 +61,6 @@ function SampleThread() {
     <Stack spacing={1.5} sx={{ maxWidth: 520, width: '100%', mx: 'auto' }} aria-label="Örnek bir soru ve cevap" role="group">
       <Box sx={bubble}>
         <Stack direction="row" spacing={1.25} alignItems="center" sx={{ mb: 1.25 }}>
-          <Companion name="papatya" size={40} />
           <Box>
             <Typography variant="subtitle2" component="p">Bir hasta yakını</Typography>
             <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>Retinitis Pigmentosa · Soru-Cevap</Typography>
@@ -84,7 +73,6 @@ function SampleThread() {
       </Box>
       <Box sx={{ ...bubble, ml: { xs: 2.5, sm: 5 }, borderColor: 'primary.main', borderWidth: 2 }}>
         <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1, flexWrap: 'wrap', rowGap: 0.75 }}>
-          <Companion name="baykus" size={36} />
           <Typography variant="subtitle2" component="p" sx={{ flex: 1 }}>10 yıldır bu yolda olan bir üye</Typography>
           <Stack direction="row" spacing={0.5} alignItems="center" sx={{ px: 1, py: 0.25, borderRadius: `${radius.pill}px`, bgcolor: 'brand.primarySoft', color: 'primary.main' }}>
             <CheckCircleRounded sx={{ fontSize: 16 }} />
@@ -182,9 +170,6 @@ export default function WelcomeScreen() {
                 Ücretsiz. Kayıt bir dakika sürer.
               </Typography>
             </Box>
-            <Box sx={{ order: { xs: -1, md: 0 }, maxWidth: { xs: 420, md: 'none' }, width: '100%', mx: 'auto' }}>
-              <PathScene />
-            </Box>
           </Box>
         </Container>
 
@@ -226,40 +211,6 @@ export default function WelcomeScreen() {
           </Box>
         </Container>
 
-        {/* Yol arkadaşları */}
-        <Box component="section" sx={{ bgcolor: 'brand.apricotSoft', py: { xs: 7, md: 10 } }}>
-          <Container maxWidth="md" sx={{ textAlign: 'center' }}>
-            <SectionTitle
-              align="center"
-              title="Yol arkadaşların seni bekliyor"
-              lead="Herkes ilk dört yol arkadaşıyla başlar. Paylaşımların farklı insanlara faydalı geldikçe, acele etmeden yenileri açılır; profilinde seni onlar temsil eder."
-            />
-            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(6, auto)', justifyContent: 'center', gap: { xs: 1, sm: 2 } }} aria-hidden>
-              {GALLERY.map((name, i) => {
-                const locked = i >= GALLERY_OPEN
-                return (
-                  <Box key={name} sx={{ position: 'relative' }}>
-                    <Companion
-                      name={name}
-                      size={64}
-                      sx={{
-                        width: { xs: 48, sm: 72 }, height: { xs: 48, sm: 72 },
-                        border: '3px solid', borderColor: 'background.paper',
-                        filter: locked ? 'grayscale(0.85)' : 'none', opacity: locked ? 0.55 : 1
-                      }}
-                    />
-                    {locked && (
-                      <Box sx={{ position: 'absolute', right: -2, bottom: -2, width: 22, height: 22, borderRadius: '50%', display: 'grid', placeItems: 'center', bgcolor: 'background.paper', color: 'text.secondary' }}>
-                        <LockRounded sx={{ fontSize: 13 }} />
-                      </Box>
-                    )}
-                  </Box>
-                )
-              })}
-            </Box>
-          </Container>
-        </Box>
-
         {/* Güven */}
         <Container component="section" maxWidth="lg" sx={{ py: { xs: 7, md: 10 } }}>
           <SectionTitle title="Sana iyi gelecek kadar sakin, güvenli bir yer" />
@@ -296,7 +247,7 @@ export default function WelcomeScreen() {
             />
             <Typography variant="h2" sx={{ color: 'inherit', mb: 1.25 }}>Yalnız değilsin.</Typography>
             <Typography variant="body1" sx={{ color: 'inherit', opacity: 0.92, mb: 3.5, maxWidth: 480, mx: 'auto', fontSize: { md: '1.125rem' } }}>
-              Seni anlayan insanlar burada. Bir dakikada aramıza katıl, ilk yol arkadaşınla tanış.
+              Seni anlayan insanlar burada. Bir dakikada aramıza katıl.
             </Typography>
             <Button variant="contained" color="secondary" size="large" onClick={goRegister} sx={{ minWidth: 220 }}>
               Ücretsiz kayıt ol

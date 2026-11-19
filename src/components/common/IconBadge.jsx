@@ -1,8 +1,7 @@
 import { Box } from '@mui/material'
 
 // Yumuşak, marka renginde bir daire içinde tek ikon. Boş durumlar, başarı
-// ekranları ve özellik listeleri bunu kullanır; yol arkadaşları (karakterler)
-// yalnızca avatar ve kutlama anlarına ayrılır, böylece özel kalırlar.
+// ekranları ve özellik listeleri bunu kullanır.
 // tone: brand paletindeki *Soft zemin + uyumlu ikon rengi.
 const TONES = {
   primary: { bg: 'brand.primarySoft', fg: 'primary.main' },

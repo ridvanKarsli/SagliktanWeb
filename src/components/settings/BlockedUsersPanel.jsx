@@ -41,7 +41,7 @@ export default function BlockedUsersPanel() {
       skeletonAvatar
       renderItem={(b) => (
         <Stack key={b.id} direction="row" alignItems="center" spacing={1.5} sx={{ py: 0.75 }}>
-          <UserAvatar avatarKey={b.avatarKey} name={b.userName} size={40} />
+          <UserAvatar name={b.userName} size={40} />
           <Typography variant="body1" sx={{ flex: 1, minWidth: 0, fontWeight: 700 }} noWrap>{b.userName}</Typography>
           <Button
             size="small" variant="outlined"

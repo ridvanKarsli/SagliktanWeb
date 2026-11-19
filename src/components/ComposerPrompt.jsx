@@ -28,7 +28,7 @@ export default function ComposerPrompt({ onClick, hint = DEFAULT_COMPOSER_HINT, 
         ...sx
       }}
     >
-      <UserAvatar avatarKey={user?.avatarKey} name={name} size={42} sx={{ flexShrink: 0 }} />
+      <UserAvatar name={name} size={42} sx={{ flexShrink: 0 }} />
       <Typography
         variant="body2"
         component="span"

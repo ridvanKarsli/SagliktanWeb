@@ -3,8 +3,6 @@ import IconBadge from './common/IconBadge.jsx'
 
 // Ortak boş durum: kısa başlık + ne olduğunu ve sıradaki adımı anlatan bir
 // cümle + (varsa) tek net eylem. İkon yumuşak bir marka dairesinde durur.
-// Yol arkadaşları burada kullanılmaz; onlar avatar ve kutlama anlarına
-// ayrıldı ki her boş ekranda tekrar edip sıradanlaşmasınlar.
 export default function EmptyState({
   icon, title, description, actionLabel, onAction, actionIcon, dense = false, sx
 }) {

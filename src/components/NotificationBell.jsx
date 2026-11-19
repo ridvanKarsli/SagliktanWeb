@@ -33,7 +33,7 @@ function NotificationItem({ n, onClick }) {
       }}
     >
       <Box sx={{ position: 'relative', flexShrink: 0 }}>
-        <UserAvatar avatarKey={n.actorAvatarKey} name={actor} size={42} />
+        <UserAvatar name={actor} size={42} />
         <Box
           aria-hidden
           sx={{

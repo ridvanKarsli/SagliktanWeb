@@ -27,8 +27,7 @@ export default function ReactionButtons({
   onRemove,
   size = 'small',
   disabled: disabledProp = false,
-  // Kendi paylaşımı: sayılar görünür ama oy verilemez ("Faydalı" sayısı ve
-  // yol arkadaşları başkalarının teşekkürüyle büyür; sunucu da reddeder).
+  // Kendi paylaşımı: sayılar görünür ama oy verilemez (sunucu da reddeder).
   ownContent = false
 }) {
   const disabled = disabledProp || ownContent

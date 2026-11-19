@@ -133,7 +133,6 @@ export default function Chat() {
     <Box sx={PAGE_SX}>
       <ChatHeader
         otherUserName={conversation?.otherUserName}
-        otherUserAvatarKey={conversation?.otherUserAvatarKey}
         onBack={() => navigate('/messages')}
         onOpenProfile={openProfile}
         isBlocked={chat.isBlocked}

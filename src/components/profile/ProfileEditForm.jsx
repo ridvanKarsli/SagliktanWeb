@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Box, Button, Stack, TextField, Typography } from '@mui/material'
 import CityField from './CityField.jsx'
-import UserAvatar from '../avatars/UserAvatar.jsx'
 import { radius } from '../../design/tokens.js'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotification } from '../../context/NotificationContext.jsx'
@@ -38,10 +37,9 @@ const validate = (f) => ({
 
 const nameInputProps = { maxLength: LIMITS.NAME_MAX, autoCapitalize: 'words', autoCorrect: 'off', spellCheck: false, enterKeyHint: 'next' }
 
-// Profil düzenleme formu (yol arkadaşı, ad, soyad, şehir, hakkında). Açılışta
+// Profil düzenleme formu (ad, soyad, şehir, hakkında). Açılışta
 // mevcut kullanıcı bilgisiyle dolar; kaydedince yerel kullanıcıyı da günceller.
-// onEditAvatar verilirse en üstte yol arkadaşını değiştirme satırı görünür.
-export default function ProfileEditForm({ onDone, onEditAvatar }) {
+export default function ProfileEditForm({ onDone }) {
   const { token, user, updateLocalUser } = useAuth()
   const { showError, showSuccess } = useNotification()
   const [fields, setFields] = useState(() => fieldsFrom(user))
@@ -80,20 +78,6 @@ export default function ProfileEditForm({ onDone, onEditAvatar }) {
         Burada yazdıkların profilinde görünür. Kendini ne kadar anlatacağına sen karar verirsin.
       </Typography>
       <Stack spacing={2}>
-        {onEditAvatar && (
-          <Stack direction="row" alignItems="center" spacing={1.5} sx={{ p: 1.25, pr: 1.5, borderRadius: `${radius.md}px`, bgcolor: 'brand.surfaceAlt' }}>
-            <UserAvatar avatarKey={user?.avatarKey} name={[user?.firstName, user?.lastName].filter(Boolean).join(' ')} size={52} />
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography variant="subtitle2" component="p">Yol arkadaşın</Typography>
-              <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', lineHeight: 1.4 }}>
-                Sağlıktan puanın büyüdükçe ve zamanla yenileri açılır.
-              </Typography>
-            </Box>
-            <Button variant="outlined" size="small" onClick={onEditAvatar} aria-label="Yol arkadaşını değiştir" sx={{ minHeight: 44, flexShrink: 0 }}>
-              Değiştir
-            </Button>
-          </Stack>
-        )}
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
           <TextField
             label="Ad" value={fields.firstName} onChange={e => set('firstName')(e.target.value)}

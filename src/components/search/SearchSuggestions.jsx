@@ -140,7 +140,7 @@ export default function SearchSuggestions({
               onClick={() => onOpenProfile(u.id)}
               sx={{ ...rowSx(activeIndex === posts.length + comments.length + i), alignItems: 'center', gap: 1.25 }}
             >
-              <UserAvatar avatarKey={u.avatarKey} name={fullNameOf(u)} size={32} />
+              <UserAvatar name={fullNameOf(u)} size={32} />
               <Typography variant="body2" component="span" sx={{ display: 'block', color: 'text.primary' }} noWrap>
                 <HighlightText text={fullNameOf(u)} query={term} />
               </Typography>

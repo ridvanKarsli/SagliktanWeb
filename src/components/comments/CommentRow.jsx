@@ -127,7 +127,7 @@ export default function CommentRow({
               '&:focus-visible': focusRingSx
             }}
           >
-            <UserAvatar avatarKey={comment.authorAvatarKey} name={authorName} size={avatarSize} />
+            <UserAvatar name={authorName} size={avatarSize} />
           </Box>
         )}
 

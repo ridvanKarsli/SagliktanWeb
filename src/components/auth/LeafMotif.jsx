@@ -1,8 +1,7 @@
 import { Box } from '@mui/material'
 
 // Sakin bir marka motifi: ortak bir kökten açılan üç yaprak (bir filiz).
-// Karakter değil, soyut bir işaret; giriş/kayıt ekranlarında yol arkadaşları
-// yerine kullanılır ki onlar avatar ve kutlama anlarına özel kalsın.
+// Soyut bir işaret; giriş/kayıt ekranlarında kullanılır.
 // Renkler temadan (brand.*) okunur; açık ve koyu temada kendiliğinden uyar.
 const LEAF = 'M0 0 C -30 -26 -32 -66 0 -100 C 32 -66 30 -26 0 0Z'
 const VEIN = 'M0 -6 L0 -84'

@@ -186,7 +186,7 @@ export default function UserProfile() {
   return (
     <Box className="page-transition" sx={pageSx}>
       <ProfileHeader
-        avatar={<ProfileAvatar avatarKey={profile.avatarKey} name={fullName} />}
+        avatar={<ProfileAvatar name={fullName} />}
         name={fullName}
         badge={profile.emailVerified ? <VerifiedBadge /> : null}
         summary={hidden ? null : <HealthSummary profile={profile} />}

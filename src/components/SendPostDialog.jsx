@@ -107,7 +107,7 @@ export default function SendPostDialog({ open, onClose, post }) {
                   key={c.id}
                   sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 2, py: 1.25, opacity: disabled ? 0.5 : 1 }}
                 >
-                  <UserAvatar avatarKey={c.otherUserAvatarKey} name={c.otherUserName || ''} size={44} sx={{ flexShrink: 0 }} />
+                  <UserAvatar name={c.otherUserName || ''} size={44} sx={{ flexShrink: 0 }} />
                   <Typography variant="subtitle2" sx={{ fontWeight: 600, flex: 1 }} noWrap>
                     {c.otherUserName}
                   </Typography>

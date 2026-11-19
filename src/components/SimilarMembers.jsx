@@ -102,7 +102,7 @@ export default function SimilarMembers({ sx }) {
                   '&.Mui-focusVisible': focusRingSx
                 }}
               >
-                <UserAvatar avatarKey={m.avatarKey} name={name} size={52} />
+                <UserAvatar name={name} size={52} />
                 <Typography variant="subtitle2" sx={{ fontWeight: 800, width: '100%', color: 'text.primary' }} noWrap>{name}</Typography>
                 {summary.length > 0 && (
                   <Typography variant="caption" sx={{ color: 'text.secondary', width: '100%' }} noWrap title={summary.join(' · ')}>

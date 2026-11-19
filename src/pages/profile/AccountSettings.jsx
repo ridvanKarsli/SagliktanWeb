@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useState } from 'react'
 import { Box, Button, Divider, IconButton, Stack, Typography } from '@mui/material'
 import {
   ArrowBackRounded, BlockRounded, DeleteForeverRounded, DescriptionOutlined, DevicesOutlined,
@@ -21,7 +21,6 @@ import ActiveSessionsPanel from '../../components/settings/ActiveSessionsPanel.j
 import DeactivateAccountPanel from '../../components/settings/DeactivateAccountPanel.jsx'
 import DeleteAccountPanel from '../../components/settings/DeleteAccountPanel.jsx'
 import UserAvatar from '../../components/avatars/UserAvatar.jsx'
-import AvatarPicker from '../../components/avatars/AvatarPicker.jsx'
 import { radius } from '../../design/tokens.js'
 import { fullNameOf } from '../../utils/text.js'
 
@@ -65,8 +64,6 @@ function useDataExport() {
 export default function AccountSettings() {
   const { logout, user } = useAuth()
   const navigate = useNavigate()
-  const [pickerOpen, setPickerOpen] = useState(false)
-  const closePicker = useCallback(() => setPickerOpen(false), [])
   const { exporting, exportData } = useDataExport()
   // Hangi açılır panelin açık olduğu (aynı anda birden fazla açık olabilir).
   const [openPanels, setOpenPanels] = useState(() => new Set())
@@ -103,14 +100,11 @@ export default function AccountSettings() {
           spacing={1.75}
           sx={{ mb: 3.5, p: { xs: 1.75, sm: 2 }, borderRadius: `${radius.lg}px`, bgcolor: 'brand.surfaceAlt' }}
         >
-          <UserAvatar avatarKey={user.avatarKey} name={fullNameOf(user, 'Kullanıcı')} size={60} sx={{ border: '3px solid', borderColor: 'background.paper' }} />
+          <UserAvatar name={fullNameOf(user, 'Kullanıcı')} size={60} sx={{ border: '3px solid', borderColor: 'background.paper' }} />
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <Typography variant="h5" component="p" noWrap>{fullNameOf(user, 'Kullanıcı')}</Typography>
             <Typography variant="body2" sx={{ color: 'text.secondary' }} noWrap>{user.email}</Typography>
           </Box>
-          <Button variant="outlined" size="small" onClick={() => setPickerOpen(true)} aria-label="Yol arkadaşını değiştir" sx={{ minHeight: 44, flexShrink: 0, bgcolor: 'background.paper' }}>
-            Değiştir
-          </Button>
         </Stack>
       )}
 
@@ -179,7 +173,6 @@ export default function AccountSettings() {
         </SettingsSection>
       </Stack>
 
-      <AvatarPicker open={pickerOpen} onClose={closePicker} />
     </Box>
   )
 }

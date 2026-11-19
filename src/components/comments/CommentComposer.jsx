@@ -20,7 +20,6 @@ export default function CommentComposer({ value, onChange, onSubmit, submitting,
     <Box component="form" onSubmit={onSubmit} sx={{ mb: 1, pb: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}>
       <Stack direction="row" spacing={1} useFlexGap alignItems="flex-end">
         <UserAvatar
-          avatarKey={user?.avatarKey}
           name={`${user?.firstName || ''} ${user?.lastName || ''}`}
           size={40}
           sx={{ flexShrink: 0, mb: '3px', display: { xs: 'none', sm: 'flex' } }}

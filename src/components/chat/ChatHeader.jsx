@@ -19,9 +19,9 @@ export function ChatHeaderSkeleton() {
   )
 }
 
-// Sohbet başlığı: geri, karşı tarafın yol arkadaşı/adı (profile gider) ve
+// Sohbet başlığı: geri, karşı tarafın adı (profile gider) ve
 // engelle / engeli kaldır menüsü.
-export default function ChatHeader({ otherUserName, otherUserAvatarKey, onBack, onOpenProfile, isBlocked, onBlock, onUnblock }) {
+export default function ChatHeader({ otherUserName, onBack, onOpenProfile, isBlocked, onBlock, onUnblock }) {
   const [menuAnchor, setMenuAnchor] = useState(null)
   const runAndClose = (action) => () => { setMenuAnchor(null); action() }
   const name = otherUserName || 'Kullanıcı'
@@ -36,7 +36,7 @@ export default function ChatHeader({ otherUserName, otherUserAvatarKey, onBack, 
         aria-label={`${name} profiline git`}
         sx={{ flex: 1, minWidth: 0, justifyContent: 'flex-start', gap: 1.25, px: 0.75, py: 0.5, borderRadius: `${radius.md}px`, textAlign: 'left', '&:hover': { bgcolor: 'action.hover' } }}
       >
-        <UserAvatar avatarKey={otherUserAvatarKey} name={name} size={42} />
+        <UserAvatar name={name} size={42} />
         <Box sx={{ minWidth: 0 }}>
           <Typography variant="subtitle1" component="h1" sx={{ lineHeight: 1.25 }} noWrap>{name}</Typography>
           <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, display: 'block' }}>Profilini gör</Typography>

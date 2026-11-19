@@ -22,7 +22,7 @@ const OUTGOING = 1
 
 const LIST_SX = { borderRadius: `${radius.lg}px`, border: '1px solid', borderColor: 'brand.border', bgcolor: 'background.paper', overflow: 'hidden' }
 
-function RequestRow({ name, avatarKey, when, note, onOpenProfile, children }) {
+function RequestRow({ name, when, note, onOpenProfile, children }) {
   return (
     <Box
       sx={{
@@ -35,7 +35,7 @@ function RequestRow({ name, avatarKey, when, note, onOpenProfile, children }) {
         aria-label={`${name || 'Kullanıcı'} profiline git`}
         sx={{ flex: 1, minWidth: 0, justifyContent: 'flex-start', gap: 1.5, textAlign: 'left', borderRadius: `${radius.md}px`, p: 0.5, m: -0.5 }}
       >
-        <UserAvatar avatarKey={avatarKey} name={name} size={52} sx={{ flexShrink: 0 }} />
+        <UserAvatar name={name} size={52} sx={{ flexShrink: 0 }} />
         <Box sx={{ minWidth: 0 }}>
           <Typography variant="subtitle1" component="span" sx={{ display: 'block', wordBreak: 'break-word' }}>{name}</Typography>
           <Typography variant="body2" component="span" sx={{ display: 'block', color: 'text.secondary' }}>
@@ -172,12 +172,10 @@ export default function MessageRequests() {
             const isIncoming = tab === INCOMING
             const otherId = isIncoming ? r.senderId : r.recipientId
             const otherName = isIncoming ? r.senderName : r.recipientName
-            const otherAvatar = isIncoming ? r.senderAvatarKey : r.recipientAvatarKey
             return (
               <li key={r.id}>
                 <RequestRow
                   name={otherName}
-                  avatarKey={otherAvatar}
                   when={prettyDate(r.createdAt)}
                   note={isIncoming ? 'Seninle sohbet etmek istiyor' : 'Yanıt bekleniyor'}
                   onOpenProfile={() => navigate(`/users/${otherId}`)}

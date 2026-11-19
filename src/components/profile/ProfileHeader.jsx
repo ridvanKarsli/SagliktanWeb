@@ -2,7 +2,6 @@ import { Box, ButtonBase, Skeleton, Stack, Typography } from '@mui/material'
 import { AutoAwesomeRounded } from '@mui/icons-material'
 import UserAvatar from '../avatars/UserAvatar.jsx'
 import { radius } from '../../design/tokens.js'
-import '../../styles/companions.css'
 
 const AVATAR_SIZE = { xs: 104, md: 116 }
 
@@ -32,45 +31,19 @@ function GardenBand({ children }) {
   )
 }
 
-/** Büyük profil görseli; onEdit verilirse dokunulabilir ve küçük bir ışıltı rozeti taşır. */
-export function ProfileAvatar({ avatarKey, name, onEdit, editLabel = 'Yol arkadaşını değiştir' }) {
-  const avatar = (
-    <UserAvatar
-      avatarKey={avatarKey}
-      name={name}
-      size={AVATAR_SIZE.xs}
-      sx={{
-        width: AVATAR_SIZE, height: AVATAR_SIZE, fontSize: { xs: 36, md: 40 },
-        border: '4px solid', borderColor: 'background.paper', boxShadow: 3,
-      }}
-    />
-  )
-  if (!onEdit) return <Box sx={{ display: 'inline-flex', borderRadius: '50%' }}>{avatar}</Box>
+/** Büyük profil görseli (baş harfler). */
+export function ProfileAvatar({ name }) {
   return (
-    <ButtonBase
-      onClick={onEdit}
-      aria-label={editLabel}
-      className="sg-sway-on-hover"
-      sx={{
-        position: 'relative', borderRadius: '50%',
-        transition: 'transform 180ms var(--ease-spring)',
-        '&:active': { transform: 'scale(0.95)' },
-        '&.Mui-focusVisible': { boxShadow: theme => `0 0 0 4px ${theme.palette.brand.primaryBright}` },
-      }}
-    >
-      <Box className="sg-sway-target" sx={{ borderRadius: '50%' }}>{avatar}</Box>
-      <Box
-        aria-hidden
+    <Box sx={{ display: 'inline-flex', borderRadius: '50%' }}>
+      <UserAvatar
+        name={name}
+        size={AVATAR_SIZE.xs}
         sx={{
-          position: 'absolute', right: 0, bottom: 4, width: 34, height: 34, borderRadius: '50%',
-          display: 'grid', placeItems: 'center',
-          bgcolor: 'secondary.main', color: 'secondary.contrastText',
-          border: '3px solid', borderColor: 'background.paper',
+          width: AVATAR_SIZE, height: AVATAR_SIZE, fontSize: { xs: 36, md: 40 },
+          border: '4px solid', borderColor: 'background.paper', boxShadow: 3,
         }}
-      >
-        <AutoAwesomeRounded sx={{ fontSize: 17 }} />
-      </Box>
-    </ButtonBase>
+      />
+    </Box>
   )
 }
 

@@ -54,7 +54,7 @@ export default function ConversationRow({ conversation: c, onOpen }) {
         '&.Mui-focusVisible': { bgcolor: 'action.focus' }
       }}
     >
-      <UserAvatar avatarKey={c.otherUserAvatarKey} name={c.otherUserName} size={52} sx={{ flexShrink: 0 }} />
+      <UserAvatar name={c.otherUserName} size={52} sx={{ flexShrink: 0 }} />
       <Box component="span" sx={{ display: 'block', flex: 1, minWidth: 0 }}>
         <Stack component="span" direction="row" justifyContent="space-between" alignItems="baseline" spacing={1}>
           <Typography

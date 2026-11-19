@@ -40,7 +40,7 @@ function PostCard({ post, onOpen, onSend, onReport, token, highlightQuery, showP
   const { user: currentUser } = useAuth()
   if (!post) return null
   const {
-    id, subGroupId, subGroupName, diseaseGroupName, authorId, authorName, authorAvatarKey, title, content, createdAt, updatedAt,
+    id, subGroupId, subGroupName, diseaseGroupName, authorId, authorName, title, content, createdAt, updatedAt,
     helpfulCount, notHelpfulCount, myReaction, saved, savedCount, attachments, flaggedSensitive, pinned,
     postType, acceptedCommentId, commentCount, poll
   } = post
@@ -85,7 +85,7 @@ function PostCard({ post, onOpen, onSend, onReport, token, highlightQuery, showP
         </Stack>
       )}
       <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1.5 }}>
-        <UserAvatar avatarKey={authorAvatarKey} name={authorName || ''} size={44} sx={{ flexShrink: 0 }} />
+        <UserAvatar name={authorName || ''} size={44} sx={{ flexShrink: 0 }} />
         <Box sx={{ minWidth: 0, flex: 1 }}>
           <Stack direction="row" alignItems="baseline" spacing={0.75} sx={{ minWidth: 0 }}>
             <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.primary' }} noWrap>

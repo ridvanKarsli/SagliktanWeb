@@ -136,7 +136,7 @@ export default function Register() {
       title="Aramıza katıl"
       lead="Yalnız değilsin. Bir dakikada hesabını oluştur, seninle aynı yoldan geçenlerle tanış."
       sideTitle="Yalnız değilsin"
-      sideText="Kronik ve nadir hastalıklarla yaşayanlar ve yakınları burada deneyimlerini paylaşıyor. İlk yol arkadaşların seni bekliyor."
+      sideText="Kronik ve nadir hastalıklarla yaşayanlar ve yakınları burada deneyimlerini paylaşıyor."
       onBack={() => navigate('/')}
       maxWidth={480}
       footer={(

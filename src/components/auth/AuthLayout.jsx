@@ -6,8 +6,7 @@ import { radius } from '../../design/tokens.js'
 /**
  * Giriş, kayıt ve şifre sıfırlama ekranlarının ortak düzeni. Geniş ekranda
  * solda sakin bir karşılama paneli (soyut yaprak motifi + sıcak bir cümle),
- * sağda form; mobilde üstte logo ve başlık. Yol arkadaşları burada yok:
- * onlar avatar ve kutlama anlarına özel.
+ * sağda form; mobilde üstte logo ve başlık.
  */
 export default function AuthLayout({
   title, lead, sideTitle, sideText,
