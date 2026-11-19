@@ -44,11 +44,13 @@ const validateRegister = (f) => ({
   // Şifre iki kez yazılır: yazım hatasıyla hesabın kilitli kalmasını önler.
   confirmPassword: confirmPasswordError(f.confirmPassword, f.password),
   kvkkConsent: f.kvkkConsent ? null : 'Kayıt olmak için aydınlatma metnini onaylaman gerekiyor.',
+  healthConsent: f.healthConsent ? null : 'Kayıt olmak için sağlık verisi açık rızası vermen gerekiyor.',
 })
 
 // Backend'in alan adı vermeden döndürdüğü bilinen hatalar.
 const REGISTER_MESSAGE_FIELDS = [
   [/e-posta/i, 'email'],
+  [/sağlık verisi/i, 'healthConsent'],
   [/KVKK/i, 'kvkkConsent'],
 ]
 
@@ -69,7 +71,8 @@ export default function Register() {
     confirmPassword: '',
     city: '',
     communityRole: null,
-    kvkkConsent: false
+    kvkkConsent: false,
+    healthConsent: false
   })
   const [registeredEmail, setRegisteredEmailState] = useState(readRegisteredEmail)
   const setRegisteredEmail = (email) => { writeRegisteredEmail(email); setRegisteredEmailState(email) }
@@ -91,6 +94,7 @@ export default function Register() {
         email,
         password: form.password,
         kvkkConsent: form.kvkkConsent,
+        healthConsent: form.healthConsent,
         city: normalizeCity(form.city),
         communityRole: form.communityRole,
         // Görünürlük kayıtta sorulmaz: profil açık, eşleşme önerileri kapalı
@@ -267,12 +271,35 @@ export default function Register() {
                 >
                   KVKK Aydınlatma Metni ve Gizlilik Politikası
                 </Link>
-                'nı okudum, kişisel verilerimin belirtilen kapsamda işlenmesini kabul ediyorum.
+                'nı okudum.
               </Typography>
             }
           />
           {v.error('kvkkConsent') && (
             <FormHelperText error sx={{ ml: 4.5, mt: 0 }}>{v.error('kvkkConsent')}</FormHelperText>
+          )}
+          <FormControlLabel
+            sx={{ alignItems: 'flex-start', ml: 0, mt: 1 }}
+            control={
+              <Checkbox
+                checked={form.healthConsent}
+                onChange={e => set('healthConsent')(e.target.checked)}
+                inputRef={v.refFor('healthConsent')}
+                slotProps={{ input: { 'aria-invalid': !!v.error('healthConsent') || undefined } }}
+                sx={{ pt: 0.25 }}
+              />
+            }
+            label={
+              <Typography variant="body2" sx={{ color: 'text.secondary', lineHeight: 1.6 }}>
+                Üye olduğum hastalık grupları, paylaşımlarım ve profilimde belirttiğim bilgiler gibi sağlık
+                durumuma ilişkin verilerimin, <Link component={RouterLink} to="/gizlilik-politikasi" target="_blank" rel="noopener">Açık Rıza Metni</Link>'nde
+                belirtilen amaçlarla ve yurt dışındaki hizmet sağlayıcılara aktarılarak işlenmesine açık rıza veriyorum.
+                Rızamı Ayarlar'dan istediğim zaman geri alabileceğimi biliyorum.
+              </Typography>
+            }
+          />
+          {v.error('healthConsent') && (
+            <FormHelperText error sx={{ ml: 4.5, mt: 0 }}>{v.error('healthConsent')}</FormHelperText>
           )}
           </Box>
 

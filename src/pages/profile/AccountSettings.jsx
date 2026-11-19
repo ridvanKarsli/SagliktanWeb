@@ -11,6 +11,7 @@ import { useNotification } from '../../context/NotificationContext.jsx'
 import { exportMyData } from '../../services/api.js'
 import { downloadJson } from '../../utils/download.js'
 import CommunitySettings from './CommunitySettings.jsx'
+import HealthConsentSettings from './HealthConsentSettings.jsx'
 import SettingsSection, { SettingsCard } from '../../components/settings/SettingsSection.jsx'
 import SettingsRow from '../../components/settings/SettingsRow.jsx'
 import ExpandableSettingsRow from '../../components/settings/ExpandableSettingsRow.jsx'
@@ -110,6 +111,8 @@ export default function AccountSettings() {
 
       <Stack spacing={4}>
         <CommunitySettings />
+
+        <HealthConsentSettings />
 
         <SettingsSection title="Erişilebilirlik" description="Okuması ve kullanması sana en rahat gelen hâli seç. Bu cihazda saklanır.">
           <AccessibilitySettings />

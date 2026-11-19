@@ -9,6 +9,7 @@ import { useOnlineStatus } from '../hooks/useOnlineStatus.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { emitListRefresh } from '../utils/listRefreshBus.js'
 import InstallPrompt from './InstallPrompt.jsx'
+import ConsentGate from './ConsentGate.jsx'
 import DesktopSidebar, { SIDEBAR_WIDTH } from './shell/DesktopSidebar.jsx'
 import MobileTopBar from './shell/MobileTopBar.jsx'
 import MobileBottomNav, { MOBILE_NAV_HEIGHT } from './shell/MobileBottomNav.jsx'
@@ -51,6 +52,7 @@ export default function ResponsiveShell({ children }) {
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100dvh', bgcolor: 'background.default' }}>
+      <ConsentGate />
       {isMdUp && <DesktopSidebar onLogout={handleLogout} />}
 
       <Box

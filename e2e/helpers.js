@@ -65,6 +65,7 @@ export async function registerAndLogin(page, user) {
   await page.getByTestId('register-password').fill(user.password)
   await page.getByTestId('register-confirmPassword').fill(user.password)
   await page.getByRole('checkbox', { name: /KVKK/ }).check()
+  await page.getByRole('checkbox', { name: /açık rıza veriyorum/ }).check()
   await page.getByRole('button', { name: 'Kayıt Ol' }).click()
 
   await expect(page.getByText('E-postanı kontrol et')).toBeVisible()

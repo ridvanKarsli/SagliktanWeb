@@ -114,6 +114,8 @@ function mapUser(u) {
     // Eski backend alanı hiç göndermiyorsa (undefined) karşılamaya zorlama.
     onboardingCompleted: u.onboardingCompleted !== false,
     weeklyDigestEnabled: u.weeklyDigestEnabled !== false,
+    // KVKK: geçerli sürüme verilmiş sağlık verisi açık rızası
+    healthConsent: u.healthConsent === true,
   }
 }
 

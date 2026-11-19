@@ -186,11 +186,11 @@ async function request(path, { method = 'GET', token, body, params, signal, fres
 
 // communityRole/discoverable/profilePublic isteğe bağlı: eşleşme görünürlüğü
 // gönderilmezse kapalı, profil gönderilmezse açık kalır.
-export function registerUser({ email, password, firstName, lastName, kvkkConsent, city, communityRole, discoverable, profilePublic }) {
+export function registerUser({ email, password, firstName, lastName, kvkkConsent, healthConsent, city, communityRole, discoverable, profilePublic }) {
   return request('/auth/register', {
     method: 'POST',
     body: {
-      email, password, firstName, lastName, kvkkConsent,
+      email, password, firstName, lastName, kvkkConsent, healthConsent,
       city: city || null, communityRole: communityRole || null, discoverable: !!discoverable,
       profilePublic: profilePublic !== false,
     },
@@ -275,6 +275,11 @@ export function updateHealthProfile(token, { communityRole, discoverable, profil
       discoverable: profilePublic !== false && !!discoverable, profilePublic: profilePublic !== false,
     }
   });
+}
+
+// KVKK: sağlık verisi açık rızasını verme / geri alma. Güncel kullanıcıyı döner.
+export function updateHealthConsent(token, granted) {
+  return request('/users/me/health-consent', { method: 'PUT', token, body: { granted: !!granted } });
 }
 
 export function completeOnboarding(token) {
