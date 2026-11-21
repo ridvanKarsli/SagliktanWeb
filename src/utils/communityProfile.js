@@ -3,7 +3,7 @@
 export const COMMUNITY_ROLES = [
   { value: 'PATIENT', label: 'Hastalığı yaşıyorum', short: 'Hasta' },
   { value: 'CAREGIVER', label: 'Hasta yakınıyım', short: 'Hasta yakını' },
-  { value: 'PROFESSIONAL', label: 'Sağlık profesyoneliyim', short: 'Sağlık profesyoneli' },
+  { value: 'PROFESSIONAL', label: 'Sağlık profesyoneliyim', short: 'Sağlık profesyoneli (beyan)' },
   { value: 'OTHER', label: 'Merak ediyorum / diğer', short: 'Üye' },
 ]
 

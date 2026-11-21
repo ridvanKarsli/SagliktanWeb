@@ -22,6 +22,7 @@ export { getPasswordStrength }
 export const LIMITS = Object.freeze({
   NAME_MIN: NAME_MIN_LENGTH, // NameValidator
   NAME_MAX: NAME_MAX_LENGTH,
+  NICKNAME_MAX: 30, // Register/UpdateProfileRequest @Size(max=30)
   EMAIL_MAX: 254, // RFC 5321; backend'de ayrı @Size yok
   PASSWORD_MIN: 8, // Register/ChangePassword/ResetPasswordRequest @Size(min=8,max=100)
   PASSWORD_MAX: 100,
@@ -130,6 +131,18 @@ export function filterPrefixFirst(options, query, { getLabel = (o) => o, limit =
 const NAME_LABELS = {
   first: { empty: 'Adını yaz.', noun: 'Ad' },
   last: { empty: 'Soyadını yaz.', noun: 'Soyad' },
+}
+
+// İsteğe bağlı takma ad; backend deseniyle aynı kural (harf/rakamla başlar,
+// 2-30 karakter; harf, rakam, boşluk, nokta, tire, alt çizgi).
+const NICKNAME_PATTERN = /^[\p{L}\p{N}][\p{L}\p{N} ._-]{1,29}$/u
+export function nicknameError(value) {
+  const nick = cleanLine(value)
+  if (!nick) return null
+  if (nick.length < 2) return 'Takma ad en az 2 karakter olmalı.'
+  if (nick.length > LIMITS.NICKNAME_MAX) return `Takma ad en fazla ${LIMITS.NICKNAME_MAX} karakter olabilir.`
+  if (!NICKNAME_PATTERN.test(nick)) return 'Takma ad harf ya da rakamla başlamalı; harf, rakam, boşluk, nokta, tire ve alt çizgi içerebilir.'
+  return null
 }
 
 export function nameError(value, kind = 'first') {

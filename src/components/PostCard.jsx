@@ -131,7 +131,7 @@ function PostCard({ post, onOpen, onSend, onReport, token, highlightQuery, showP
       </Typography>
       <Typography
         variant="body1"
-        sx={{ color: 'text.secondary', whiteSpace: 'pre-line', wordBreak: 'break-word', mb: token ? 1.5 : 0 }}
+        sx={{ color: 'text.primary', whiteSpace: 'pre-line', wordBreak: 'break-word', mb: token ? 1.5 : 0 }}
       >
         {highlightQuery
           ? <HighlightText text={truncate(content, PREVIEW_LENGTH)} query={highlightQuery} />

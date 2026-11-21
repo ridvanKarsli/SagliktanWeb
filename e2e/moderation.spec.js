@@ -1,11 +1,11 @@
 import { test, expect } from '@playwright/test'
 import { registerAndLogin, uniqueUser, joinSeedGroup, SEED_GROUP, SEED_SUB_GROUP } from './helpers.js'
 
-// Rapor: basit içerik moderasyonu (bkz. ContentModerationService). İki
+// Basit içerik moderasyonu (bkz. ContentModerationService). İki
 // davranış kasıtlı olarak farklı: küfür/spam gönderimi REDDEDER (post hiç
 // oluşmaz, dialog açık kalır), kriz sinyali (intihar/kendine zarar vb.) ise
 // ASLA engellemez - sadece gönderiyi flaggedSensitive=true işaretleyip
-// destekleyici bir bilgi kutusu (182 ALO Yaşam Hattı) gösterir.
+// destekleyici bir bilgi kutusu (112 Acil Çağrı Merkezi) gösterir.
 test.describe('İçerik moderasyonu', () => {
   test('küfürlü içerik içeren gönderi reddedilir, oluşturulmaz', async ({ page }) => {
     const user = uniqueUser('modblock')
@@ -54,8 +54,8 @@ test.describe('İçerik moderasyonu', () => {
     await page.getByText(postTitle).click()
     await expect(page).toHaveURL(/\/post\/\d+$/)
 
-    // Destek banner'ı görünür ve 182 ALO Yaşam Hattı'na referans veriyor.
-    await expect(page.getByText(/182 ALO Yaşam Hattı/)).toBeVisible()
+    // Destek banner'ı görünür ve 112 Acil Çağrı Merkezi'ne referans veriyor.
+    await expect(page.getByText(/112 Acil Çağrı Merkezi/)).toBeVisible()
     // İçerik gizlenmedi/kısaltılmadı - hâlâ tam olarak okunabilir.
     await expect(page.getByText(/kendime zarar vermeyi düşünüyorum/)).toBeVisible()
   })

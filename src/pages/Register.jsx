@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { useNotification } from '../context/NotificationContext.jsx'
 import { useNavigate, Link as RouterLink } from 'react-router-dom'
 import TrustBadges from '../components/TrustBadges.jsx'
+import HealthConsentText from '../components/HealthConsentText.jsx'
 import AuthLayout from '../components/auth/AuthLayout.jsx'
 import IconBadge from '../components/common/IconBadge.jsx'
 import { radius } from '../design/tokens.js'
@@ -18,7 +19,7 @@ import { RolePicker } from '../components/profile/HealthProfileFields.jsx'
 import { useFormValidation } from '../hooks/useFormValidation.js'
 import {
   LIMITS, cityError, cleanLine, confirmPasswordError, emailError, fieldErrorsFrom, fieldFromMessage,
-  nameError, newPasswordError, normalizeCity, normalizeEmail
+  nameError, newPasswordError, nicknameError, normalizeCity, normalizeEmail
 } from '../utils/validation.js'
 import SaglikLoader from '../components/common/SaglikLoader.jsx'
 
@@ -44,13 +45,15 @@ const validateRegister = (f) => ({
   // Şifre iki kez yazılır: yazım hatasıyla hesabın kilitli kalmasını önler.
   confirmPassword: confirmPasswordError(f.confirmPassword, f.password),
   kvkkConsent: f.kvkkConsent ? null : 'Kayıt olmak için aydınlatma metnini onaylaman gerekiyor.',
-  healthConsent: f.healthConsent ? null : 'Kayıt olmak için sağlık verisi açık rızası vermen gerekiyor.',
+  nickname: nicknameError(f.nickname),
+  ageConfirmed: f.ageConfirmed ? null : 'Kayıt olmak için 18 yaşından büyük olduğunu onaylaman gerekiyor.',
 })
 
 // Backend'in alan adı vermeden döndürdüğü bilinen hatalar.
 const REGISTER_MESSAGE_FIELDS = [
   [/e-posta/i, 'email'],
-  [/sağlık verisi/i, 'healthConsent'],
+  [/18 yaş/i, 'ageConfirmed'],
+  [/takma ad/i, 'nickname'],
   [/KVKK/i, 'kvkkConsent'],
 ]
 
@@ -71,7 +74,9 @@ export default function Register() {
     confirmPassword: '',
     city: '',
     communityRole: null,
+    nickname: '',
     kvkkConsent: false,
+    ageConfirmed: false,
     healthConsent: false
   })
   const [registeredEmail, setRegisteredEmailState] = useState(readRegisteredEmail)
@@ -95,6 +100,8 @@ export default function Register() {
         password: form.password,
         kvkkConsent: form.kvkkConsent,
         healthConsent: form.healthConsent,
+        ageConfirmed: form.ageConfirmed,
+        nickname: cleanLine(form.nickname) || null,
         city: normalizeCity(form.city),
         communityRole: form.communityRole,
         // Görünürlük kayıtta sorulmaz: profil açık, eşleşme önerileri kapalı
@@ -152,7 +159,7 @@ export default function Register() {
               to="/login"
               sx={{ display: 'inline-block', py: 1.5, px: 0.5, my: -1.5, mx: -0.5 }}
             >
-              Giriş Yap
+              Giriş yap
             </Link>
           </Typography>
           <Box sx={{ mt: 2.5 }}>
@@ -165,7 +172,7 @@ export default function Register() {
         <Stack spacing={2.5}>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
             <TextField
-              label="İsim"
+              label="Ad"
               required
               value={form.firstName}
               onChange={e => set('firstName')(e.target.value)}
@@ -177,7 +184,7 @@ export default function Register() {
               slotProps={{ htmlInput: { ...nameInputProps, 'data-testid': 'register-firstName' } }}
             />
             <TextField
-              label="Soyisim"
+              label="Soyad"
               required
               value={form.lastName}
               onChange={e => set('lastName')(e.target.value)}
@@ -189,6 +196,18 @@ export default function Register() {
               slotProps={{ htmlInput: { ...nameInputProps, 'data-testid': 'register-lastName' } }}
             />
           </Stack>
+
+          <TextField
+            label="Takma ad (isteğe bağlı)"
+            value={form.nickname}
+            onChange={e => set('nickname')(e.target.value)}
+            {...v.field('nickname')}
+            helperText={v.error('nickname') || 'Yazarsan toplulukta adın ve soyadın yerine yalnızca bu görünür.'}
+            autoComplete="nickname"
+            fullWidth
+            placeholder="Örn. Umutlu Yolcu"
+            slotProps={{ htmlInput: { maxLength: LIMITS.NICKNAME_MAX, autoCorrect: 'off', spellCheck: false, enterKeyHint: 'next', 'data-testid': 'register-nickname' } }}
+          />
 
           <EmailField
             required
@@ -282,25 +301,41 @@ export default function Register() {
             sx={{ alignItems: 'flex-start', ml: 0, mt: 1 }}
             control={
               <Checkbox
-                checked={form.healthConsent}
-                onChange={e => set('healthConsent')(e.target.checked)}
-                inputRef={v.refFor('healthConsent')}
-                slotProps={{ input: { 'aria-invalid': !!v.error('healthConsent') || undefined } }}
+                checked={form.ageConfirmed}
+                onChange={e => set('ageConfirmed')(e.target.checked)}
+                inputRef={v.refFor('ageConfirmed')}
+                slotProps={{ input: { 'aria-invalid': !!v.error('ageConfirmed') || undefined, 'data-testid': 'register-ageConfirmed' } }}
                 sx={{ pt: 0.25 }}
               />
             }
             label={
               <Typography variant="body2" sx={{ color: 'text.secondary', lineHeight: 1.6 }}>
-                Üye olduğum hastalık grupları, paylaşımlarım ve profilimde belirttiğim bilgiler gibi sağlık
-                durumuma ilişkin verilerimin, <Link component={RouterLink} to="/gizlilik-politikasi" target="_blank" rel="noopener">Açık Rıza Metni</Link>'nde
-                belirtilen amaçlarla ve yurt dışındaki hizmet sağlayıcılara aktarılarak işlenmesine açık rıza veriyorum.
-                Rızamı Ayarlar'dan istediğim zaman geri alabileceğimi biliyorum.
+                18 yaşından büyüğüm.
               </Typography>
             }
           />
-          {v.error('healthConsent') && (
-            <FormHelperText error sx={{ ml: 4.5, mt: 0 }}>{v.error('healthConsent')}</FormHelperText>
+          {v.error('ageConfirmed') && (
+            <FormHelperText error sx={{ ml: 4.5, mt: 0 }}>{v.error('ageConfirmed')}</FormHelperText>
           )}
+          <FormControlLabel
+            sx={{ alignItems: 'flex-start', ml: 0, mt: 1 }}
+            control={
+              <Checkbox
+                checked={form.healthConsent}
+                onChange={e => set('healthConsent')(e.target.checked)}
+                sx={{ pt: 0.25 }}
+              />
+            }
+            label={
+              <Typography variant="body2" sx={{ color: 'text.primary', lineHeight: 1.6 }}>
+                <strong>İsteğe bağlı:</strong> <HealthConsentText />
+              </Typography>
+            }
+          />
+          <FormHelperText sx={{ ml: 4.5, mt: 0 }}>
+            Şimdi işaretlemezsen hesabın yine açılır; gruba katılmak, paylaşım yapmak ve mesaj yazmak için
+            sonradan sorarız. Rızanı Ayarlar'dan istediğin zaman geri alabilirsin.
+          </FormHelperText>
           </Box>
 
           <Button
@@ -315,7 +350,7 @@ export default function Register() {
                 <SaglikLoader size="sm" color="inherit" />
                 <span>Kaydediliyor...</span>
               </Stack>
-            ) : 'Kayıt Ol'}
+            ) : 'Kayıt ol'}
           </Button>
         </Stack>
       </Box>

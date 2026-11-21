@@ -102,6 +102,9 @@ function friendlyFallbackMessage(status) {
 // bazı GET uçlarına (grup/alt grup listesi) kısa süreli "Cache-Control:
 // private, max-age=60" veriyor; admin panelindeki "oluştur/sil -> listeyi
 // yenile" akışı bu önbelleğe takılmasın diye oradan fresh ile çağrılır.
+// Sunucu bir işlemi "sağlık verisi açık rızası yok" diye reddettiğinde yayınlanır.
+export const HEALTH_CONSENT_REQUIRED_EVENT = 'sagliktan:health-consent-required';
+
 async function request(path, { method = 'GET', token, body, params, signal, fresh = false, _retried = false } = {}) {
   let url = `${API_BASE}${path}`;
   if (params && Object.keys(params).length) {
@@ -177,6 +180,12 @@ async function request(path, { method = 'GET', token, body, params, signal, fres
       throw new ApiError(rateLimitMessage(retryAfter), 429, null, retryAfter);
     }
     const message = specificMessage || (data && data.message) || friendlyFallbackMessage(res.status);
+    // Sağlık verisi açık rızası olmadan yapılamayan bir işlem: rıza
+    // penceresi (ConsentGate) yeniden açılsın.
+    if (res.status === 403 && typeof data?.message === 'string' && /sağlık verisi işleme rızası/i.test(data.message)) {
+      window.dispatchEvent(new Event(HEALTH_CONSENT_REQUIRED_EVENT));
+      throw new ApiError('Bu işlem için sağlık bilgilerinin işlenmesine izin vermen gerekiyor.', 403, null);
+    }
     throw new ApiError(message, res.status, fieldErrors);
   }
   return data;
@@ -186,11 +195,12 @@ async function request(path, { method = 'GET', token, body, params, signal, fres
 
 // communityRole/discoverable/profilePublic isteğe bağlı: eşleşme görünürlüğü
 // gönderilmezse kapalı, profil gönderilmezse açık kalır.
-export function registerUser({ email, password, firstName, lastName, kvkkConsent, healthConsent, city, communityRole, discoverable, profilePublic }) {
+export function registerUser({ email, password, firstName, lastName, kvkkConsent, healthConsent, ageConfirmed, nickname, city, communityRole, discoverable, profilePublic }) {
   return request('/auth/register', {
     method: 'POST',
     body: {
-      email, password, firstName, lastName, kvkkConsent, healthConsent,
+      email, password, firstName, lastName, kvkkConsent, healthConsent: !!healthConsent,
+      ageConfirmed: !!ageConfirmed, nickname: nickname || null,
       city: city || null, communityRole: communityRole || null, discoverable: !!discoverable,
       profilePublic: profilePublic !== false,
     },
@@ -228,8 +238,20 @@ export function getUserProfile(token) {
 }
 
 // city: undefined => değiştirme, '' => kaldır
-export function updateProfile(token, { firstName, lastName, bio, city }) {
-  return request('/users/me', { method: 'PUT', token, body: { firstName, lastName, bio, city } });
+// --- Ziyaretçilere açık grup tanıtımı (giriş gerektirmez) ---
+// Yanıt: { slug, name, description, memberCount, topics: [{ name, description }] }.
+// Üye içeriği dönmez; gruplar yönetim panelinden eklendikçe liste kendiliğinden büyür.
+export function getPublicGroups({ signal } = {}) {
+  return request('/public/disease-groups', { signal });
+}
+
+export function getPublicGroup(slug, { signal } = {}) {
+  return request(`/public/disease-groups/${encodeURIComponent(slug)}`, { signal });
+}
+
+// nickname: boş string => takma adı kaldır, undefined => dokunma.
+export function updateProfile(token, { firstName, lastName, bio, city, nickname }) {
+  return request('/users/me', { method: 'PUT', token, body: { firstName, lastName, bio, city, nickname } });
 }
 
 // Deaktivasyon da artik sifre teyidi ister (backend: DELETE /users/me gövdesi

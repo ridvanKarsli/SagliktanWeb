@@ -114,7 +114,7 @@ test.describe('Bildirimler (WebSocket)', () => {
     await replierPage.goto(postUrl)
     await replierPage.getByRole('button', { name: 'Yanıtla' }).click()
     const replyText = `Bildirim tetikleyen yanıt ${Date.now()}`
-    await replierPage.getByPlaceholder(/kişisine yanıt yaz/).fill(replyText)
+    await replierPage.getByPlaceholder(/Yanıtını yaz/).fill(replyText)
     await replierPage.getByRole('button', { name: 'Yanıtla' }).last().click()
     await expect(replierPage.getByText(replyText)).toBeVisible()
 

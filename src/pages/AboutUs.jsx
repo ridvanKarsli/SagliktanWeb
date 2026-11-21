@@ -2,7 +2,7 @@ import StaticPageShell from '../components/StaticPageShell.jsx'
 import StaticPageSections from '../components/StaticPageSections.jsx'
 
 // Mütevazı, doğrulanabilir ifadelerle sınırlı tutuldu - uydurma ekip/yatırım
-// bilgisi yok (bkz. görev #290 notu: "no fabricated team/funding facts").
+// bilgisi yok.
 const sections = [
   {
     title: 'Neden Varız',

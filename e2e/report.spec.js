@@ -7,7 +7,7 @@ import { registerAndLogin, uniqueUser, joinSeedGroup, SEED_GROUP, SEED_SUB_GROUP
 // yansıtması gerekiyor: içeriği bir kullanıcı oluşturuyor, şikayeti farklı
 // (ikinci) bir kullanıcı yapıyor. Eskiden aynı kullanıcı hem oluşturup hem
 // şikayet etmeye çalışıyordu, buton hiç render olmadığı için testler
-// 30s'de timeout'a düşüyordu (bkz. E2E #7).
+// 30s'de timeout'a düşüyordu.
 test.describe('Şikayet (rapor etme)', () => {
   test('bir gönderi şikayet edilebilir', async ({ page }) => {
     const author = uniqueUser('report')

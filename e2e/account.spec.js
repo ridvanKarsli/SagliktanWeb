@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 import { registerAndLogin, uniqueUser } from './helpers.js'
 
-// Rapor: KVKK veri taşınabilirliği (veri dışa aktarma) ve hesap silme
+// KVKK veri taşınabilirliği (veri dışa aktarma) ve hesap silme
 // (anonimleştirme) self-servis akışları - bkz. AccountSettings.jsx (Faz5'te
 // Profile.jsx'ten ayrı bir /profile/settings sayfasına taşındı, bkz.
 // Profile.jsx'teki dişli ikonu) "Verilerimi İndir" / "Hesabımı Sil" satırları.
@@ -38,7 +38,7 @@ test.describe('Hesap: veri dışa aktarma ve hesap silme', () => {
     await page.goto('/login')
     await page.getByTestId('login-email').fill(user.email)
     await page.getByTestId('login-password').fill(user.password)
-    await page.getByRole('button', { name: 'Giriş Yap' }).click()
+    await page.getByRole('button', { name: 'Giriş yap' }).click()
     await expect(page.getByText(/hatalı|bulunamadı|geçersiz/i)).toBeVisible()
     await expect(page).toHaveURL(/\/login$/)
   })

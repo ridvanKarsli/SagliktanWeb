@@ -12,6 +12,7 @@ import EmailField from '../components/forms/EmailField.jsx'
 import { useFormValidation } from '../hooks/useFormValidation.js'
 import { currentPasswordError, loginEmailError, normalizeEmail } from '../utils/validation.js'
 import SaglikLoader from '../components/common/SaglikLoader.jsx'
+import { takeAfterAuthPath } from '../utils/afterAuth.js'
 
 const validateLogin = (f) => ({ email: loginEmailError(f.email), pw: currentPasswordError(f.pw) })
 
@@ -36,9 +37,11 @@ export default function Login() {
       // Deep-link'i koru (bkz. ProtectedRoute -> WelcomeScreen state.from):
       // sadece uygulama içi, göreli bir yol kabul edilir (open-redirect yok).
       const from = location.state?.from
+      // Saklanan hedef her girişte tüketilir; sonraki bir girişe taşınmaz.
+      const remembered = takeAfterAuthPath()
       const target = from?.pathname && from.pathname.startsWith('/') && !from.pathname.startsWith('//')
         ? `${from.pathname}${from.search || ''}${from.hash || ''}`
-        : (loggedIn && loggedIn.onboardingCompleted === false ? '/hosgeldin' : '/home')
+        : (loggedIn && loggedIn.onboardingCompleted === false ? '/hosgeldin' : (remembered || '/home'))
       navigate(target, { replace: true })
     } catch (err) {
       // 401: hatayı şifre alanının altında göster (ekran okuyucu ve küçük
@@ -68,7 +71,7 @@ export default function Login() {
               to="/register"
               sx={{ display: 'inline-block', py: 1.5, px: 0.5, my: -1.5, mx: -0.5 }}
             >
-              Kayıt Ol
+              Kayıt ol
             </Link>
           </Typography>
           <Box sx={{ mt: 2.5 }}>
@@ -131,7 +134,7 @@ export default function Login() {
                 display: 'inline-block', py: 1.5, px: 0.5, my: -1.5, mx: -0.5
               }}
             >
-              Şifremi Unuttum
+              Şifremi unuttum
             </Link>
           </Box>
 
@@ -147,7 +150,7 @@ export default function Login() {
                 <SaglikLoader size="sm" color="inherit" />
                 <span>Giriş yapılıyor...</span>
               </Stack>
-            ) : 'Giriş Yap'}
+            ) : 'Giriş yap'}
           </Button>
         </Stack>
       </Box>

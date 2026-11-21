@@ -2,3 +2,4 @@ User-agent: *
 Allow: /
 
 Sitemap: https://sagliktan.com/sitemap.xml
+Sitemap: https://sagliktan.com/api/public/sitemap-groups.xml

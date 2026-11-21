@@ -2,11 +2,14 @@ import { Box, Button, Container, Link, Stack, Typography } from '@mui/material'
 import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom'
 import {
   ChatBubbleOutlineRounded, CheckCircleRounded, GavelRounded, GroupsRounded, LockRounded, QuestionAnswerOutlined,
-  SpaOutlined, VerifiedUserOutlined
+  SpaOutlined, ThumbUpAltRounded, VerifiedUserOutlined
 } from '@mui/icons-material'
 import TrustBadges from './TrustBadges.jsx'
 import IconBadge from './common/IconBadge.jsx'
 import { radius } from '../design/tokens.js'
+import { useEffect, useState } from 'react'
+import { getPublicGroups } from '../services/api.js'
+import { rememberAfterAuthPath } from '../utils/afterAuth.js'
 
 const FEATURES = [
   {
@@ -59,11 +62,14 @@ function SampleThread() {
   const bubble = { p: { xs: 2, sm: 2.5 }, borderRadius: `${radius.lg}px`, bgcolor: 'background.paper', border: '1px solid', borderColor: 'brand.border' }
   return (
     <Stack spacing={1.5} sx={{ maxWidth: 520, width: '100%', mx: 'auto' }} aria-label="Örnek bir soru ve cevap" role="group">
+      <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, letterSpacing: 0.3 }}>
+        Örnek paylaşım (temsilidir)
+      </Typography>
       <Box sx={bubble}>
         <Stack direction="row" spacing={1.25} alignItems="center" sx={{ mb: 1.25 }}>
           <Box>
             <Typography variant="subtitle2" component="p">Bir hasta yakını</Typography>
-            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>Retinitis Pigmentosa · Soru-Cevap</Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>Soru-Cevap</Typography>
           </Box>
         </Stack>
         <Typography variant="h5" component="p" sx={{ mb: 0.5 }}>Akşam yürüyüşlerinde neler işinize yarıyor?</Typography>
@@ -105,8 +111,23 @@ export default function WelcomeScreen() {
   // paylaşılan /post/:id, hikaye kartı QR'ı) buraya state.from ile yönlendirir
   // - login'e giderken o state taşınmazsa kullanıcı girişten sonra hep
   // /home'a düşüyor, asıl gitmek istediği sayfa kayboluyordu.
+  // Mevcut hastalık grupları (tanıtım sayfalarına bağlantı). Yüklenemezse
+  // bölüm hiç görünmez; karşılama sayfası bundan etkilenmez.
+  const [groups, setGroups] = useState([])
+  useEffect(() => {
+    const controller = new AbortController()
+    getPublicGroups({ signal: controller.signal })
+      .then(list => setGroups(Array.isArray(list) ? list : []))
+      .catch(() => {})
+    return () => controller.abort()
+  }, [])
   const goLogin = () => navigate('/login', { state: location.state })
-  const goRegister = () => navigate('/register')
+  // Kayıt akışında state taşınamıyor (e-posta doğrulaması araya giriyor);
+  // paylaşılan gönderi hedefi sekme boyunca saklanır.
+  const goRegister = () => {
+    rememberAfterAuthPath(location.state?.from?.pathname)
+    navigate('/register')
+  }
 
   return (
     <Box sx={{ bgcolor: 'background.default', minHeight: '100dvh', overflowX: 'hidden' }}>
@@ -126,10 +147,10 @@ export default function WelcomeScreen() {
             </Stack>
             <Stack direction="row" spacing={1}>
               <Button variant="text" onClick={goLogin} sx={{ display: { xs: 'none', sm: 'inline-flex' } }}>
-                Giriş Yap
+                Giriş yap
               </Button>
               <Button variant="contained" onClick={goRegister}>
-                Başla
+                Ücretsiz katıl
               </Button>
             </Stack>
           </Stack>
@@ -160,15 +181,25 @@ export default function WelcomeScreen() {
               </Typography>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} justifyContent={{ xs: 'center', md: 'flex-start' }} sx={{ maxWidth: { xs: 360, sm: 'none' }, mx: { xs: 'auto', md: 0 } }}>
                 <Button variant="contained" size="large" onClick={goRegister} sx={{ minWidth: 200 }}>
-                  Topluluğa katıl
+                  Ücretsiz katıl
                 </Button>
                 <Button variant="outlined" size="large" onClick={goLogin} sx={{ minWidth: 160 }}>
-                  Giriş Yap
+                  Giriş yap
                 </Button>
               </Stack>
               <Typography variant="body2" sx={{ color: 'text.secondary', mt: 2, fontWeight: 600 }}>
                 Ücretsiz. Kayıt bir dakika sürer.
               </Typography>
+              {groups.length > 0 && (
+                <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" useFlexGap justifyContent={{ xs: 'center', md: 'flex-start' }} sx={{ mt: 2.5 }}>
+                  <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 700 }}>Topluluklar:</Typography>
+                  {groups.map(g => (
+                    <Link key={g.slug} component={RouterLink} to={`/g/${g.slug}`} sx={{ fontWeight: 800, py: 1 }}>
+                      {g.name}
+                    </Link>
+                  ))}
+                </Stack>
+              )}
             </Box>
           </Box>
         </Container>
@@ -250,7 +281,7 @@ export default function WelcomeScreen() {
               Seni anlayan insanlar burada. Bir dakikada aramıza katıl.
             </Typography>
             <Button variant="contained" color="secondary" size="large" onClick={goRegister} sx={{ minWidth: 220 }}>
-              Ücretsiz kayıt ol
+              Ücretsiz katıl
             </Button>
           </Box>
         </Container>

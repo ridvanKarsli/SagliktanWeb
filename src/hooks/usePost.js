@@ -91,7 +91,7 @@ export function usePost(postId) {
 
   // onDeleted(post): silme başarılı olunca çağrılır (ör. alt gruba dönmek için).
   const removePost = async (onDeleted) => {
-    if (!(await confirm('Bu gönderiyi silmek istiyor musun?', { title: 'Gönderiyi sil' }))) return
+    if (!(await confirm('Bu gönderiyi silmek istiyor musun? Bu işlem geri alınamaz.', { title: 'Gönderiyi sil', confirmLabel: 'Gönderiyi sil' }))) return
     setDeletingPost(true)
     try {
       await deletePost(token, post.id)

@@ -20,7 +20,7 @@ function ThreadReplies({ items, renderItem }) {
       <Box
         sx={{
           ml: '19px', pl: { xs: 2, sm: 3 }, mb: 1.25,
-          borderLeft: '2px solid', borderColor: 'brand.primarySoft'
+          borderLeft: '3px solid', borderColor: 'brand.borderStrong'
         }}
       >
         {shown.map(renderItem)}
@@ -62,7 +62,7 @@ export default function CommentThreadList({
           disabled={item.loadingMore}
           sx={{ color: 'primary.main', my: 0.25, minHeight: 44, ml: -1 }}
         >
-          {item.loadingMore ? <SaglikLoader size="sm" /> : 'Daha fazla yanıt'}
+          {item.loadingMore ? <SaglikLoader size="sm" /> : 'Daha fazla yanıt gör'}
         </Button>
       )
     }

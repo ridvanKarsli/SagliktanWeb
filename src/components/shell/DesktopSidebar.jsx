@@ -8,6 +8,7 @@ import { clickableProps } from '../../utils/clickable.js'
 import NavIcon from './NavIcon.jsx'
 import BrandMark from './BrandMark.jsx'
 import { isNavItemActive, useNavItems } from './navConfig.jsx'
+import { fullNameOf } from '../../utils/text.js'
 import { focusRingSx } from '../../design/focus.js'
 
 export const SIDEBAR_WIDTH = 256
@@ -32,7 +33,7 @@ export default function DesktopSidebar({ onLogout }) {
   const { pathname } = useLocation()
   const navItems = useNavItems()
   const { user } = useAuth()
-  const fullName = [user?.firstName, user?.lastName].filter(Boolean).join(' ')
+  const fullName = fullNameOf(user)
 
   return (
     <Box
@@ -129,7 +130,7 @@ export default function DesktopSidebar({ onLogout }) {
 
       <Box
         {...clickableProps(onLogout)}
-        aria-label="Çıkış Yap"
+        aria-label="Çıkış yap"
         sx={{
           ...rowSx,
           color: 'text.secondary',
@@ -137,7 +138,7 @@ export default function DesktopSidebar({ onLogout }) {
         }}
       >
         <LogoutRounded sx={{ fontSize: 22 }} />
-        <Typography sx={{ fontSize: '0.95rem', fontWeight: 700 }}>Çıkış Yap</Typography>
+        <Typography sx={{ fontSize: '0.95rem', fontWeight: 700 }}>Çıkış yap</Typography>
       </Box>
     </Box>
   )

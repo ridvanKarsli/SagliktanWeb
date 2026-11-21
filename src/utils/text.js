@@ -7,5 +7,7 @@ export function truncate(text = '', max = 140) {
 
 // Ad + soyadı tek bir görünen isimde birleştirir.
 export function fullNameOf(person, fallback = '') {
-  return [person?.firstName, person?.lastName].filter(Boolean).join(' ').trim() || fallback
+  // Takma ad yalnızca kişinin kendi kaydında döner; başkaları için sunucu
+  // takma adı zaten firstName alanında gönderir.
+  return (person?.nickname || [person?.firstName, person?.lastName].filter(Boolean).join(' ')).trim() || fallback
 }

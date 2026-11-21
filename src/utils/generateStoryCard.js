@@ -1,6 +1,8 @@
 import QRCode from 'qrcode'
+import { groupIntroPath } from './slug.js'
+import { SITE_HOST, SITE_URL } from '../config/site.js'
 
-// Faz 2 adım 5: "hikaye kartı" - bir gönderiyi Instagram/WhatsApp story
+// "hikaye kartı" - bir gönderiyi Instagram/WhatsApp story
 // olarak paylaşılabilecek, Sağlıktan markalı bir görsele dönüştürür.
 // Bilerek backend'de değil, tamamen tarayıcıda (Canvas API) üretiliyor -
 // PLAN_faz2_ozellikler.md'de karar verildiği gibi, sunucu tarafında görsel
@@ -118,7 +120,13 @@ export async function generateStoryCardBlob(post) {
 
   drawBackground(ctx)
 
-  const postUrl = `https://sagliktan.com/post/${post.id}`
+  // Kart uygulama dışında paylaşılır; okutan kişi çoğunlukla üye değildir.
+  // Grup adı biliniyorsa grubun tanıtım sayfasına, gönderi bilgisini taşıyarak gider
+  // (kayıt/giriş sonrası gönderiye yönlenir); yoksa doğrudan gönderi adresi.
+  const introPath = groupIntroPath(post.diseaseGroupName)
+  const postUrl = introPath
+    ? `${SITE_URL}${introPath}?ref=post-${post.id}`
+    : `${SITE_URL}/post/${post.id}`
   const [logoImg, qrDataUrl] = await Promise.all([
     loadImage('/sagliktanLogo.png'),
     QRCode.toDataURL(postUrl, {
@@ -198,19 +206,17 @@ export async function generateStoryCardBlob(post) {
   ctx.drawImage(qrImg, qrX + qrBoxPad, qrY + qrBoxPad, qrSize, qrSize)
 
   const textX = qrX + qrBoxSize + 40
-  const textMaxWidth = WIDTH - contentX - textX
   ctx.fillStyle = COLORS.textPrimary
   ctx.font = '700 40px Inter, sans-serif'
-  ctx.fillText('Tüm hikayeyi', textX, qrY + 66)
-  ctx.fillText('okumak için', textX, qrY + 114)
+  ctx.fillText('Bu sohbete', textX, qrY + 66)
+  ctx.fillText('katılmak için', textX, qrY + 114)
   ctx.fillStyle = COLORS.primary
   ctx.font = '700 40px Inter, sans-serif'
   ctx.fillText('QR kodu okut', textX, qrY + 162)
-  void textMaxWidth // metin iki sabit kısa satıra bölündüğü için ayrıca kaydırmaya gerek kalmadı, genişlik yine de gelecekte üçüncü bir satır eklenirse hazır dursun diye tutuluyor.
 
   ctx.fillStyle = COLORS.textSecondary
   ctx.font = '400 34px Inter, sans-serif'
-  ctx.fillText('sagliktan.com', contentX, HEIGHT - 72)
+  ctx.fillText(SITE_HOST, contentX, HEIGHT - 72)
 
   return new Promise(resolve => canvas.toBlob(resolve, 'image/png', 0.95))
 }

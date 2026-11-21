@@ -123,7 +123,7 @@ export default function MessageRequests() {
   const handleCancel = async (req) => {
     const ok = await confirm(
       `${req.recipientName} kişisine gönderdiğin mesaj isteğini geri çekmek istediğine emin misin?`,
-      { title: 'İsteği geri çek', confirmLabel: 'Geri Çek' }
+      { title: 'İsteği geri çek', confirmLabel: 'Geri çek' }
     )
     if (!ok) return
     act(req, () => cancelMessageRequest(token, req.id), {
@@ -186,7 +186,7 @@ export default function MessageRequests() {
                         Reddet
                       </Button>
                       <Button variant="contained" disabled={busy} onClick={() => handleAccept(r)}>
-                        {busy ? <SaglikLoader size="sm" color="inherit" /> : 'Kabul Et'}
+                        {busy ? <SaglikLoader size="sm" color="inherit" /> : 'Kabul et'}
                       </Button>
                     </Stack>
                   ) : (
@@ -194,7 +194,7 @@ export default function MessageRequests() {
                       variant="outlined" color="error" disabled={busy} onClick={() => handleCancel(r)}
                       sx={{ alignSelf: { xs: 'stretch', sm: 'center' } }}
                     >
-                      {busy ? <SaglikLoader size="sm" color="inherit" /> : 'Geri Çek'}
+                      {busy ? <SaglikLoader size="sm" color="inherit" /> : 'Geri çek'}
                     </Button>
                   )}
                 </RequestRow>

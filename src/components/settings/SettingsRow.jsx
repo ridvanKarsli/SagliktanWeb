@@ -3,7 +3,7 @@ import { ChevronRightRounded } from '@mui/icons-material'
 import { radius } from '../../design/tokens.js'
 import SaglikLoader from '../common/SaglikLoader.jsx'
 
-// Ayarlar listesindeki tek satırlık eylem (ör. "Şifre Değiştir", "Çıkış Yap").
+// Ayarlar listesindeki tek satırlık eylem (ör. "Şifre Değiştir", "Çıkış yap").
 // open verilirse altında açılan bir panelin başlığıdır (aria-expanded);
 // loading sürerken tıklanamaz. hint: etiketin altında kısa açıklama.
 export default function SettingsRow({ icon, label, hint, onClick, danger = false, open, loading = false }) {

@@ -38,7 +38,7 @@ Kullanım ve işlem güvenliği: tepkileriniz, bildirimleriniz, şikayetleriniz,
     title: '5. Hukuki Sebepler',
     body: `Kimlik, iletişim ve hesap verileriniz KVKK m.5/2-c (üyelik sözleşmesinin kurulması ve ifası), güvenlik kayıtları m.5/2-ç (hukuki yükümlülük) ve m.5/2-f (meşru menfaat) kapsamında işlenir.
 
-Sağlık durumunuza ilişkin veriler KVKK m.6 uyarınca yalnızca açık rızanıza dayanılarak işlenir. Açık rıza, kayıt sırasında aydınlatma onayından ayrı bir onayla alınır ve veri işleme şartı olarak başka bir işlemle birlikte dayatılmaz.`
+Sağlık durumunuza ilişkin veriler KVKK m.6 uyarınca yalnızca açık rızanıza dayanılarak işlenir. Açık rıza, aydınlatma onayından ayrı bir onayla alınır ve hesap açmanın şartı değildir: rıza vermeden de hesap açabilir ve paylaşımları okuyabilirsiniz. Gruba katılmak, gönderi ve yorum yazmak ya da mesaj göndermek için rızanız istenir. Her rıza verişiniz ve geri alışınız tarihiyle birlikte kayıt altına alınır.`
   },
   {
     title: '6. Verilerin Aktarılması',
@@ -52,7 +52,7 @@ Hizmetin sunulabilmesi için, yalnızca gerekli ölçüde ve yurt dışında bul
 
 Yurt dışına aktarım KVKK m.9 uyarınca, kanunda öngörülen uygun güvencelere (standart sözleşme) ve ayrıca bu metindeki açık rızanıza dayanılarak yapılır.
 
-Hastalık grubuna katıldığınızda adınız o gruptaki diğer üyelere, paylaştığınız gönderi ve yorumlar ise üyesi olduğunuz topluluktaki diğer kullanıcılara görünür. Profilinizi kapattığınızda diğer üyeler yalnızca adınızı görür. Yetkili kamu kurum ve kuruluşlarına, mevzuatın zorunlu kıldığı hâllerde ve yalnızca talep edilen ölçüde bilgi verilir.`
+Hastalık grubuna katıldığınızda görünen adınız (takma ad belirlediyseniz yalnızca takma adınız, belirlemediyseniz adınız ve soyadınız) o gruptaki diğer üyelere, paylaştığınız gönderi ve yorumlar ise üyesi olduğunuz topluluktaki diğer kullanıcılara görünür. Profilinizi kapattığınızda diğer üyeler yalnızca görünen adınızı görür. Takma ad kullandığınızda adınız ve soyadınız diğer üyelere gösterilmez ve aramada çıkmaz. Yetkili kamu kurum ve kuruluşlarına, mevzuatın zorunlu kıldığı hâllerde ve yalnızca talep edilen ölçüde bilgi verilir.`
   },
   {
     title: '7. Saklama Süresi',

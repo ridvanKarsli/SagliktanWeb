@@ -2,6 +2,7 @@ import { Box, ButtonBase, Typography } from '@mui/material'
 import { EditRounded } from '@mui/icons-material'
 import UserAvatar from './avatars/UserAvatar.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
+import { fullNameOf } from '../utils/text.js'
 import { focusRingSx } from '../design/focus.js'
 
 export const DEFAULT_COMPOSER_HINT = 'Bugün nasılsın? Bir deneyim, bir soru ya da küçük bir sevinç…'
@@ -11,7 +12,7 @@ export const DEFAULT_COMPOSER_HINT = 'Bugün nasılsın? Bir deneyim, bir soru y
 // (klavye + ekran okuyucu); erişilebilir adı görünen davet cümlesidir.
 export default function ComposerPrompt({ onClick, hint = DEFAULT_COMPOSER_HINT, sx }) {
   const { user } = useAuth()
-  const name = [user?.firstName, user?.lastName].filter(Boolean).join(' ')
+  const name = fullNameOf(user)
   return (
     <ButtonBase
       onClick={onClick}

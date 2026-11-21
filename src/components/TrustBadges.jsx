@@ -3,7 +3,7 @@ import { LockRounded, VerifiedUserOutlined } from '@mui/icons-material'
 
 // E-devlet esintili "algısal güven" satırı - kayıt/giriş formları ve genel
 // footer'da tekrarlanan iki sade rozet: bağlantı güvenliği + KVKK uyumu.
-// Somut/abartısız ifadeler bilerek seçildi (bkz. görev #301: "e-devlet kadar
+// Somut/abartısız ifadeler bilerek seçildi ("e-devlet kadar
 // güvenilir" hissi resmi ve ölçülü bir dil ister, pazarlama sloganı değil).
 export default function TrustBadges({ align = 'center', size = 'small' }) {
   const iconSize = size === 'small' ? 15 : 17

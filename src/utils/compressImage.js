@@ -1,4 +1,4 @@
-// Faz 2 adım 4: gönderi fotoğrafları yüklenmeden önce tarayıcıda otomatik
+// Gönderi fotoğrafları yüklenmeden önce tarayıcıda otomatik
 // olarak yeniden boyutlandırılıp sıkıştırılıyor (bkz.
 // PLAN_faz2_ozellikler.md adım 4) - hem R2 depolama maliyetini hem
 // yükleme/gösterim süresini düşürür, backend'e ekstra iş bindirmez.

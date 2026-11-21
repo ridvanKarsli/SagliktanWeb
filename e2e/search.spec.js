@@ -28,7 +28,7 @@ test.describe('Gelişmiş arama', () => {
     // "visible") kalmaya devam ediyor. Öneri kutusundaki post başlığı body2
     // (<p>) iken asıl sonuç kartındaki başlık subtitle1 (<h6>) - heading
     // rolüyle hedefleyince bu görünmez-ama-DOM'da-duran kopya sorunu ortadan
-    // kalkıyor (bkz. E2E #8).
+    // kalkıyor.
     await expect(page.getByRole('heading', { name: `${uniqueWord} başlığı` })).toBeVisible()
 
     await page.getByRole('heading', { name: `${uniqueWord} başlığı` }).click()

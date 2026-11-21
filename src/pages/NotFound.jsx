@@ -2,8 +2,8 @@ import { Box, Button, Stack, Typography } from '@mui/material'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 
-// Gerçek 404 sayfası. Önceden "*" rotası WelcomeScreen'i (Giriş Yap /
-// Kayıt Ol pazarlama sayfası) gösteriyordu - oturumu AÇIK bir kullanıcı
+// Gerçek 404 sayfası. Önceden "*" rotası WelcomeScreen'i (Giriş yap /
+// Kayıt ol pazarlama sayfası) gösteriyordu - oturumu AÇIK bir kullanıcı
 // yanlış bir linke tıkladığında oturumunun düştüğünü sanıyordu.
 export default function NotFound() {
   const navigate = useNavigate()

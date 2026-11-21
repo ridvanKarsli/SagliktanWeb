@@ -116,7 +116,7 @@ export default function ForgotPassword() {
         <Typography variant="body2" sx={{ color: 'text.secondary' }}>
           Şifreni hatırladın mı?{' '}
           <Link component={RouterLink} to="/login" sx={{ display: 'inline-block', py: 1.5, px: 0.5, my: -1.5, mx: -0.5 }}>
-            Giriş Yap
+            Giriş yap
           </Link>
         </Typography>
       ) : null}
@@ -128,7 +128,7 @@ export default function ForgotPassword() {
         Yeni şifren kaydedildi. Artık onunla giriş yapabilirsin.
       </Typography>
       <Button variant="contained" size="large" fullWidth onClick={() => navigate('/login')}>
-        Giriş Yap
+        Giriş yap
       </Button>
     </Box>
   ) : step === 'request' ? (

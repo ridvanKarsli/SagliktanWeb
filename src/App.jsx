@@ -25,6 +25,7 @@ const AboutUs = lazy(() => import('./pages/AboutUs.jsx'))
 const CommunityGuidelines = lazy(() => import('./pages/CommunityGuidelines.jsx'))
 const Help = lazy(() => import('./pages/Help.jsx'))
 const NotFound = lazy(() => import('./pages/NotFound.jsx'))
+const GroupIntro = lazy(() => import('./pages/GroupIntro.jsx'))
 const Home = lazy(() => import('./pages/Home.jsx'))
 const DiseaseGroups = lazy(() => import('./pages/groups/DiseaseGroups.jsx'))
 const SubGroups = lazy(() => import('./pages/groups/SubGroups.jsx'))
@@ -80,6 +81,8 @@ export default function App() {
         <Route path="/hakkimizda" element={<AboutUs />} />
         <Route path="/topluluk-kurallari" element={<CommunityGuidelines />} />
         <Route path="/yardim" element={<Help />} />
+        {/* Ziyaretçilere açık grup tanıtımı: yalnızca ekip içeriği, üye gönderisi yok. */}
+        <Route path="/g/:slug" element={<GroupIntro />} />
         {/* Karşılama: tam ekran, uygulama kabuğu (alt menü) olmadan. */}
         <Route path="/hosgeldin" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
         <Route element={<ProtectedLayout />}>

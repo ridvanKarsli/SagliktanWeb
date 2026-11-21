@@ -5,7 +5,7 @@ import { radius } from '../design/tokens.js'
 
 // Gizlilik Politikası, Kullanım Şartları, Hakkımızda, Topluluk Kuralları,
 // Yardım - hepsi aynı "geri butonu + başlık + içerik" kabuğunu paylaşıyor
-// (bkz. clean-code audit konvansiyonu: tekrarlanan sayfa iskeleti tek yerde).
+//.
 export default function StaticPageShell({ title, subtitle, children, maxWidth = 'md' }) {
   const navigate = useNavigate()
 

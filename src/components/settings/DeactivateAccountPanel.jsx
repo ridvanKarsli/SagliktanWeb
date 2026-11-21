@@ -28,7 +28,7 @@ export default function DeactivateAccountPanel({ onCancel }) {
     setDeactivating(true)
     try {
       await deactivateAccount(token, password)
-      showSuccess('Hesabınız deaktive edildi.')
+      showSuccess('Hesabın kapatıldı.')
       await logout()
       navigate('/')
     } catch (err) {

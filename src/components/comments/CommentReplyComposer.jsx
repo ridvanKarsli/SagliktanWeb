@@ -9,10 +9,16 @@ function ReplyForm({ authorName, isMobile, open, submitting, text, errorText, on
   const counter = counterText(text, COMMENT_MAX_LENGTH)
   return (
     <Stack spacing={1.5}>
+      {/* Kime yazıldığı her zaman görünür (mobilde çekmecenin başlığı aynı işi görür). */}
+      {!isMobile && (
+        <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary' }}>
+          {authorName} kişisine yanıt yazıyorsun
+        </Typography>
+      )}
       <TextField
         value={text}
         onChange={e => onTextChange(clampLength(e.target.value, COMMENT_MAX_LENGTH))}
-        placeholder={`${authorName} kişisine yanıt yaz…`}
+        placeholder="Yanıtını yaz…"
         multiline
         minRows={isMobile ? 3 : 2}
         maxRows={8}

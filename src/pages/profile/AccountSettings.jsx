@@ -140,7 +140,7 @@ export default function AccountSettings() {
                 <ActiveSessionsPanel />
               </ExpandableSettingsRow>
               <SettingsRow icon={<FileDownloadOutlined sx={ICON_SX} />} label="Verilerimi İndir" hint="Paylaşımların ve bilgilerin tek bir dosyada" loading={exporting} onClick={exportData} />
-              <SettingsRow icon={<LogoutRounded sx={ICON_SX} />} label="Çıkış Yap" onClick={handleLogout} />
+              <SettingsRow icon={<LogoutRounded sx={ICON_SX} />} label="Çıkış yap" onClick={handleLogout} />
             </Stack>
           </SettingsCard>
         </SettingsSection>

@@ -8,13 +8,14 @@ import {
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useNotification } from '../context/NotificationContext.jsx'
-import { completeOnboarding, joinDiseaseGroup, listDiseaseGroups } from '../services/api.js'
+import { completeOnboarding, joinDiseaseGroup, listDiseaseGroups, HEALTH_CONSENT_REQUIRED_EVENT } from '../services/api.js'
 import { fetchMyGroups, invalidateMyGroups } from '../services/myGroups.js'
 import NewPostDialog from '../components/NewPostDialog.jsx'
-import LeafBurst from '../components/celebration/LeafBurst.jsx'
 import { LIMITS, filterPrefixFirst } from '../utils/validation.js'
 import { radius } from '../design/tokens.js'
 import '../styles/motion.css'
+import { takeAfterAuthPath } from '../utils/afterAuth.js'
+import ConsentGate from '../components/ConsentGate.jsx'
 import SaglikLoader from '../components/common/SaglikLoader.jsx'
 
 // Rol, şehir ve görünürlük artık kayıt formunda soruluyor (Ayarlar'dan da
@@ -77,7 +78,6 @@ export default function Onboarding() {
   const [query, setQuery] = useState('')
   const [busy, setBusy] = useState(false)
   const [composerOpen, setComposerOpen] = useState(false)
-  const [burst, setBurst] = useState(0)
 
   useEffect(() => {
     if (!token) return
@@ -135,16 +135,24 @@ export default function Onboarding() {
   }
 
   const next = async () => {
+    // Gruba katılmak sağlık verisi açık rızası gerektirir. Rıza yoksa önce
+    // rıza penceresi açılır; kişi rıza verip aynı düğmeye yeniden basar ya da
+    // grup seçmeden "Şimdilik geç" ile ilerler.
+    const wantsToJoin = [...selected].some(id => !joinedIds.has(id))
+    if (wantsToJoin && !user?.healthConsent) {
+      window.dispatchEvent(new Event(HEALTH_CONSENT_REQUIRED_EVENT))
+      return
+    }
     setBusy(true)
     await joinSelected()
     setBusy(false)
     if (!(await finish())) return
-    setBurst(Date.now())
     setStep(s => Math.min(s + 1, STEPS.length - 1))
   }
 
   const skipAll = async () => {
-    if (await finish()) navigate('/home', { replace: true })
+    // Paylaşım bağlantısıyla gelindiyse karşılamadan sonra o gönderiye dön.
+    if (await finish()) navigate(takeAfterAuthPath() || '/home', { replace: true })
   }
 
   const newGroups = selected.size - joinedIds.size
@@ -154,7 +162,7 @@ export default function Onboarding() {
 
   return (
     <Box sx={{ minHeight: '100dvh', bgcolor: 'background.default', display: 'flex', flexDirection: 'column' }}>
-      <LeafBurst trigger={burst} />
+      <ConsentGate />
       {/* Üst bar */}
       <Box sx={{ position: 'sticky', top: 0, zIndex: 2, bgcolor: 'background.default', pt: 'env(safe-area-inset-top)' }}>
         <Stack direction="row" alignItems="center" sx={{ px: 1, py: 1, maxWidth: 640, mx: 'auto', width: '100%', minHeight: 60 }}>
@@ -257,7 +265,7 @@ export default function Onboarding() {
               <Button
                 variant={joinedIds.size > 0 ? 'outlined' : 'contained'}
                 size="large"
-                onClick={() => navigate('/home', { replace: true })}
+                onClick={() => navigate(takeAfterAuthPath() || '/home', { replace: true })}
               >
                 Akışa git
               </Button>

@@ -1,5 +1,5 @@
 // Basit, bağımlılıksız şifre gücü sezgiseli (zxcvbn gibi ağır bir kütüphane
-// eklemeden - bkz. görev #304: sadece kullanıcıya kaba bir geri bildirim
+// eklemeden: sadece kullanıcıya kaba bir geri bildirim
 // vermek yeterli, kriptografik bir değerlendirme değil). 0-4 arası puan
 // döner; her biri bir çeşitlilik/uzunluk kriterine karşılık gelir.
 export function getPasswordStrength(password) {

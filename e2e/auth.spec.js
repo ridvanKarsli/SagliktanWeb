@@ -25,7 +25,7 @@ test.describe('Kayıt ve giriş', () => {
 
     await page.getByTestId('login-email').fill(user.email)
     await page.getByTestId('login-password').fill('yanlis-sifre-123')
-    await page.getByRole('button', { name: 'Giriş Yap' }).click()
+    await page.getByRole('button', { name: 'Giriş yap' }).click()
 
     await expect(page.getByText(/E-posta veya şifre hatalı/)).toBeVisible()
     await expect(page).toHaveURL(/\/login$/)

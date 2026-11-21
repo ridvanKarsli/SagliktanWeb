@@ -1,11 +1,12 @@
 import { Accordion, AccordionDetails, AccordionSummary, Box, Button, Typography } from '@mui/material'
 import { ExpandMore, Email } from '@mui/icons-material'
+import { CRISIS_LINE } from '../config/site.js'
 import StaticPageShell from '../components/StaticPageShell.jsx'
 
 const faqs = [
   {
     q: 'Şifremi unuttum, ne yapmalıyım?',
-    a: 'Giriş ekranındaki "Şifremi Unuttum" bağlantısına tıklayıp e-posta adresinizi girerek şifre sıfırlama bağlantısı alabilirsiniz.'
+    a: 'Giriş ekranındaki "Şifremi unuttum" bağlantısına tıklayıp e-posta adresinizi girerek şifre sıfırlama bağlantısı alabilirsiniz.'
   },
   {
     q: 'Verilerimi nasıl indirebilirim?',
@@ -25,7 +26,7 @@ const faqs = [
   },
   {
     q: 'Bazı gönderilerde uyarı/bilgi kutusu görüyorum, bu ne anlama geliyor?',
-    a: 'Kriz sinyali içerebilecek paylaşımların yanına, sizi desteklemek amacıyla destekleyici kaynaklara (örn. 182 Sosyal Destek Hattı) yönlendiren bir bilgi notu ekleriz. Bu, paylaşımın engellendiği anlamına gelmez.'
+    a: `Kriz sinyali içerebilecek paylaşımların yanına, sizi desteklemek amacıyla destekleyici kaynaklara (${CRISIS_LINE.name}) yönlendiren bir bilgi notu ekleriz. Bu, paylaşımın engellendiği anlamına gelmez.`
   },
   {
     q: 'Platformdaki bilgiler tıbbi tavsiye yerine geçer mi?',

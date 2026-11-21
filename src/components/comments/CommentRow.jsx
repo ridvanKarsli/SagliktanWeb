@@ -200,7 +200,7 @@ export default function CommentRow({
                 variant="body1"
                 sx={{
                   whiteSpace: 'pre-line', wordBreak: 'break-word', lineHeight: 1.5,
-                  fontSize: isReply ? '0.9375rem' : '1rem',
+                  fontSize: isReply ? '1rem' : '1.0625rem',
                   ...(isDeleted ? { fontStyle: 'italic', color: 'text.secondary' } : {})
                 }}
               >
@@ -235,7 +235,7 @@ export default function CommentRow({
                       startIcon={acceptPending ? <SaglikLoader size={16} /> : (accepted ? null : <TaskAltRounded sx={{ fontSize: '16px !important' }} />)}
                       sx={{ color: accepted ? 'text.secondary' : 'primary.main', minHeight: 44, px: 1.25 }}
                     >
-                      {accepted ? 'Seçimi kaldır' : 'En iyi cevap'}
+                      {accepted ? 'Seçimi kaldır' : 'En iyi cevap seç'}
                     </Button>
                   )}
                 </Stack>
@@ -252,7 +252,7 @@ export default function CommentRow({
                   sx={{ color: 'primary.main', minHeight: 44, px: 1.25, ml: -1.25 }}
                   aria-expanded={expanded}
                 >
-                  {expanded ? 'Yanıtları gizle' : `${replyCount} yanıt`}
+                  {expanded ? 'Yanıtları gizle' : `${replyCount} yanıtı gör`}
                 </Button>
               )}
             </>

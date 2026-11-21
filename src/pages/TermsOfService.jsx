@@ -2,13 +2,16 @@ import StaticPageShell from '../components/StaticPageShell.jsx'
 import StaticPageSections from '../components/StaticPageSections.jsx'
 
 // NOT: Bu metin bir taslaktır, KVKK Aydınlatma Metni ile aynı statüde -
-// hukuki inceleme bekliyor (bkz. proje görev listesi #167). Standart bir
+// hukuki inceleme bekliyor. Standart bir
 // topluluk platformu kullanım şartları çerçevesi izler, platformun gerçek
 // davranışını (moderasyon, içerik sahipliği, hesap silme) yansıtır.
+// Metin her değiştiğinde elle güncellenir (sayfanın açıldığı gün değil).
+const LAST_UPDATED = '21 Kasım 2026'
+
 const sections = [
   {
     title: '1. Kabul',
-    body: `Sağlıktan'a ("Platform") kayıt olarak veya Platform'u kullanarak bu Kullanım Şartları'nı kabul etmiş sayılırsınız. Şartları kabul etmiyorsanız Platform'u kullanmamalısınız.`
+    body: `Sağlıktan'a ("Platform") kayıt olurken bu Kullanım Şartları'nı okuyup kabul edersiniz. Platform yalnızca 18 yaşını doldurmuş kişiler içindir. Şartları kabul etmiyorsanız Platform'a kayıt olmamalısınız.`
   },
   {
     title: '2. Hizmetin Tanımı',
@@ -50,7 +53,7 @@ Bu kuralları ihlal eden içerikler kaldırılabilir, hesabınız askıya alına
   },
   {
     title: '10. Değişiklikler',
-    body: `Bu şartları zaman zaman güncelleyebiliriz. Önemli değişikliklerde sizi bilgilendireceğiz. Güncellemelerden sonra Platform'u kullanmaya devam etmeniz, güncel şartları kabul ettiğiniz anlamına gelir.`
+    body: `Bu şartları zaman zaman güncelleyebiliriz. Önemli değişikliklerde sizi önceden bilgilendirir, gerektiğinde onayınızı yeniden alırız. Değişikliği kabul etmezseniz hesabınızı Ayarlar'dan istediğiniz zaman kapatabilirsiniz.`
   },
   {
     title: '11. Uygulanacak Hukuk',
@@ -66,7 +69,7 @@ export default function TermsOfService() {
   return (
     <StaticPageShell
       title="Kullanım Şartları"
-      subtitle={`Son güncelleme: ${new Date().toLocaleDateString('tr-TR', { year: 'numeric', month: 'long', day: 'numeric' })}`}
+      subtitle={`Son güncelleme: ${LAST_UPDATED}`}
     >
       <StaticPageSections sections={sections} />
     </StaticPageShell>

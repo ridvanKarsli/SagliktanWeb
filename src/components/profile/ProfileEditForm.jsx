@@ -8,13 +8,14 @@ import { updateProfile } from '../../services/api.js'
 import { useFormValidation } from '../../hooks/useFormValidation.js'
 import {
   LIMITS, bioError, cityError, cleanLine, cleanText, clampLength, counterText, fieldErrorsFrom, isAtLimit,
-  nameError, normalizeCity
+  nameError, nicknameError, normalizeCity
 } from '../../utils/validation.js'
 import SaglikLoader from '../common/SaglikLoader.jsx'
 
 const fieldsFrom = (user) => ({
   firstName: user?.firstName || '',
   lastName: user?.lastName || '',
+  nickname: user?.nickname || '',
   bio: user?.bio || '',
   // Listede olmayan eski değerler ("Yurt dışı", serbest metin) boş sayılır.
   city: normalizeCity(user?.city),
@@ -24,6 +25,8 @@ const fieldsFrom = (user) => ({
 const cleaned = (f) => ({
   firstName: cleanLine(f.firstName),
   lastName: cleanLine(f.lastName),
+  // Boş gönderilirse takma ad kaldırılır.
+  nickname: cleanLine(f.nickname),
   bio: cleanText(f.bio),
   city: normalizeCity(f.city),
 })
@@ -31,6 +34,7 @@ const cleaned = (f) => ({
 const validate = (f) => ({
   firstName: nameError(f.firstName, 'first'),
   lastName: nameError(f.lastName, 'last'),
+  nickname: nicknameError(f.nickname),
   city: cityError(f.city),
   bio: bioError(f.bio),
 })
@@ -59,7 +63,7 @@ export default function ProfileEditForm({ onDone }) {
     setSaving(true)
     try {
       await updateProfile(token, next)
-      updateLocalUser({ ...next, city: next.city || null })
+      updateLocalUser({ ...next, city: next.city || null, nickname: next.nickname || null })
       showSuccess('Profil güncellendi.')
       onDone()
     } catch (err) {
@@ -90,6 +94,13 @@ export default function ProfileEditForm({ onDone }) {
             fullWidth required autoComplete="family-name" slotProps={{ htmlInput: nameInputProps }}
           />
         </Stack>
+        <TextField
+          label="Takma ad (isteğe bağlı)" value={fields.nickname} onChange={e => set('nickname')(e.target.value)}
+          {...v.field('nickname')}
+          helperText={v.error('nickname') || 'Yazarsan diğer üyeler adın ve soyadın yerine yalnızca bunu görür. Boş bırakırsan adın görünür.'}
+          fullWidth autoComplete="nickname" placeholder="Örn. Umutlu Yolcu"
+          slotProps={{ htmlInput: { maxLength: LIMITS.NICKNAME_MAX, autoCorrect: 'off', spellCheck: false, enterKeyHint: 'next' } }}
+        />
         <CityField
           value={fields.city} onChange={set('city')} label="Yaşadığın şehir"
           {...v.field('city')} helperText={v.error('city')}

@@ -24,8 +24,9 @@ const typography = {
   subtitle2: { fontSize: '0.9375rem', fontWeight: 700, lineHeight: 1.5 },
   body1: { fontSize: '1.0625rem', fontWeight: 500, lineHeight: 1.7 },
   body2: { fontSize: '0.9375rem', fontWeight: 500, lineHeight: 1.65 },
-  caption: { fontSize: '0.8125rem', fontWeight: 600, lineHeight: 1.5 },
-  overline: { fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'none' },
+  // En küçük yazı 14px: az gören üyeler için daha küçüğü kullanılmaz.
+  caption: { fontSize: '0.875rem', fontWeight: 600, lineHeight: 1.5 },
+  overline: { fontSize: '0.875rem', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'none' },
   button: { textTransform: 'none', fontWeight: 800, letterSpacing: '0.005em' },
 }
 
@@ -111,8 +112,8 @@ function buildTheme(mode) {
           },
           containedPrimary: {
             backgroundColor: c.primary,
-            boxShadow: `0 6px 16px ${alpha(c.primary, 0.28)}`,
-            '&:hover': { backgroundColor: c.primaryDeep, boxShadow: `0 8px 20px ${alpha(c.primary, 0.32)}` },
+            boxShadow: 'none',
+            '&:hover': { backgroundColor: c.primaryDeep, boxShadow: 'none' },
           },
           containedSecondary: {
             color: '#173530',
@@ -168,8 +169,10 @@ function buildTheme(mode) {
             backgroundColor: c.surfaceAlt,
             fontSize: '1.0625rem',
             transition: `background-color ${motion.fast}ms ease, box-shadow ${motion.base}ms ease`,
-            '& fieldset': { borderColor: 'transparent', borderWidth: 1.5 },
-            '&:hover fieldset': { borderColor: c.borderStrong },
+            // Kenar her zaman görünür: alanı yalnızca dolgu rengiyle ayırmak
+            // az gören kullanıcı için yeterli kontrastı (3:1) sağlamıyor.
+            '& fieldset': { borderColor: c.inkMuted, borderWidth: 1.5 },
+            '&:hover fieldset': { borderColor: c.inkSoft },
             '&.Mui-focused': { backgroundColor: c.surface, boxShadow: `0 0 0 4px ${alpha(c.primaryBright, 0.18)}` },
             '&.Mui-focused fieldset': { borderColor: c.primary, borderWidth: 2 },
             '&.Mui-error fieldset': { borderColor: c.rose },

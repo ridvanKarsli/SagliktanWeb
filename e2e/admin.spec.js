@@ -146,8 +146,8 @@ test.describe('Admin paneli', () => {
     // NOT: silme sonrası tablo, ContentTab'in kendi reload GET isteği
     // tamamlanınca güncelleniyor - "Silindi." toast'ı bu isteği beklemeden
     // hemen görünür olduğundan, satırın kaybolmasını doğrudan kontrol etmek
-    // yerine önce reload isteğinin bitmesini bekliyoruz (bkz. E2E #9 teşhis
-    // raporu - bu bekleme olmadan negatif assertion zaman zaman raced).
+    // yerine önce reload isteğinin bitmesini bekliyoruz
+    // (bu bekleme olmadan negatif kontrol zaman zaman yarışa düşüyordu).
     const [reloadResponse] = await Promise.all([
       adminPage.waitForResponse(res => res.url().includes('/api/admin/posts') && res.request().method() === 'GET'),
       confirmDialog.getByRole('button', { name: 'Sil', exact: true }).click(),
@@ -187,7 +187,7 @@ test.describe('Admin paneli', () => {
     // aksi halde "Grubu Sil" alt string'i hem AccordionSummary'nin tüm
     // içeriği birleştiren erişilebilir adına ("... Grubu Düzenle Grubu Sil")
     // hem de "Alt Grubu Sil" butonuna substring olarak eşleşip strict-mode
-    // violation'a düşüyor (bkz. E2E #9 teşhis raporu).
+    // violation'a düşüyor.
     const groupRow = page.locator('.MuiAccordion-root').filter({ hasText: groupName })
     await groupRow.getByRole('button', { name: 'Grubu Sil', exact: true }).click()
     const confirmDialog = page.getByRole('dialog')

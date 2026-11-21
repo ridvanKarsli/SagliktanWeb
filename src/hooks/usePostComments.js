@@ -16,6 +16,9 @@ import { cleanText, commentError, fieldErrorsFrom } from '../utils/validation.js
 //
 // onCountChange(delta): yorum/yanıt eklenince (+1) ya da silinince (-1)
 // gönderinin toplam yorum sayısını güncellemek için.
+// Bu sayıya kadar yanıtı olan yorumların yanıtları açık gelir.
+const AUTO_OPEN_MAX_REPLIES = 3
+
 export function usePostComments(postId, { onCountChange } = {}) {
   const { token } = useAuth()
   const { showError, showSuccess } = useNotification()
@@ -42,6 +45,25 @@ export function usePostComments(postId, { onCountChange } = {}) {
   const onCountChangeRef = useRef(onCountChange)
   useEffect(() => { onCountChangeRef.current = onCountChange }, [onCountChange])
 
+  // Az yanıtı olan yorumların yanıtları kendiliğinden açık gelir: kullanıcı
+  // bir-iki yanıtı görmek için ayrıca dokunmak zorunda kalmaz. Uzun yanıt
+  // zincirleri kapalı kalır ve "N yanıtı gör" ile açılır.
+  const openShortThreads = useCallback((list, seq) => {
+    const blank = { replies: [], page: 0, last: true, expanded: false, loading: false, loadingMore: false }
+    list
+      .filter(c => !c.deleted && c.replyCount > 0 && c.replyCount <= AUTO_OPEN_MAX_REPLIES)
+      .forEach(c => {
+        listCommentReplies(token, c.id, { page: 0 })
+          .then(res => {
+            if (seq !== loadSeqRef.current) return
+            setThreads(prev => (prev[c.id]
+              ? prev
+              : { ...prev, [c.id]: { ...blank, replies: Array.isArray(res?.content) ? res.content : [], last: res?.last ?? true, expanded: true } }))
+          })
+          .catch(() => { /* açılamazsa yorumun altındaki "yanıtı gör" düğmesi kalır */ })
+      })
+  }, [token])
+
   const loadComments = useCallback(() => {
     if (!token || !postId) return
     controllerRef.current?.abort()
@@ -54,12 +76,14 @@ export function usePostComments(postId, { onCountChange } = {}) {
     listComments(token, postId, { page: 0, signal: controller.signal })
       .then(res => {
         if (seq !== loadSeqRef.current) return
-        setComments(Array.isArray(res?.content) ? res.content : [])
+        const list = Array.isArray(res?.content) ? res.content : []
+        setComments(list)
         setLast(res?.last ?? true)
+        openShortThreads(list, seq)
       })
       .catch(err => { if (seq === loadSeqRef.current && !isAbortError(err)) showError(err.message || 'Yorumlar alınamadı.') })
       .finally(() => { if (seq === loadSeqRef.current) setCommentsLoading(false) })
-  }, [token, postId, showError])
+  }, [token, postId, showError, openShortThreads])
 
   const invalidatePending = useCallback(() => {
     loadSeqRef.current += 1
@@ -184,12 +208,20 @@ export function usePostComments(postId, { onCountChange } = {}) {
     })
   }, [])
 
-  const submitReply = async (parentComment, content) => {
-    await createComment(token, postId, content, parentComment.id)
-    patchEverywhere(parentComment.id, c => ({ ...c, replyCount: (c.replyCount ?? 0) + 1 }))
+  // Yanıtlar tek düzeydir: bir yanıta yanıt yazılırsa o da aynı ana yorumun
+  // altına düşer ve kime yazıldığı metnin başındaki "@Ad" ile belli olur.
+  // Böylece yeni yanıt her zaman görünür yerde, ana yorumun altında belirir.
+  const submitReply = async (target, content) => {
+    const root = comments.find(c => c.id === target.parentCommentId) || target
+    const mention = `@${target.authorName}`
+    const text = root.id !== target.id && target.authorName && !content.startsWith(mention)
+      ? `${mention} ${content}`
+      : content
+    await createComment(token, postId, text, root.id)
+    patchEverywhere(root.id, c => ({ ...c, replyCount: (c.replyCount ?? 0) + 1 }))
     onCountChangeRef.current?.(1)
-    // Yeni yanıt hemen görünsün: ebeveynin bloğunu taze veriyle aç.
-    await fetchReplies(parentComment, { force: true })
+    // Yeni yanıt hemen görünsün: ana yorumun bloğunu taze veriyle aç.
+    await fetchReplies(root, { force: true })
   }
 
   const saveCommentUpdate = (updated) => {

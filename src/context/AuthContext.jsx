@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState, useCal
 import { loginUser, registerUser, getUserProfile, refreshToken as refreshTokenApi, logoutUser } from '../services/api.js'
 import { clearRecentSearches } from '../utils/recentSearches.js'
 import { clearMyGroups } from '../services/myGroups.js'
+import { clearSessionPreferences } from '../utils/afterAuth.js'
 import { invalidateListCache } from '../hooks/usePaginatedList.js'
 
 // --- JWT yardımcıları (sadece expiry kontrolü için; kullanıcı bilgisi her zaman /users/me'den alınır) ---
@@ -103,6 +104,8 @@ function mapUser(u) {
     email: u.email,
     firstName: u.firstName,
     lastName: u.lastName,
+    // Takma ad (yoksa boş): varsa diğer üyelere ad-soyad yerine bu görünür.
+    nickname: u.nickname || '',
     bio: u.bio || '',
     role: u.role,
     emailVerified: !!u.emailVerified,
@@ -193,6 +196,8 @@ export function AuthProvider({ children }) {
     // Bellekteki liste/üyelik önbellekleri de bir sonraki kullanıcıya sızmasın.
     clearMyGroups()
     invalidateListCache()
+    // Sekmeye özel tercihler de bir sonraki kullanıcıya kalmasın.
+    clearSessionPreferences()
   }, [token])
 
   // Backend e-posta doğrulaması zorunlu kılıyor: register token döndürmez.

@@ -56,7 +56,7 @@ export async function registerAndLogin(page, user) {
   // kopya oluşturuyor ve bu, CI'da (build+preview modunda, yerel dev'de
   // değil) getByLabel('İsim', {exact:true}) locator'ının doğru elemente
   // deterministik biçimde bağlanmasını engelleyip testlerin 30s'de
-  // timeout'a düşmesine sebep oluyordu (bkz. E2E #4/#5 teşhis raporları).
+  // timeout'a düşmesine sebep oluyordu.
   // data-testid, erişilebilirlik ağacı hesaplamasından tamamen bağımsız
   // ve tek anlamlı olduğu için bu sınıf soruna kapalı.
   await page.getByTestId('register-firstName').fill(user.firstName)
@@ -65,8 +65,9 @@ export async function registerAndLogin(page, user) {
   await page.getByTestId('register-password').fill(user.password)
   await page.getByTestId('register-confirmPassword').fill(user.password)
   await page.getByRole('checkbox', { name: /KVKK/ }).check()
+  await page.getByRole('checkbox', { name: /18 yaşından büyüğüm/ }).check()
   await page.getByRole('checkbox', { name: /açık rıza veriyorum/ }).check()
-  await page.getByRole('button', { name: 'Kayıt Ol' }).click()
+  await page.getByRole('button', { name: 'Kayıt ol' }).click()
 
   await expect(page.getByText('E-postanı kontrol et')).toBeVisible()
   await page.getByRole('button', { name: 'Giriş sayfasına dön' }).click()
@@ -82,7 +83,7 @@ export async function login(page, user) {
   await page.goto('/login')
   await page.getByTestId('login-email').fill(user.email)
   await page.getByTestId('login-password').fill(user.password)
-  await page.getByRole('button', { name: 'Giriş Yap' }).click()
+  await page.getByRole('button', { name: 'Giriş yap' }).click()
   // Yeni kullanıcılar önce karşılama akışına (/hosgeldin) gider - testler
   // kendi grup/gönderi kurulumunu yaptığı için akış "Şimdilik geç" ile atlanır.
   await page.waitForURL(/\/(home|hosgeldin)(\?|$)/)
@@ -99,8 +100,8 @@ export const SEED_SUB_GROUP = 'Sohbet & Sosyalleşme'
 
 // NOT: Artık sayfada TEK bir grup olduğu garanti değil - admin.spec.js'teki
 // grup CRUD testi kendi grubunu oluşturuyor (ve normalde temizliyor, ama
-// paralel çalışan/başarısız olan bir test geçici olarak ek grup bırakabilir,
-// bkz. E2E #9 teşhis raporu). Bu yüzden "Katıl" butonunu sayfa genelinde
+// paralel çalışan/başarısız olan bir test geçici olarak ek grup bırakabilir).
+// Bu yüzden "Katıl" butonunu sayfa genelinde
 // değil, SEED_GROUP başlığını içeren KART içinde arıyoruz - .tap-scale,
 // DiseaseGroups.jsx'teki her grup kartının kök elemanına ait sabit bir
 // class, kart sınırını güvenilir şekilde belirliyor.
@@ -121,8 +122,8 @@ export async function joinSeedGroup(page) {
 // yorum/yanıt aksiyonu bu abonelik kurulmadan ÖNCE backend'e ulaşırsa mesaj
 // broker tarafında sessizce kaybolur (alıcı o an "bağlı" değildir, kuyruğa
 // alınmaz) ve rozet asla "1" olmaz - bu, testin gerçek bir bug değil bir race
-// condition yüzünden flaky olmasına yol açıyordu (bkz. 2026-07-28 E2E #14
-// analizi). NotificationBell, abonelik tamamlandığında data-ws-connected
+// condition yüzünden flaky olmasına yol açıyordu.
+// NotificationBell, abonelik tamamlandığında data-ws-connected
 // attribute'unu "true" yapıyor (sadece test amaçlı, kullanıcıya görünmez) -
 // bu fonksiyon ikinci kullanıcının aksiyonundan ÖNCE bunu bekleyerek race'i
 // kökten ortadan kaldırıyor.

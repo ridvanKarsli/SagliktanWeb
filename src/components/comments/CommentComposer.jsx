@@ -6,6 +6,7 @@ import { useAuth } from '../../context/AuthContext.jsx'
 import { appendDictation } from '../../utils/speech.js'
 import { clampLength, counterText, isBlank } from '../../utils/validation.js'
 import { COMMENT_MAX_LENGTH } from './commentLimits.js'
+import { fullNameOf } from '../../utils/text.js'
 import SaglikLoader from '../common/SaglikLoader.jsx'
 
 // Gönderi altındaki yeni yorum kutusu (yazı + sesle yazma + gönder).
@@ -20,7 +21,7 @@ export default function CommentComposer({ value, onChange, onSubmit, submitting,
     <Box component="form" onSubmit={onSubmit} sx={{ mb: 1, pb: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}>
       <Stack direction="row" spacing={1} useFlexGap alignItems="flex-end">
         <UserAvatar
-          name={`${user?.firstName || ''} ${user?.lastName || ''}`}
+          name={fullNameOf(user)}
           size={40}
           sx={{ flexShrink: 0, mb: '3px', display: { xs: 'none', sm: 'flex' } }}
         />

@@ -522,8 +522,8 @@ export default function NewPostDialog({
               <InfoOutlined sx={{ fontSize: 16, mt: '2px', flexShrink: 0 }} />
               <Typography variant="caption" sx={{ lineHeight: 1.5 }}>
                 Paylaşımın kişisel deneyimin olarak görünür, tıbbi tavsiye yerine geçmez.
-                Okuyanların sana danışmadan hiçbir ilaç, tedavi ya da sağlık ürünü kullanmaması
-                gerektiğini unutma - sağlık kararları için her zaman bir uzmana danışılmalı.
+                Okuyanlar ilaç, tedavi ya da sağlık ürünü kararını doktoruyla vermeli; kimseye
+                tedavi önerme, yalnızca sana nasıl geldiğini anlat.
               </Typography>
             </Stack>
 

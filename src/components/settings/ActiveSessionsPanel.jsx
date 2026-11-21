@@ -61,7 +61,7 @@ export default function ActiveSessionsPanel() {
               onClick={() => handleRevoke(s.id)}
               sx={{ flexShrink: 0 }}
             >
-              {revokingId === s.id ? <SaglikLoader size="sm" color="inherit" /> : 'Çıkış Yap'}
+              {revokingId === s.id ? <SaglikLoader size="sm" color="inherit" /> : 'Çıkış yap'}
             </Button>
           )}
         </Stack>

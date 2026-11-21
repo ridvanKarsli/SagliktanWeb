@@ -10,7 +10,7 @@ test.describe('Gruplar, üyelik ve gönderi/yorum akışı', () => {
 
     // Sayfa "Katıldın" rozetini göstermeli, "Katıl" butonu "Ayrıl" olmalı.
     // NOT: exact:true olmadan "Gruba katıldınız." bildirim toast'ı ile de
-    // eşleşip strict-mode violation'a düşüyordu (bkz. E2E #7).
+    // eşleşip strict-mode violation'a düşüyordu.
     await expect(page.getByText('Katıldın', { exact: true })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Ayrıl' })).toBeVisible()
 
@@ -61,7 +61,7 @@ test.describe('Gruplar, üyelik ve gönderi/yorum akışı', () => {
     // "Yanıtla" yazıyor - ilki toggle, ikincisi submit (DOM sırasına göre first/last).
     await page.getByRole('button', { name: 'Yanıtla' }).first().click()
     const replyText = `Test yanıtı ${Date.now()}`
-    await page.getByPlaceholder(/kişisine yanıt yaz/).fill(replyText)
+    await page.getByPlaceholder(/Yanıtını yaz/).fill(replyText)
     await page.getByRole('button', { name: 'Yanıtla' }).last().click()
     await expect(page.getByText(replyText)).toBeVisible()
 
@@ -77,10 +77,7 @@ test.describe('Gruplar, üyelik ve gönderi/yorum akışı', () => {
     await expect(page.getByPlaceholder(/Deneyimini ya da sorunu yaz/)).toHaveCount(0)
     // Daha önce eklenen yorum/yanıt yine de herkese görünür olmalı (okuma serbest).
     await expect(page.getByText(commentText)).toBeVisible()
-    // Yanıtlar artık X/Twitter tarzı varsayılan olarak kapalı geliyor (bkz.
-    // PostDetail.jsx repliesOpen) - taze bir sayfa yüklemesinde görmek için
-    // önce "N yanıtı görüntüle" butonuna tıklamak gerekiyor.
-    await page.getByRole('button', { name: /^\d+ yanıt$/ }).click()
+    // Az yanıtı olan yorumların yanıtları açık gelir; ayrıca dokunmaya gerek yok.
     await expect(page.getByText(replyText)).toBeVisible()
   })
 
@@ -105,7 +102,7 @@ test.describe('Gruplar, üyelik ve gönderi/yorum akışı', () => {
     // URL üzerinden dönüp orada chip'i doğrudan doğruluyoruz.
     // NOT: getByText(/\d+\s*sohbet/) sayfadaki DİĞER alt grupların "0
     // sohbet" chip'leriyle de eşleşip strict-mode violation'a düşüyordu
-    // (bkz. E2E #7) - artık SEED_SUB_GROUP'a özel data-testid ile hedefliyoruz.
+    // - artık SEED_SUB_GROUP'a özel data-testid ile hedefliyoruz.
     await page.goto(groupUrl)
     await expect(page.getByTestId(`subgroup-chat-count-${SEED_SUB_GROUP}`)).toHaveText(/[1-9]\d*\s*sohbet/)
   })
